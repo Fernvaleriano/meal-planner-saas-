@@ -47,6 +47,23 @@ async function enrichExercisesWithVideos(exercises, supabase) {
   });
 }
 
+// In-memory enrichment using a pre-fetched exercise map. Used in the
+// hot path where we've already batched ALL exercise lookups across
+// every club program into a single DB call.
+function enrichExercisesFromMap(exercises, videoMap) {
+  if (!exercises || exercises.length === 0) return exercises;
+  return exercises.map(ex => {
+    if (!ex.id || !videoMap.has(ex.id)) return ex;
+    const fresh = videoMap.get(ex.id);
+    const updates = {};
+    if (fresh.thumbnail_url && fresh.thumbnail_url !== ex.thumbnail_url) updates.thumbnail_url = fresh.thumbnail_url;
+    if (fresh.video_url && !ex.video_url) updates.video_url = fresh.video_url;
+    if (fresh.animation_url && !ex.animation_url) updates.animation_url = fresh.animation_url;
+    if (Object.keys(updates).length === 0) return ex;
+    return { ...ex, ...updates };
+  });
+}
+
 exports.handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') {
     return { statusCode: 200, headers, body: '' };
@@ -95,9 +112,16 @@ exports.handler = async (event) => {
       // Transform programs into browseable workouts for clients
       // Multi-day programs are returned as a single entry with a days array
       const workouts = [];
+
+      // Pre-flatten every program into its day array so we can collect
+      // all exercise IDs across every program upfront. Previously each
+      // day did its own SELECT round-trip against `exercises`, which on
+      // a 12-program / 5-day-each library is ~60 sequential queries —
+      // enough to tip Netlify's 10s function timeout. One batched
+      // SELECT keeps total wall time flat regardless of library size.
+      const programDays = [];
+      const allExerciseIds = new Set();
       for (const program of (programs || [])) {
-        // AI-generated programs (generate-workout-claude.js) use weeks[].workouts[] structure
-        // Manual/coach programs use days[] structure. Handle both.
         let days = program.program_data?.days || [];
         if (days.length === 0 && Array.isArray(program.program_data?.weeks)) {
           // Flatten weeks[].workouts[] into a flat days-like array
@@ -113,11 +137,33 @@ exports.handler = async (event) => {
             }
           }
         }
+        for (const day of days) {
+          if (Array.isArray(day.exercises)) {
+            for (const ex of day.exercises) {
+              if (ex?.id && typeof ex.id === 'number') allExerciseIds.add(ex.id);
+            }
+          }
+        }
+        programDays.push({ program, days });
+      }
 
-        // Enrich all exercises with the latest thumbnails from the DB
+      // Single batched fetch for every exercise referenced anywhere.
+      let videoMap = new Map();
+      if (allExerciseIds.size > 0) {
+        const { data: exerciseData } = await supabase
+          .from('exercises')
+          .select('id, video_url, animation_url, thumbnail_url')
+          .in('id', [...allExerciseIds]);
+        if (exerciseData) {
+          videoMap = new Map(exerciseData.map(ex => [ex.id, ex]));
+        }
+      }
+
+      for (const { program, days } of programDays) {
+        // Enrich every day's exercises against the pre-fetched map (sync).
         for (const day of days) {
           if (day.exercises && day.exercises.length > 0) {
-            day.exercises = await enrichExercisesWithVideos(day.exercises, supabase);
+            day.exercises = enrichExercisesFromMap(day.exercises, videoMap);
           }
         }
 
