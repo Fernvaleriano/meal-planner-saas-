@@ -2621,7 +2621,17 @@ function GuidedWorkoutModal({
       (phase === 'exercise' && info.isTimed);
 
     if (!needsTimer) return;
-    if (!timer || timer <= 0) return; // Guard against zero/NaN timers
+    if (!timer || timer <= 0) {
+      // Zero-duration rest means "skip the rest" — fire the completion
+      // handler immediately so the flow advances instead of getting stuck on
+      // a 0:00 screen. Get-ready uses a hardcoded 3s and exercise-timed uses
+      // a prescribed duration that shouldn't be 0, so only the rest path
+      // legitimately reaches here with 0.
+      if (phase === 'rest' && onTimerCompleteRef.current) {
+        onTimerCompleteRef.current();
+      }
+      return;
+    }
 
     phaseMaxTimeRef.current = timer; // Track initial max for progress ring
     endTimeRef.current = Date.now() + timer * 1000;
