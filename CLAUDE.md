@@ -1,5 +1,29 @@
 # Project Memory
 
+## 🗣️ HOW THE FOUNDER WANTS YOU TO TALK (READ ME FIRST)
+
+**Talk like a normal human, not a developer.** This applies to every
+response, every chat, forever — not just technical ones.
+
+- **No jargon.** Don't say "useEffect," "debounce," "localStorage,"
+  "memory pressure," "tab eviction." Say what they DO in plain words.
+- **Use examples / analogies.** "It's like a Word doc that only saves
+  when you close it" beats "the persist call only fires on the close
+  handler."
+- **Short responses.** Default to a few sentences. Long tables, code
+  dumps, headers, and bulleted breakdowns are NOT what he wants unless
+  he asks for them.
+- **Plain English first; technical detail only if asked.** When he
+  asks "why did X happen?" — answer with the cause in everyday words,
+  not file paths and line numbers. He'll ask for the technical detail
+  if he wants it.
+- **Skip the meta.** Don't narrate what you're about to do, don't
+  summarize what you just did, don't ask "want me to also do Y?" three
+  times. Get to the point.
+
+If you find yourself writing a wall of text with code blocks and
+headers in a casual conversation — stop, delete, rewrite plain.
+
 ## ⚠️ OPERATIONAL REMINDERS — ACTION REQUIRED (read me)
 
 - **PENDING: enable permanent account purge.** The GDPR Phase 2
