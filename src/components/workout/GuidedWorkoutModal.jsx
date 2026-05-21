@@ -762,26 +762,62 @@ function GuidedWorkoutModal({
     const identity = buildResumeIdentity(clientId, selectedDate, workoutLogId, exercises);
     if (matchesResumeIdentity(saved, identity)) {
       if (autoResumeOnMount) {
-        // Soft-reset path: the parent intentionally remounted us. Skip
-        // the user-facing prompt, show a branded splash for ~500ms while
-        // we slot the state back in, then continue. Mark the prop as
-        // consumed so a real crash on the same key (rare but possible)
-        // still gets the normal prompt.
-        setResumeData(saved);
-        setShowSoftResetSplash(true);
-        if (onSoftResetConsumed) onSoftResetConsumed();
-        // Defer one tick so resumeData is committed before handleResumeAccept
-        // tries to read it.
-        setTimeout(() => {
-          handleResumeAcceptRef.current?.();
-          // Hide splash slightly after resume to mask the layout shuffle.
+        // Soft-reset path: the parent intentionally remounted us. Restore
+        // inline from `saved` (no setTimeout, no ref hop — those raced
+        // React's commit and dropped the restoration on the floor),
+        // skipping the user-facing Resume Workout prompt. Show a branded
+        // splash for ~500ms to mask the remount blink.
+        const safeExIndex = Math.min(saved.currentExIndex || 0, exercises.length - 1);
+        if (safeExIndex >= 0) {
+          setShowSoftResetSplash(true);
+          // Cancel any pending resume-save and clear storage before the
+          // restoring setStates so a debounced flush can't overwrite the
+          // just-restored state with a partial snapshot.
+          if (resumeSaveTimerRef.current) {
+            clearTimeout(resumeSaveTimerRef.current);
+            resumeSaveTimerRef.current = null;
+          }
+          clearResumeState();
+
+          setCurrentExIndex(safeExIndex);
+          setCurrentSetIndex(saved.currentSetIndex || 0);
+          setTotalElapsed(saved.totalElapsed || 0);
+
+          const restoredCompleted = {};
+          if (saved.completedSets) {
+            Object.entries(saved.completedSets).forEach(([key, arr]) => {
+              restoredCompleted[key] = new Set(arr);
+            });
+          }
+          setCompletedSets(restoredCompleted);
+
+          if (saved.setLogs) setSetLogs(saved.setLogs);
+          if (saved.skippedQueue) setSkippedQueue(saved.skippedQueue);
+          if (saved.pendingNextExIdx !== undefined) setPendingNextExIdx(saved.pendingNextExIdx);
+          if (saved.supersetState) setSupersetState(saved.supersetState);
+
+          setPhase('get-ready');
+          setTimer(5);
+          setIsPaused(false);
+
+          if (onSoftResetConsumed) onSoftResetConsumed();
+
+          // Drop splash after the next render commits so the user lands
+          // on the get-ready countdown smoothly.
           setTimeout(() => setShowSoftResetSplash(false), 500);
-        }, 0);
+        } else if (onSoftResetConsumed) {
+          onSoftResetConsumed();
+        }
       } else {
         setResumeData(saved);
         setShowResumePrompt(true);
         setIsPaused(true); // Pause until user decides
       }
+    } else if (autoResumeOnMount && onSoftResetConsumed) {
+      // Soft-reset fired but the snapshot didn't match (rare — happens
+      // if storage was wiped between flush and remount). Clear the flag
+      // so we don't leave the parent in a bad state.
+      onSoftResetConsumed();
     }
     // Surface any captured crash info from the prior session. If there's
     // no resume to show, we still load this so a standalone notice can
@@ -794,8 +830,9 @@ function GuidedWorkoutModal({
     } catch { /* ignore */ }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Ref so the soft-reset auto-resume path can call handleResumeAccept
-  // before it's declared (the const declaration is below the mount effect).
+  // Ref retained for any callers that still want to invoke the user-
+  // facing resume programmatically. The mount-time soft-reset now
+  // restores inline above.
   const handleResumeAcceptRef = useRef(null);
 
   // Handle resume acceptance
