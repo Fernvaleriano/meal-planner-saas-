@@ -2840,6 +2840,25 @@ function GuidedWorkoutModal({
     }, 500);
   };
 
+  // Autosave on every structural change (advancing set/exercise, marking
+  // sets done, skipped queue, superset cycle). Without this the resume
+  // snapshot only updates when the user TYPES in reps/weight — a user who
+  // just taps Done through the workout never writes to localStorage, so
+  // an iOS Safari tab kill leaves nothing to resume from. totalElapsed is
+  // intentionally not a dep (changes every second); it rides along via
+  // refs in the snapshot whenever a structural change fires the save.
+  const skipInitialResumeSaveRef = useRef(true);
+  useEffect(() => {
+    if (skipInitialResumeSaveRef.current) {
+      skipInitialResumeSaveRef.current = false;
+      return;
+    }
+    // Skip while the resume prompt is up — otherwise we'd overwrite the
+    // not-yet-restored saved payload with fresh-mount default state.
+    if (showResumePrompt) return;
+    scheduleResumeSave();
+  }, [currentExIndex, currentSetIndex, completedSets, skippedQueue, pendingNextExIdx, supersetState, showResumePrompt]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // --- Update set log values ---
   const updateSetLog = (field, value) => {
     setSetLogs(prev => {
