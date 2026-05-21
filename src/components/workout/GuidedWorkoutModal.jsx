@@ -782,6 +782,14 @@ function GuidedWorkoutModal({
           setCurrentExIndex(safeExIndex);
           setCurrentSetIndex(saved.currentSetIndex || 0);
           setTotalElapsed(saved.totalElapsed || 0);
+          // The displayed Total counter is computed from elapsedStartRef
+          // (Date.now() - elapsedStart) on a 1-second interval, so just
+          // calling setTotalElapsed is undone within a second. Anchor
+          // the start ref to "now minus the restored elapsed" so the
+          // ticker resumes the count from the saved second.
+          if (elapsedStartRef.current !== undefined) {
+            elapsedStartRef.current = Date.now() - (saved.totalElapsed || 0) * 1000;
+          }
 
           const restoredCompleted = {};
           if (saved.completedSets) {
@@ -860,6 +868,13 @@ function GuidedWorkoutModal({
     setCurrentExIndex(safeExIndex);
     setCurrentSetIndex(resumeData.currentSetIndex);
     setTotalElapsed(resumeData.totalElapsed || 0);
+    // Re-anchor the ticker's start reference so the displayed Total
+    // resumes from the saved second instead of jumping back to ~0
+    // on the next interval tick. (See same fix in the soft-reset
+    // auto-resume path above.)
+    if (elapsedStartRef.current !== undefined) {
+      elapsedStartRef.current = Date.now() - (resumeData.totalElapsed || 0) * 1000;
+    }
 
     // Restore completed sets (convert arrays back to Sets)
     const restoredCompleted = {};
