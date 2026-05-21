@@ -165,9 +165,18 @@ const playBufferNow = (ctx, buffer) => {
     const startAt = Math.max(now + 0.005, lastScheduledTime + 0.001);
     src.start(startAt);
     lastScheduledTime = startAt;
-    src.onended = () => {
+    let cleanedUp = false;
+    const cleanup = () => {
+      if (cleanedUp) return;
+      cleanedUp = true;
       try { src.disconnect(); } catch { /* ignore */ }
     };
+    src.onended = cleanup;
+    // Belt-and-suspenders: iOS WebKit doesn't always fire `onended` when the
+    // audio session is interrupted (TTS, incoming call, video unmute). Without
+    // a forced cleanup the source stays connected, never GCs, and over a long
+    // workout the leaked nodes accumulate until iOS kills the tab.
+    setTimeout(cleanup, Math.max(50, (DURATION + 1) * 1000));
     return true;
   } catch {
     return false;
@@ -189,9 +198,18 @@ const playOscillator = (ctx) => {
     env.connect(ctx.destination);
     osc.start(now);
     osc.stop(now + DURATION);
-    osc.onended = () => {
+    let cleanedUp = false;
+    const cleanup = () => {
+      if (cleanedUp) return;
+      cleanedUp = true;
       try { osc.disconnect(); env.disconnect(); } catch { /* ignore */ }
     };
+    osc.onended = cleanup;
+    // Belt-and-suspenders: iOS WebKit doesn't always fire `onended` when the
+    // audio session is interrupted (TTS, incoming call, video unmute). Without
+    // a forced cleanup the oscillator + gain stay connected, never GC, and
+    // over a long workout the leaked nodes accumulate until iOS kills the tab.
+    setTimeout(cleanup, Math.max(50, (DURATION + 1) * 1000));
     return true;
   } catch {
     return false;
@@ -277,9 +295,16 @@ export const playCompleteChime = () => {
       env.connect(ctx.destination);
       osc.start(startAt);
       osc.stop(startAt + dur);
-      osc.onended = () => {
+      let cleanedUp = false;
+      const cleanup = () => {
+        if (cleanedUp) return;
+        cleanedUp = true;
         try { osc.disconnect(); env.disconnect(); } catch { /* ignore */ }
       };
+      osc.onended = cleanup;
+      // Forced cleanup — see playOscillator note. iOS skips onended when the
+      // audio session is interrupted mid-chime.
+      setTimeout(cleanup, Math.max(50, (at + dur + 1) * 1000));
     });
   } catch { /* ignore */ }
 };
@@ -339,6 +364,18 @@ export const startTickKeepAlive = () => {
       src.buffer = buffer;
       src.connect(ctx.destination);
       src.start(0);
+      // 1-sample sources should end instantly, but on iOS interrupted state
+      // the node sometimes sticks. This fires ~900 times in a 30-minute
+      // workout — without a forced cleanup it's a steady drip into the
+      // memory ceiling.
+      let cleanedUp = false;
+      const cleanup = () => {
+        if (cleanedUp) return;
+        cleanedUp = true;
+        try { src.disconnect(); } catch { /* ignore */ }
+      };
+      src.onended = cleanup;
+      setTimeout(cleanup, 250);
     } catch { /* ignore */ }
   };
   keepAliveTimer = window.setInterval(tick, 2000);
