@@ -12,6 +12,20 @@ import { playTickSound, playCompleteChime, warmUpTickSound, resumeAudio, startTi
 // --- Resume helpers ---
 const RESUME_STORAGE_KEY = 'guided_workout_resume';
 
+// Video element lifecycle strategy. iOS WebKit handles a persistent <video>
+// element with src swaps more gracefully than full remount via React key
+// changes — remounting stacks decoder contexts during transitions, which is
+// fine on phones with memory headroom (17 Pro Plus survives 70+ min) but
+// pushes lower-RAM devices (13 Pro) over the per-tab ceiling sooner. Set to
+// false to share one element across exercises; true reverts to remount.
+const USE_VIDEO_KEY_REMOUNT = false;
+
+// Temporary lifecycle logging for the 13 Pro investigation. Each log line is
+// prefixed with [mem] so we can filter the noise in Safari Web Inspector
+// console. Safe to remove (or flip to false) once the test is done.
+const MEM_LOG = true;
+const memLog = (...args) => { if (MEM_LOG) try { console.log('[mem]', ...args); } catch { /* ignore */ } };
+
 // iPhone/iPad only. iOS hands the exclusive audio session to an autoplaying
 // video the instant play mode opens, killing the user's background music.
 // Android/desktop don't have this problem, so the muting below is gated to
@@ -593,6 +607,21 @@ function GuidedWorkoutModal({
     return validGroups;
   }, [exercises]);
 
+  // One-shot environment log so we can correlate any device-specific
+  // crash pattern (e.g. iPhone 13 Pro at ~24 min) with reported memory
+  // budget and UA. iOS Safari often doesn't expose deviceMemory but
+  // we log it anyway in case a future iOS version starts to.
+  useEffect(() => {
+    if (!MEM_LOG) return;
+    try {
+      memLog('mount env',
+        'deviceMemory:', (typeof navigator !== 'undefined' && navigator.deviceMemory) || 'n/a',
+        '· hwConcurrency:', (typeof navigator !== 'undefined' && navigator.hardwareConcurrency) || 'n/a',
+        '· UA:', (typeof navigator !== 'undefined' && navigator.userAgent) || 'n/a',
+        '· strategy:', USE_VIDEO_KEY_REMOUNT ? 'remount' : 'persistent');
+    } catch { /* ignore */ }
+  }, []);
+
   // Check for resume state on mount. Strict identity match (clientId +
   // dateStr + workoutLogId + exercise-id fingerprint) prevents resume state
   // from one workout being applied to a different workout that happens to
@@ -729,7 +758,10 @@ function GuidedWorkoutModal({
     }
   }, []);
 
-  // Track PiP enter/leave so the icon reflects current state
+  // Track PiP enter/leave so the icon reflects current state.
+  // currentExIndex is in the dep list because the mini-player video element
+  // is replaced when the exercise changes — without re-binding here the
+  // listeners would orphan to the old element and accumulate over a workout.
   useEffect(() => {
     const video = miniVideoRef.current;
     if (!video) return;
@@ -741,7 +773,7 @@ function GuidedWorkoutModal({
       video.removeEventListener('enterpictureinpicture', onEnter);
       video.removeEventListener('leavepictureinpicture', onLeave);
     };
-  }, [isMinimized]);
+  }, [isMinimized, currentExIndex]);
 
   // Save progress when closing mid-workout (not when completing)
   const handleCloseWithSave = useCallback(() => {
@@ -1204,7 +1236,9 @@ function GuidedWorkoutModal({
 
     fetchProgressTip();
     return () => { cancelled = true; };
-  }, [clientId, currentExercise?.id, currentExercise?.name, currentExercise?.trackingType, currentExercise?.exercise_type, currentExercise?.duration, currentExIndex, getWorkoutDateStr, progressTips, currentExercise?.sets, currentExercise?.reps]);
+  // progressTips intentionally NOT in deps — the internal `if (progressTips[currentExIndex] !== undefined) return` guard at the top of this effect already prevents the actual loop. Including it caused the effect body to re-evaluate on every setProgressTips call, allocating throwaway objects each time.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [clientId, currentExercise?.id, currentExercise?.name, currentExercise?.trackingType, currentExercise?.exercise_type, currentExercise?.duration, currentExIndex, getWorkoutDateStr, currentExercise?.sets, currentExercise?.reps]);
 
   // Handle accepting AI recommendation - applies to all sets
   const handleAcceptRecommendation = useCallback(() => {
@@ -1732,6 +1766,13 @@ function GuidedWorkoutModal({
       if (vid) {
         try { vid.pause(); vid.removeAttribute('src'); vid.load(); } catch { /* ignore */ }
       }
+      // Same teardown for the mini-player. If the user closed the modal
+      // while minimized (or while PiP was active), this element holds its
+      // own buffered video + decoder context until iOS gets around to GC.
+      const miniVid = miniVideoRef.current;
+      if (miniVid) {
+        try { miniVid.pause(); miniVid.removeAttribute('src'); miniVid.load(); } catch { /* ignore */ }
+      }
       if (voiceNoteRef.current) {
         try {
           voiceNoteRef.current.pause();
@@ -1927,30 +1968,38 @@ function GuidedWorkoutModal({
       } catch { /* ignore */ }
       voiceNoteRef.current = null;
     }
-    // Tear down the current exercise video before React swaps in the new
-    // src. Without an explicit pause + src clear + load, iOS Safari keeps
-    // the prior video's decoder buffer alive — over 30 minutes of
-    // exercise transitions that's the bulk of the memory growth that
-    // ends in a tab kill.
-    const oldVideo = guidedVideoElRef.current;
-    if (oldVideo) {
-      try {
-        oldVideo.pause();
-        oldVideo.removeAttribute('src');
-        oldVideo.load();
-      } catch { /* ignore */ }
+    // Video element lifecycle on exercise change is flag-gated.
+    //
+    // USE_VIDEO_KEY_REMOUNT === true:
+    //   Tear down the current <video> imperatively, then bump
+    //   guidedVideoKey so React unmounts the element and mounts a fresh
+    //   one. Was the right move on devices with memory headroom but
+    //   stacked decoder contexts on the 13 Pro and crashed it sooner.
+    //
+    // USE_VIDEO_KEY_REMOUNT === false (default, iOS-friendly):
+    //   Keep the same <video> element across exercises. React updates
+    //   the `src` attribute naturally on re-render; iOS WebKit reuses
+    //   the same decoder pipeline. No manual pause/removeAttribute/load
+    //   here — doing it AFTER React's commit would clear the just-set
+    //   new src and break playback. The browser handles the swap.
+    if (USE_VIDEO_KEY_REMOUNT) {
+      const oldVideo = guidedVideoElRef.current;
+      if (oldVideo) {
+        try {
+          oldVideo.pause();
+          oldVideo.removeAttribute('src');
+          oldVideo.load();
+        } catch { /* ignore */ }
+      }
+      setGuidedVideoKey(k => k + 1);
     }
+    memLog('exercise change → idx', currentExIndex, '· active <video>:', typeof document !== 'undefined' ? document.querySelectorAll('video').length : '?');
     setPlayingVoiceNote(false);
     setShowCoachNote(false);
     setShowVideo(false);
     setVideoMuted(true);
     setGuidedVideoLoading(true);
     setGuidedVideoError(false);
-    // Bump (not reset) — forces React to unmount the prior <video>
-    // element and mount a fresh one. Resetting to 0 was a no-op for the
-    // common case where the prior key was already 0, so React just
-    // updated `src` on the same element and the old decoder lingered.
-    setGuidedVideoKey(k => k + 1);
     if (guidedVideoBlobUrl) {
       URL.revokeObjectURL(guidedVideoBlobUrl);
       setGuidedVideoBlobUrl(null);
@@ -2884,7 +2933,13 @@ function GuidedWorkoutModal({
       if (!isMountedRef.current) return;
       // Avoid resurrecting resume state for a workout that just finished.
       if (phaseRef.current === 'complete') return;
-      try { saveResumeState(buildResumeSnapshot()); } catch { /* ignore */ }
+      try {
+        const snapshot = buildResumeSnapshot();
+        saveResumeState(snapshot);
+        if (MEM_LOG) {
+          try { memLog('autosave bytes:', JSON.stringify(snapshot).length); } catch { /* ignore */ }
+        }
+      } catch { /* ignore */ }
     }, 200);
   };
 
@@ -3960,7 +4015,7 @@ function GuidedWorkoutModal({
             style={{ position: 'relative' }}
           >
             <video
-              key={guidedVideoKey}
+              key={USE_VIDEO_KEY_REMOUNT ? guidedVideoKey : 'guided-main'}
               ref={(el) => {
                 guidedVideoElRef.current = el;
                 // React does NOT reliably apply the `muted` attribute to a
