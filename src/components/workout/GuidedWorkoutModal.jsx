@@ -8,6 +8,7 @@ import { onAppResume } from '../../hooks/useAppLifecycle';
 import { parseDurationToSeconds } from '../../utils/workoutDuration';
 import { generateProgression, EFFORT_OPTIONS, EFFORT_TO_RIR, estimate1RM, parseSetsData, getMaxWeight, parseReps, isCompoundExercise, getWeightIncrement, convertWeight } from '../../utils/workoutProgression';
 import { playTickSound, playCompleteChime, warmUpTickSound, resumeAudio, startTickKeepAlive, stopTickKeepAlive, setAudioEnabled } from '../../utils/audioTick';
+import { useBranding } from '../../context/BrandingContext';
 
 // --- Resume helpers ---
 const RESUME_STORAGE_KEY = 'guided_workout_resume';
@@ -411,7 +412,13 @@ function GuidedWorkoutModal({
   workoutLogId,
   selectedDate,
   weightUnit = 'lbs',
-  genderPreference = 'all'
+  genderPreference = 'all',
+  // Soft-reset escape valve: parent bumps the modal's `key` and sets
+  // autoResumeOnMount=true to silently restore from the latest autosave
+  // snapshot, skipping the user-facing Resume Workout prompt.
+  autoResumeOnMount = false,
+  onSoftResetConsumed,
+  onSoftResetRequest
 }) {
   const [currentExIndex, setCurrentExIndex] = useState(0);
   const [currentSetIndex, setCurrentSetIndex] = useState(0);
@@ -532,6 +539,14 @@ function GuidedWorkoutModal({
   // Resume prompt state
   const [showResumePrompt, setShowResumePrompt] = useState(false);
   const [resumeData, setResumeData] = useState(null);
+
+  // Soft-reset (iOS escape valve) state.
+  // Banner appears every ~7 minutes on iOS so the client can voluntarily
+  // refresh Play Mode before iOS reaps the tab. Splash hides the
+  // ~500ms remount blink with a branded loading overlay.
+  const [showSoftResetBanner, setShowSoftResetBanner] = useState(false);
+  const [showSoftResetSplash, setShowSoftResetSplash] = useState(false);
+  const { branding } = useBranding();
   // Captured crash info from the prior session (if any). Surfaced in the
   // resume prompt so the founder can read it back to chat without
   // tethering the phone. Cleared on user dismiss.
@@ -746,9 +761,27 @@ function GuidedWorkoutModal({
     const saved = loadResumeState();
     const identity = buildResumeIdentity(clientId, selectedDate, workoutLogId, exercises);
     if (matchesResumeIdentity(saved, identity)) {
-      setResumeData(saved);
-      setShowResumePrompt(true);
-      setIsPaused(true); // Pause until user decides
+      if (autoResumeOnMount) {
+        // Soft-reset path: the parent intentionally remounted us. Skip
+        // the user-facing prompt, show a branded splash for ~500ms while
+        // we slot the state back in, then continue. Mark the prop as
+        // consumed so a real crash on the same key (rare but possible)
+        // still gets the normal prompt.
+        setResumeData(saved);
+        setShowSoftResetSplash(true);
+        if (onSoftResetConsumed) onSoftResetConsumed();
+        // Defer one tick so resumeData is committed before handleResumeAccept
+        // tries to read it.
+        setTimeout(() => {
+          handleResumeAcceptRef.current?.();
+          // Hide splash slightly after resume to mask the layout shuffle.
+          setTimeout(() => setShowSoftResetSplash(false), 500);
+        }, 0);
+      } else {
+        setResumeData(saved);
+        setShowResumePrompt(true);
+        setIsPaused(true); // Pause until user decides
+      }
     }
     // Surface any captured crash info from the prior session. If there's
     // no resume to show, we still load this so a standalone notice can
@@ -760,6 +793,10 @@ function GuidedWorkoutModal({
       }
     } catch { /* ignore */ }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Ref so the soft-reset auto-resume path can call handleResumeAccept
+  // before it's declared (the const declaration is below the mount effect).
+  const handleResumeAcceptRef = useRef(null);
 
   // Handle resume acceptance
   const handleResumeAccept = useCallback(() => {
@@ -815,6 +852,9 @@ function GuidedWorkoutModal({
     setShowResumePrompt(false);
     setResumeData(null);
   }, [resumeData, exercises.length]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Keep the latest handleResumeAccept reachable from the soft-reset mount
+  // path, which fires before this const is in scope on first render.
+  handleResumeAcceptRef.current = handleResumeAccept;
 
   // Fetch live is_unilateral flags by exercise id. Workouts can carry stale
   // flags in workout_data (e.g. saved before a backfill, or before a coach
@@ -855,6 +895,60 @@ function GuidedWorkoutModal({
     setIsPaused(false);
     clearResumeState();
   }, []);
+
+  // Soft-reset banner timer (iOS only). Crash window on the 13 Pro can
+  // hit as early as 10 min on memory-heavy workouts, so first nudge at
+  // 7 min gives the client a buffer to tap Refresh before iOS reaps the
+  // tab. Re-show every 7 min after that if dismissed. Skipped on
+  // Android / desktop where this isn't a problem.
+  useEffect(() => {
+    if (!IS_IOS) return;
+    const FIRST_NUDGE_MS = 7 * 60 * 1000;
+    const REPEAT_NUDGE_MS = 7 * 60 * 1000;
+    let dismissCount = 0;
+    const tick = () => {
+      // Don't shove a banner on top of the resume prompt or the splash.
+      if (!showResumePromptRef.current && !showSoftResetSplashRef.current) {
+        setShowSoftResetBanner(true);
+      }
+    };
+    const firstTimer = setTimeout(() => {
+      tick();
+      // Re-show on a repeating interval after the first nudge.
+      const interval = setInterval(tick, REPEAT_NUDGE_MS);
+      firstTimer.intervalRef = interval;
+    }, FIRST_NUDGE_MS);
+    return () => {
+      clearTimeout(firstTimer);
+      if (firstTimer.intervalRef) clearInterval(firstTimer.intervalRef);
+    };
+  }, []);
+
+  // Refs so the banner timer can check current visibility state without
+  // re-running every time those bits flip.
+  const showResumePromptRef = useRef(false);
+  const showSoftResetSplashRef = useRef(false);
+  showResumePromptRef.current = showResumePrompt;
+  showSoftResetSplashRef.current = showSoftResetSplash;
+
+  // Soft-reset action: flush autosave so the snapshot is fresh, then
+  // ask the parent to remount us. Banner closes; the splash from the
+  // mount path takes over once we come back.
+  const handleSoftReset = useCallback(() => {
+    setShowSoftResetBanner(false);
+    // Force-flush any pending autosave so the just-typed value is on
+    // disk before the remount yanks the current React tree.
+    try {
+      if (resumeSaveTimerRef.current) {
+        clearTimeout(resumeSaveTimerRef.current);
+        resumeSaveTimerRef.current = null;
+      }
+      if (phaseRef.current !== 'complete') {
+        saveResumeState(buildResumeSnapshot());
+      }
+    } catch { /* ignore */ }
+    if (onSoftResetRequest) onSoftResetRequest();
+  }, [onSoftResetRequest]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Minimize / restore the modal into a floating mini-player.
   // The full overlay is hidden via CSS but the component stays mounted so
@@ -4639,6 +4733,98 @@ function GuidedWorkoutModal({
           genderPreference={genderPreference}
           coachId={coachId}
         />
+      )}
+
+      {/* Soft-reset banner — iOS escape valve. Non-blocking; sits above
+          the rest of Play Mode so the user can finish what they're doing
+          and tap Refresh whenever they hit a natural break. */}
+      {showSoftResetBanner && !showSoftResetSplash && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 'env(safe-area-inset-top, 0px)',
+            left: 0,
+            right: 0,
+            zIndex: 9000,
+            padding: '12px 14px',
+            background: branding?.brand_primary_color || '#2cb5a5',
+            color: 'white',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 10,
+            boxShadow: '0 2px 8px rgba(0,0,0,0.25)',
+            fontSize: 13,
+            lineHeight: 1.3
+          }}
+        >
+          <div style={{ flex: 1 }}>
+            Tap Refresh — frees up memory so the app doesn't slow down or close on you.
+          </div>
+          <button
+            type="button"
+            onClick={handleSoftReset}
+            style={{
+              padding: '7px 14px',
+              background: 'rgba(255,255,255,0.95)',
+              color: branding?.brand_primary_color || '#2cb5a5',
+              border: 'none',
+              borderRadius: 6,
+              fontSize: 13,
+              fontWeight: 600,
+              cursor: 'pointer',
+              flexShrink: 0
+            }}
+          >
+            Refresh
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowSoftResetBanner(false)}
+            aria-label="Dismiss"
+            style={{
+              padding: 4,
+              background: 'transparent',
+              color: 'white',
+              border: 'none',
+              cursor: 'pointer',
+              flexShrink: 0,
+              opacity: 0.85
+            }}
+          >
+            <X size={18} />
+          </button>
+        </div>
+      )}
+
+      {/* Soft-reset splash — branded full-screen overlay shown for ~500ms
+          right after a soft-reset remount so the brief blank flash looks
+          intentional instead of buggy. Uses the coach's branding when
+          present so it feels native to their app. */}
+      {showSoftResetSplash && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 10000,
+            background: branding?.brand_primary_color || '#0f172a',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 16,
+            color: 'white'
+          }}
+        >
+          {branding?.brand_logo_url ? (
+            <img
+              src={branding.brand_logo_url}
+              alt={branding.brand_name || 'Loading'}
+              style={{ maxWidth: 120, maxHeight: 80, objectFit: 'contain' }}
+            />
+          ) : null}
+          <Loader2 size={28} style={{ animation: 'spin 1s linear infinite' }} />
+          <div style={{ fontSize: 14, opacity: 0.85 }}>Refreshing…</div>
+        </div>
       )}
 
       {/* Resume Prompt */}
