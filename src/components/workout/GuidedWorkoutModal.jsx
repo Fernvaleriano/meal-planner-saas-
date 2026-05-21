@@ -325,6 +325,11 @@ function GuidedWorkoutModal({
   const [currentSetIndex, setCurrentSetIndex] = useState(0);
   const [phase, setPhase] = useState('get-ready'); // get-ready, exercise, rest, complete
   const [timer, setTimer] = useState(10);
+  // Bumped to force the timer interval effect to re-run when phase/isPaused
+  // haven't changed but the timer still needs a fresh interval (e.g. starting
+  // side 2 of a timed unilateral exercise — phase stays 'exercise' the
+  // whole way through).
+  const [timerRestartKey, setTimerRestartKey] = useState(0);
   // Unilateral exercises: after the client logs the first side we pause and
   // prompt them to do the other side before starting the rest timer.
   const [pendingSecondSide, setPendingSecondSide] = useState(false);
@@ -2425,6 +2430,10 @@ function GuidedWorkoutModal({
         if (exInfo?.isTimed) {
           const setLog = setLogsRef.current[exIdx]?.[setIdx];
           setTimer(setLog?.duration || exInfo.duration);
+          // Phase is still 'exercise' from side 1, so the timer interval effect
+          // won't re-run on its own and the side-2 countdown would sit frozen
+          // at its initial value. Bump the key to force the effect to re-arm.
+          setTimerRestartKey(k => k + 1);
         } else {
           const setLog = setLogsRef.current[exIdx]?.[setIdx];
           const reps = setLog?.reps || parseReps(exInfo?.reps);
@@ -2651,7 +2660,7 @@ function GuidedWorkoutModal({
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
-  }, [phase, isPaused]);
+  }, [phase, isPaused, timerRestartKey]);
 
   // --- Rest timer voice callouts ---
   useEffect(() => {
