@@ -26,6 +26,29 @@ function getCurrentAuthUserId() {
   }
 }
 
+// Read the full user object from Supabase's persisted session so we can
+// hydrate React state synchronously on first render. Without this, the
+// cached-clientData fast path in initAuth sets loading=false before the
+// background getSession() resolves and sets `user` — leaving a brief
+// `loading=false, user=null` render that ProtectedRoute treats as
+// "logged out" and redirects to /login. That redirect is what shows up
+// as a split-second login screen flash between the Play Mode soft-reset
+// splash and the workout resuming. Hydrating user (and loading) here
+// keeps ProtectedRoute on the authenticated path through the reload.
+function getCurrentAuthUser() {
+  try {
+    const keys = Object.keys(localStorage);
+    const sbKey = keys.find(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
+    if (!sbKey) return null;
+    const raw = localStorage.getItem(sbKey);
+    if (!raw) return null;
+    const session = JSON.parse(raw);
+    return session?.user || session?.currentSession?.user || null;
+  } catch {
+    return null;
+  }
+}
+
 // Sweep every user-scoped cache from localStorage and sessionStorage so a
 // shared device (gym iPad, family tablet) doesn't leak the previous user's
 // workouts, diary entries, messages, branding, resume state, etc., to the
@@ -81,7 +104,10 @@ const trackClientActivity = async (userId) => {
 };
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);
+  // Hydrate user from the cached Supabase session synchronously so the
+  // cached-clientData fast path below can render Layout without the
+  // login screen flashing in between (see getCurrentAuthUser comment).
+  const [user, setUser] = useState(() => getCurrentAuthUser());
   // Track last time we sent an activity ping (timestamp, not boolean)
   const lastActivityPingRef = useRef(0);
   const activityIntervalRef = useRef(null);
@@ -105,7 +131,21 @@ export function AuthProvider({ children }) {
     }
     return null;
   });
-  const [loading, setLoading] = useState(true);
+  // When user + clientData are both hydrated from cache, skip the loading
+  // state too — otherwise ProtectedRoute renders LoadingScreen for one
+  // tick before the fast-path setLoading(false) runs, which produces a
+  // logo+spinner flash between the soft-reset splash and the workout.
+  const [loading, setLoading] = useState(() => {
+    try {
+      const uid = getCurrentAuthUserId();
+      if (!uid) return true;
+      const cached = localStorage.getItem(`cachedClientData_${uid}`);
+      if (!cached) return true;
+      const parsed = JSON.parse(cached);
+      if (parsed && parsed.id && !parsed.error) return false;
+    } catch { /* ignore */ }
+    return true;
+  });
   const [theme, setTheme] = useState(() => {
     // Use 'zique-theme' key for consistency with standalone HTML pages
     // Migrate from old 'theme' key if exists
