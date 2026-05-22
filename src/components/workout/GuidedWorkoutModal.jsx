@@ -817,7 +817,14 @@ function GuidedWorkoutModal({
             setPhase('get-ready');
             setTimer(5);
           }
-          setIsPaused(false);
+          // Keep the workout PAUSED while the soft-reset splash is up.
+          // Otherwise the timer ticks underneath, rest can end, the next
+          // exercise can auto-start, and the splash ends up reading
+          // currentExIndex for a different exercise than the one that
+          // just completed. Unpause when the client taps "Load Next
+          // Exercise" — that handler in the splash UI also fires the
+          // audio unlock.
+          setIsPaused(true);
 
           if (onSoftResetConsumed) onSoftResetConsumed();
 
@@ -5024,6 +5031,10 @@ function GuidedWorkoutModal({
               speechSynthesis.speak(u);
             }
           } catch { /* ignore */ }
+          // Unpause the workout — the splash kept it paused so the rest
+          // timer / next exercise didn't tick away underneath while the
+          // client was reading the card.
+          setIsPaused(false);
           setShowSoftResetSplash(false);
         };
         return (
