@@ -3113,9 +3113,12 @@ function GuidedWorkoutModal({
           setPhase('rest');
           setTimer(getRestForSet(exIdx, setIdx));
           setCurrentSetIndex(0);
-          // Announce upcoming exercise after a short delay so it follows the "Rest up" announcement
+          // Announce upcoming exercise after a short delay so it follows the "Rest up" announcement.
+          // Skip on iOS — the soft-reset path shows a splash card listing the next exercise and
+          // speaks "Load next exercise" right around the same moment, so the two cues collide on
+          // top of the splash. The splash already carries the next-exercise info visually.
           const nextEx = exercises[exIdx + 1];
-          if (nextEx) {
+          if (nextEx && !IS_IOS) {
             const nextName = nextEx.name || nextEx.exercise_name || 'next exercise';
             setTimeout(() => speak(`Up next: ${nextName}`, voiceEnabled), 1500);
           }
