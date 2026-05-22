@@ -1540,9 +1540,25 @@ function Workouts() {
         // overwrites the user's pick on every visibility/focus event.
         const cachedList = dateCache.todayWorkouts || [];
         const currentPick = todayWorkoutRef.current;
-        const preserved = currentPick && cachedList.some(w => w?.id === currentPick.id)
-          ? currentPick
-          : (dateCache.todayWorkout || null);
+        // After a soft-reset page reload, prefer the workout the client was
+        // actively in (saved to softResetTargetWorkoutIdRef by the post-reload
+        // effect). Without this, the cache restore defaults to allWorkouts[0]
+        // on multi-workout days, the auto-open effect bails because today's
+        // workout id doesn't match the target, and Play Mode never reopens —
+        // the user is stuck on the static splash overlay. Mirrors the same
+        // preference check in refreshWorkoutData.
+        const softResetTarget = softResetTargetWorkoutIdRef.current;
+        const targetFromCache = softResetTarget
+          ? (cachedList.find(w => w?.id === softResetTarget) || null)
+          : null;
+        let preserved;
+        if (targetFromCache) {
+          preserved = targetFromCache;
+        } else if (currentPick && cachedList.some(w => w?.id === currentPick.id)) {
+          preserved = currentPick;
+        } else {
+          preserved = dateCache.todayWorkout || null;
+        }
         const preservedLog = preserved && preserved.id === dateCache.todayWorkout?.id
           ? (dateCache.workoutLog || null)
           : (workoutLogRef.current && workoutLogRef.current.assignment_id === preserved?.id
@@ -1688,10 +1704,27 @@ function Workouts() {
           // refreshWorkoutData). Without this, every focus event / fetch
           // re-snaps the page back to allWorkouts[0], silently overwriting
           // a card the user just tapped on.
+          //
+          // Soft-reset reload takes precedence over both: on iOS we reload
+          // the page between exercises to free WebKit memory, and the
+          // post-reload effect stashes the active workout id in
+          // softResetTargetWorkoutIdRef. Without honoring that here, the
+          // initial fetch defaults to allWorkouts[0] and the auto-open
+          // effect (line ~858) bails because the ids don't match — Play
+          // Mode never reopens for non-top workouts on multi-workout days.
+          const softResetTarget = softResetTargetWorkoutIdRef.current;
+          const targetMatch = softResetTarget
+            ? (allWorkouts.find(w => w?.id === softResetTarget) || null)
+            : null;
           const currentPick = todayWorkoutRef.current;
-          const preservedPick = currentPick && allWorkouts.some(w => w?.id === currentPick.id)
-            ? (allWorkouts.find(w => w?.id === currentPick.id) || allWorkouts[0])
-            : allWorkouts[0];
+          let preservedPick;
+          if (targetMatch) {
+            preservedPick = targetMatch;
+          } else if (currentPick && allWorkouts.some(w => w?.id === currentPick.id)) {
+            preservedPick = allWorkouts.find(w => w?.id === currentPick.id) || allWorkouts[0];
+          } else {
+            preservedPick = allWorkouts[0];
+          }
           const first = preservedPick;
           setTodayWorkout(first);
 
