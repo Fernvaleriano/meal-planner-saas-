@@ -817,7 +817,14 @@ function GuidedWorkoutModal({
             setPhase('get-ready');
             setTimer(5);
           }
-          setIsPaused(false);
+          // Keep the workout PAUSED while the soft-reset splash is up.
+          // Otherwise the timer ticks underneath, rest can end, the next
+          // exercise can auto-start, and the splash ends up reading
+          // currentExIndex for a different exercise than the one that
+          // just completed. Unpause when the client taps "Load Next
+          // Exercise" — that handler in the splash UI also fires the
+          // audio unlock.
+          setIsPaused(true);
 
           if (onSoftResetConsumed) onSoftResetConsumed();
 
@@ -5002,9 +5009,22 @@ function GuidedWorkoutModal({
         const completedName = exercises[currentExIndex]?.name || 'Exercise';
         const nextEx = exercises[currentExIndex + 1];
         const nextName = nextEx?.name || null;
-        const isDark = typeof window !== 'undefined'
-          && window.matchMedia
-          && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        // The app uses its own theme system (data-theme attribute on <html>,
+        // backed by localStorage 'zique-theme'). System matchMedia would
+        // give us iOS preferences but ignore the app's actual choice —
+        // and the app's default is dark, so a system-light client on
+        // their phone would still see a dark UI everywhere except this
+        // splash if we matched system instead of app theme.
+        const appTheme = (() => {
+          try {
+            const fromAttr = document.documentElement.getAttribute('data-theme');
+            if (fromAttr) return fromAttr;
+            const fromStorage = localStorage.getItem('zique-theme') || localStorage.getItem('theme');
+            if (fromStorage) return fromStorage;
+          } catch { /* ignore */ }
+          return 'dark';
+        })();
+        const isDark = appTheme === 'dark';
         const brandColor = branding?.brand_primary_color || '#2cb5a5';
         const bg = isDark ? '#0f172a' : '#f8fafc';
         const cardBg = isDark ? '#1e293b' : '#ffffff';
@@ -5021,6 +5041,10 @@ function GuidedWorkoutModal({
               speechSynthesis.speak(u);
             }
           } catch { /* ignore */ }
+          // Unpause the workout — the splash kept it paused so the rest
+          // timer / next exercise didn't tick away underneath while the
+          // client was reading the card.
+          setIsPaused(false);
           setShowSoftResetSplash(false);
         };
         return (
@@ -5074,15 +5098,13 @@ function GuidedWorkoutModal({
                   {nextName}
                 </div>
               )}
-              <div style={{ fontSize: 13, color: textMuted, marginBottom: 20, lineHeight: 1.4 }}>
-                Take a sec to log your sets.
-              </div>
               <button
                 type="button"
                 onClick={unlockAndDismiss}
                 onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') unlockAndDismiss(); }}
                 style={{
                   width: '100%',
+                  marginTop: 6,
                   padding: '14px',
                   background: brandColor,
                   color: 'white',
@@ -5093,7 +5115,7 @@ function GuidedWorkoutModal({
                   cursor: 'pointer'
                 }}
               >
-                Continue
+                Load Next Exercise
               </button>
             </div>
           </div>
