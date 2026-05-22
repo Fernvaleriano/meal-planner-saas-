@@ -1530,17 +1530,34 @@ function Workouts() {
       const dateCache = getCache(dateCacheKey);
 
       if (dateCache) {
-        // Show cached data instantly — no loading spinner
-        setTodayWorkout(dateCache.todayWorkout || null);
-        setTodayWorkouts(dateCache.todayWorkouts || []);
-        setWorkoutLog(dateCache.workoutLog || null);
+        // Show cached data instantly — no loading spinner.
+        // If the user has already tapped onto a SPECIFIC workout this session
+        // (mid-flow between picking a card and tapping Play), preserve that
+        // selection through the cache restore. The cache always stores the
+        // FIRST workout as its `todayWorkout`, which used to be correct when
+        // there could only ever be one workout per day — with two workouts
+        // on the same day, blindly snapping back to the cached first
+        // overwrites the user's pick on every visibility/focus event.
+        const cachedList = dateCache.todayWorkouts || [];
+        const currentPick = todayWorkoutRef.current;
+        const preserved = currentPick && cachedList.some(w => w?.id === currentPick.id)
+          ? currentPick
+          : (dateCache.todayWorkout || null);
+        const preservedLog = preserved && preserved.id === dateCache.todayWorkout?.id
+          ? (dateCache.workoutLog || null)
+          : (workoutLogRef.current && workoutLogRef.current.assignment_id === preserved?.id
+            ? workoutLogRef.current
+            : null);
+        setTodayWorkout(preserved);
+        setTodayWorkouts(cachedList);
+        setWorkoutLog(preservedLog);
         // Restore checkmarks from localStorage immediately. Without this they
         // stay blank until the network fetch returns (and disappear entirely
         // on an offline reopen, where the fetch path early-returns before
         // ever calling setCompletedExercises).
-        if (dateCache.todayWorkout) {
+        if (preserved) {
           setCompletedExercises(
-            getEffectiveCompletedExercises(dateCache.todayWorkout, dateCache.workoutLog || null, clientData?.id, dateStr)
+            getEffectiveCompletedExercises(preserved, preservedLog, clientData?.id, dateStr)
           );
         }
         // Pre-seed the logs ref so a card switch during the cache-display
