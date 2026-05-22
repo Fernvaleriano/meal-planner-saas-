@@ -5031,6 +5031,12 @@ function GuidedWorkoutModal({
               speechSynthesis.speak(u);
             }
           } catch { /* ignore */ }
+          // Voice announce the next exercise — same tap unlocks Speech
+          // Synthesis above, so this audible cue actually plays. Lines
+          // up with the card the client just read.
+          if (nextName) {
+            try { speak(`Up next, ${nextName}`, voiceEnabled); } catch { /* ignore */ }
+          }
           // Unpause the workout — the splash kept it paused so the rest
           // timer / next exercise didn't tick away underneath while the
           // client was reading the card.
