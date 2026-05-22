@@ -707,8 +707,14 @@ function buildWorkoutFromLog(log) {
 
 // TEMPORARY — surfaces the soft-reset debug trail so we can diagnose the
 // iOS club-workout reopen failure without dev tools. Visible only when
-// there's a recent (<5 min) entry. Remove once the bug is closed.
+// there's a recent (<5 min) entry AND the user is the founder's test
+// account (so clients never see this). Remove once the bug is closed.
 function SoftResetDebugPanel() {
+  const { user, clientData } = useAuth();
+  const isFounderTestAccount = (
+    (user?.email && user.email.toLowerCase() === 'valeriano_fernando@yahoo.com') ||
+    clientData?.id === 61
+  );
   const [trail, setTrail] = React.useState(() => {
     try {
       const raw = localStorage.getItem('zique_softreset_debug');
@@ -716,6 +722,7 @@ function SoftResetDebugPanel() {
     } catch { return []; }
   });
   React.useEffect(() => {
+    if (!isFounderTestAccount) return;
     const id = setInterval(() => {
       try {
         const raw = localStorage.getItem('zique_softreset_debug');
@@ -723,7 +730,8 @@ function SoftResetDebugPanel() {
       } catch { /* ignore */ }
     }, 1000);
     return () => clearInterval(id);
-  }, []);
+  }, [isFounderTestAccount]);
+  if (!isFounderTestAccount) return null;
   const recent = (trail || []).filter(e => e && (Date.now() - e.ts) < 5 * 60 * 1000);
   if (recent.length === 0) return null;
   const handleClear = () => {
