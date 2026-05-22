@@ -1089,11 +1089,16 @@ function GuidedWorkoutModal({
   useEffect(() => {
     if (!IS_IOS) return;
     const prevIdx = prevExIndexForSoftResetRef.current;
-    prevExIndexForSoftResetRef.current = currentExIndex;
-    if (prevIdx === currentExIndex) return; // no change (initial mount)
+    if (prevIdx === currentExIndex) return; // no change (initial mount, etc.)
     // Forward advances only — skip back-button / Back tapping cases so
-    // the voice doesn't announce the wrong direction.
+    // the voice doesn't announce the wrong direction. Don't update the
+    // prev ref here either; we want subsequent renders to keep comparing
+    // against the last "real" prev value, not against this intermediate
+    // backward read.
     if (currentExIndex < prevIdx) return;
+    // Forward advance confirmed — record it now so the same advance
+    // doesn't fire twice on a follow-up render.
+    prevExIndexForSoftResetRef.current = currentExIndex;
 
     // No time-based throttle: every exercise transition fires the
     // refresh. Memory cleanup happens at every natural break in the
