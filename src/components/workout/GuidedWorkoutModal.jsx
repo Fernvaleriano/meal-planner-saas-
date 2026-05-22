@@ -1041,6 +1041,20 @@ function GuidedWorkoutModal({
   // "splash is up post-remount, dismiss + unlock audio".
   const pendingSoftResetTimerRef = useRef(null);
 
+  // Tear down the inline soft-reset splash overlay (rendered by
+  // app-test.html outside #root) the moment the modal mounts. The
+  // overlay bridges the gap between the pre-reload splash card and
+  // the modal coming back up — once we're here, the next exercise's
+  // UI is on screen and the splash has done its job. Runs on every
+  // mount, not just soft-reset ones; if the overlay isn't there
+  // (normal Play Mode open) this is a harmless no-op.
+  useEffect(() => {
+    const el = typeof document !== 'undefined'
+      ? document.getElementById('soft-reset-splash-overlay')
+      : null;
+    if (el && el.parentNode) el.parentNode.removeChild(el);
+  }, []);
+
   // Global one-time tap listener to re-unlock both iOS audio systems
   // (Web Audio + Speech Synthesis) on the first natural user touch
   // after a soft-reset reload. We install it whenever the modal

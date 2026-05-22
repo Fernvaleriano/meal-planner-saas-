@@ -103,9 +103,16 @@
         // reload between exercises, the modal stashed the "Exercise complete /
         // Up next / Load Next Exercise" card payload in localStorage. Render
         // the SAME card here so the user sees one continuous splash across
-        // the reload instead of card → spinner → card (visible flicker).
-        // The React tree mounts a moment later and replaces this DOM with
-        // its own (identical) splash card, which has the working button.
+        // the reload.
+        //
+        // CRITICAL: render the card into a NEW element appended to <body>
+        // (outside #root), not into #splash-screen. React mounts into #root
+        // and replaces its contents — if the card lived in there, the user
+        // would see card → React's LoadingScreen (logo+spinner) → momentary
+        // /login redirect → Workouts page → modal opens. By living outside
+        // #root with a higher z-index, the card stays visible through every
+        // one of those frames, and GuidedWorkoutModal removes it on mount
+        // so the hand-off into the next exercise is seamless.
         (function() {
             try {
                 var raw = localStorage.getItem('zique_soft_reset_splash');
@@ -118,8 +125,6 @@
                     try { localStorage.removeItem('zique_soft_reset_splash'); } catch (e) {}
                     return;
                 }
-                var splash = document.getElementById('splash-screen');
-                if (!splash) return;
                 var esc = function(s) {
                     return String(s == null ? '' : s).replace(/[&<>"']/g, function(c) {
                         return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c];
@@ -133,12 +138,12 @@
                 var textMuted = isDark ? '#cbd5e1' : '#64748b';
                 var brandColor = data.brandColor || '#2cb5a5';
                 var shadow = isDark ? '0 10px 30px rgba(0,0,0,0.4)' : '0 10px 30px rgba(15, 23, 42, 0.1)';
-                splash.style.background = bg;
-                splash.style.display = 'flex';
-                splash.style.flexDirection = 'column';
-                splash.style.alignItems = 'center';
-                splash.style.justifyContent = 'center';
-                splash.style.padding = '20px';
+                var overlay = document.createElement('div');
+                overlay.id = 'soft-reset-splash-overlay';
+                overlay.style.cssText =
+                    'position:fixed;inset:0;z-index:10001;background:' + bg + ';' +
+                    'display:flex;flex-direction:column;align-items:center;justify-content:center;' +
+                    'padding:20px;user-select:none;-webkit-user-select:none';
                 var logoHtml = data.brandLogo
                     ? '<img src="' + esc(data.brandLogo) + '" alt="' + esc(data.brandName) + '" style="max-width:80px;max-height:56px;object-fit:contain;margin-bottom:16px;opacity:0.9" />'
                     : '';
@@ -146,7 +151,7 @@
                     ? '<div style="font-size:13px;color:' + textMuted + ';margin-bottom:4px">Up next</div>'
                       + '<div style="font-size:16px;font-weight:600;color:' + textPrimary + ';margin-bottom:18px;word-break:break-word">' + esc(data.nextName) + '</div>'
                     : '';
-                splash.innerHTML =
+                overlay.innerHTML =
                     '<div style="width:100%;max-width:360px;background:' + cardBg + ';border:1px solid ' + border + ';border-radius:16px;padding:28px 24px;box-shadow:' + shadow + ';text-align:center">' +
                       logoHtml +
                       '<div style="font-size:14px;font-weight:600;color:' + brandColor + ';margin-bottom:6px">&#10003; Exercise complete</div>' +
@@ -154,9 +159,29 @@
                       nextHtml +
                       '<button type="button" style="width:100%;margin-top:6px;padding:14px;background:' + brandColor + ';color:white;border:none;border-radius:10px;font-size:16px;font-weight:700;cursor:pointer">Load Next Exercise</button>' +
                     '</div>';
+                if (document.body) {
+                    document.body.appendChild(overlay);
+                } else {
+                    document.addEventListener('DOMContentLoaded', function() {
+                        document.body.appendChild(overlay);
+                    });
+                }
+                // Safety: if something goes wrong and the modal never mounts
+                // to remove the overlay, fade it out after 12s so the user
+                // isn't stuck staring at the card forever.
+                setTimeout(function() {
+                    var el = document.getElementById('soft-reset-splash-overlay');
+                    if (!el) return;
+                    el.style.transition = 'opacity 250ms ease';
+                    el.style.opacity = '0';
+                    setTimeout(function() {
+                        var el2 = document.getElementById('soft-reset-splash-overlay');
+                        if (el2 && el2.parentNode) el2.parentNode.removeChild(el2);
+                    }, 300);
+                }, 12000);
                 // One-shot: clear so a future un-related reload doesn't pick
-                // it up. The React splash that mounts next reads from live
-                // component state, not from this storage entry.
+                // it up. The overlay element is the only thing that needs
+                // to live on from here.
                 try { localStorage.removeItem('zique_soft_reset_splash'); } catch (e) {}
             } catch (e) { /* silent fail — fall back to the default spinner splash */ }
         })();
