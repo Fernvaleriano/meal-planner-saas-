@@ -1096,7 +1096,23 @@ function GuidedWorkoutModal({
     } catch { /* ignore */ }
     if (Date.now() - lastAt < MIN_INTERVAL_MS) return;
 
-    handleSoftReset();
+    // Speak the transition announcement BEFORE the page reload, while
+    // audio is still unlocked from the client's pre-reload Done tap.
+    // The post-reload splash itself can't speak on appear (page reload
+    // kills the audio context — speak() only resumes after a fresh
+    // user gesture), so we front-load the cue here. The announcement
+    // plays out while the page reloads and the splash card mounts, so
+    // functionally it lands as a "voice on the splash" moment.
+    const nextEx = exercises[exIdx + 1];
+    const nextName = nextEx?.name || null;
+    if (nextName) {
+      try { speak(`Exercise complete. Up next, ${nextName}`, voiceEnabledRef.current); } catch { /* ignore */ }
+    }
+    // Delay the reload long enough for the announcement to play.
+    // 2.5s covers the typical utterance; if voice is off, the delay
+    // still feels reasonable as a "completing exercise" beat.
+    const t = setTimeout(() => { handleSoftReset(); }, 2500);
+    return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase]);
 
@@ -5031,12 +5047,10 @@ function GuidedWorkoutModal({
               speechSynthesis.speak(u);
             }
           } catch { /* ignore */ }
-          // Voice announce the next exercise — same tap unlocks Speech
-          // Synthesis above, so this audible cue actually plays. Lines
-          // up with the card the client just read.
-          if (nextName) {
-            try { speak(`Up next, ${nextName}`, voiceEnabled); } catch { /* ignore */ }
-          }
+          // Note: the "Up next, [name]" announcement already played
+          // pre-reload from the auto-trigger effect (while audio was
+          // still unlocked from the Done tap that fired it). Don't
+          // re-speak it here or the client hears the same line twice.
           // Unpause the workout — the splash kept it paused so the rest
           // timer / next exercise didn't tick away underneath while the
           // client was reading the card.
