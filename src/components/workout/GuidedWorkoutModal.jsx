@@ -1114,6 +1114,24 @@ function GuidedWorkoutModal({
     setShowSoftResetSplash(true);
     setIsPaused(true);
 
+    // Stash the splash card's payload so the post-reload inline HTML
+    // splash (app-test.html) can render the SAME card instead of the
+    // generic logo+spinner splash. Without this the user sees:
+    // card → spinner → card (a visible flicker across the reload).
+    try {
+      const completedName = exercises[currentExIndex]?.name || 'Exercise';
+      const nextEx = exercises[currentExIndex + 1];
+      localStorage.setItem('zique_soft_reset_splash', JSON.stringify({
+        ts: Date.now(),
+        completedName,
+        nextName: nextEx?.name || null,
+        theme: (typeof document !== 'undefined' && document.documentElement.getAttribute('data-theme')) || 'dark',
+        brandColor: branding?.brand_primary_color || '#2cb5a5',
+        brandLogo: branding?.brand_logo_url || null,
+        brandName: branding?.brand_name || null
+      }));
+    } catch { /* ignore */ }
+
     // No time-based throttle: every exercise transition fires the
     // refresh. Memory cleanup happens at every natural break in the
     // workout, which is what the splash + reload are for. Quick
@@ -2286,6 +2304,13 @@ function GuidedWorkoutModal({
       // path — the reload then cuts off whichever is still speaking
       // mid-word and feels broken.
       if (softResetSpeechActiveRef.current) return;
+      // Also skip while the soft-reset splash card is on screen. After
+      // a soft-reset reload, the ref above is fresh (=false) on the new
+      // mount, so without this guard the "Get ready / Next up" cue
+      // fires UNDERNEATH the splash before the client taps the button.
+      // showSoftResetSplash is in the deps so this effect re-runs the
+      // moment the client dismisses the splash, and the cue plays then.
+      if (showSoftResetSplash) return;
       if (phase === 'get-ready' && currentExercise) {
         // Pre-warm audio context so tick sound is ready when reps start
         warmUpTickSound();
@@ -2317,7 +2342,7 @@ function GuidedWorkoutModal({
     };
 
     runVoice().catch(() => {});
-  }, [phase, currentExIndex, voiceEnabled, skippedQueue.length]);
+  }, [phase, currentExIndex, voiceEnabled, skippedQueue.length, showSoftResetSplash]);
 
   // In play mode, "completed" means the guided flow took the user through the
   // exercise — NOT that they logged sets or sat through the rest timer. So the
@@ -5132,13 +5157,12 @@ function GuidedWorkoutModal({
               speechSynthesis.speak(u);
             }
           } catch { /* ignore */ }
-          // Note: the "Up next, [name]" announcement already played
-          // pre-reload from the auto-trigger effect (while audio was
-          // still unlocked from the Done tap that fired it). Don't
-          // re-speak it here or the client hears the same line twice.
           // Unpause the workout — the splash kept it paused so the rest
           // timer / next exercise didn't tick away underneath while the
-          // client was reading the card.
+          // client was reading the card. Dismissing the splash also
+          // re-triggers the natural phase voice effect (it's gated on
+          // showSoftResetSplash), so the "Get ready / Next up" cue fires
+          // HERE, after this tap — not under the splash.
           setIsPaused(false);
           setShowSoftResetSplash(false);
         };
