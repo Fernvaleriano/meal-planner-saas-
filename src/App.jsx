@@ -1,4 +1,5 @@
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import { useEffect } from 'react';
 import { useAuth } from './context/AuthContext';
 import { useAppLifecycle } from './hooks/useAppLifecycle';
 import { useNativeFeel } from './hooks/useNativeFeel';
@@ -114,6 +115,31 @@ function App() {
   // Initialize app lifecycle handling (visibilitychange, session refresh on resume)
   useAppLifecycle();
   useNativeFeel();
+
+  // iOS home-screen-installed PWAs treat window.location navigation as a
+  // re-launch and route the user to the manifest start_url (/app, the
+  // dashboard) regardless of which path the JS asked for. That breaks
+  // the soft-reset flow — the client taps Refresh from Play Mode and
+  // gets dropped on the food log instead. Detect the soft-reset flag
+  // here, BEFORE any route renders, and React-Router our way to
+  // /workouts without another page load. Workouts.jsx keeps the flag
+  // alive long enough to auto-open Play Mode + auto-resume.
+  //
+  // localStorage (not sessionStorage) is critical here — iOS Safari
+  // wipes sessionStorage on PWA re-launch. 30-second TTL on the flag
+  // so stale values from old sessions can't trigger a false redirect.
+  const navigate = useNavigate();
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('zique_soft_reset_pending');
+      if (raw) {
+        const stamp = parseInt(raw, 10);
+        if (!isNaN(stamp) && Date.now() - stamp < 30000) {
+          navigate('/workouts', { replace: true });
+        }
+      }
+    } catch { /* ignore */ }
+  }, [navigate]);
 
   return (
     <Routes>

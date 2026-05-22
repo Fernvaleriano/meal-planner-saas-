@@ -974,8 +974,11 @@ function GuidedWorkoutModal({
   // Android / desktop where this isn't a problem.
   useEffect(() => {
     if (!IS_IOS) return;
-    const FIRST_NUDGE_MS = 7 * 60 * 1000;
-    const REPEAT_NUDGE_MS = 7 * 60 * 1000;
+    // TESTING: shortened to 30s so the soft-reset flow can be iterated
+    // on without waiting 7 minutes per cycle. PRODUCTION values are
+    // 7 * 60 * 1000 (both). Flip back before shipping to all clients.
+    const FIRST_NUDGE_MS = 30 * 1000;
+    const REPEAT_NUDGE_MS = 30 * 1000;
     const tick = () => {
       // Don't shove a banner on top of the resume prompt or the splash.
       if (!showResumePromptRef.current && !showSoftResetSplashRef.current) {
