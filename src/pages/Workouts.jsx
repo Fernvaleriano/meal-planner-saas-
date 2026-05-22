@@ -1682,8 +1682,17 @@ function Workouts() {
         const persist = (value) => { if (!anyFailed) setCache(cacheKey, value); };
 
         if (allWorkouts.length > 0) {
-          // Auto-select the first workout
-          const first = allWorkouts[0];
+          // Auto-select the first workout — unless the user has already
+          // tapped onto a specific card this session, in which case keep
+          // their pick (matching the cache-restore behavior in
+          // refreshWorkoutData). Without this, every focus event / fetch
+          // re-snaps the page back to allWorkouts[0], silently overwriting
+          // a card the user just tapped on.
+          const currentPick = todayWorkoutRef.current;
+          const preservedPick = currentPick && allWorkouts.some(w => w?.id === currentPick.id)
+            ? (allWorkouts.find(w => w?.id === currentPick.id) || allWorkouts[0])
+            : allWorkouts[0];
+          const first = preservedPick;
           setTodayWorkout(first);
 
           // Process workout log for assigned workouts — match by assignment
