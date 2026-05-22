@@ -5077,15 +5077,13 @@ function GuidedWorkoutModal({
                   {nextName}
                 </div>
               )}
-              <div style={{ fontSize: 13, color: textMuted, marginBottom: 20, lineHeight: 1.4 }}>
-                Take a sec to log your sets.
-              </div>
               <button
                 type="button"
                 onClick={unlockAndDismiss}
                 onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') unlockAndDismiss(); }}
                 style={{
                   width: '100%',
+                  marginTop: 6,
                   padding: '14px',
                   background: brandColor,
                   color: 'white',
@@ -5096,7 +5094,7 @@ function GuidedWorkoutModal({
                   cursor: 'pointer'
                 }}
               >
-                Continue
+                Load Next Exercise
               </button>
             </div>
           </div>
