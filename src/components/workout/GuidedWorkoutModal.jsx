@@ -836,13 +836,14 @@ function GuidedWorkoutModal({
             });
           } catch { /* ignore */ }
 
-          // Splash stays up until the user taps. That tap is critical on
-          // iOS: a page reload kills the AudioContext, and WebKit
-          // requires a fresh user gesture to unlock audio. Without a
-          // tap-gate here the rep tick / voice cues stay silent for
-          // the rest of the workout. The tap handler in the splash UI
-          // calls warmUpTickSound() to re-unlock the engine, then
-          // dismisses the splash.
+          // Splash now auto-dismisses after ~900ms to look like a
+          // normal "loading next exercise" transition. A separate
+          // global one-time tap listener (installed in its own effect)
+          // catches the user's first natural touch on the screen
+          // after the reload and silently unlocks Web Audio +
+          // Speech Synthesis. They never need to tap a specific UI
+          // element to get audio back.
+          setTimeout(() => setShowSoftResetSplash(false), 900);
         } else if (onSoftResetConsumed) {
           onSoftResetConsumed();
         }
@@ -978,18 +979,18 @@ function GuidedWorkoutModal({
     clearResumeState();
   }, []);
 
-  // Soft-reset banner timer (iOS only). Crash window on the 13 Pro can
-  // hit as early as 10 min on memory-heavy workouts, so first nudge at
-  // 7 min gives the client a buffer to tap Refresh before iOS reaps the
-  // tab. Re-show every 7 min after that if dismissed. Skipped on
-  // Android / desktop where this isn't a problem.
+  // Soft-reset banner timer (iOS only). DISABLED by default now that the
+  // auto-trigger (on transition rest) handles refreshes automatically
+  // between exercises. Kept as a backup mechanism in case a workout
+  // has very long exercises and the auto-trigger doesn't fire often
+  // enough — set BANNER_INTERVAL_MS to a real value (e.g. 7 * 60 *
+  // 1000) to re-enable.
   useEffect(() => {
     if (!IS_IOS) return;
-    // TESTING: shortened to 30s so the soft-reset flow can be iterated
-    // on without waiting 7 minutes per cycle. PRODUCTION values are
-    // 7 * 60 * 1000 (both). Flip back before shipping to all clients.
-    const FIRST_NUDGE_MS = 30 * 1000;
-    const REPEAT_NUDGE_MS = 30 * 1000;
+    const BANNER_INTERVAL_MS = 0; // 0 = disabled
+    if (BANNER_INTERVAL_MS <= 0) return;
+    const FIRST_NUDGE_MS = BANNER_INTERVAL_MS;
+    const REPEAT_NUDGE_MS = BANNER_INTERVAL_MS;
     const tick = () => {
       // Don't shove a banner on top of the resume prompt or the splash.
       if (!showResumePromptRef.current && !showSoftResetSplashRef.current) {
@@ -1018,6 +1019,83 @@ function GuidedWorkoutModal({
   const voiceEnabledRef = useRef(voiceEnabled);
   voiceEnabledRef.current = voiceEnabled;
 
+  // Global one-time tap listener to re-unlock both iOS audio systems
+  // (Web Audio + Speech Synthesis) on the first natural user touch
+  // after a soft-reset reload. We install it whenever the modal
+  // mounts on iOS so it's ready for the next reload even though most
+  // mounts don't need it (audio was unlocked by the original "Begin
+  // Workout" tap). Self-removes after firing once. Cheap.
+  useEffect(() => {
+    if (!IS_IOS) return;
+    let done = false;
+    const unlock = () => {
+      if (done) return;
+      done = true;
+      try { warmUpTickSound(); } catch { /* ignore */ }
+      try {
+        if (typeof speechSynthesis !== 'undefined') {
+          speechSynthesis.cancel();
+          const u = new SpeechSynthesisUtterance(' ');
+          u.volume = 0;
+          speechSynthesis.speak(u);
+        }
+      } catch { /* ignore */ }
+      try {
+        document.removeEventListener('touchstart', unlock, true);
+        document.removeEventListener('click', unlock, true);
+      } catch { /* ignore */ }
+    };
+    document.addEventListener('touchstart', unlock, { capture: true, passive: true });
+    document.addEventListener('click', unlock, { capture: true });
+    return () => {
+      try {
+        document.removeEventListener('touchstart', unlock, true);
+        document.removeEventListener('click', unlock, true);
+      } catch { /* ignore */ }
+    };
+  }, []);
+
+  // Auto-trigger soft-reset right at the start of a transition rest
+  // (rest period that follows the LAST set of an exercise — the natural
+  // pause between exercises). Hides the page reload in a moment that's
+  // already a transition for the client, and the post-reload restore
+  // lands them in a fresh rest period with the full duration on the
+  // clock. Throttled so quick back-to-back exercises don't reload more
+  // than once every N min.
+  //
+  // We re-compute the "is this the last set, is there a next exercise"
+  // check inline from refs because the isTransitionRest const is
+  // declared further down in the component body — referencing it in a
+  // dep array here would be a TDZ violation. Refs are sync'd inline
+  // during render so they're current by the time this effect fires.
+  useEffect(() => {
+    if (!IS_IOS) return;
+    if (phase !== 'rest') return;
+
+    const exIdx = currentExIndexRef.current;
+    const ex = exercises[exIdx];
+    if (!ex) return;
+    const totalSets = typeof ex.sets === 'number'
+      ? ex.sets
+      : (Array.isArray(ex.sets) ? ex.sets.length : 3);
+    const doneSets = completedSetsRef.current[exIdx]?.size || 0;
+    if (doneSets < totalSets) return;        // not the last set yet
+    if (exIdx >= exercises.length - 1) return; // no next exercise to refresh into
+
+    // TESTING: 1 min so the auto-trigger fires frequently enough to
+    // validate the flow. PRODUCTION should be 5-7 min.
+    const MIN_INTERVAL_MS = 1 * 60 * 1000;
+    let lastAt = 0;
+    try {
+      const raw = localStorage.getItem('zique_last_soft_reset_at');
+      if (raw) lastAt = parseInt(raw, 10) || 0;
+    } catch { /* ignore */ }
+    if (Date.now() - lastAt < MIN_INTERVAL_MS) return;
+
+    handleSoftReset();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase]);
+
   // Refs so the banner timer can check current visibility state without
   // re-running every time those bits flip.
   const showResumePromptRef = useRef(false);
@@ -1040,6 +1118,11 @@ function GuidedWorkoutModal({
       if (phaseRef.current !== 'complete') {
         saveResumeState(buildResumeSnapshot());
       }
+    } catch { /* ignore */ }
+    // Stamp the throttle timestamp so the auto-trigger doesn't fire
+    // again within MIN_INTERVAL_MS of this reset.
+    try {
+      localStorage.setItem('zique_last_soft_reset_at', String(Date.now()));
     } catch { /* ignore */ }
     if (onSoftResetRequest) onSoftResetRequest();
   }, [onSoftResetRequest]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -4911,48 +4994,15 @@ function GuidedWorkoutModal({
         </div>
       )}
 
-      {/* Soft-reset splash — branded full-screen overlay shown after a
-          soft-reset reload. Tappable so the user's tap re-unlocks the
-          iOS AudioContext (a page reload kills it; WebKit requires a
-          fresh user gesture to unlock). Without this tap-gate the rep
-          tick + voice cues stay silent for the rest of the workout. */}
+      {/* Soft-reset splash — disguised as a normal "loading next
+          exercise" screen so the auto-triggered page reload looks
+          intentional. Auto-dismisses after ~900ms. A separate global
+          tap-to-unlock listener (installed below) catches the user's
+          first natural tap on the screen and silently unlocks both
+          iOS audio systems (Web Audio + Speech Synthesis), so the
+          client never has to think about tapping anything specific. */}
       {showSoftResetSplash && (
         <div
-          role="button"
-          tabIndex={0}
-          onClick={() => {
-            // iOS has TWO separate audio systems that BOTH need a user
-            // gesture to unlock after a page reload:
-            //   - Web Audio API (rep tick, complete chime) → warmUpTickSound()
-            //   - Speech Synthesis (voice cues like "Switch sides", "Rest", etc.)
-            // Splash tap is our one user gesture; use it to wake up both.
-            // Empty/silent utterance is enough to take the speech engine
-            // out of its locked state for subsequent calls.
-            try { warmUpTickSound(); } catch { /* ignore */ }
-            try {
-              if (typeof speechSynthesis !== 'undefined') {
-                speechSynthesis.cancel();
-                const u = new SpeechSynthesisUtterance(' ');
-                u.volume = 0;
-                speechSynthesis.speak(u);
-              }
-            } catch { /* ignore */ }
-            setShowSoftResetSplash(false);
-          }}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-              try { warmUpTickSound(); } catch { /* ignore */ }
-              try {
-                if (typeof speechSynthesis !== 'undefined') {
-                  speechSynthesis.cancel();
-                  const u = new SpeechSynthesisUtterance(' ');
-                  u.volume = 0;
-                  speechSynthesis.speak(u);
-                }
-              } catch { /* ignore */ }
-              setShowSoftResetSplash(false);
-            }
-          }}
           style={{
             position: 'fixed',
             inset: 0,
@@ -4964,7 +5014,6 @@ function GuidedWorkoutModal({
             justifyContent: 'center',
             gap: 16,
             color: 'white',
-            cursor: 'pointer',
             userSelect: 'none',
             WebkitUserSelect: 'none'
           }}
@@ -4976,21 +5025,8 @@ function GuidedWorkoutModal({
               style={{ maxWidth: 120, maxHeight: 80, objectFit: 'contain' }}
             />
           ) : null}
-          <div style={{ fontSize: 16, fontWeight: 600 }}>Welcome back!</div>
-          <div style={{ fontSize: 14, opacity: 0.9, padding: '0 24px', textAlign: 'center', maxWidth: 320 }}>
-            Tap anywhere to continue your workout
-          </div>
-          <div style={{
-            marginTop: 8,
-            padding: '10px 28px',
-            background: 'rgba(255,255,255,0.18)',
-            border: '1px solid rgba(255,255,255,0.4)',
-            borderRadius: 8,
-            fontSize: 14,
-            fontWeight: 600
-          }}>
-            Tap to continue
-          </div>
+          <Loader2 size={28} style={{ animation: 'spin 1s linear infinite' }} />
+          <div style={{ fontSize: 14, opacity: 0.85 }}>Loading next exercise…</div>
         </div>
       )}
 
