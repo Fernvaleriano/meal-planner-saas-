@@ -3,7 +3,12 @@ const CACHE_NAME = 'ziquecoach-v17';
 const STATIC_CACHE = 'zique-static-v17';
 const DATA_CACHE = 'zique-data-v12';
 const CDN_CACHE = 'zique-cdn-v7';
-const VIDEO_CACHE = 'zique-video-v1';
+const VIDEO_CACHE = 'zique-video-v2';
+// Cap the video cache so it doesn't grow without bound. ~15 videos at
+// an average of ~15MB each puts the worst case around 225MB — enough
+// to cover the current workout and a few before/after, but small in
+// modern-phone terms (a handful of camera photos).
+const VIDEO_CACHE_MAX_ENTRIES = 15;
 
 // Files to cache for offline use
 const STATIC_FILES = [
@@ -137,10 +142,69 @@ self.addEventListener('activate', (event) => {
 });
 
 
-// Check if request is a video file we should aggressively cache for iOS reload performance
+// Identify exercise video files we want to keep on the device so playback
+// is instant on the second tap and across page reloads. Coach uploads land
+// on Supabase storage; library animations are tiny so the cache is a wash
+// either way — the extension check covers both.
 function isVideoRequest(request, url) {
-  if (request.headers.get('range')) return false;
   return /\.(mp4|mov|m4v)$/i.test(url.pathname);
+}
+
+// Stable cache key that ignores volatile query params (signed-URL tokens
+// rotate every fetch on coach uploads, so without this the cache would
+// miss on every reload). Hostname + pathname is enough to identify the
+// underlying file.
+function videoCacheKey(url) {
+  return new Request(url.origin + url.pathname, { method: 'GET' });
+}
+
+// Synthesize a 206 Partial Content response from a full cached body.
+// iOS Safari plays <video> by issuing Range requests; if the SW returns
+// the full 200 response it works but is slower (the engine re-issues
+// ranges anyway). Returning a real 206 keeps playback snappy.
+async function rangeResponseFromCache(cachedResponse, rangeHeader) {
+  const buf = await cachedResponse.clone().arrayBuffer();
+  const total = buf.byteLength;
+  const match = /^bytes=(\d*)-(\d*)$/.exec(rangeHeader || '');
+  let start = 0;
+  let end = total - 1;
+  if (match) {
+    if (match[1] !== '') start = parseInt(match[1], 10);
+    if (match[2] !== '') end = parseInt(match[2], 10);
+  }
+  if (isNaN(start) || isNaN(end) || start > end || start >= total) {
+    return new Response(null, {
+      status: 416,
+      statusText: 'Range Not Satisfiable',
+      headers: { 'Content-Range': `bytes */${total}` }
+    });
+  }
+  end = Math.min(end, total - 1);
+  const slice = buf.slice(start, end + 1);
+  const contentType =
+    cachedResponse.headers.get('Content-Type') || 'video/mp4';
+  return new Response(slice, {
+    status: 206,
+    statusText: 'Partial Content',
+    headers: {
+      'Content-Type': contentType,
+      'Content-Length': String(slice.byteLength),
+      'Content-Range': `bytes ${start}-${end}/${total}`,
+      'Accept-Ranges': 'bytes'
+    }
+  });
+}
+
+// Drop oldest cached videos beyond the cap. Cache.keys() returns entries
+// in insertion order, so older puts naturally sit at the front.
+async function trimVideoCache(cache) {
+  try {
+    const keys = await cache.keys();
+    const excess = keys.length - VIDEO_CACHE_MAX_ENTRIES;
+    for (let i = 0; i < excess; i++) {
+      await cache.delete(keys[i]);
+    }
+  } catch (e) { /* ignore */ }
 }
 
 // Check if URL matches cacheable API patterns
@@ -163,19 +227,62 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Video assets (mp4/mov/m4v): cache-first so iOS reloads can reuse buffered files
-  // instead of fetching from scratch after each page-level remount.
+  // Video assets (mp4/mov/m4v): cache-first, with proper Range handling
+  // so iOS native <video> (which always requests by Range) actually gets
+  // served from the on-device cache instead of falling through to the
+  // network. We store the FULL file (cache key strips the volatile signed
+  // -URL query string) and synthesize 206 responses on demand.
   if (isVideoRequest(request, url)) {
+    const rangeHeader = request.headers.get('range');
     event.respondWith(
       caches.open(VIDEO_CACHE).then(async (cache) => {
-        const cachedResponse = await cache.match(request, { ignoreSearch: false });
-        if (cachedResponse) return cachedResponse;
-
-        const fetchResponse = await fetch(request);
-        if (fetchResponse && fetchResponse.ok) {
-          cache.put(request, fetchResponse.clone());
+        const key = videoCacheKey(url);
+        let cached = await cache.match(key);
+        if (!cached) {
+          // No cached copy — fetch the full file (force a non-range GET
+          // so we get the entire body, not just whatever range the
+          // <video> element asked for) and store it.
+          try {
+            const fullReq = new Request(request.url, {
+              method: 'GET',
+              credentials: request.credentials,
+              mode: request.mode === 'navigate' ? 'cors' : request.mode,
+              redirect: 'follow'
+              // Intentionally no Range header — we want the whole file.
+            });
+            const fullResp = await fetch(fullReq);
+            if (fullResp && fullResp.status === 200) {
+              // Read the full body now so future Range responses can
+              // be synthesized from a single complete buffer.
+              const body = await fullResp.clone().arrayBuffer();
+              const storedHeaders = new Headers(fullResp.headers);
+              storedHeaders.delete('Content-Range');
+              storedHeaders.set('Content-Length', String(body.byteLength));
+              storedHeaders.set('Accept-Ranges', 'bytes');
+              const stored = new Response(body, {
+                status: 200,
+                statusText: 'OK',
+                headers: storedHeaders
+              });
+              await cache.put(key, stored.clone());
+              trimVideoCache(cache);
+              cached = stored;
+            } else {
+              // Either the server insisted on 206 (rare without Range)
+              // or it errored (404, signed-URL expired, etc.). Either
+              // way, don't try to cache — pass it through so the
+              // <video> element's error path can refresh the URL.
+              return fullResp;
+            }
+          } catch (err) {
+            // Network failure — let the <video> element see the error.
+            return new Response('', { status: 502 });
+          }
         }
-        return fetchResponse;
+        if (rangeHeader) {
+          return rangeResponseFromCache(cached, rangeHeader);
+        }
+        return cached;
       })
     );
     return;
