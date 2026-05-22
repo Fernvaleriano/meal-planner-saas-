@@ -781,6 +781,13 @@ function GuidedWorkoutModal({
 
           setCurrentExIndex(safeExIndex);
           setCurrentSetIndex(saved.currentSetIndex || 0);
+          // Keep the auto-trigger's prev-index ref in sync with the
+          // restore so the autoResume-driven currentExIndex change
+          // doesn't get mistaken for a fresh exercise advance and
+          // immediately fire another soft-reset right after the page
+          // just finished reloading. Without this the splash dismisses
+          // and then ~1.5s later a second reload kicks in.
+          prevExIndexForSoftResetRef.current = safeExIndex;
           setTotalElapsed(saved.totalElapsed || 0);
           // The displayed Total counter is computed from elapsedStartRef
           // (Date.now() - elapsedStart) on a 1-second interval, so just
