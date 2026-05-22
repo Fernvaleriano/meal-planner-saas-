@@ -509,6 +509,11 @@ function GuidedWorkoutModal({
   const [showCoachNote, setShowCoachNote] = useState(false); // For text notes popup
   const [showReferenceLinks, setShowReferenceLinks] = useState(false);
   const [videoMuted, setVideoMuted] = useState(true); // Custom videos start muted so background music keeps playing
+  // Surfaces a "Tap to play" affordance when iOS Safari silently blocks
+  // muted autoplay (Low Power Mode, post-soft-reset audio session quirks,
+  // first-load gesture requirement). Without this, clients with custom
+  // videos would stare at a frozen thumbnail not realizing they need to tap.
+  const [videoNeedsTap, setVideoNeedsTap] = useState(false);
 
   // Client note for coach state
   const [showClientNoteInput, setShowClientNoteInput] = useState(false);
@@ -2516,6 +2521,28 @@ function GuidedWorkoutModal({
       || currentExercise?.video_url
       || currentExercise?.animation_url;
     if (hasVideo) setShowVideo(true);
+    // Reset the tap-to-play overlay on every exercise transition. If iOS
+    // blocks autoplay, the play() attempt below will re-raise it.
+    setVideoNeedsTap(false);
+    // Best-effort explicit play() after the video element has had a tick to
+    // mount with the new src. iOS Safari sometimes silently skips autoplay
+    // on muted videos (Low Power Mode, after audio session interruption,
+    // post soft-reset reload) — we catch the promise rejection and surface
+    // the tap-to-play overlay so the client knows what to do.
+    if (hasVideo) {
+      const t = setTimeout(() => {
+        const el = guidedVideoElRef.current;
+        if (!el) return;
+        el.muted = IS_IOS ? videoMuted : true;
+        const p = el.play();
+        if (p && typeof p.catch === 'function') {
+          p.catch(() => {
+            if (!isPausedRef.current) setVideoNeedsTap(true);
+          });
+        }
+      }, 80);
+      return () => clearTimeout(t);
+    }
   }, [phase, currentExIndex]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Fallback: when video fails, re-fetch a fresh signed URL if this is a custom video
@@ -4580,7 +4607,23 @@ function GuidedWorkoutModal({
               preload={videoHasAudio ? 'auto' : 'metadata'}
               onLoadedMetadata={(e) => { e.currentTarget.muted = IS_IOS ? videoMuted : (!videoHasAudio || videoMuted); }}
               onCanPlay={() => { setGuidedVideoLoading(false); setGuidedVideoError(false); }}
-              onPlaying={(e) => { e.currentTarget.muted = IS_IOS ? videoMuted : (!videoHasAudio || videoMuted); setGuidedVideoLoading(false); }}
+              onPlaying={(e) => { e.currentTarget.muted = IS_IOS ? videoMuted : (!videoHasAudio || videoMuted); setGuidedVideoLoading(false); setVideoNeedsTap(false); }}
+              onPlay={() => setVideoNeedsTap(false)}
+              onPause={() => {
+                // iOS silently blocks autoplay in some states (Low Power Mode,
+                // post-audio-session interruption, after soft-reset reload). The
+                // element fires `pause` immediately on a blocked autoplay attempt.
+                // Surface a tap-to-play overlay so the client knows to tap —
+                // but only when the workout itself isn't intentionally paused,
+                // and only after a short delay so a quick src-swap doesn't flash.
+                if (isPausedRef.current) return;
+                setTimeout(() => {
+                  const el = guidedVideoElRef.current;
+                  if (el && el.paused && !isPausedRef.current) {
+                    setVideoNeedsTap(true);
+                  }
+                }, 250);
+              }}
               onWaiting={() => setGuidedVideoLoading(true)}
               onError={handleGuidedVideoError}
             />
@@ -4606,6 +4649,27 @@ function GuidedWorkoutModal({
               <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.5)', zIndex: 2, pointerEvents: 'none' }}>
                 <Loader2 size={28} style={{ color: 'white', animation: 'spin 1s linear infinite' }} />
               </div>
+            )}
+            {videoNeedsTap && !guidedVideoLoading && !guidedVideoError && (
+              <button
+                type="button"
+                className="guided-video-tap-to-play"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setVideoNeedsTap(false);
+                  const el = guidedVideoElRef.current;
+                  if (!el) return;
+                  el.muted = IS_IOS ? videoMuted : (!videoHasAudio || videoMuted);
+                  const p = el.play();
+                  if (p && typeof p.catch === 'function') {
+                    p.catch(() => setVideoNeedsTap(true));
+                  }
+                }}
+                aria-label="Tap to play exercise video"
+              >
+                <span className="tap-to-play-icon"><Play size={42} fill="currentColor" /></span>
+                <span className="tap-to-play-text">Tap to play</span>
+              </button>
             )}
             {guidedVideoError && (
               <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.7)', zIndex: 2, gap: '8px', color: 'white' }} onClick={(e) => e.stopPropagation()}>
