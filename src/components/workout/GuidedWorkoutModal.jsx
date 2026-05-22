@@ -825,9 +825,13 @@ function GuidedWorkoutModal({
             });
           } catch { /* ignore */ }
 
-          // Drop splash after the next render commits so the user lands
-          // on the get-ready countdown smoothly.
-          setTimeout(() => setShowSoftResetSplash(false), 500);
+          // Splash stays up until the user taps. That tap is critical on
+          // iOS: a page reload kills the AudioContext, and WebKit
+          // requires a fresh user gesture to unlock audio. Without a
+          // tap-gate here the rep tick / voice cues stay silent for
+          // the rest of the workout. The tap handler in the splash UI
+          // calls warmUpTickSound() to re-unlock the engine, then
+          // dismisses the splash.
         } else if (onSoftResetConsumed) {
           onSoftResetConsumed();
         }
@@ -4882,12 +4886,25 @@ function GuidedWorkoutModal({
         </div>
       )}
 
-      {/* Soft-reset splash — branded full-screen overlay shown for ~500ms
-          right after a soft-reset remount so the brief blank flash looks
-          intentional instead of buggy. Uses the coach's branding when
-          present so it feels native to their app. */}
+      {/* Soft-reset splash — branded full-screen overlay shown after a
+          soft-reset reload. Tappable so the user's tap re-unlocks the
+          iOS AudioContext (a page reload kills it; WebKit requires a
+          fresh user gesture to unlock). Without this tap-gate the rep
+          tick + voice cues stay silent for the rest of the workout. */}
       {showSoftResetSplash && (
         <div
+          role="button"
+          tabIndex={0}
+          onClick={() => {
+            try { warmUpTickSound(); } catch { /* ignore */ }
+            setShowSoftResetSplash(false);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              try { warmUpTickSound(); } catch { /* ignore */ }
+              setShowSoftResetSplash(false);
+            }
+          }}
           style={{
             position: 'fixed',
             inset: 0,
@@ -4898,7 +4915,10 @@ function GuidedWorkoutModal({
             alignItems: 'center',
             justifyContent: 'center',
             gap: 16,
-            color: 'white'
+            color: 'white',
+            cursor: 'pointer',
+            userSelect: 'none',
+            WebkitUserSelect: 'none'
           }}
         >
           {branding?.brand_logo_url ? (
@@ -4908,8 +4928,21 @@ function GuidedWorkoutModal({
               style={{ maxWidth: 120, maxHeight: 80, objectFit: 'contain' }}
             />
           ) : null}
-          <Loader2 size={28} style={{ animation: 'spin 1s linear infinite' }} />
-          <div style={{ fontSize: 14, opacity: 0.85 }}>Refreshing…</div>
+          <div style={{ fontSize: 16, fontWeight: 600 }}>Welcome back!</div>
+          <div style={{ fontSize: 14, opacity: 0.9, padding: '0 24px', textAlign: 'center', maxWidth: 320 }}>
+            Tap anywhere to continue your workout
+          </div>
+          <div style={{
+            marginTop: 8,
+            padding: '10px 28px',
+            background: 'rgba(255,255,255,0.18)',
+            border: '1px solid rgba(255,255,255,0.4)',
+            borderRadius: 8,
+            fontSize: 14,
+            fontWeight: 600
+          }}>
+            Tap to continue
+          </div>
         </div>
       )}
 
