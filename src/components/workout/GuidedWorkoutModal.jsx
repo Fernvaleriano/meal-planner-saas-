@@ -804,8 +804,19 @@ function GuidedWorkoutModal({
           if (saved.pendingNextExIdx !== undefined) setPendingNextExIdx(saved.pendingNextExIdx);
           if (saved.supersetState) setSupersetState(saved.supersetState);
 
-          setPhase('get-ready');
-          setTimer(5);
+          // If the client was mid-rest with time still on the clock,
+          // resume the rest at the remaining seconds — pulling them
+          // out of rest early after a refresh felt rude. Anything else
+          // (exercise phase, complete, get-ready, no remaining time)
+          // falls back to a fresh 5-second get-ready so they can
+          // re-engage before continuing.
+          if (saved.phase === 'rest' && saved.remainingTimer && saved.remainingTimer > 0) {
+            setPhase('rest');
+            setTimer(saved.remainingTimer);
+          } else {
+            setPhase('get-ready');
+            setTimer(5);
+          }
           setIsPaused(false);
 
           if (onSoftResetConsumed) onSoftResetConsumed();
@@ -3206,6 +3217,15 @@ function GuidedWorkoutModal({
     Object.entries(completedSetsRef.current || {}).forEach(([key, setObj]) => {
       serializedCompleted[key] = Array.from(setObj);
     });
+    // Remaining seconds on the active timer, derived from the real clock
+    // anchor so a soft-reset can resume mid-rest with the correct
+    // countdown instead of restarting at the full rest duration.
+    let remainingTimer = 0;
+    try {
+      if (endTimeRef.current) {
+        remainingTimer = Math.max(0, Math.ceil((endTimeRef.current - Date.now()) / 1000));
+      }
+    } catch { /* ignore */ }
     return {
       ...buildResumeIdentity(clientId, selectedDate, workoutLogId, exercises),
       workoutName,
@@ -3218,7 +3238,9 @@ function GuidedWorkoutModal({
       exerciseName: exercises[currentExIndexRef.current]?.name,
       skippedQueue: skippedQueueRef.current,
       pendingNextExIdx: pendingNextExIdxRef.current,
-      supersetState: supersetStateRef.current
+      supersetState: supersetStateRef.current,
+      phase: phaseRef.current,
+      remainingTimer
     };
   };
 
