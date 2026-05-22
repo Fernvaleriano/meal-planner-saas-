@@ -951,10 +951,13 @@ function Workouts() {
           pending = true;
           const targetRaw = localStorage.getItem('zique_soft_reset_target_workout_id');
           targetRawForLog = targetRaw;
-          if (targetRaw) {
-            const targetId = parseInt(targetRaw, 10);
-            if (!isNaN(targetId)) target = targetId;
-          }
+          // Keep the id as-is from storage. Assignments use numeric ids,
+          // adhoc / club / custom workouts use UUID strings — parseInt on
+          // a UUID like "8f50c7ea-..." silently returns 8 (the leading
+          // digits), which never matches the real id. Comparisons against
+          // todayWorkout.id elsewhere normalize with String() so number vs
+          // string ids both work.
+          if (targetRaw) target = targetRaw;
         }
         localStorage.removeItem('zique_soft_reset_pending');
         localStorage.removeItem('zique_soft_reset_target_workout_id');
@@ -1003,8 +1006,10 @@ function Workouts() {
     if (!pendingSoftResume) return;
     if (showGuidedWorkout) return;
     const target = softResetTargetWorkoutIdRef.current;
-    if (target) {
-      if (todayWorkout?.id !== target) return;
+    if (target != null) {
+      // String-coerce both sides — assignment ids are numbers, adhoc ids
+      // are UUID strings, and the stored target is always a string.
+      if (String(todayWorkout?.id ?? '') !== String(target)) return;
     } else {
       if (!todayWorkout?.id) return;
     }
@@ -1531,8 +1536,10 @@ function Workouts() {
         // the first workout.
         const target = softResetTargetWorkoutIdRef.current;
         let active = null;
-        if (target) {
-          active = allWorkouts.find(w => w.id === target) || null;
+        if (target != null) {
+          // String-coerce both sides: assignments use numeric ids, adhoc
+          // workouts use UUID strings.
+          active = allWorkouts.find(w => String(w.id ?? '') === String(target)) || null;
         }
         if (!active) {
           const currentId = todayWorkoutRef.current?.id;
@@ -1692,8 +1699,8 @@ function Workouts() {
         // the user is stuck on the static splash overlay. Mirrors the same
         // preference check in refreshWorkoutData.
         const softResetTarget = softResetTargetWorkoutIdRef.current;
-        const targetFromCache = softResetTarget
-          ? (cachedList.find(w => w?.id === softResetTarget) || null)
+        const targetFromCache = softResetTarget != null
+          ? (cachedList.find(w => String(w?.id ?? '') === String(softResetTarget)) || null)
           : null;
         let preserved;
         if (targetFromCache) {
@@ -1857,8 +1864,8 @@ function Workouts() {
           // effect (line ~858) bails because the ids don't match — Play
           // Mode never reopens for non-top workouts on multi-workout days.
           const softResetTarget = softResetTargetWorkoutIdRef.current;
-          const targetMatch = softResetTarget
-            ? (allWorkouts.find(w => w?.id === softResetTarget) || null)
+          const targetMatch = softResetTarget != null
+            ? (allWorkouts.find(w => String(w?.id ?? '') === String(softResetTarget)) || null)
             : null;
           const currentPick = todayWorkoutRef.current;
           let preservedPick;
