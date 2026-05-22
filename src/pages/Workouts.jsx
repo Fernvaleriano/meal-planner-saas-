@@ -780,7 +780,22 @@ function Workouts() {
     // Brief blank is OK — the modal's autosave already flushed to
     // localStorage before this fired, and the splash on the other
     // side hides the cold-load flash.
-    try { window.location.reload(); } catch { /* ignore */ }
+    //
+    // window.location.reload() on a home-screen-installed PWA gets
+    // treated as a re-launch by iOS, which sends the user to the
+    // manifest's start_url ("/app") instead of reloading /app/workouts.
+    // Explicit navigation to /app/workouts (with a cache-busting query
+    // param so the URL differs from the current one) forces an actual
+    // page load AND lands on the right route. The query param has no
+    // meaning to the app — it just makes the URL "new" enough that
+    // iOS treats it as navigation, not refresh.
+    try {
+      const target = `/app/workouts?_zsr=${Date.now()}`;
+      window.location.assign(target);
+    } catch {
+      // Fallback if assign somehow fails
+      try { window.location.reload(); } catch { /* ignore */ }
+    }
   }, []);
 
   // Detect the post-reload "we just did a soft reset" handoff and re-
