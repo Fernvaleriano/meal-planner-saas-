@@ -5278,61 +5278,6 @@ function GuidedWorkoutModal({
                 Start Over
               </button>
             </div>
-            {debugSnapshot && (debugSnapshot.error || (debugSnapshot.previousEvents && debugSnapshot.previousEvents.length > 0) || (debugSnapshot.events && debugSnapshot.events.length > 0)) && (
-              <div style={{ marginTop: 16, padding: 10, background: 'rgba(255,255,255,0.06)', borderRadius: 8, textAlign: 'left' }}>
-                <button
-                  type="button"
-                  onClick={() => setShowDebugDetail(v => !v)}
-                  style={{ background: 'transparent', border: 'none', color: '#94a3b8', fontSize: 12, padding: 0, cursor: 'pointer' }}
-                >
-                  {showDebugDetail ? '▼' : '▶'} Debug info from last session
-                  {debugSnapshot.error ? ' (crash captured)' : ''}
-                </button>
-                {showDebugDetail && (
-                  <div style={{ marginTop: 8, fontSize: 11, color: '#cbd5e1', fontFamily: 'monospace', maxHeight: 240, overflow: 'auto', userSelect: 'text', WebkitUserSelect: 'text' }}>
-                    {debugSnapshot.error && (
-                      <div style={{ marginBottom: 8, padding: 6, background: 'rgba(239,68,68,0.12)', borderRadius: 4 }}>
-                        <div><strong>{debugSnapshot.error.kind}</strong> @ {new Date(debugSnapshot.error.at).toLocaleTimeString()}</div>
-                        <div style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{debugSnapshot.error.msg}</div>
-                        {debugSnapshot.error.stack && (
-                          <div style={{ marginTop: 4, opacity: 0.7, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{debugSnapshot.error.stack}</div>
-                        )}
-                        {debugSnapshot.error.context && (
-                          <div style={{ marginTop: 4, opacity: 0.7 }}>{JSON.stringify(debugSnapshot.error.context)}</div>
-                        )}
-                      </div>
-                    )}
-                    {debugSnapshot.previousEvents && debugSnapshot.previousEvents.length > 0 && (
-                      <div style={{ marginBottom: 8 }}>
-                        <div style={{ opacity: 0.7, marginBottom: 4 }}>Events from the session that just ended ({debugSnapshot.previousEvents.length}):</div>
-                        {debugSnapshot.previousEvents.slice().reverse().map((ev, i) => (
-                          <div key={`p${i}`} style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', opacity: 0.9 }}>
-                            {new Date(ev.t).toLocaleTimeString()} [{ev.type}] {ev.msg}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                    {debugSnapshot.events && debugSnapshot.events.length > 0 && (
-                      <div>
-                        <div style={{ opacity: 0.5, marginBottom: 4 }}>Current session ({debugSnapshot.events.length}):</div>
-                        {debugSnapshot.events.slice().reverse().map((ev, i) => (
-                          <div key={`c${i}`} style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', opacity: 0.6 }}>
-                            {new Date(ev.t).toLocaleTimeString()} [{ev.type}] {ev.msg}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                    <button
-                      type="button"
-                      onClick={() => { clearDebugLog(); setDebugSnapshot(null); setShowDebugDetail(false); }}
-                      style={{ marginTop: 8, padding: '4px 10px', background: '#1e293b', color: '#cbd5e1', border: '1px solid #334155', borderRadius: 4, fontSize: 11, cursor: 'pointer' }}
-                    >
-                      Clear debug log
-                    </button>
-                  </div>
-                )}
-              </div>
-            )}
           </div>
         </div>
       )}
