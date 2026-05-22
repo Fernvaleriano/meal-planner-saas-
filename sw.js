@@ -3,7 +3,6 @@ const CACHE_NAME = 'ziquecoach-v17';
 const STATIC_CACHE = 'zique-static-v17';
 const DATA_CACHE = 'zique-data-v12';
 const CDN_CACHE = 'zique-cdn-v7';
-// No video cache here on purpose — see the fetch handler for why.
 
 // Files to cache for offline use
 const STATIC_FILES = [
@@ -137,13 +136,6 @@ self.addEventListener('activate', (event) => {
 });
 
 
-// Identify exercise video files. We don't cache these in the SW (see the
-// fetch handler) — this helper just lets the handler quickly bail and let
-// the browser's native video pipeline handle the request directly.
-function isVideoRequest(request, url) {
-  return /\.(mp4|mov|m4v)$/i.test(url.pathname);
-}
-
 // Check if URL matches cacheable API patterns
 function isCacheableAPI(url) {
   return CACHEABLE_API_PATTERNS.some(pattern => pattern.test(url.pathname));
@@ -162,20 +154,6 @@ self.addEventListener('fetch', (event) => {
   // Skip non-GET requests
   if (request.method !== 'GET') {
     return;
-  }
-
-  // Video assets (mp4/mov/m4v): explicitly DO NOT intercept. The earlier
-  // attempts at caching them here (Codex's first pass + a follow-up
-  // Range-synthesis version) ended up reading the full file into an
-  // ArrayBuffer on every Range request — iOS Safari issues many Range
-  // requests per playback, so a 20-30MB coach upload meant ~hundreds of
-  // megabytes of allocations per second, which crashed the page
-  // ("a problem repeatedly occurred"). Letting the browser's native
-  // video pipeline handle these directly is correct: the OS-level HTTP
-  // cache + range support are already optimised for streaming media,
-  // and our previous JS layer was strictly worse.
-  if (isVideoRequest(request, url)) {
-    return; // do not call event.respondWith → request falls through to the network
   }
 
   // CRITICAL: ALWAYS fetch client-feed.html fresh - never cache it
