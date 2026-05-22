@@ -1059,32 +1059,28 @@ function GuidedWorkoutModal({
     };
   }, []);
 
-  // Auto-trigger soft-reset right at the start of a transition rest
-  // (rest period that follows the LAST set of an exercise — the natural
-  // pause between exercises). Hides the page reload in a moment that's
-  // already a transition for the client, and the post-reload restore
-  // lands them in a fresh rest period with the full duration on the
-  // clock. Throttled so quick back-to-back exercises don't reload more
-  // than once every N min.
+  // Auto-trigger soft-reset right when one exercise transitions to the
+  // next (the rest period after the last set has fully played out, and
+  // the next exercise is about to begin). Earlier wiring fired at the
+  // START of rest, which hijacked the rest period — the client lost
+  // their natural rest window to a splash card. Watching currentExIndex
+  // changes instead defers the splash to AFTER rest, which matches the
+  // mental model: "last set, then rest, then next exercise (and a
+  // splash card on the way in)".
   //
-  // We re-compute the "is this the last set, is there a next exercise"
-  // check inline from refs because the isTransitionRest const is
-  // declared further down in the component body — referencing it in a
-  // dep array here would be a TDZ violation. Refs are sync'd inline
-  // during render so they're current by the time this effect fires.
+  // The prev-index ref lets us distinguish "advanced to the next
+  // exercise" from "modal just mounted with currentExIndex from
+  // resume". Throttled so quick back-to-back exercises don't reload
+  // more than once every N min.
+  const prevExIndexForSoftResetRef = useRef(currentExIndex);
   useEffect(() => {
     if (!IS_IOS) return;
-    if (phase !== 'rest') return;
-
-    const exIdx = currentExIndexRef.current;
-    const ex = exercises[exIdx];
-    if (!ex) return;
-    const totalSets = typeof ex.sets === 'number'
-      ? ex.sets
-      : (Array.isArray(ex.sets) ? ex.sets.length : 3);
-    const doneSets = completedSetsRef.current[exIdx]?.size || 0;
-    if (doneSets < totalSets) return;        // not the last set yet
-    if (exIdx >= exercises.length - 1) return; // no next exercise to refresh into
+    const prevIdx = prevExIndexForSoftResetRef.current;
+    prevExIndexForSoftResetRef.current = currentExIndex;
+    if (prevIdx === currentExIndex) return; // no change (initial mount)
+    // Forward advances only — skip back-button / Back tapping cases so
+    // the voice doesn't announce the wrong direction.
+    if (currentExIndex < prevIdx) return;
 
     // TESTING: 1 min so the auto-trigger fires frequently enough to
     // validate the flow. PRODUCTION should be 5-7 min.
@@ -1096,9 +1092,27 @@ function GuidedWorkoutModal({
     } catch { /* ignore */ }
     if (Date.now() - lastAt < MIN_INTERVAL_MS) return;
 
-    handleSoftReset();
+    // Speak the splash card's content BEFORE the page reload, while
+    // audio is still unlocked from the client's pre-reload Done tap.
+    // The post-reload splash itself can't speak on appear (page reload
+    // kills the audio context — speak() only resumes after a fresh
+    // user gesture), so we front-load the cue here. The announcement
+    // plays out while the page reloads and the splash card mounts, so
+    // functionally it lands as a "voice reading the splash" moment.
+    const completedEx = exercises[prevIdx];
+    const completedName = completedEx?.name || 'Exercise';
+    const nextEx = exercises[currentExIndex];
+    const nextName = nextEx?.name || null;
+    if (nextName) {
+      try { speak(`${completedName} complete. Up next, ${nextName}`, voiceEnabledRef.current); } catch { /* ignore */ }
+    }
+    // Delay the reload long enough for the announcement to play.
+    // 2.5s covers the typical utterance; if voice is off, the delay
+    // still feels reasonable as a transition beat.
+    const t = setTimeout(() => { handleSoftReset(); }, 2500);
+    return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [phase]);
+  }, [currentExIndex]);
 
   // Refs so the banner timer can check current visibility state without
   // re-running every time those bits flip.
@@ -5041,6 +5055,10 @@ function GuidedWorkoutModal({
               speechSynthesis.speak(u);
             }
           } catch { /* ignore */ }
+          // Note: the "Up next, [name]" announcement already played
+          // pre-reload from the auto-trigger effect (while audio was
+          // still unlocked from the Done tap that fired it). Don't
+          // re-speak it here or the client hears the same line twice.
           // Unpause the workout — the splash kept it paused so the rest
           // timer / next exercise didn't tick away underneath while the
           // client was reading the card.

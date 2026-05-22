@@ -773,6 +773,14 @@ function Workouts() {
   // readiness confirm + auto-open Play Mode + auto-resume.
   const [softResetSession, setSoftResetSession] = useState(0);
   const [pendingSoftResume, setPendingSoftResume] = useState(false);
+  // When a soft-reset reloads the page, the post-reload code needs to
+  // know WHICH workout the client was in — on multi-workout days the
+  // default selection logic falls back to allWorkouts[0], which would
+  // silently switch them to a different workout after every refresh.
+  // We stash the active workout id in this ref on mount (from
+  // localStorage); refreshWorkoutData prefers it over the default until
+  // the matching workout actually loads.
+  const softResetTargetWorkoutIdRef = useRef(null);
   const handleSoftReset = useCallback(() => {
     // iOS Safari wipes sessionStorage when an installed PWA is re-launched
     // (which is how it treats window.location.reload()). localStorage
@@ -781,6 +789,12 @@ function Workouts() {
     // consumers ignore anything older than 30 seconds.
     try {
       localStorage.setItem('zique_soft_reset_pending', String(Date.now()));
+      // Save which workout was active so the post-reload page can pick
+      // it back up instead of defaulting to allWorkouts[0].
+      const targetId = todayWorkoutRef.current?.id;
+      if (targetId) {
+        localStorage.setItem('zique_soft_reset_target_workout_id', String(targetId));
+      }
     } catch { /* ignore */ }
     try {
       const target = `/app/workouts?_zsr=${Date.now()}`;
@@ -790,27 +804,55 @@ function Workouts() {
     }
   }, []);
 
-  // Detect the post-reload "we just did a soft reset" handoff and re-
-  // open Play Mode with auto-resume. Runs once on mount.
+  // Detect the post-reload "we just did a soft reset" handoff. Reads
+  // both the timestamp flag and the target workout id, stashes the
+  // target in a ref so refreshWorkoutData can prefer it, and queues
+  // pendingSoftResume. The actual Play Mode open happens in a separate
+  // effect once todayWorkout matches the target — otherwise the modal
+  // would mount with the wrong workout's exercises and briefly show
+  // the wrong content.
   useEffect(() => {
     let pending = false;
+    let target = null;
     try {
       const raw = localStorage.getItem('zique_soft_reset_pending');
       if (raw) {
         const stamp = parseInt(raw, 10);
-        // Only honor flags from the last 30 seconds — anything older is
-        // a leftover from a previous session that didn't get cleaned.
         if (!isNaN(stamp) && Date.now() - stamp < 30000) {
           pending = true;
+          const targetRaw = localStorage.getItem('zique_soft_reset_target_workout_id');
+          if (targetRaw) {
+            const targetId = parseInt(targetRaw, 10);
+            if (!isNaN(targetId)) target = targetId;
+          }
         }
         localStorage.removeItem('zique_soft_reset_pending');
+        localStorage.removeItem('zique_soft_reset_target_workout_id');
       }
     } catch { /* ignore */ }
     if (pending) {
+      softResetTargetWorkoutIdRef.current = target;
       setPendingSoftResume(true);
-      setShowGuidedWorkout(true);
     }
   }, []);
+
+  // Once todayWorkout settles on the target (or any workout if no
+  // target was saved), open Play Mode. Splits the open out from the
+  // flag-detect effect so we don't mount the modal before the right
+  // exercises are in place.
+  useEffect(() => {
+    if (!pendingSoftResume) return;
+    if (showGuidedWorkout) return;
+    const target = softResetTargetWorkoutIdRef.current;
+    if (target) {
+      if (todayWorkout?.id !== target) return;
+    } else {
+      if (!todayWorkout?.id) return;
+    }
+    softResetTargetWorkoutIdRef.current = null;
+    setShowGuidedWorkout(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingSoftResume, showGuidedWorkout, todayWorkout?.id]);
   const [showGymProof, setShowGymProof] = useState(false);
   const [showFinishConfirm, setShowFinishConfirm] = useState(false);
   const [showShareResults, setShowShareResults] = useState(false);
@@ -1324,10 +1366,20 @@ function Workouts() {
       setTodayWorkouts(allWorkouts);
 
       if (allWorkouts.length > 0) {
-        // Keep current selection if it still exists, otherwise select first
-        const currentId = todayWorkoutRef.current?.id;
-        const stillExists = allWorkouts.find(w => w.id === currentId);
-        const active = stillExists || allWorkouts[0];
+        // After a soft-reset reload, prefer the workout the client was
+        // actively in (saved to softResetTargetWorkoutIdRef). Otherwise
+        // keep current selection if it still exists, else default to
+        // the first workout.
+        const target = softResetTargetWorkoutIdRef.current;
+        let active = null;
+        if (target) {
+          active = allWorkouts.find(w => w.id === target) || null;
+        }
+        if (!active) {
+          const currentId = todayWorkoutRef.current?.id;
+          const stillExists = allWorkouts.find(w => w.id === currentId);
+          active = stillExists || allWorkouts[0];
+        }
         setTodayWorkout(active);
 
         if (!active.is_adhoc && logRes?.logs?.length > 0) {
