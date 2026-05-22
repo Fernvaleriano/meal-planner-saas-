@@ -4992,9 +4992,22 @@ function GuidedWorkoutModal({
         const completedName = exercises[currentExIndex]?.name || 'Exercise';
         const nextEx = exercises[currentExIndex + 1];
         const nextName = nextEx?.name || null;
-        const isDark = typeof window !== 'undefined'
-          && window.matchMedia
-          && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        // The app uses its own theme system (data-theme attribute on <html>,
+        // backed by localStorage 'zique-theme'). System matchMedia would
+        // give us iOS preferences but ignore the app's actual choice —
+        // and the app's default is dark, so a system-light client on
+        // their phone would still see a dark UI everywhere except this
+        // splash if we matched system instead of app theme.
+        const appTheme = (() => {
+          try {
+            const fromAttr = document.documentElement.getAttribute('data-theme');
+            if (fromAttr) return fromAttr;
+            const fromStorage = localStorage.getItem('zique-theme') || localStorage.getItem('theme');
+            if (fromStorage) return fromStorage;
+          } catch { /* ignore */ }
+          return 'dark';
+        })();
+        const isDark = appTheme === 'dark';
         const brandColor = branding?.brand_primary_color || '#2cb5a5';
         const bg = isDark ? '#0f172a' : '#f8fafc';
         const cardBg = isDark ? '#1e293b' : '#ffffff';
