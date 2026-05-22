@@ -806,9 +806,34 @@ function Workouts() {
       localStorage.setItem('zique_soft_reset_pending', String(Date.now()));
       // Save which workout was active so the post-reload page can pick
       // it back up instead of defaulting to allWorkouts[0].
-      const targetId = todayWorkoutRef.current?.id;
+      const activeWorkout = todayWorkoutRef.current;
+      const targetId = activeWorkout?.id;
       if (targetId) {
         localStorage.setItem('zique_soft_reset_target_workout_id', String(targetId));
+      }
+      // Persist the active workout into the per-date cache so the post-reload
+      // restore can find it even if the network fetch is slow / fails. Brand-new
+      // club workouts and other adhoc workouts may not have been written to
+      // cache yet (cache writes happen on refresh cycles, not when the user
+      // picks a workout). Without this, the post-reload cache restore can't
+      // find the workout, the auto-open effect bails, and the user is stuck
+      // on the static "Load Next Exercise" splash with a dead button.
+      const clientId = clientDataRef.current?.id;
+      const dateStr = activeWorkout?.workout_date || formatDate(selectedDateRef.current);
+      if (clientId && activeWorkout?.id && dateStr) {
+        const cacheKey = `workouts_${clientId}_${dateStr}`;
+        const existing = getCache(cacheKey) || {};
+        const existingList = Array.isArray(existing.todayWorkouts) ? existing.todayWorkouts : [];
+        const hasActive = existingList.some(w => w?.id === activeWorkout.id);
+        const mergedList = hasActive
+          ? existingList.map(w => (w?.id === activeWorkout.id ? activeWorkout : w))
+          : [...existingList, activeWorkout];
+        setCache(cacheKey, {
+          ...existing,
+          todayWorkout: activeWorkout,
+          todayWorkouts: mergedList,
+          workoutLog: workoutLogRef.current || existing.workoutLog || null
+        });
       }
     } catch { /* ignore */ }
     try {
