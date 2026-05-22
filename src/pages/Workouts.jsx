@@ -24,6 +24,21 @@ const GymProofModal = React.lazy(() => import('../components/GymProofModal'));
 
 // Helper to get date string in LOCAL timezone (NOT UTC)
 // Using toISOString() would give UTC which causes wrong dates near midnight
+// Pick the workout_log row that belongs to a specific workout card. When a
+// client has two workouts scheduled on the same day, the logs API returns
+// both — blindly grabbing logs[0] hands the WRONG log to whichever card we
+// render first, which is how Play Mode ends up saving sets to the other
+// workout's row. Matching by assignment_id keeps each card on its own log.
+// Adhoc workouts (no assignment row) match by "first log with no
+// assignment_id" — they're still one-per-date.
+const findLogForWorkout = (workout, logs) => {
+  if (!workout || !Array.isArray(logs) || logs.length === 0) return null;
+  if (workout.is_adhoc) {
+    return logs.find((l) => l && !l.assignment_id) || null;
+  }
+  return logs.find((l) => l && l.assignment_id === workout.id) || null;
+};
+
 const formatDate = (date) => {
   try {
     const d = (date && date instanceof Date && !isNaN(date.getTime())) ? date : new Date();
@@ -1382,21 +1397,18 @@ function Workouts() {
         }
         setTodayWorkout(active);
 
-        if (!active.is_adhoc && logRes?.logs?.length > 0) {
-          const log = logRes.logs[0];
-          setWorkoutLog(log);
-          setWorkoutStarted(log?.status === 'in_progress' || log?.status === 'completed');
-          if (log?.energy_level || log?.soreness_level || log?.sleep_quality) {
+        const activeLog = !active.is_adhoc ? findLogForWorkout(active, logRes?.logs) : null;
+        if (activeLog) {
+          setWorkoutLog(activeLog);
+          setWorkoutStarted(activeLog?.status === 'in_progress' || activeLog?.status === 'completed');
+          if (activeLog?.energy_level || activeLog?.soreness_level || activeLog?.sleep_quality) {
             setReadinessData({
-              energy: log.energy_level || 2,
-              soreness: log.soreness_level || 2,
-              sleep: log.sleep_quality || 2
+              energy: activeLog.energy_level || 2,
+              soreness: activeLog.soreness_level || 2,
+              sleep: activeLog.sleep_quality || 2
             });
           }
-          setCompletedExercises(getEffectiveCompletedExercises(active, log, clientData?.id, dateStr));
-        } else if (!active.is_adhoc) {
-          setWorkoutLog(null);
-          setCompletedExercises(getEffectiveCompletedExercises(active, null, clientData?.id, dateStr));
+          setCompletedExercises(getEffectiveCompletedExercises(active, activeLog, clientData?.id, dateStr));
         } else {
           setWorkoutLog(null);
           setCompletedExercises(getEffectiveCompletedExercises(active, null, clientData?.id, dateStr));
@@ -1421,7 +1433,7 @@ function Workouts() {
       if (!anyFailed) {
         const cacheKey = `workouts_${clientData.id}_${dateStr}`;
         const first = allWorkouts[0] || null;
-        const log = (first && !first.is_adhoc && logRes?.logs?.length > 0) ? logRes.logs[0] : null;
+        const log = first && !first.is_adhoc ? findLogForWorkout(first, logRes?.logs) : null;
         setCache(cacheKey, {
           todayWorkout: first,
           todayWorkouts: allWorkouts,
@@ -1657,24 +1669,21 @@ function Workouts() {
           const first = allWorkouts[0];
           setTodayWorkout(first);
 
-          // Process workout log for assigned workouts
-          if (!first.is_adhoc && logRes?.logs?.length > 0) {
-            const log = logRes.logs[0];
-            setWorkoutLog(log);
-            persist({ todayWorkout: first, todayWorkouts: allWorkouts, workoutLog: log });
-            setWorkoutStarted(log?.status === 'in_progress' || log?.status === 'completed');
-            if (log?.energy_level || log?.soreness_level || log?.sleep_quality) {
+          // Process workout log for assigned workouts — match by assignment
+          // id so we don't grab another workout's log when two share a date.
+          const firstLog = !first.is_adhoc ? findLogForWorkout(first, logRes?.logs) : null;
+          if (firstLog) {
+            setWorkoutLog(firstLog);
+            persist({ todayWorkout: first, todayWorkouts: allWorkouts, workoutLog: firstLog });
+            setWorkoutStarted(firstLog?.status === 'in_progress' || firstLog?.status === 'completed');
+            if (firstLog?.energy_level || firstLog?.soreness_level || firstLog?.sleep_quality) {
               setReadinessData({
-                energy: log.energy_level || 2,
-                soreness: log.soreness_level || 2,
-                sleep: log.sleep_quality || 2
+                energy: firstLog.energy_level || 2,
+                soreness: firstLog.soreness_level || 2,
+                sleep: firstLog.sleep_quality || 2
               });
             }
-            setCompletedExercises(getEffectiveCompletedExercises(first, log, clientData?.id, dateStr));
-          } else if (!first.is_adhoc) {
-            setWorkoutLog(null);
-            persist({ todayWorkout: first, todayWorkouts: allWorkouts, workoutLog: null });
-            setCompletedExercises(getEffectiveCompletedExercises(first, null, clientData?.id, dateStr));
+            setCompletedExercises(getEffectiveCompletedExercises(first, firstLog, clientData?.id, dateStr));
           } else {
             setWorkoutLog(null);
             persist({ todayWorkout: first, todayWorkouts: allWorkouts, workoutLog: null });
@@ -1814,7 +1823,7 @@ function Workouts() {
         }
 
         const first = allWorkouts[0] || null;
-        const log = (first && !first.is_adhoc && logRes?.logs?.length > 0) ? logRes.logs[0] : null;
+        const log = first && !first.is_adhoc ? findLogForWorkout(first, logRes?.logs) : null;
         setCache(cacheKey, {
           todayWorkout: first,
           todayWorkouts: allWorkouts,
