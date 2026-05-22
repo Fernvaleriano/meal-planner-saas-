@@ -3342,7 +3342,18 @@ function GuidedWorkoutModal({
           }
           if (nextRep <= 0) {
             setRepCountdownActive(false);
-            setTimeout(() => speak('Set complete. Log your set and rest up.', voiceEnabled), 300);
+            setTimeout(() => {
+              // Skip the "Set complete. Log your set..." cue when the
+              // soft-reset splash is up (or about to be). On a very short
+              // rest the splash can appear inside this 300ms delay, and
+              // then this cue fires AFTER the splash's "Load next
+              // exercise" has started — its speechSynthesis.cancel()
+              // call inside speak() chops "Load next exercise" off and
+              // the client hears "Log your set" over the splash card.
+              if (showSoftResetSplashRef.current) return;
+              if (softResetSpeechActiveRef.current) return;
+              speak('Set complete. Log your set and rest up.', voiceEnabled);
+            }, 300);
             // Auto-advance to rest — client can log during rest. The 0ms
             // setTimeout lets the setCurrentRep state update flush before
             // doMarkSetDone fires its own state changes.
