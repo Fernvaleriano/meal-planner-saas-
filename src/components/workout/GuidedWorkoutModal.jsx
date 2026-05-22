@@ -4889,12 +4889,35 @@ function GuidedWorkoutModal({
           role="button"
           tabIndex={0}
           onClick={() => {
+            // iOS has TWO separate audio systems that BOTH need a user
+            // gesture to unlock after a page reload:
+            //   - Web Audio API (rep tick, complete chime) → warmUpTickSound()
+            //   - Speech Synthesis (voice cues like "Switch sides", "Rest", etc.)
+            // Splash tap is our one user gesture; use it to wake up both.
+            // Empty/silent utterance is enough to take the speech engine
+            // out of its locked state for subsequent calls.
             try { warmUpTickSound(); } catch { /* ignore */ }
+            try {
+              if (typeof speechSynthesis !== 'undefined') {
+                speechSynthesis.cancel();
+                const u = new SpeechSynthesisUtterance(' ');
+                u.volume = 0;
+                speechSynthesis.speak(u);
+              }
+            } catch { /* ignore */ }
             setShowSoftResetSplash(false);
           }}
           onKeyDown={(e) => {
             if (e.key === 'Enter' || e.key === ' ') {
               try { warmUpTickSound(); } catch { /* ignore */ }
+              try {
+                if (typeof speechSynthesis !== 'undefined') {
+                  speechSynthesis.cancel();
+                  const u = new SpeechSynthesisUtterance(' ');
+                  u.volume = 0;
+                  speechSynthesis.speak(u);
+                }
+              } catch { /* ignore */ }
               setShowSoftResetSplash(false);
             }
           }}
