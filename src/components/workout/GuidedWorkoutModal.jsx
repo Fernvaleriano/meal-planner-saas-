@@ -1092,24 +1092,18 @@ function GuidedWorkoutModal({
     } catch { /* ignore */ }
     if (Date.now() - lastAt < MIN_INTERVAL_MS) return;
 
-    // Speak the splash card's content BEFORE the page reload, while
-    // audio is still unlocked from the client's pre-reload Done tap.
-    // The post-reload splash itself can't speak on appear (page reload
+    // Speak the splash's action BEFORE the page reload, while audio is
+    // still unlocked from the client's pre-reload Done tap. The
+    // post-reload splash itself can't speak on appear (page reload
     // kills the audio context — speak() only resumes after a fresh
-    // user gesture), so we front-load the cue here. The announcement
-    // plays out while the page reloads and the splash card mounts, so
-    // functionally it lands as a "voice reading the splash" moment.
-    const completedEx = exercises[prevIdx];
-    const completedName = completedEx?.name || 'Exercise';
-    const nextEx = exercises[currentExIndex];
-    const nextName = nextEx?.name || null;
-    if (nextName) {
-      try { speak(`${completedName} complete. Up next, ${nextName}`, voiceEnabledRef.current); } catch { /* ignore */ }
-    }
+    // user gesture), so we front-load the cue here. The utterance
+    // plays out while the page reloads and the splash card mounts —
+    // verbal version of the "Load Next Exercise" button on the splash.
+    try { speak('Load next exercise', voiceEnabledRef.current); } catch { /* ignore */ }
     // Delay the reload long enough for the announcement to play.
-    // 2.5s covers the typical utterance; if voice is off, the delay
-    // still feels reasonable as a transition beat.
-    const t = setTimeout(() => { handleSoftReset(); }, 2500);
+    // ~1.5s covers the short utterance; shorter line than before so
+    // we don't need the full 2.5s beat.
+    const t = setTimeout(() => { handleSoftReset(); }, 1500);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentExIndex]);
