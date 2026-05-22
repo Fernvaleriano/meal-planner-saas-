@@ -3,7 +3,7 @@ const CACHE_NAME = 'ziquecoach-v17';
 const STATIC_CACHE = 'zique-static-v17';
 const DATA_CACHE = 'zique-data-v12';
 const CDN_CACHE = 'zique-cdn-v7';
-const VIDEO_CACHE = 'zique-video-v2';
+const VIDEO_CACHE = 'zique-video-v3';
 // Cap the video cache so it doesn't grow without bound. ~15 videos at
 // an average of ~15MB each puts the worst case around 225MB — enough
 // to cover the current workout and a few before/after, but small in
@@ -232,6 +232,13 @@ self.addEventListener('fetch', (event) => {
   // served from the on-device cache instead of falling through to the
   // network. We store the FULL file (cache key strips the volatile signed
   // -URL query string) and synthesize 206 responses on demand.
+  //
+  // Cross-origin videos (coach uploads on Supabase storage) come in from
+  // the <video> element as no-cors, so the response body would be opaque
+  // (zero bytes) and useless for caching. We re-issue the fetch in CORS
+  // mode to get a readable body. If CORS fails for any reason, we fall
+  // back to a plain passthrough of the original request — videos always
+  // play, even if we couldn't cache them.
   if (isVideoRequest(request, url)) {
     const rangeHeader = request.headers.get('range');
     event.respondWith(
@@ -239,44 +246,41 @@ self.addEventListener('fetch', (event) => {
         const key = videoCacheKey(url);
         let cached = await cache.match(key);
         if (!cached) {
-          // No cached copy — fetch the full file (force a non-range GET
-          // so we get the entire body, not just whatever range the
-          // <video> element asked for) and store it.
           try {
             const fullReq = new Request(request.url, {
               method: 'GET',
-              credentials: request.credentials,
-              mode: request.mode === 'navigate' ? 'cors' : request.mode,
+              mode: 'cors',
+              credentials: 'omit',
               redirect: 'follow'
               // Intentionally no Range header — we want the whole file.
             });
             const fullResp = await fetch(fullReq);
             if (fullResp && fullResp.status === 200) {
-              // Read the full body now so future Range responses can
-              // be synthesized from a single complete buffer.
               const body = await fullResp.clone().arrayBuffer();
-              const storedHeaders = new Headers(fullResp.headers);
-              storedHeaders.delete('Content-Range');
-              storedHeaders.set('Content-Length', String(body.byteLength));
-              storedHeaders.set('Accept-Ranges', 'bytes');
-              const stored = new Response(body, {
-                status: 200,
-                statusText: 'OK',
-                headers: storedHeaders
-              });
-              await cache.put(key, stored.clone());
-              trimVideoCache(cache);
-              cached = stored;
-            } else {
-              // Either the server insisted on 206 (rare without Range)
-              // or it errored (404, signed-URL expired, etc.). Either
-              // way, don't try to cache — pass it through so the
-              // <video> element's error path can refresh the URL.
-              return fullResp;
+              if (body.byteLength > 0) {
+                const storedHeaders = new Headers(fullResp.headers);
+                storedHeaders.delete('Content-Range');
+                storedHeaders.set('Content-Length', String(body.byteLength));
+                storedHeaders.set('Accept-Ranges', 'bytes');
+                const stored = new Response(body, {
+                  status: 200,
+                  statusText: 'OK',
+                  headers: storedHeaders
+                });
+                await cache.put(key, stored.clone());
+                trimVideoCache(cache);
+                cached = stored;
+              }
             }
           } catch (err) {
-            // Network failure — let the <video> element see the error.
-            return new Response('', { status: 502 });
+            // CORS denied, network error, etc. — fall through to the
+            // passthrough below so the video still plays.
+          }
+          if (!cached) {
+            // Couldn't read/cache the file — just proxy the original
+            // request straight to the network. Same behaviour as if
+            // this SW handler didn't exist for this request.
+            return fetch(request);
           }
         }
         if (rangeHeader) {
