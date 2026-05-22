@@ -790,7 +790,8 @@ function ExerciseDetailModal({
         logId = await getOrCreateWorkoutLogId(
           currentClientId,
           dateStr,
-          currentExercise?.workoutName
+          currentExercise?.workoutName,
+          assignmentId || null
         );
         if (logId) workoutLogIdRef.current = logId;
       }

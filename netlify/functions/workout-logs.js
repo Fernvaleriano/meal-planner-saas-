@@ -74,6 +74,7 @@ exports.handler = async (event) => {
         workoutId,
         startDate,
         endDate,
+        assignmentId,
         limit = 30
       } = event.queryStringParameters || {};
 
@@ -135,6 +136,13 @@ exports.handler = async (event) => {
       }
       if (endDate) {
         query = query.lte('workout_date', endDate);
+      }
+      // Filter by assignment so two assigned workouts on the same day don't
+      // resolve to the same log row. Without this, the modal's log-lookup
+      // collides across both assignments and "Load Next Exercise" + autosave
+      // misbehave.
+      if (assignmentId) {
+        query = query.eq('assignment_id', assignmentId);
       }
 
       const { data: workouts, error } = await query;
@@ -216,13 +224,23 @@ exports.handler = async (event) => {
 
       const resolvedDate = getDefaultDate(workoutDate, timezone);
 
-      // Check if a workout log already exists for this client + date
-      const { data: existingLogs } = await supabase
+      // Check if a workout log already exists for THIS assignment on this
+      // client+date. Without the assignment_id filter, two assigned workouts
+      // scheduled on the same day collide on the same log row — sets from
+      // one bleed into the other and "Load Next Exercise" can't tell which
+      // workout it's in. Adhoc workouts (no assignmentId) still match by
+      // client+date only, since they share no assignment row.
+      let existingLookup = supabase
         .from('workout_logs')
         .select('*')
         .eq('client_id', clientId)
-        .eq('workout_date', resolvedDate)
-        .limit(1);
+        .eq('workout_date', resolvedDate);
+      if (assignmentId) {
+        existingLookup = existingLookup.eq('assignment_id', assignmentId);
+      } else {
+        existingLookup = existingLookup.is('assignment_id', null);
+      }
+      const { data: existingLogs } = await existingLookup.limit(1);
 
       if (existingLogs && existingLogs.length > 0) {
         // Backfill coach_id if missing on existing log
