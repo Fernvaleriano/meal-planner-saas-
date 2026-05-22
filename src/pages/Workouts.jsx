@@ -705,6 +705,60 @@ function buildWorkoutFromLog(log) {
   };
 }
 
+// TEMPORARY — surfaces the soft-reset debug trail so we can diagnose the
+// iOS club-workout reopen failure without dev tools. Visible only when
+// there's a recent (<5 min) entry. Remove once the bug is closed.
+function SoftResetDebugPanel() {
+  const [trail, setTrail] = React.useState(() => {
+    try {
+      const raw = localStorage.getItem('zique_softreset_debug');
+      return raw ? JSON.parse(raw) : [];
+    } catch { return []; }
+  });
+  React.useEffect(() => {
+    const id = setInterval(() => {
+      try {
+        const raw = localStorage.getItem('zique_softreset_debug');
+        setTrail(raw ? JSON.parse(raw) : []);
+      } catch { /* ignore */ }
+    }, 1000);
+    return () => clearInterval(id);
+  }, []);
+  const recent = (trail || []).filter(e => e && (Date.now() - e.ts) < 5 * 60 * 1000);
+  if (recent.length === 0) return null;
+  const handleClear = () => {
+    try { localStorage.removeItem('zique_softreset_debug'); } catch { /* ignore */ }
+    setTrail([]);
+  };
+  return (
+    <div style={{
+      margin: '8px 12px',
+      padding: 10,
+      background: '#1e293b',
+      border: '1px solid #334155',
+      borderRadius: 8,
+      fontSize: 10,
+      color: '#cbd5e1',
+      fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+      whiteSpace: 'pre-wrap',
+      wordBreak: 'break-all'
+    }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+        <strong style={{ color: '#facc15' }}>Soft-reset debug ({recent.length})</strong>
+        <button onClick={handleClear} style={{
+          background: '#334155', color: '#fff', border: 'none',
+          borderRadius: 4, padding: '2px 8px', fontSize: 10
+        }}>Clear</button>
+      </div>
+      {recent.map((e, i) => (
+        <div key={i} style={{ marginBottom: 4, borderTop: i > 0 ? '1px solid #334155' : 'none', paddingTop: i > 0 ? 4 : 0 }}>
+          {JSON.stringify(e)}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function Workouts() {
   const { clientData, user } = useAuth();
   const navigate = useNavigate();
@@ -820,10 +874,13 @@ function Workouts() {
       // on the static "Load Next Exercise" splash with a dead button.
       const clientId = clientDataRef.current?.id;
       const dateStr = activeWorkout?.workout_date || formatDate(selectedDateRef.current);
+      let existingListLen = 0;
+      let cacheWriteAttempted = false;
       if (clientId && activeWorkout?.id && dateStr) {
         const cacheKey = `workouts_${clientId}_${dateStr}`;
         const existing = getCache(cacheKey) || {};
         const existingList = Array.isArray(existing.todayWorkouts) ? existing.todayWorkouts : [];
+        existingListLen = existingList.length;
         const hasActive = existingList.some(w => w?.id === activeWorkout.id);
         const mergedList = hasActive
           ? existingList.map(w => (w?.id === activeWorkout.id ? activeWorkout : w))
@@ -834,7 +891,30 @@ function Workouts() {
           todayWorkouts: mergedList,
           workoutLog: workoutLogRef.current || existing.workoutLog || null
         });
+        cacheWriteAttempted = true;
       }
+      // Diagnostic trail — debug iOS-only club-workout reopen failures.
+      // Records what we saw at soft-reset so we can compare to what the
+      // post-reload flow sees. Safe to remove once the bug is closed.
+      try {
+        const trail = JSON.parse(localStorage.getItem('zique_softreset_debug') || '[]');
+        trail.push({
+          phase: 'pre-reload',
+          ts: Date.now(),
+          workoutId: activeWorkout?.id ?? null,
+          workoutIdType: typeof activeWorkout?.id,
+          isAdhoc: activeWorkout?.is_adhoc ?? null,
+          workoutName: activeWorkout?.name ?? null,
+          workoutDate: activeWorkout?.workout_date ?? null,
+          hasWorkoutData: !!activeWorkout?.workout_data,
+          exerciseCount: activeWorkout?.workout_data?.exercises?.length ?? null,
+          dateStr,
+          cacheKey: clientId && dateStr ? `workouts_${clientId}_${dateStr}` : null,
+          existingListLen,
+          cacheWriteAttempted
+        });
+        localStorage.setItem('zique_softreset_debug', JSON.stringify(trail.slice(-20)));
+      } catch { /* ignore */ }
     } catch { /* ignore */ }
     try {
       const target = `/app/workouts?_zsr=${Date.now()}`;
@@ -854,6 +934,7 @@ function Workouts() {
   useEffect(() => {
     let pending = false;
     let target = null;
+    let targetRawForLog = null;
     try {
       const raw = localStorage.getItem('zique_soft_reset_pending');
       if (raw) {
@@ -861,6 +942,7 @@ function Workouts() {
         if (!isNaN(stamp) && Date.now() - stamp < 30000) {
           pending = true;
           const targetRaw = localStorage.getItem('zique_soft_reset_target_workout_id');
+          targetRawForLog = targetRaw;
           if (targetRaw) {
             const targetId = parseInt(targetRaw, 10);
             if (!isNaN(targetId)) target = targetId;
@@ -874,6 +956,19 @@ function Workouts() {
       softResetTargetWorkoutIdRef.current = target;
       setPendingSoftResume(true);
     }
+    // Diagnostic — record what the post-reload handoff saw.
+    try {
+      const trail = JSON.parse(localStorage.getItem('zique_softreset_debug') || '[]');
+      trail.push({
+        phase: 'post-reload-handoff',
+        ts: Date.now(),
+        pending,
+        targetRaw: targetRawForLog,
+        targetParsed: target,
+        targetType: typeof target
+      });
+      localStorage.setItem('zique_softreset_debug', JSON.stringify(trail.slice(-20)));
+    } catch { /* ignore */ }
   }, []);
 
   // Once todayWorkout settles on the target (or any workout if no
@@ -881,6 +976,22 @@ function Workouts() {
   // flag-detect effect so we don't mount the modal before the right
   // exercises are in place.
   useEffect(() => {
+    // Diagnostic — log every fire of the auto-open effect.
+    try {
+      const trail = JSON.parse(localStorage.getItem('zique_softreset_debug') || '[]');
+      trail.push({
+        phase: 'auto-open-check',
+        ts: Date.now(),
+        pendingSoftResume,
+        showGuidedWorkout,
+        target: softResetTargetWorkoutIdRef.current,
+        targetType: typeof softResetTargetWorkoutIdRef.current,
+        todayWorkoutId: todayWorkout?.id ?? null,
+        todayWorkoutIdType: typeof todayWorkout?.id,
+        isAdhoc: todayWorkout?.is_adhoc ?? null
+      });
+      localStorage.setItem('zique_softreset_debug', JSON.stringify(trail.slice(-20)));
+    } catch { /* ignore */ }
     if (!pendingSoftResume) return;
     if (showGuidedWorkout) return;
     const target = softResetTargetWorkoutIdRef.current;
@@ -4917,6 +5028,12 @@ function Workouts() {
               })}
             </div>
           </div>
+
+          {/* TEMPORARY DIAGNOSTIC — surfaces the soft-reset debug log so the
+              founder can screenshot it without dev tools. Visible only when
+              there's a recent (<5 min) trail entry. Tap to copy / clear.
+              Remove once the club-workout reopen bug is closed. */}
+          <SoftResetDebugPanel />
 
           {/* Workout Cards or Loading/Empty State */}
           <div
