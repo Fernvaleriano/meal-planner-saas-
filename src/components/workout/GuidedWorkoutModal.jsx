@@ -3837,6 +3837,34 @@ function GuidedWorkoutModal({
 
   return (
     <div className={`guided-workout-overlay ${isMinimized ? 'minimized' : ''}`} onTouchStart={warmUpTickSound} onClick={warmUpTickSound}>
+      {/* Prefetch the upcoming coach video in the background so it is
+          already buffered when the next exercise screen appears. Without
+          this, each video only starts downloading when its <video>
+          element mounts, leaving the client staring at a spinner for
+          5–10s while a multi-MB signed-URL MP4 downloads. Library
+          GIF/MP4 animations are tiny and CDN-cached — only coach
+          uploads (customVideoUrl) are slow enough to matter, so we
+          scope the prefetch to those to avoid wasting bandwidth. */}
+      {nextExercise?.customVideoUrl && (
+        <video
+          key={`prefetch-${nextExercise.customVideoUrl}`}
+          src={nextExercise.customVideoUrl}
+          preload="auto"
+          muted
+          playsInline
+          aria-hidden="true"
+          tabIndex={-1}
+          style={{
+            position: 'absolute',
+            width: 1,
+            height: 1,
+            opacity: 0,
+            pointerEvents: 'none',
+            left: -9999,
+            top: -9999,
+          }}
+        />
+      )}
       {/* Top bar */}
       <div className="guided-top-bar">
         <button className="guided-close-btn" onClick={handleCloseWithSave}>
