@@ -1036,6 +1036,11 @@ function GuidedWorkoutModal({
   // collide with "Get Ready..." mid-utterance.
   const softResetSpeechActiveRef = useRef(false);
 
+  // Holds the pending 1.5s setTimeout that fires the remount. Lets the
+  // splash button distinguish "splash is up pre-remount, expedite" from
+  // "splash is up post-remount, dismiss + unlock audio".
+  const pendingSoftResetTimerRef = useRef(null);
+
   // Global one-time tap listener to re-unlock both iOS audio systems
   // (Web Audio + Speech Synthesis) on the first natural user touch
   // after a soft-reset reload. We install it whenever the modal
@@ -1100,6 +1105,15 @@ function GuidedWorkoutModal({
     // doesn't fire twice on a follow-up render.
     prevExIndexForSoftResetRef.current = currentExIndex;
 
+    // Show the splash IMMEDIATELY (and pause the workout) so the next
+    // exercise's "Get Ready" screen doesn't flash for ~1.5s under the
+    // splash-less window between the advance and the remount. Same
+    // overlay that mounts post-remount, so the visual is continuous
+    // across the remount blink. Also keeps timers/audio frozen so
+    // nothing ticks underneath while the announcement plays.
+    setShowSoftResetSplash(true);
+    setIsPaused(true);
+
     // No time-based throttle: every exercise transition fires the
     // refresh. Memory cleanup happens at every natural break in the
     // workout, which is what the splash + reload are for. Quick
@@ -1123,8 +1137,16 @@ function GuidedWorkoutModal({
     try { speak('Load next exercise', voiceEnabledRef.current); } catch { /* ignore */ }
     // Delay the reload long enough for the announcement to play.
     // ~1.5s covers the short utterance.
-    const t = setTimeout(() => { handleSoftReset(); }, 1500);
-    return () => clearTimeout(t);
+    pendingSoftResetTimerRef.current = setTimeout(() => {
+      pendingSoftResetTimerRef.current = null;
+      handleSoftReset();
+    }, 1500);
+    return () => {
+      if (pendingSoftResetTimerRef.current) {
+        clearTimeout(pendingSoftResetTimerRef.current);
+        pendingSoftResetTimerRef.current = null;
+      }
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentExIndex]);
 
@@ -5089,6 +5111,18 @@ function GuidedWorkoutModal({
         const textMuted = isDark ? '#cbd5e1' : '#64748b';
         const border = isDark ? '#334155' : '#e2e8f0';
         const unlockAndDismiss = () => {
+          // Pre-remount tap: the splash is up because the auto-trigger
+          // fired but the 1.5s reload timer hasn't elapsed yet. Skip
+          // the audio-unlock dance (this document context is about to
+          // die anyway — the post-remount splash handles the real
+          // unlock) and just expedite the remount. The post-remount
+          // splash will appear immediately afterwards.
+          if (pendingSoftResetTimerRef.current) {
+            clearTimeout(pendingSoftResetTimerRef.current);
+            pendingSoftResetTimerRef.current = null;
+            handleSoftReset();
+            return;
+          }
           try { warmUpTickSound(); } catch { /* ignore */ }
           try {
             if (typeof speechSynthesis !== 'undefined') {
