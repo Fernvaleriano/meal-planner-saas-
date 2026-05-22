@@ -1088,15 +1088,12 @@ function GuidedWorkoutModal({
     // the voice doesn't announce the wrong direction.
     if (currentExIndex < prevIdx) return;
 
-    // TESTING: 1 min so the auto-trigger fires frequently enough to
-    // validate the flow. PRODUCTION should be 5-7 min.
-    const MIN_INTERVAL_MS = 1 * 60 * 1000;
-    let lastAt = 0;
-    try {
-      const raw = localStorage.getItem('zique_last_soft_reset_at');
-      if (raw) lastAt = parseInt(raw, 10) || 0;
-    } catch { /* ignore */ }
-    if (Date.now() - lastAt < MIN_INTERVAL_MS) return;
+    // No time-based throttle: every exercise transition fires the
+    // refresh. Memory cleanup happens at every natural break in the
+    // workout, which is what the splash + reload are for. Quick
+    // skip-and-advance sequences will fire multiple refreshes; that's
+    // acceptable since each one is brief and the alternative (silent
+    // skips that don't free memory) is worse for stability.
 
     // Flag the natural phase voice effect to skip — otherwise its
     // "Get Ready..." utterance would race the "Load next exercise" cue
@@ -1141,11 +1138,6 @@ function GuidedWorkoutModal({
       if (phaseRef.current !== 'complete') {
         saveResumeState(buildResumeSnapshot());
       }
-    } catch { /* ignore */ }
-    // Stamp the throttle timestamp so the auto-trigger doesn't fire
-    // again within MIN_INTERVAL_MS of this reset.
-    try {
-      localStorage.setItem('zique_last_soft_reset_at', String(Date.now()));
     } catch { /* ignore */ }
     if (onSoftResetRequest) onSoftResetRequest();
   }, [onSoftResetRequest]); // eslint-disable-line react-hooks/exhaustive-deps
