@@ -245,6 +245,16 @@ self.addEventListener('fetch', (event) => {
       caches.open(VIDEO_CACHE).then(async (cache) => {
         const key = videoCacheKey(url);
         let cached = await cache.match(key);
+        // Defensive: any zero-byte entry left over from a previous
+        // (broken) version of this handler — treat as a miss and
+        // re-fetch so the user doesn't get stuck on a blank video.
+        if (cached) {
+          const cl = parseInt(cached.headers.get('Content-Length') || '0', 10);
+          if (!cl || cl <= 0) {
+            try { await cache.delete(key); } catch (e) { /* ignore */ }
+            cached = null;
+          }
+        }
         if (!cached) {
           try {
             const fullReq = new Request(request.url, {
