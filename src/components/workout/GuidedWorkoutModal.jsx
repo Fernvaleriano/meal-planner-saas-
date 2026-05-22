@@ -1023,6 +1023,12 @@ function GuidedWorkoutModal({
   const voiceEnabledRef = useRef(voiceEnabled);
   voiceEnabledRef.current = voiceEnabled;
 
+  // True between "soft-reset auto-trigger fires" and "page reload" —
+  // the natural phase voice useEffect checks this and skips speaking
+  // so the "Load next exercise" cue from the soft-reset path doesn't
+  // collide with "Get Ready..." mid-utterance.
+  const softResetSpeechActiveRef = useRef(false);
+
   // Global one-time tap listener to re-unlock both iOS audio systems
   // (Web Audio + Speech Synthesis) on the first natural user touch
   // after a soft-reset reload. We install it whenever the modal
@@ -1092,17 +1098,22 @@ function GuidedWorkoutModal({
     } catch { /* ignore */ }
     if (Date.now() - lastAt < MIN_INTERVAL_MS) return;
 
-    // Speak the splash's action BEFORE the page reload, while audio is
-    // still unlocked from the client's pre-reload Done tap. The
-    // post-reload splash itself can't speak on appear (page reload
-    // kills the audio context — speak() only resumes after a fresh
-    // user gesture), so we front-load the cue here. The utterance
-    // plays out while the page reloads and the splash card mounts —
-    // verbal version of the "Load Next Exercise" button on the splash.
+    // Flag the natural phase voice effect to skip — otherwise its
+    // "Get Ready..." utterance would race the "Load next exercise" cue
+    // below and either cancel it mid-word or get cancelled itself.
+    softResetSpeechActiveRef.current = true;
+    // Cancel anything already speaking (the phase voice effect may have
+    // beaten this useEffect to the punch if it ran first in the same
+    // render commit). Then speak the splash's action BEFORE the page
+    // reload, while audio is still unlocked from the client's
+    // pre-reload Done tap. Post-reload splash can't speak on appear
+    // (audio context dies, needs a fresh gesture), so we front-load
+    // the cue here — the utterance plays out while the page reloads
+    // and the splash card mounts.
+    try { if (typeof speechSynthesis !== 'undefined') speechSynthesis.cancel(); } catch { /* ignore */ }
     try { speak('Load next exercise', voiceEnabledRef.current); } catch { /* ignore */ }
     // Delay the reload long enough for the announcement to play.
-    // ~1.5s covers the short utterance; shorter line than before so
-    // we don't need the full 2.5s beat.
+    // ~1.5s covers the short utterance.
     const t = setTimeout(() => { handleSoftReset(); }, 1500);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -2243,6 +2254,12 @@ function GuidedWorkoutModal({
   // --- Voice announcements (TTS only, no auto-play of coach voice notes) ---
   useEffect(() => {
     const runVoice = async () => {
+      // Skip the natural phase voice cue when a soft-reset is about to
+      // fire. Otherwise the "Get Ready..." utterance from this effect
+      // collides with the "Load next exercise" cue from the soft-reset
+      // path — the reload then cuts off whichever is still speaking
+      // mid-word and feels broken.
+      if (softResetSpeechActiveRef.current) return;
       if (phase === 'get-ready' && currentExercise) {
         // Pre-warm audio context so tick sound is ready when reps start
         warmUpTickSound();
