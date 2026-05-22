@@ -99,6 +99,69 @@
         </div>
     </div>
     <script>
+        // Soft-reset splash handoff: if Play Mode just triggered a full-page
+        // reload between exercises, the modal stashed the "Exercise complete /
+        // Up next / Load Next Exercise" card payload in localStorage. Render
+        // the SAME card here so the user sees one continuous splash across
+        // the reload instead of card → spinner → card (visible flicker).
+        // The React tree mounts a moment later and replaces this DOM with
+        // its own (identical) splash card, which has the working button.
+        (function() {
+            try {
+                var raw = localStorage.getItem('zique_soft_reset_splash');
+                if (!raw) return;
+                var data = JSON.parse(raw);
+                if (!data || !data.ts) return;
+                // Stale entries (>30s old) are ignored — same TTL as the
+                // other soft-reset handoff flags.
+                if (Date.now() - data.ts > 30000) {
+                    try { localStorage.removeItem('zique_soft_reset_splash'); } catch (e) {}
+                    return;
+                }
+                var splash = document.getElementById('splash-screen');
+                if (!splash) return;
+                var esc = function(s) {
+                    return String(s == null ? '' : s).replace(/[&<>"']/g, function(c) {
+                        return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c];
+                    });
+                };
+                var isDark = data.theme !== 'light';
+                var bg = isDark ? '#0f172a' : '#f8fafc';
+                var cardBg = isDark ? '#1e293b' : '#ffffff';
+                var border = isDark ? '#334155' : '#e2e8f0';
+                var textPrimary = isDark ? '#f8fafc' : '#0f172a';
+                var textMuted = isDark ? '#cbd5e1' : '#64748b';
+                var brandColor = data.brandColor || '#2cb5a5';
+                var shadow = isDark ? '0 10px 30px rgba(0,0,0,0.4)' : '0 10px 30px rgba(15, 23, 42, 0.1)';
+                splash.style.background = bg;
+                splash.style.display = 'flex';
+                splash.style.flexDirection = 'column';
+                splash.style.alignItems = 'center';
+                splash.style.justifyContent = 'center';
+                splash.style.padding = '20px';
+                var logoHtml = data.brandLogo
+                    ? '<img src="' + esc(data.brandLogo) + '" alt="' + esc(data.brandName) + '" style="max-width:80px;max-height:56px;object-fit:contain;margin-bottom:16px;opacity:0.9" />'
+                    : '';
+                var nextHtml = data.nextName
+                    ? '<div style="font-size:13px;color:' + textMuted + ';margin-bottom:4px">Up next</div>'
+                      + '<div style="font-size:16px;font-weight:600;color:' + textPrimary + ';margin-bottom:18px;word-break:break-word">' + esc(data.nextName) + '</div>'
+                    : '';
+                splash.innerHTML =
+                    '<div style="width:100%;max-width:360px;background:' + cardBg + ';border:1px solid ' + border + ';border-radius:16px;padding:28px 24px;box-shadow:' + shadow + ';text-align:center">' +
+                      logoHtml +
+                      '<div style="font-size:14px;font-weight:600;color:' + brandColor + ';margin-bottom:6px">&#10003; Exercise complete</div>' +
+                      '<div style="font-size:18px;font-weight:700;color:' + textPrimary + ';margin-bottom:14px;word-break:break-word">' + esc(data.completedName || 'Exercise') + '</div>' +
+                      nextHtml +
+                      '<button type="button" style="width:100%;margin-top:6px;padding:14px;background:' + brandColor + ';color:white;border:none;border-radius:10px;font-size:16px;font-weight:700;cursor:pointer">Load Next Exercise</button>' +
+                    '</div>';
+                // One-shot: clear so a future un-related reload doesn't pick
+                // it up. The React splash that mounts next reads from live
+                // component state, not from this storage entry.
+                try { localStorage.removeItem('zique_soft_reset_splash'); } catch (e) {}
+            } catch (e) { /* silent fail — fall back to the default spinner splash */ }
+        })();
+    </script>
+    <script>
         // Apply cached coach branding to splash screen instantly (no network calls)
         // Also point the manifest link to the dynamic manifest for branded homescreen saves
         (function() {
