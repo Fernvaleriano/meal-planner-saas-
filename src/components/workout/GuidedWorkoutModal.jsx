@@ -3725,6 +3725,29 @@ function GuidedWorkoutModal({
     }
   }, [currentExIndex]);
 
+  // Pull the next exercise's video down as a full file in the background
+  // so it is already in the service-worker cache by the time the next
+  // exercise screen mounts. The hidden <video preload="auto"> below also
+  // helps on desktop / Android, but on iOS Safari that element only
+  // fetches metadata until the user actually presses play — so we issue
+  // a real fetch() too, which the SW intercepts and stores in full.
+  // The body is read to .blob() to make sure the download isn't
+  // cancelled mid-flight by the browser. Failures are silent — worst
+  // case the video downloads on demand like before.
+  useEffect(() => {
+    if (!nextExerciseVideoUrl) return;
+    const ac = new AbortController();
+    const t = setTimeout(() => {
+      fetch(nextExerciseVideoUrl, { signal: ac.signal, credentials: 'omit' })
+        .then(r => r.ok ? r.blob() : null)
+        .catch(() => null);
+    }, 300); // small debounce so quick skip-and-advance bursts don't fire N parallel downloads
+    return () => {
+      clearTimeout(t);
+      ac.abort();
+    };
+  }, [nextExerciseVideoUrl]);
+
   // Circular timer
   const radius = 90;
   const circumference = 2 * Math.PI * radius;
