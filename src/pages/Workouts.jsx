@@ -764,11 +764,37 @@ function Workouts() {
   // to auto-resume from localStorage instead of showing the "Resume Workout?"
   // prompt — the user already intentionally tapped Refresh, so the extra
   // confirmation just gets in their way.
+  //
+  // NEW (testing full-page reload variant): React remount alone wasn't
+  // freeing iOS native media memory aggressively enough on the 13 Pro.
+  // window.location.reload() forces the browser to release everything
+  // (page-level, not just component-level) and rebuild from scratch.
+  // sessionStorage flag survives the reload and tells us to skip the
+  // readiness confirm + auto-open Play Mode + auto-resume.
   const [softResetSession, setSoftResetSession] = useState(0);
   const [pendingSoftResume, setPendingSoftResume] = useState(false);
   const handleSoftReset = useCallback(() => {
-    setPendingSoftResume(true);
-    setSoftResetSession(n => n + 1);
+    try {
+      sessionStorage.setItem('zique_soft_reset_pending', '1');
+    } catch { /* ignore */ }
+    // Brief blank is OK — the modal's autosave already flushed to
+    // localStorage before this fired, and the splash on the other
+    // side hides the cold-load flash.
+    try { window.location.reload(); } catch { /* ignore */ }
+  }, []);
+
+  // Detect the post-reload "we just did a soft reset" handoff and re-
+  // open Play Mode with auto-resume. Runs once on mount.
+  useEffect(() => {
+    let pending = false;
+    try {
+      pending = sessionStorage.getItem('zique_soft_reset_pending') === '1';
+      if (pending) sessionStorage.removeItem('zique_soft_reset_pending');
+    } catch { /* ignore */ }
+    if (pending) {
+      setPendingSoftResume(true);
+      setShowGuidedWorkout(true);
+    }
   }, []);
   const [showGymProof, setShowGymProof] = useState(false);
   const [showFinishConfirm, setShowFinishConfirm] = useState(false);
@@ -3649,12 +3675,15 @@ function Workouts() {
 
   // Called when user clicks "Begin Workout" on the confirmation screen
   const handleStartGuidedWorkout = useCallback(() => {
-    // TEMPORARY: Play Mode disabled while we investigate iOS memory crashes
-    // on lower-end devices (13 Pro and older hit a WebKit native media
-    // memory ceiling around 22 min that we can't release from JS). Flip
-    // PLAY_MODE_ENABLED back to true once the 4K → 720p video transcode
-    // is done; that's the real structural fix.
-    const PLAY_MODE_ENABLED = false;
+    // TEMPORARY: Play Mode disabled while we test the full-page reload
+    // variant of the soft-reset on iOS memory-crash devices (13 Pro and
+    // older). Whitelist exists so the founder can keep iterating without
+    // shipping the broken experience to real clients. Remove the
+    // allowlist (set PLAY_MODE_ENABLED = true unconditionally) once the
+    // 4K → 720p video transcode lands.
+    const TESTER_EMAILS = ['valeriano_fernando@yahoo.com'];
+    const currentEmail = (user?.email || clientData?.email || '').toLowerCase();
+    const PLAY_MODE_ENABLED = TESTER_EMAILS.includes(currentEmail);
     if (!PLAY_MODE_ENABLED) {
       setShowWorkoutReadyConfirm(false);
       alert('Play Mode is temporarily unavailable for maintenance. We\'re fixing an issue affecting some iPhones. Your workout is still saved — please log your sets from the workout details screen for now. Back soon!');
@@ -3668,7 +3697,7 @@ function Workouts() {
     warmUpTickSound();
     setShowWorkoutReadyConfirm(false);
     setShowGuidedWorkout(true);
-  }, []);
+  }, [user?.email, clientData?.email]);
 
 
   // Complete workout - saves exercise_logs with all sets/reps/weight data
