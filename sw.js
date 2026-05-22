@@ -135,7 +135,6 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-
 // Check if URL matches cacheable API patterns
 function isCacheableAPI(url) {
   return CACHEABLE_API_PATTERNS.some(pattern => pattern.test(url.pathname));
