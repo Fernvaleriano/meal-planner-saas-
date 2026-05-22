@@ -36257,6 +36257,66 @@ textarea,
     z-index: 2;
 }
 
+/* Tap-to-play overlay shown when iOS blocks muted autoplay. Big, centered,
+   pulses gently so a client who doesn't know to tap can't miss it. */
+.guided-video-tap-to-play {
+    position: absolute;
+    inset: 0;
+    z-index: 3;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    background: rgba(0, 0, 0, 0.55);
+    border: none;
+    color: white;
+    cursor: pointer;
+    padding: 0;
+    font: inherit;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.guided-video-tap-to-play .tap-to-play-icon {
+    width: 92px;
+    height: 92px;
+    border-radius: 50%;
+    background: rgba(44, 181, 165, 0.95);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45),
+                0 0 0 0 rgba(44, 181, 165, 0.55);
+    animation: tap-to-play-pulse 1.6s ease-out infinite;
+}
+
+.guided-video-tap-to-play .tap-to-play-text {
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
+}
+
+.guided-video-tap-to-play:active .tap-to-play-icon {
+    transform: scale(0.95);
+}
+
+@keyframes tap-to-play-pulse {
+    0% {
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45),
+                    0 0 0 0 rgba(44, 181, 165, 0.55);
+    }
+    70% {
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45),
+                    0 0 0 22px rgba(44, 181, 165, 0);
+    }
+    100% {
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45),
+                    0 0 0 0 rgba(44, 181, 165, 0);
+    }
+}
+
 /* Timer area */
 .guided-timer-area {
     flex: 1;
