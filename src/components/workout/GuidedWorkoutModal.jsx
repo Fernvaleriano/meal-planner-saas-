@@ -836,14 +836,11 @@ function GuidedWorkoutModal({
             });
           } catch { /* ignore */ }
 
-          // Splash now auto-dismisses after ~900ms to look like a
-          // normal "loading next exercise" transition. A separate
-          // global one-time tap listener (installed in its own effect)
-          // catches the user's first natural touch on the screen
-          // after the reload and silently unlocks Web Audio +
-          // Speech Synthesis. They never need to tap a specific UI
-          // element to get audio back.
-          setTimeout(() => setShowSoftResetSplash(false), 900);
+          // Splash stays up until the client taps "Continue" on the
+          // card. That tap is the required iOS audio unlock — without
+          // it, voice cues and rep ticks stay silent. The Continue
+          // button is THE tap. No auto-dismiss; we want the explicit
+          // confirmation so the audio unlock is guaranteed.
         } else if (onSoftResetConsumed) {
           onSoftResetConsumed();
         }
@@ -4984,41 +4981,114 @@ function GuidedWorkoutModal({
         </div>
       )}
 
-      {/* Soft-reset splash — disguised as a normal "loading next
-          exercise" screen so the auto-triggered page reload looks
-          intentional. Auto-dismisses after ~900ms. A separate global
-          tap-to-unlock listener (installed below) catches the user's
-          first natural tap on the screen and silently unlocks both
-          iOS audio systems (Web Audio + Speech Synthesis), so the
-          client never has to think about tapping anything specific. */}
-      {showSoftResetSplash && (
-        <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            zIndex: 10000,
-            background: branding?.brand_primary_color || '#0f172a',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 16,
-            color: 'white',
-            userSelect: 'none',
-            WebkitUserSelect: 'none'
-          }}
-        >
-          {branding?.brand_logo_url ? (
-            <img
-              src={branding.brand_logo_url}
-              alt={branding.brand_name || 'Loading'}
-              style={{ maxWidth: 120, maxHeight: 80, objectFit: 'contain' }}
-            />
-          ) : null}
-          <Loader2 size={28} style={{ animation: 'spin 1s linear infinite' }} />
-          <div style={{ fontSize: 14, opacity: 0.85 }}>Loading next exercise…</div>
-        </div>
-      )}
+      {/* Soft-reset splash — shown after the auto-triggered page reload.
+          Frames the required iOS audio unlock tap as a workout-flow
+          confirmation: "exercise complete, next up, log your sets,
+          continue when ready." The Continue button is the required
+          tap — it unlocks Web Audio + Speech Synthesis and dismisses
+          the splash. Dark / light mode adapts to the device's
+          preference; brand color stays consistent in both. */}
+      {showSoftResetSplash && (() => {
+        const completedName = exercises[currentExIndex]?.name || 'Exercise';
+        const nextEx = exercises[currentExIndex + 1];
+        const nextName = nextEx?.name || null;
+        const isDark = typeof window !== 'undefined'
+          && window.matchMedia
+          && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        const brandColor = branding?.brand_primary_color || '#2cb5a5';
+        const bg = isDark ? '#0f172a' : '#f8fafc';
+        const cardBg = isDark ? '#1e293b' : '#ffffff';
+        const textPrimary = isDark ? '#f8fafc' : '#0f172a';
+        const textMuted = isDark ? '#cbd5e1' : '#64748b';
+        const border = isDark ? '#334155' : '#e2e8f0';
+        const unlockAndDismiss = () => {
+          try { warmUpTickSound(); } catch { /* ignore */ }
+          try {
+            if (typeof speechSynthesis !== 'undefined') {
+              speechSynthesis.cancel();
+              const u = new SpeechSynthesisUtterance(' ');
+              u.volume = 0;
+              speechSynthesis.speak(u);
+            }
+          } catch { /* ignore */ }
+          setShowSoftResetSplash(false);
+        };
+        return (
+          <div
+            style={{
+              position: 'fixed',
+              inset: 0,
+              zIndex: 10000,
+              background: bg,
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '20px',
+              userSelect: 'none',
+              WebkitUserSelect: 'none'
+            }}
+          >
+            <div
+              style={{
+                width: '100%',
+                maxWidth: 360,
+                background: cardBg,
+                border: `1px solid ${border}`,
+                borderRadius: 16,
+                padding: '28px 24px',
+                boxShadow: isDark
+                  ? '0 10px 30px rgba(0,0,0,0.4)'
+                  : '0 10px 30px rgba(15, 23, 42, 0.1)',
+                textAlign: 'center'
+              }}
+            >
+              {branding?.brand_logo_url ? (
+                <img
+                  src={branding.brand_logo_url}
+                  alt={branding.brand_name || ''}
+                  style={{ maxWidth: 80, maxHeight: 56, objectFit: 'contain', marginBottom: 16, opacity: 0.9 }}
+                />
+              ) : null}
+              <div style={{ fontSize: 14, fontWeight: 600, color: brandColor, marginBottom: 6 }}>
+                ✓ Exercise complete
+              </div>
+              <div style={{ fontSize: 18, fontWeight: 700, color: textPrimary, marginBottom: 14, wordBreak: 'break-word' }}>
+                {completedName}
+              </div>
+              {nextName && (
+                <div style={{ fontSize: 13, color: textMuted, marginBottom: 4 }}>Up next</div>
+              )}
+              {nextName && (
+                <div style={{ fontSize: 16, fontWeight: 600, color: textPrimary, marginBottom: 18, wordBreak: 'break-word' }}>
+                  {nextName}
+                </div>
+              )}
+              <div style={{ fontSize: 13, color: textMuted, marginBottom: 20, lineHeight: 1.4 }}>
+                Take a sec to log your sets.
+              </div>
+              <button
+                type="button"
+                onClick={unlockAndDismiss}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') unlockAndDismiss(); }}
+                style={{
+                  width: '100%',
+                  padding: '14px',
+                  background: brandColor,
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: 10,
+                  fontSize: 16,
+                  fontWeight: 700,
+                  cursor: 'pointer'
+                }}
+              >
+                Continue
+              </button>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Resume Prompt */}
       {showResumePrompt && resumeData && (
