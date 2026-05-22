@@ -3742,21 +3742,6 @@ function Workouts() {
 
   // Called when user clicks "Begin Workout" on the confirmation screen
   const handleStartGuidedWorkout = useCallback(() => {
-    // TEMPORARY: Play Mode disabled while we test the full-page reload
-    // variant of the soft-reset on iOS memory-crash devices (13 Pro and
-    // older). Whitelist exists so the founder can keep iterating without
-    // shipping the broken experience to real clients. Remove the
-    // allowlist (set PLAY_MODE_ENABLED = true unconditionally) once the
-    // 4K → 720p video transcode lands.
-    const TESTER_EMAILS = ['valeriano_fernando@yahoo.com'];
-    const currentEmail = (user?.email || clientData?.email || '').toLowerCase();
-    const PLAY_MODE_ENABLED = TESTER_EMAILS.includes(currentEmail);
-    if (!PLAY_MODE_ENABLED) {
-      setShowWorkoutReadyConfirm(false);
-      alert('Play Mode is temporarily unavailable for maintenance. We\'re fixing an issue affecting some iPhones. Your workout is still saved — please log your sets from the workout details screen for now. Back soon!');
-      return;
-    }
-
     // Unlock WebAudio synchronously inside this click handler so the rep-tick
     // sound can play later from setInterval on iOS. useEffect-based unlocks
     // don't work here — iOS closes the user-activation window before the
@@ -3764,7 +3749,7 @@ function Workouts() {
     warmUpTickSound();
     setShowWorkoutReadyConfirm(false);
     setShowGuidedWorkout(true);
-  }, [user?.email, clientData?.email]);
+  }, []);
 
 
   // Complete workout - saves exercise_logs with all sets/reps/weight data
