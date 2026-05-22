@@ -3,6 +3,7 @@ const CACHE_NAME = 'ziquecoach-v17';
 const STATIC_CACHE = 'zique-static-v17';
 const DATA_CACHE = 'zique-data-v12';
 const CDN_CACHE = 'zique-cdn-v7';
+const VIDEO_CACHE = 'zique-video-v1';
 
 // Files to cache for offline use
 const STATIC_FILES = [
@@ -121,7 +122,7 @@ self.addEventListener('install', (event) => {
 
 // Activate event - clean up old caches
 self.addEventListener('activate', (event) => {
-  const keepCaches = [CACHE_NAME, STATIC_CACHE, DATA_CACHE, CDN_CACHE];
+  const keepCaches = [CACHE_NAME, STATIC_CACHE, DATA_CACHE, CDN_CACHE, VIDEO_CACHE];
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
@@ -134,6 +135,13 @@ self.addEventListener('activate', (event) => {
     }).then(() => self.clients.claim())
   );
 });
+
+
+// Check if request is a video file we should aggressively cache for iOS reload performance
+function isVideoRequest(request, url) {
+  if (request.headers.get('range')) return false;
+  return /\.(mp4|mov|m4v)$/i.test(url.pathname);
+}
 
 // Check if URL matches cacheable API patterns
 function isCacheableAPI(url) {
@@ -152,6 +160,24 @@ self.addEventListener('fetch', (event) => {
 
   // Skip non-GET requests
   if (request.method !== 'GET') {
+    return;
+  }
+
+  // Video assets (mp4/mov/m4v): cache-first so iOS reloads can reuse buffered files
+  // instead of fetching from scratch after each page-level remount.
+  if (isVideoRequest(request, url)) {
+    event.respondWith(
+      caches.open(VIDEO_CACHE).then(async (cache) => {
+        const cachedResponse = await cache.match(request, { ignoreSearch: false });
+        if (cachedResponse) return cachedResponse;
+
+        const fetchResponse = await fetch(request);
+        if (fetchResponse && fetchResponse.ok) {
+          cache.put(request, fetchResponse.clone());
+        }
+        return fetchResponse;
+      })
+    );
     return;
   }
 

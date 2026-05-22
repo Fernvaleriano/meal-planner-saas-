@@ -769,7 +769,7 @@ function Workouts() {
   // freeing iOS native media memory aggressively enough on the 13 Pro.
   // window.location.reload() forces the browser to release everything
   // (page-level, not just component-level) and rebuild from scratch.
-  // sessionStorage flag survives the reload and tells us to skip the
+  // justReloaded flag survives (when iOS allows it) and tells us to skip the
   // readiness confirm + auto-open Play Mode + auto-resume.
   const [softResetSession, setSoftResetSession] = useState(0);
   const [pendingSoftResume, setPendingSoftResume] = useState(false);
@@ -789,6 +789,7 @@ function Workouts() {
     // consumers ignore anything older than 30 seconds.
     try {
       localStorage.setItem('zique_soft_reset_pending', String(Date.now()));
+      try { sessionStorage.setItem('justReloaded', 'true'); } catch { /* ignore */ }
       // Save which workout was active so the post-reload page can pick
       // it back up instead of defaulting to allWorkouts[0].
       const targetId = todayWorkoutRef.current?.id;
@@ -814,6 +815,12 @@ function Workouts() {
   useEffect(() => {
     let pending = false;
     let target = null;
+    try {
+      if (sessionStorage.getItem('justReloaded') === 'true') {
+        sessionStorage.removeItem('justReloaded');
+        pending = true;
+      }
+    } catch { /* ignore */ }
     try {
       const raw = localStorage.getItem('zique_soft_reset_pending');
       if (raw) {
