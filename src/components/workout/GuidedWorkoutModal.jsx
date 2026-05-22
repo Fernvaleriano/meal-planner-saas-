@@ -1018,6 +1018,47 @@ function GuidedWorkoutModal({
   const voiceEnabledRef = useRef(voiceEnabled);
   voiceEnabledRef.current = voiceEnabled;
 
+  // Auto-trigger soft-reset right at the start of a transition rest
+  // (rest period that follows the LAST set of an exercise — the natural
+  // pause between exercises). Hides the page reload in a moment that's
+  // already a transition for the client, and the post-reload restore
+  // lands them in a fresh rest period with the full duration on the
+  // clock. Throttled so quick back-to-back exercises don't reload more
+  // than once every N min.
+  //
+  // We re-compute the "is this the last set, is there a next exercise"
+  // check inline from refs because the isTransitionRest const is
+  // declared further down in the component body — referencing it in a
+  // dep array here would be a TDZ violation. Refs are sync'd inline
+  // during render so they're current by the time this effect fires.
+  useEffect(() => {
+    if (!IS_IOS) return;
+    if (phase !== 'rest') return;
+
+    const exIdx = currentExIndexRef.current;
+    const ex = exercises[exIdx];
+    if (!ex) return;
+    const totalSets = typeof ex.sets === 'number'
+      ? ex.sets
+      : (Array.isArray(ex.sets) ? ex.sets.length : 3);
+    const doneSets = completedSetsRef.current[exIdx]?.size || 0;
+    if (doneSets < totalSets) return;        // not the last set yet
+    if (exIdx >= exercises.length - 1) return; // no next exercise to refresh into
+
+    // TESTING: 1 min so the auto-trigger fires frequently enough to
+    // validate the flow. PRODUCTION should be 5-7 min.
+    const MIN_INTERVAL_MS = 1 * 60 * 1000;
+    let lastAt = 0;
+    try {
+      const raw = localStorage.getItem('zique_last_soft_reset_at');
+      if (raw) lastAt = parseInt(raw, 10) || 0;
+    } catch { /* ignore */ }
+    if (Date.now() - lastAt < MIN_INTERVAL_MS) return;
+
+    handleSoftReset();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase]);
+
   // Refs so the banner timer can check current visibility state without
   // re-running every time those bits flip.
   const showResumePromptRef = useRef(false);
@@ -1040,6 +1081,11 @@ function GuidedWorkoutModal({
       if (phaseRef.current !== 'complete') {
         saveResumeState(buildResumeSnapshot());
       }
+    } catch { /* ignore */ }
+    // Stamp the throttle timestamp so the auto-trigger doesn't fire
+    // again within MIN_INTERVAL_MS of this reset.
+    try {
+      localStorage.setItem('zique_last_soft_reset_at', String(Date.now()));
     } catch { /* ignore */ }
     if (onSoftResetRequest) onSoftResetRequest();
   }, [onSoftResetRequest]); // eslint-disable-line react-hooks/exhaustive-deps
