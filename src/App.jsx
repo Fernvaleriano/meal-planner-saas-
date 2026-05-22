@@ -124,11 +124,19 @@ function App() {
   // here, BEFORE any route renders, and React-Router our way to
   // /workouts without another page load. Workouts.jsx keeps the flag
   // alive long enough to auto-open Play Mode + auto-resume.
+  //
+  // localStorage (not sessionStorage) is critical here — iOS Safari
+  // wipes sessionStorage on PWA re-launch. 30-second TTL on the flag
+  // so stale values from old sessions can't trigger a false redirect.
   const navigate = useNavigate();
   useEffect(() => {
     try {
-      if (sessionStorage.getItem('zique_soft_reset_pending') === '1') {
-        navigate('/workouts', { replace: true });
+      const raw = localStorage.getItem('zique_soft_reset_pending');
+      if (raw) {
+        const stamp = parseInt(raw, 10);
+        if (!isNaN(stamp) && Date.now() - stamp < 30000) {
+          navigate('/workouts', { replace: true });
+        }
       }
     } catch { /* ignore */ }
   }, [navigate]);

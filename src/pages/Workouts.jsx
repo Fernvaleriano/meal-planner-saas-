@@ -774,26 +774,18 @@ function Workouts() {
   const [softResetSession, setSoftResetSession] = useState(0);
   const [pendingSoftResume, setPendingSoftResume] = useState(false);
   const handleSoftReset = useCallback(() => {
+    // iOS Safari wipes sessionStorage when an installed PWA is re-launched
+    // (which is how it treats window.location.reload()). localStorage
+    // survives. Stamp with a timestamp so a stale flag from a previous
+    // session can't accidentally trigger an auto-open weeks later — the
+    // consumers ignore anything older than 30 seconds.
     try {
-      sessionStorage.setItem('zique_soft_reset_pending', '1');
+      localStorage.setItem('zique_soft_reset_pending', String(Date.now()));
     } catch { /* ignore */ }
-    // Brief blank is OK — the modal's autosave already flushed to
-    // localStorage before this fired, and the splash on the other
-    // side hides the cold-load flash.
-    //
-    // window.location.reload() on a home-screen-installed PWA gets
-    // treated as a re-launch by iOS, which sends the user to the
-    // manifest's start_url ("/app") instead of reloading /app/workouts.
-    // Explicit navigation to /app/workouts (with a cache-busting query
-    // param so the URL differs from the current one) forces an actual
-    // page load AND lands on the right route. The query param has no
-    // meaning to the app — it just makes the URL "new" enough that
-    // iOS treats it as navigation, not refresh.
     try {
       const target = `/app/workouts?_zsr=${Date.now()}`;
       window.location.assign(target);
     } catch {
-      // Fallback if assign somehow fails
       try { window.location.reload(); } catch { /* ignore */ }
     }
   }, []);
@@ -803,8 +795,16 @@ function Workouts() {
   useEffect(() => {
     let pending = false;
     try {
-      pending = sessionStorage.getItem('zique_soft_reset_pending') === '1';
-      if (pending) sessionStorage.removeItem('zique_soft_reset_pending');
+      const raw = localStorage.getItem('zique_soft_reset_pending');
+      if (raw) {
+        const stamp = parseInt(raw, 10);
+        // Only honor flags from the last 30 seconds — anything older is
+        // a leftover from a previous session that didn't get cleaned.
+        if (!isNaN(stamp) && Date.now() - stamp < 30000) {
+          pending = true;
+        }
+        localStorage.removeItem('zique_soft_reset_pending');
+      }
     } catch { /* ignore */ }
     if (pending) {
       setPendingSoftResume(true);
