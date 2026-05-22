@@ -3194,7 +3194,12 @@ function Workouts() {
         if (!currentClientId || !updatedExercise?.id || !Array.isArray(updatedExercise.sets)) return;
 
         const dateStr = operationDateStr;
-        const LOG_ID_KEY = `workout-log-id-${currentClientId}-${dateStr}`;
+        // Cache key matches getOrCreateWorkoutLogId in api.js — must include
+        // the assignment id so two workouts on the same date don't share
+        // a fallback slot. Adhoc workouts (no assignment) keep the legacy key.
+        const assignmentIdForKey = workout?.is_adhoc ? null : (workout?.id || null);
+        const slotSuffix = assignmentIdForKey ? `-a${assignmentIdForKey}` : '';
+        const LOG_ID_KEY = `workout-log-id-${currentClientId}-${dateStr}${slotSuffix}`;
 
         // Prefer in-memory state; fall back to localStorage cache from a
         // prior session (survives app-kill before workoutLog state hydrated).
@@ -5534,6 +5539,7 @@ function Workouts() {
             clientId={clientData?.id}
             coachId={clientData?.coach_id}
             workoutLogId={workoutLog?.id}
+            assignmentId={todayWorkout?.is_adhoc ? null : (todayWorkout?.id || null)}
             selectedDate={selectedDate}
             weightUnit={weightUnit}
             genderPreference={clientData?.preferred_exercise_gender || 'all'}

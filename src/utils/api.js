@@ -518,23 +518,33 @@ export async function apiDelete(url, data) {
 const inflightLogLookup = new Map();
 const LOG_ID_CACHE_KEY_PREFIX = 'workout-log-id-';
 
-export async function getOrCreateWorkoutLogId(clientId, dateStr, workoutName) {
+export async function getOrCreateWorkoutLogId(clientId, dateStr, workoutName, assignmentId = null) {
   if (!clientId || !dateStr) return null;
 
-  const storageKey = `${LOG_ID_CACHE_KEY_PREFIX}${clientId}-${dateStr}`;
+  // Cache key + inflight lock include assignmentId so two assigned workouts
+  // on the same day each resolve to their own log row instead of stomping
+  // on each other. Adhoc workouts (no assignmentId) keep the legacy single
+  // slot per (client, date).
+  const slotSuffix = assignmentId ? `-a${assignmentId}` : '';
+  const storageKey = `${LOG_ID_CACHE_KEY_PREFIX}${clientId}-${dateStr}${slotSuffix}`;
   try {
     const cached = localStorage.getItem(storageKey);
     if (cached) return cached;
   } catch { /* ignore quota / private mode */ }
 
-  const lockKey = `${clientId}|${dateStr}`;
+  const lockKey = `${clientId}|${dateStr}|${assignmentId || 'adhoc'}`;
   const existing = inflightLogLookup.get(lockKey);
   if (existing) return existing;
 
   const promise = (async () => {
     try {
+      // Filter the GET by assignmentId so we only see the log for THIS
+      // assignment, not whichever log happened to land first on this date.
+      const assignmentParam = assignmentId
+        ? `&assignmentId=${encodeURIComponent(assignmentId)}`
+        : '';
       const existingRes = await apiGet(
-        `/.netlify/functions/workout-logs?clientId=${clientId}&startDate=${dateStr}&endDate=${dateStr}&limit=1`
+        `/.netlify/functions/workout-logs?clientId=${clientId}&startDate=${dateStr}&endDate=${dateStr}${assignmentParam}&limit=1`
       );
       const logs = existingRes?.workouts || existingRes?.logs || [];
       if (logs.length > 0 && logs[0]?.id) {
@@ -546,7 +556,8 @@ export async function getOrCreateWorkoutLogId(clientId, dateStr, workoutName) {
         clientId,
         workoutDate: dateStr,
         workoutName: workoutName || 'Workout',
-        status: 'in_progress'
+        status: 'in_progress',
+        ...(assignmentId ? { assignmentId } : {})
       });
       const id = created?.workout?.id || null;
       if (id) {

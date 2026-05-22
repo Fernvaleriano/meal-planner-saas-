@@ -11,7 +11,12 @@ import { playTickSound, playCompleteChime, warmUpTickSound, resumeAudio, startTi
 import { useBranding } from '../../context/BrandingContext';
 
 // --- Resume helpers ---
-const RESUME_STORAGE_KEY = 'guided_workout_resume';
+// Resume state is namespaced per assignment so two workouts scheduled on
+// the same day each have their own bookmark. Adhoc workouts (no assignment
+// row) fall back to a shared 'adhoc' slot.
+const LEGACY_RESUME_STORAGE_KEY = 'guided_workout_resume';
+const getResumeStorageKey = (assignmentId) =>
+  assignmentId ? `guided_workout_resume_a${assignmentId}` : 'guided_workout_resume_adhoc';
 
 // Video element lifecycle strategy. iOS WebKit handles a persistent <video>
 // element with src swaps more gracefully than full remount via React key
@@ -115,39 +120,59 @@ const IS_IOS = typeof navigator !== 'undefined' && (
 );
 
 
-const saveResumeState = (state) => {
+const saveResumeState = (state, assignmentId) => {
+  const key = getResumeStorageKey(assignmentId);
   const payload = JSON.stringify({ ...state, savedAt: Date.now() });
   try {
-    localStorage.setItem(RESUME_STORAGE_KEY, payload);
+    localStorage.setItem(key, payload);
   } catch (e) {
     // On quota errors, drop any stale resume key and retry once — better to
     // keep the CURRENT workout resumable than leave an old one blocking us.
     if (e?.name === 'QuotaExceededError' || e?.code === 22) {
       try {
-        localStorage.removeItem(RESUME_STORAGE_KEY);
-        localStorage.setItem(RESUME_STORAGE_KEY, payload);
+        localStorage.removeItem(key);
+        localStorage.setItem(key, payload);
       } catch { /* private mode / still no room — give up silently */ }
     }
   }
 };
 
-const loadResumeState = () => {
+const loadResumeState = (assignmentId) => {
+  const key = getResumeStorageKey(assignmentId);
   try {
-    const raw = localStorage.getItem(RESUME_STORAGE_KEY);
+    let raw = localStorage.getItem(key);
+    // One-time migration from the pre-assignment-keyed storage key. If the
+    // namespaced slot is empty but the legacy global slot has data, adopt
+    // it for this assignment and clear the legacy entry so the next open
+    // of a different workout doesn't grab the same state.
+    if (!raw) {
+      const legacy = localStorage.getItem(LEGACY_RESUME_STORAGE_KEY);
+      if (legacy) {
+        raw = legacy;
+        try {
+          localStorage.setItem(key, legacy);
+          localStorage.removeItem(LEGACY_RESUME_STORAGE_KEY);
+        } catch { /* ignore */ }
+      }
+    }
     if (!raw) return null;
     const data = JSON.parse(raw);
     // Expire after 48 hours — covers the common "pause tonight, resume tomorrow
     // evening" case that 12h silently dropped.
     if (Date.now() - data.savedAt > 48 * 60 * 60 * 1000) {
-      localStorage.removeItem(RESUME_STORAGE_KEY);
+      localStorage.removeItem(key);
       return null;
     }
     return data;
   } catch { return null; }
 };
 
-const clearResumeState = () => {
-  try { localStorage.removeItem(RESUME_STORAGE_KEY); } catch {}
+const clearResumeState = (assignmentId) => {
+  const key = getResumeStorageKey(assignmentId);
+  try { localStorage.removeItem(key); } catch {}
+  // Also clean up the legacy slot so old data doesn't resurrect on a future
+  // mount of a different workout.
+  try { localStorage.removeItem(LEGACY_RESUME_STORAGE_KEY); } catch {}
 };
 
 // Identity fields baked into every resume payload. The mount-time check
@@ -410,6 +435,11 @@ function GuidedWorkoutModal({
   clientId,
   coachId,
   workoutLogId,
+  // Assignment row this play session corresponds to. NULL for adhoc workouts.
+  // Used to isolate resume state and log lookups when a client has more than
+  // one workout scheduled on the same day — without this, the two share
+  // storage slots and "Load Next Exercise" can't tell them apart.
+  assignmentId = null,
   selectedDate,
   weightUnit = 'lbs',
   genderPreference = 'all',
@@ -635,6 +665,10 @@ function GuidedWorkoutModal({
   const completedSetsRef = useRef(completedSets);
   const setLogsRef = useRef(setLogs);
   const isPausedRef = useRef(isPaused);
+  // Mirror the assignmentId prop into a ref so closures (timeouts, soft-reset
+  // callbacks, autosave intervals) reach for the current value even if the
+  // prop ever changes mid-session.
+  const assignmentIdRef = useRef(assignmentId);
   // Exercises the user explicitly skipped (Skip / Skip for Good / Skip All).
   // Distinguishes "user moved past this exercise" from "user completed every
   // set of this exercise" — persistExerciseData filters these so the parent
@@ -677,6 +711,7 @@ function GuidedWorkoutModal({
   completedSetsRef.current = completedSets;
   setLogsRef.current = setLogs;
   isPausedRef.current = isPaused;
+  assignmentIdRef.current = assignmentId;
   skippedQueueRef.current = skippedQueue;
   pendingNextExIdxRef.current = pendingNextExIdx;
   isPlayingDeferredRef.current = isPlayingDeferred;
@@ -763,7 +798,7 @@ function GuidedWorkoutModal({
   // from one workout being applied to a different workout that happens to
   // share name + exerciseCount.
   useEffect(() => {
-    const saved = loadResumeState();
+    const saved = loadResumeState(assignmentIdRef.current);
     const identity = buildResumeIdentity(clientId, selectedDate, workoutLogId, exercises);
     if (matchesResumeIdentity(saved, identity)) {
       if (autoResumeOnMount) {
@@ -782,7 +817,7 @@ function GuidedWorkoutModal({
             clearTimeout(resumeSaveTimerRef.current);
             resumeSaveTimerRef.current = null;
           }
-          clearResumeState();
+          clearResumeState(assignmentIdRef.current);
 
           setCurrentExIndex(safeExIndex);
           setCurrentSetIndex(saved.currentSetIndex || 0);
@@ -852,7 +887,7 @@ function GuidedWorkoutModal({
             saveResumeState({
               ...saved,
               currentExIndex: safeExIndex
-            });
+            }, assignmentIdRef.current);
           } catch { /* ignore */ }
 
           // Splash stays up until the client taps "Continue" on the
@@ -910,7 +945,7 @@ function GuidedWorkoutModal({
       clearTimeout(resumeSaveTimerRef.current);
       resumeSaveTimerRef.current = null;
     }
-    clearResumeState();
+    clearResumeState(assignmentIdRef.current);
 
     setCurrentExIndex(safeExIndex);
     setCurrentSetIndex(resumeData.currentSetIndex);
@@ -992,7 +1027,7 @@ function GuidedWorkoutModal({
     setShowResumePrompt(false);
     setResumeData(null);
     setIsPaused(false);
-    clearResumeState();
+    clearResumeState(assignmentIdRef.current);
   }, []);
 
   // Soft-reset banner timer (iOS only). DISABLED by default now that the
@@ -1207,7 +1242,7 @@ function GuidedWorkoutModal({
         resumeSaveTimerRef.current = null;
       }
       if (phaseRef.current !== 'complete') {
-        saveResumeState(buildResumeSnapshot());
+        saveResumeState(buildResumeSnapshot(), assignmentIdRef.current);
       }
     } catch { /* ignore */ }
     if (onSoftResetRequest) onSoftResetRequest();
@@ -1311,7 +1346,7 @@ function GuidedWorkoutModal({
         skippedQueue,
         pendingNextExIdx,
         supersetState
-      });
+      }, assignmentIdRef.current);
     }
     onClose();
   }, [phase, currentExIndex, currentSetIndex, totalElapsed, completedSets, setLogs, workoutName, exercises.length, currentExercise?.name, onClose, skippedQueue, pendingNextExIdx, supersetState, exercises]);
@@ -1834,7 +1869,7 @@ function GuidedWorkoutModal({
       // shared helper — prevents dupe workout_log rows when multiple
       // exercise saves race on the first save of the day.
       if (!logId) {
-        logId = await getOrCreateWorkoutLogId(clientId, dateStr, workoutName);
+        logId = await getOrCreateWorkoutLogId(clientId, dateStr, workoutName, assignmentIdRef.current);
         if (logId) workoutLogIdRef.current = logId;
       }
 
@@ -2112,7 +2147,7 @@ function GuidedWorkoutModal({
       voiceNotePathsRef.current[exIndex] = null;
       let logId = workoutLogIdRef.current;
       if (!logId) {
-        logId = await getOrCreateWorkoutLogId(clientId, dateStr, workoutName);
+        logId = await getOrCreateWorkoutLogId(clientId, dateStr, workoutName, assignmentIdRef.current);
         if (logId) workoutLogIdRef.current = logId;
       }
       if (logId) {
@@ -2179,7 +2214,7 @@ function GuidedWorkoutModal({
     try {
       let logId = workoutLogIdRef.current;
       if (!logId) {
-        logId = await getOrCreateWorkoutLogId(clientId, dateStr, workoutName);
+        logId = await getOrCreateWorkoutLogId(clientId, dateStr, workoutName, assignmentIdRef.current);
         if (logId) workoutLogIdRef.current = logId;
       }
       if (logId) {
@@ -2274,7 +2309,7 @@ function GuidedWorkoutModal({
       if (resumeSaveTimerRef.current) {
         clearTimeout(resumeSaveTimerRef.current);
         if (phaseRef.current !== 'complete') {
-          try { saveResumeState(buildResumeSnapshot()); } catch { /* ignore */ }
+          try { saveResumeState(buildResumeSnapshot(), assignmentIdRef.current); } catch { /* ignore */ }
         }
       }
       if (persistSaveTimerRef.current) {
@@ -3482,7 +3517,7 @@ function GuidedWorkoutModal({
       if (phaseRef.current === 'complete') return;
       try {
         const snapshot = buildResumeSnapshot();
-        saveResumeState(snapshot);
+        saveResumeState(snapshot, assignmentIdRef.current);
         if (MEM_LOG) {
           try { memLog('autosave bytes:', JSON.stringify(snapshot).length); } catch { /* ignore */ }
         }
@@ -3717,7 +3752,7 @@ function GuidedWorkoutModal({
 
     // Also persist to parent state for regular view
     exercises.forEach((_, i) => persistExerciseData(i));
-    clearResumeState(); // Workout finished, no need to resume
+    clearResumeState(assignmentIdRef.current); // Workout finished, no need to resume
     if (onWorkoutFinish) onWorkoutFinish(finalExercises, totalElapsed);
     onClose();
   };
