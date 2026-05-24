@@ -45,6 +45,14 @@ headers in a casual conversation — stop, delete, rewrite plain.
   - GDPR export/deletion work was still correct — privacy law is
     platform-independent.
 
+- **TODO: add Google + Apple sign-in / sign-up.** Currently only
+  email+password. Competitors (e.g. burnon.ai) already offer social
+  login — less signup friction, expected by users. Start with Google
+  (Supabase has it built in, fastest payoff). Apple later — needs a
+  paid Apple Developer account and is fussier to set up. Watch for
+  the "same person, two accounts" edge case (signed up with Google,
+  later tries email) — Supabase mostly handles it but worth testing.
+
 - **PENDING: capture a DB schema baseline.** The migration files do NOT
   create the base schema (no migration creates `clients`/`coaches`;
   prod has 74 tables / 10 funcs / 199 policies, version control creates
