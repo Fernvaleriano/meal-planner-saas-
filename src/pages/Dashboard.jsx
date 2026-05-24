@@ -958,9 +958,6 @@ function Dashboard() {
       {/* AI Hero Input Section */}
       <div className="ai-hero-card">
         <div className="ai-hero-header">
-          <div className="ai-hero-icon">
-            <span>⭐</span>
-          </div>
           <div className="ai-hero-title">
             <h2 id="ai-hero-title">What did you eat?</h2>
             <span className="ai-powered-label">AI-powered logging</span>
