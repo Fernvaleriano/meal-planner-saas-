@@ -6,7 +6,10 @@ import { AuthProvider } from './context/AuthContext';
 import { BrandingProvider } from './context/BrandingContext';
 import { ToastProvider } from './components/Toast';
 import ErrorBoundary from './components/ErrorBoundary';
+import { initSentry } from './utils/sentry';
 import './styles/global.css';
+
+initSentry();
 
 // Prevent browser from auto-restoring scroll position on page load/navigation.
 // Without this, the browser restores the previous scroll position AFTER React's

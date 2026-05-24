@@ -1,4 +1,5 @@
 import { Component } from 'react';
+import { Sentry } from '../utils/sentry';
 
 class ErrorBoundary extends Component {
   constructor(props) {
@@ -12,6 +13,9 @@ class ErrorBoundary extends Component {
 
   componentDidCatch(error, errorInfo) {
     console.error('Error caught by boundary:', error, errorInfo);
+    // Forward to Sentry so caught errors (which avoid white-screen but
+    // still indicate real bugs) get reported, not just unhandled ones.
+    Sentry.captureException(error, { contexts: { react: { componentStack: errorInfo?.componentStack } } });
   }
 
   componentDidUpdate(prevProps) {
