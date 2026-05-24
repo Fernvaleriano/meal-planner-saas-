@@ -26,17 +26,6 @@ headers in a casual conversation — stop, delete, rewrite plain.
 
 ## ⚠️ OPERATIONAL REMINDERS — ACTION REQUIRED (read me)
 
-- **PENDING: enable permanent account purge.** The GDPR Phase 2
-  permanent-erase job (`netlify/functions/purge-deleted-accounts.js`,
-  scheduled daily in `netlify.toml`) ships in **DRY-RUN mode** — it
-  deletes nothing until the Netlify env var **`PURGE_LIVE=true`** is set.
-  Soft-delete + 30-day grace works without it, but data is never
-  actually erased until this switch is flipped. Founder intends to
-  enable it after watching the dry-run logs for a few days. **If you are
-  reviewing GDPR/data-retention compliance and `PURGE_LIVE` is still
-  unset, surface this to the founder.** (Recorded May 2026 at founder's
-  request — he expects to forget.)
-
 - **DECISION (May 2026): WEB-ONLY. Native / App Store is intentionally
   DROPPED.** Ziquecoach is a web app (PWA) only. Submitting to the
   Apple App Store / Google Play and shipping a native Capacitor build
