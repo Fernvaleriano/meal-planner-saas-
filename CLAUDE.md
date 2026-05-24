@@ -235,12 +235,24 @@ A partial React rebuild exists in `src/` but is **not the primary codebase**. So
 - **New domain purchased:** `ziquecoach.com`
 - **App name:** "Ziquecoach"
 - **App ID:** `com.ziquecoach.app` (already updated in Capacitor/iOS/Android configs)
-- **Status:** CODE-SIDE COMPLETE — `capacitor.config.json` on ziquecoach,
-  `netlify.toml` 301 redirects live, zero `ziquefitnessnutrition` refs in
-  `.html/.js/.jsx` (only docs + intentional redirect rules). EXTERNAL
-  CUTOVER PENDING — Supabase auth URLs, Stripe, production DNS flip, and
-  the `noreply@ziquecoach.com` sender are not yet verified. See
-  DOMAIN-CHANGE-CHECKLIST.md for remaining external steps.
+- **Status:** COMPLETE (May 2026). Both the code side AND all external
+  services have been cut over. Verified live:
+  - Supabase Auth Site URL = `https://ziquecoach.com`, and
+    `https://ziquecoach.com/**` is on the Redirect URLs allowlist (the
+    old `ziquefitnessnutrition.com/**` is also kept on the allowlist
+    as a safety net during the 12-month redirect window).
+  - Stripe webhooks pointing at the new domain — processed_webhook_events
+    shows daily traffic from both `platform` and `connect` sources.
+  - Email sender `noreply@ziquecoach.com` verified in Resend with SPF +
+    DKIM, and a DMARC TXT record (`v=DMARC1; p=none;
+    rua=mailto:contact@ziquefitness.com`) is published at GoDaddy on
+    `_dmarc.ziquecoach.com`. New-domain sender reputation is still
+    warming up — early sends may land in spam for ~1–2 weeks; this is
+    expected and resolves with normal send volume, not with more setup.
+  - `netlify.toml` 301-redirects `ziquefitnessnutrition.com/*` →
+    `ziquecoach.com/:splat`; zero `ziquefitnessnutrition` refs left in
+    `.html/.js/.jsx`.
+  No further external cutover work required.
 - **Strategy update (May 2026):** Only ~10 active clients, so doing a clean cutover (have clients re-save the homescreen icon) instead of dual-domain. Old domain stays as a 301 redirect for ~12 months as safety net.
 
 ### Full audit & checklist
