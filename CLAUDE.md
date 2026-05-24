@@ -74,6 +74,72 @@ headers in a casual conversation — stop, delete, rewrite plain.
   `claude/document-coach-limits-k8BxD` and nearly lost — consolidated
   here so it persists.)
 
+## MARKETING CAROUSEL STYLE (BRAND-CONSISTENT — REUSE FOR ALL POSTS)
+
+When the founder asks for slides, ads, Instagram posts, or any marketing
+visuals, use THIS style every time so the brand stays consistent. (Style
+locked May 2026, inspired by BurnOn but using Ziquecoach colors.)
+
+### Brand colors (use these EXACT hex codes — not "teal," not "mint")
+- **Dark navy background:** `#0A1F2E` (flat, no gradient)
+- **Bright turquoise accent:** `#2EC4B6` (matches the real logo)
+- **White text:** clean white for body copy
+- The brand is TURQUOISE, not teal. Teal drifts too green/dark.
+
+### Format
+- **1:1 square (1080×1080)** for Instagram carousels — NOT 9:16 (that's
+  Stories/Reels) and NOT 4:5 (founder prefers square).
+- One slide per image, generated separately in GPT.
+
+### Layout (every slide)
+- **Top-left:** real Ziquecoach logo, uploaded as reference image. Do NOT
+  let GPT redraw it, do NOT let it add leaf doodles or extra marks.
+- **Left side:** big bold sans-serif headline, 2–3 lines, ALL CAPS,
+  accent words in turquoise, rest in white.
+- **Hand-drawn turquoise brush underline** beneath the last/key word.
+- **Subhead** in plain white below headline, short and human.
+- **Right side or bottom:** photorealistic person (coach or client) cut
+  out cleanly against the dark navy, dramatic side lighting with a
+  subtle turquoise rim light.
+- **Phone/laptop mockups** floating, tilted slightly — use real
+  uploaded screenshots inside the frames whenever possible.
+
+### Critical rules (prevents the usual AI failures)
+- Headline text must read EXACTLY as written. No duplicated words
+  (the "FREE. FREE." disaster). Add this line to every prompt:
+  *"Headline must read EXACTLY: [text] — no duplicated words, no typos.
+  All text sharp and readable."*
+- Macro tiles / UI elements must use uniform brand colors — do NOT let
+  GPT make them red/green/beige rainbow.
+- URLs display without `www` and without `<angle brackets>` — just
+  `ziquecoach.com` plain.
+- Use ChatGPT (newer image model) over Grok — handles text + reference
+  images way better.
+- Upload logo + a real app screenshot at the start of the GPT chat
+  ONCE; reuse across all slides in the same conversation for
+  consistency.
+
+### Standard 5-slide story arc (carousel structure that converts)
+1. **Hook** — pain point (e.g. "STOP CHASING. START COACHING.")
+2. **Client side** — what the client experiences
+3. **Feature / proof** — the magic moment (AI, automation, etc.)
+4. **Coach side** — what the coach gains (dashboard, visibility)
+5. **CTA** — free tier offer + button + ziquecoach.com
+
+Optional: drop slide 3 for a tighter 4-slide carousel.
+
+### CTA wording (locked)
+- Headline: "TRY ZIQUECOACH FREE."
+- Subhead: "Free for 3 clients. Upgrade when you grow."
+  (Do NOT say "forever" — locks us in.)
+- Button: "START FREE →"
+
+### Reference: the actual prompt template
+See conversation history May 2026 — full per-slide prompts are written
+out there. Pattern: dark navy bg, turquoise accent, logo top-left,
+bold headline w/ accent word in turquoise + brush underline, subhead,
+cut-out person right, phone/laptop mockup with real screenshot inside.
+
 ## HOLISTIC CODE MODIFICATION PROTOCOL (APPLIES TO EVERY CHANGE)
 
 Primary directive: **"First, do no harm to the existing system."**
