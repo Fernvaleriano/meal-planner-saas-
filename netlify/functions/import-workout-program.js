@@ -793,7 +793,7 @@ async function parseWithGPT4oMini(chunk, chunkIndex) {
 
 async function parseWithHaiku(anthropic, chunk, chunkIndex) {
   const msg = await anthropic.messages.create({
-    model: 'claude-3-5-haiku-20241022',
+    model: 'claude-haiku-4-5-20251001',
     max_tokens: 8192,
     system: PARSE_SYSTEM_PROMPT,
     messages: [{

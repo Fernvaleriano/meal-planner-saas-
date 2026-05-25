@@ -85,7 +85,7 @@ async function generateWithGemini(mealName) {
 async function generateWithClaude(mealName) {
     const anthropic = new Anthropic({ apiKey: ANTHROPIC_API_KEY });
     const msg = await anthropic.messages.create({
-        model: 'claude-3-5-haiku-20241022',
+        model: 'claude-haiku-4-5-20251001',
         max_tokens: 512,
         messages: [{
             role: 'user',
