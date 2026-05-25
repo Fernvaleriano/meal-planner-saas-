@@ -4564,11 +4564,12 @@ function Workouts() {
   // Generate share card as canvas image and share/save
   const handleShareResults = async () => {
     try {
-      const width = 720;
-      const height = 720;
+      // Card dims default to a square but adapt to the photo's aspect ratio
+      // so the whole picture shows (no crop). Capped to keep file size sane
+      // for social sharing.
+      let width = 720;
+      let height = 720;
       const canvas = document.createElement('canvas');
-      canvas.width = width;
-      canvas.height = height;
       const ctx = canvas.getContext('2d');
 
       const drawCard = (logoImg) => {
@@ -4719,15 +4720,28 @@ function Workouts() {
           const img = new Image();
           img.crossOrigin = 'anonymous';
           img.onload = () => {
-            const scale = Math.max(width / img.width, height / img.height);
-            const sw = img.width * scale;
-            const sh = img.height * scale;
-            ctx.drawImage(img, (width - sw) / 2, (height - sh) / 2, sw, sh);
+            // Resize the canvas to match the photo's aspect so the whole
+            // image is visible. Cap dims to 1080×1350 (Instagram-friendly)
+            // and never upscale beyond the source.
+            const maxW = 1080;
+            const maxH = 1350;
+            const fit = Math.min(maxW / img.width, maxH / img.height, 1);
+            width = Math.max(1, Math.round(img.width * fit));
+            height = Math.max(1, Math.round(img.height * fit));
+            canvas.width = width;
+            canvas.height = height;
+            ctx.drawImage(img, 0, 0, width, height);
             drawCard(logoImg);
           };
-          img.onerror = () => drawCard(logoImg);
+          img.onerror = () => {
+            canvas.width = width;
+            canvas.height = height;
+            drawCard(logoImg);
+          };
           img.src = shareBgImage;
         } else {
+          canvas.width = width;
+          canvas.height = height;
           drawCard(logoImg);
         }
       };
