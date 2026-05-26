@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <link rel="icon" href="https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/assets/icons/logo.png" type="image/png">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <meta name="theme-color" content="#2dd4bf">
+    <meta name="theme-color" content="#0A1F2E">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>Apply - Ziquecoach</title>
@@ -14,23 +14,40 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         :root {
-            --brand-primary: #2dd4bf;
-            --brand-primary-dark: #0d9488;
-            --brand-primary-light: #5eead4;
-            --brand-secondary: #14b8a6;
-            --brand-gradient: linear-gradient(135deg, #2dd4bf 0%, #14b8a6 100%);
+            /* Brand palette — dark mode (navy + turquoise) */
+            --brand-primary: #2EC4B6;
+            --brand-primary-dark: #1fa395;
+            --brand-primary-light: #5fd6cb;
+            --brand-secondary: #1fa395;
+            --brand-gradient: linear-gradient(135deg, #2EC4B6 0%, #1fa395 100%);
+
+            /* Surfaces */
+            --bg-base: #0A1F2E;
+            --bg-surface: #102a3d;
+            --bg-surface-2: #163448;
+            --border-soft: rgba(46, 196, 182, 0.18);
+            --border-strong: rgba(46, 196, 182, 0.45);
+
+            /* Text */
+            --text-primary: #ffffff;
+            --text-secondary: rgba(255, 255, 255, 0.72);
+            --text-muted: rgba(255, 255, 255, 0.5);
+            --text-faint: rgba(255, 255, 255, 0.35);
+
+            /* Aliases kept so existing rules keep working */
             --gray-50: #f8fafc;
-            --gray-100: #f1f5f9;
-            --gray-200: #e2e8f0;
-            --gray-300: #cbd5e1;
-            --gray-400: #94a3b8;
-            --gray-500: #64748b;
-            --gray-600: #475569;
-            --gray-700: #334155;
-            --gray-800: #1e293b;
-            --gray-900: #0f172a;
-            --error: #dc2626;
-            --success: #16a34a;
+            --gray-100: var(--bg-surface-2);
+            --gray-200: var(--border-soft);
+            --gray-300: rgba(255, 255, 255, 0.2);
+            --gray-400: var(--text-muted);
+            --gray-500: var(--text-muted);
+            --gray-600: var(--text-secondary);
+            --gray-700: var(--text-secondary);
+            --gray-800: var(--text-primary);
+            --gray-900: var(--text-primary);
+
+            --error: #ff6b6b;
+            --success: #2EC4B6;
         }
 
         * {
@@ -49,8 +66,12 @@
             overflow-y: auto;
             -webkit-overflow-scrolling: touch;
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #f7f7f8;
-            color: var(--gray-900);
+            background:
+                radial-gradient(1200px 600px at 15% -10%, rgba(46, 196, 182, 0.10), transparent 60%),
+                radial-gradient(900px 500px at 110% 110%, rgba(46, 196, 182, 0.08), transparent 60%),
+                var(--bg-base);
+            background-attachment: fixed;
+            color: var(--text-primary);
             -webkit-font-smoothing: antialiased;
         }
 
@@ -61,7 +82,7 @@
             left: 0;
             right: 0;
             height: 4px;
-            background: rgba(0, 0, 0, 0.08);
+            background: rgba(255, 255, 255, 0.06);
             z-index: 1000;
         }
 
@@ -86,8 +107,9 @@
         }
 
         .logo {
-            height: 40px;
+            height: 32px;
             width: auto;
+            display: block;
         }
 
         .logo-text {
@@ -101,7 +123,8 @@
 
         .question-counter {
             font-size: 14px;
-            color: var(--gray-500);
+            color: var(--text-muted);
+            letter-spacing: 0.02em;
         }
 
         /* Form Container */
@@ -166,9 +189,14 @@
             justify-content: center;
             width: 28px;
             height: 28px;
-            background: rgba(20, 184, 166, 0.2);
+            background: rgba(46, 196, 182, 0.15);
+            color: var(--brand-primary);
             border-radius: 8px;
             font-weight: 600;
+        }
+
+        .question-number {
+            color: var(--brand-primary);
         }
 
         /* Question Text */
@@ -177,12 +205,12 @@
             font-weight: 700;
             line-height: 1.3;
             margin-bottom: 8px;
-            color: var(--gray-900);
+            color: var(--text-primary);
         }
 
         .question-subtext {
             font-size: 1rem;
-            color: var(--gray-600);
+            color: var(--text-secondary);
             margin-bottom: 32px;
         }
 
@@ -194,10 +222,11 @@
             font-family: inherit;
             background: transparent;
             border: none;
-            border-bottom: 2px solid var(--gray-300);
-            color: var(--gray-900);
+            border-bottom: 2px solid rgba(255, 255, 255, 0.2);
+            color: var(--text-primary);
             outline: none;
             transition: border-color 0.3s;
+            caret-color: var(--brand-primary);
         }
 
         .input-text:focus {
@@ -205,7 +234,7 @@
         }
 
         .input-text::placeholder {
-            color: var(--gray-400);
+            color: var(--text-faint);
         }
 
         /* Choice Options */
@@ -220,21 +249,24 @@
             align-items: center;
             gap: 16px;
             padding: 16px 20px;
-            background: #ffffff;
-            border: 2px solid var(--gray-200);
+            background: var(--bg-surface);
+            border: 2px solid rgba(255, 255, 255, 0.08);
             border-radius: 12px;
             cursor: pointer;
             transition: all 0.2s;
+            color: var(--text-primary);
         }
 
         .choice-option:hover {
-            background: #ffffff;
-            border-color: var(--gray-400);
+            background: var(--bg-surface-2);
+            border-color: var(--border-soft);
+            transform: translateY(-1px);
         }
 
         .choice-option.selected {
-            background: rgba(13, 148, 136, 0.08);
+            background: rgba(46, 196, 182, 0.12);
             border-color: var(--brand-primary);
+            box-shadow: 0 0 0 4px rgba(46, 196, 182, 0.08);
         }
 
         .choice-key {
@@ -243,26 +275,26 @@
             justify-content: center;
             width: 32px;
             height: 32px;
-            background: var(--gray-100);
+            background: rgba(255, 255, 255, 0.06);
             border-radius: 8px;
             font-size: 14px;
             font-weight: 600;
-            color: var(--gray-600);
+            color: var(--text-secondary);
             flex-shrink: 0;
         }
 
         .choice-option.selected .choice-key {
             background: var(--brand-primary);
-            color: white;
+            color: #0A1F2E;
         }
 
         .choice-text {
             font-size: 1rem;
-            color: var(--gray-800);
+            color: var(--text-primary);
         }
 
         .choice-option.selected .choice-text {
-            color: var(--gray-900);
+            color: var(--text-primary);
         }
 
         /* Multi-select grid */
@@ -286,7 +318,7 @@
         .choice-checkbox {
             width: 24px;
             height: 24px;
-            border: 2px solid var(--gray-300);
+            border: 2px solid rgba(255, 255, 255, 0.25);
             border-radius: 6px;
             display: flex;
             align-items: center;
@@ -298,6 +330,10 @@
         .choice-option.selected .choice-checkbox {
             background: var(--brand-primary);
             border-color: var(--brand-primary);
+        }
+
+        .choice-option.selected .choice-checkbox svg {
+            stroke: #0A1F2E;
         }
 
         .choice-checkbox svg {
@@ -321,24 +357,25 @@
             flex: 1;
             padding: 24px;
             text-align: center;
-            background: #ffffff;
-            border: 2px solid var(--gray-200);
+            background: var(--bg-surface);
+            border: 2px solid rgba(255, 255, 255, 0.08);
             border-radius: 12px;
             cursor: pointer;
             transition: all 0.2s;
             font-size: 1.125rem;
             font-weight: 600;
-            color: var(--gray-800);
+            color: var(--text-primary);
         }
 
         .toggle-option:hover {
-            border-color: var(--gray-400);
+            background: var(--bg-surface-2);
+            border-color: var(--border-soft);
         }
 
         .toggle-option.selected {
-            background: rgba(13, 148, 136, 0.08);
+            background: rgba(46, 196, 182, 0.12);
             border-color: var(--brand-primary);
-            color: var(--brand-primary-dark);
+            color: var(--brand-primary);
         }
 
         /* Textarea */
@@ -348,13 +385,14 @@
             padding: 16px;
             font-size: 1rem;
             font-family: inherit;
-            background: #ffffff;
-            border: 2px solid var(--gray-200);
+            background: var(--bg-surface);
+            border: 2px solid rgba(255, 255, 255, 0.08);
             border-radius: 12px;
-            color: var(--gray-900);
+            color: var(--text-primary);
             outline: none;
             resize: vertical;
             transition: border-color 0.3s;
+            caret-color: var(--brand-primary);
         }
 
         .input-textarea:focus {
@@ -362,7 +400,7 @@
         }
 
         .input-textarea::placeholder {
-            color: var(--gray-400);
+            color: var(--text-faint);
         }
 
         /* Navigation Buttons */
@@ -389,13 +427,13 @@
 
         .btn-primary {
             background: var(--brand-gradient);
-            color: white;
-            box-shadow: 0 4px 14px rgba(13, 148, 136, 0.4);
+            color: #0A1F2E;
+            box-shadow: 0 4px 18px rgba(46, 196, 182, 0.35);
         }
 
         .btn-primary:hover {
             transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(13, 148, 136, 0.5);
+            box-shadow: 0 8px 24px rgba(46, 196, 182, 0.5);
         }
 
         .btn-primary:disabled {
@@ -405,13 +443,15 @@
         }
 
         .btn-secondary {
-            background: #ffffff;
-            color: var(--gray-700);
-            border: 1px solid var(--gray-200);
+            background: transparent;
+            color: var(--text-secondary);
+            border: 1px solid rgba(255, 255, 255, 0.15);
         }
 
         .btn-secondary:hover {
-            background: var(--gray-100);
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-primary);
+            border-color: rgba(255, 255, 255, 0.25);
         }
 
         .btn svg {
@@ -423,14 +463,15 @@
         .keyboard-hint {
             margin-top: 16px;
             font-size: 13px;
-            color: var(--gray-500);
+            color: var(--text-muted);
         }
 
         .keyboard-hint kbd {
             display: inline-block;
             padding: 2px 8px;
-            background: var(--gray-200);
-            color: var(--gray-700);
+            background: rgba(255, 255, 255, 0.08);
+            color: var(--text-secondary);
+            border: 1px solid rgba(255, 255, 255, 0.1);
             border-radius: 4px;
             font-family: inherit;
             margin: 0 4px;
@@ -452,12 +493,17 @@
             justify-content: center;
             margin: 0 auto 24px;
             font-size: 40px;
+            box-shadow: 0 10px 30px rgba(46, 196, 182, 0.35);
         }
 
         .welcome-title {
             font-size: clamp(1.75rem, 5vw, 2.5rem);
             font-weight: 800;
             margin-bottom: 16px;
+            color: var(--text-primary);
+        }
+
+        .welcome-title .accent {
             background: var(--brand-gradient);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
@@ -466,7 +512,7 @@
 
         .welcome-text {
             font-size: 1.125rem;
-            color: var(--gray-600);
+            color: var(--text-secondary);
             max-width: 500px;
             margin: 0 auto 32px;
             line-height: 1.6;
@@ -481,30 +527,32 @@
         .thank-you-icon {
             width: 100px;
             height: 100px;
-            background: rgba(16, 185, 129, 0.2);
+            background: rgba(46, 196, 182, 0.15);
+            border: 2px solid rgba(46, 196, 182, 0.4);
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
             margin: 0 auto 24px;
+            box-shadow: 0 0 40px rgba(46, 196, 182, 0.25);
         }
 
         .thank-you-icon svg {
             width: 50px;
             height: 50px;
-            color: #10b981;
+            color: var(--brand-primary);
         }
 
         .thank-you-title {
             font-size: clamp(1.75rem, 5vw, 2.5rem);
             font-weight: 800;
             margin-bottom: 16px;
-            color: var(--gray-900);
+            color: var(--text-primary);
         }
 
         .thank-you-text {
             font-size: 1.125rem;
-            color: var(--gray-600);
+            color: var(--text-secondary);
             max-width: 500px;
             margin: 0 auto;
             line-height: 1.6;
@@ -529,7 +577,9 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background: rgba(247, 247, 248, 0.92);
+            background: rgba(10, 31, 46, 0.92);
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -548,7 +598,7 @@
         .loading-spinner {
             width: 48px;
             height: 48px;
-            border: 3px solid var(--gray-200);
+            border: 3px solid rgba(255, 255, 255, 0.1);
             border-top-color: var(--brand-primary);
             border-radius: 50%;
             animation: spin 0.8s linear infinite;
@@ -560,7 +610,7 @@
         }
 
         .loading-text {
-            color: var(--gray-600);
+            color: var(--text-secondary);
             font-size: 1rem;
         }
 
@@ -612,7 +662,9 @@
 
     <!-- Header -->
     <header class="form-header">
-        <span class="logo-text">Ziquecoach</span>
+        <img src="https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/assets/ziquecoach-logo-white.png"
+             alt="Ziquecoach"
+             class="logo">
         <span class="question-counter" id="questionCounter"></span>
     </header>
 
@@ -661,18 +713,6 @@
                 placeholder: '(555) 123-4567',
                 required: false
             },
-            {
-                id: 'age',
-                type: 'single',
-                question: 'What\'s your age range?',
-                options: ['Under 18', '18-25', '26-35', '36-45', '46-55', '56+']
-            },
-            {
-                id: 'gender',
-                type: 'single',
-                question: 'How do you identify?',
-                options: ['Female', 'Male', 'Other', 'Prefer not to say']
-            },
             // Goals & Fitness
             {
                 id: 'goal',
@@ -686,48 +726,6 @@
                 question: 'What\'s your current fitness level?',
                 subtext: 'Be honest - this helps me meet you where you are',
                 options: ['Complete beginner', 'Some experience', 'Intermediate', 'Advanced']
-            },
-            {
-                id: 'exercise_frequency',
-                type: 'single',
-                question: 'How often do you currently exercise?',
-                subtext: 'No judgment - I just need to know your starting point',
-                options: ['Not at all right now', '1-2 times per week', '3-4 times per week', '5+ times per week']
-            },
-            {
-                id: 'exercise_types',
-                type: 'multi',
-                question: 'What types of exercise do you enjoy or want to try?',
-                subtext: 'Select all that apply - this helps me build a program you\'ll actually stick with',
-                options: ['Weight training', 'Cardio (running, cycling, etc.)', 'HIIT / Circuit training', 'Yoga / Pilates', 'Group classes', 'Sports / Recreation', 'Walking / Hiking', 'Swimming']
-            },
-            {
-                id: 'equipment_access',
-                type: 'single',
-                question: 'What equipment do you have access to?',
-                subtext: 'This helps me tailor your workouts',
-                options: ['Full gym membership', 'Home gym with equipment', 'Minimal equipment (dumbbells, bands)', 'No equipment (bodyweight only)']
-            },
-            {
-                id: 'workout_duration',
-                type: 'single',
-                question: 'How much time can you commit per workout?',
-                subtext: 'I\'ll design sessions that fit your schedule',
-                options: ['15-30 minutes', '30-45 minutes', '45-60 minutes', '60+ minutes']
-            },
-            {
-                id: 'barrier',
-                type: 'multi',
-                question: 'What are your biggest barriers or challenges?',
-                subtext: 'Select all that apply - this helps me understand what\'s holding you back',
-                options: ['No time', 'Lack of motivation', 'Don\'t know where to start', 'No accountability', 'Tried before and failed', 'Injuries or health issues', 'Cost concerns']
-            },
-            {
-                id: 'health_concerns',
-                type: 'textarea',
-                question: 'Any health concerns, injuries, or conditions I should know about?',
-                placeholder: 'e.g., Shoulder injury, bad knees, diabetes... Type "None" if none.',
-                subtext: 'This helps me design a safe program for you'
             },
             // Final
             {
