@@ -22,10 +22,12 @@ exports.handler = async (event, context) => {
     const {
       clientId,
       age, gender, weight, heightFt, heightIn, activityLevel, unitSystem,
-      dietType, mealCount, budget,
+      dietType, mealCount, budget, macroPreference,
       allergies, dislikedFoods, preferredFoods, cookingEquipment,
       useProteinPowder, proteinPowderBrand, proteinPowderCalories,
-      proteinPowderProtein, proteinPowderCarbs, proteinPowderFat
+      proteinPowderProtein, proteinPowderCarbs, proteinPowderFat,
+      fitnessLevel, exerciseFrequency, workoutDuration, equipmentAccess,
+      exerciseTypes, healthConcerns, fitnessGoalDetails
     } = body;
 
     if (!clientId) {
@@ -64,6 +66,14 @@ exports.handler = async (event, context) => {
     if (proteinPowderProtein !== undefined) updateData.protein_powder_protein = proteinPowderProtein;
     if (proteinPowderCarbs !== undefined) updateData.protein_powder_carbs = proteinPowderCarbs;
     if (proteinPowderFat !== undefined) updateData.protein_powder_fat = proteinPowderFat;
+    if (macroPreference !== undefined) updateData.macro_preference = macroPreference;
+    if (fitnessLevel !== undefined) updateData.fitness_level = fitnessLevel;
+    if (exerciseFrequency !== undefined) updateData.exercise_frequency = exerciseFrequency;
+    if (workoutDuration !== undefined) updateData.workout_duration = workoutDuration;
+    if (equipmentAccess !== undefined) updateData.equipment_access = equipmentAccess;
+    if (exerciseTypes !== undefined) updateData.exercise_types = Array.isArray(exerciseTypes) ? JSON.stringify(exerciseTypes) : exerciseTypes;
+    if (healthConcerns !== undefined) updateData.health_concerns = healthConcerns;
+    if (fitnessGoalDetails !== undefined) updateData.fitness_goal_details = fitnessGoalDetails;
 
     if (Object.keys(updateData).length === 0) {
       return {
