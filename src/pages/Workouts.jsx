@@ -4564,12 +4564,12 @@ function Workouts() {
   // Generate share card as canvas image and share/save
   const handleShareResults = async () => {
     try {
-      // Locked to Instagram-friendly portrait (1080×1350). Fixed aspect so a
-      // landscape photo can't drag the card into landscape, and a contain-fit
-      // image below means the photo is never cropped — any leftover space is
-      // dark brand backdrop that the logo/stats overlays already sit on.
+      // Locked to a 1080×1080 Instagram-friendly square. Fixed aspect so a
+      // landscape source photo can't reshape the card — the photo is cover-
+      // fit and may be cropped on the sides, which is the trade-off social
+      // posts need (predictable square output).
       const width = 1080;
-      const height = 1350;
+      const height = 1080;
       const canvas = document.createElement('canvas');
       canvas.width = width;
       canvas.height = height;
@@ -4723,14 +4723,11 @@ function Workouts() {
           const img = new Image();
           img.crossOrigin = 'anonymous';
           img.onload = () => {
-            // Fill the card with the brand dark first so any letterbox area
-            // around a non-portrait photo blends with the existing scrims.
-            ctx.fillStyle = '#0A1F2E';
-            ctx.fillRect(0, 0, width, height);
-            // Contain-fit: scale the photo to fit fully inside the portrait
-            // card without cropping, centered. Landscape photos sit with dark
-            // bars top/bottom; very tall photos sit with dark bars left/right.
-            const scale = Math.min(width / img.width, height / img.height);
+            // Cover-fit the photo inside the locked square: scale to the
+            // longer side, center, and let the shorter side overflow off-
+            // canvas. Subject in the middle stays visible; outer edges get
+            // cropped (expected for social posts).
+            const scale = Math.max(width / img.width, height / img.height);
             const sw = img.width * scale;
             const sh = img.height * scale;
             ctx.drawImage(img, (width - sw) / 2, (height - sh) / 2, sw, sh);
