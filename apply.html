@@ -484,16 +484,19 @@
         }
 
         .welcome-icon {
-            width: 80px;
-            height: 80px;
-            background: var(--brand-gradient);
-            border-radius: 20px;
+            width: 120px;
+            height: 120px;
             display: flex;
             align-items: center;
             justify-content: center;
             margin: 0 auto 24px;
-            font-size: 40px;
-            box-shadow: 0 10px 30px rgba(46, 196, 182, 0.35);
+            filter: drop-shadow(0 8px 30px rgba(46, 196, 182, 0.35));
+        }
+
+        .welcome-icon img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
         }
 
         .welcome-title {
@@ -775,7 +778,9 @@
                 case 'welcome':
                     return `
                         <div class="welcome-screen">
-                            <div class="welcome-icon">💪</div>
+                            <div class="welcome-icon">
+                                <img src="https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/assets/ziquecoach-logo-white.png" alt="Ziquecoach">
+                            </div>
                             <h1 class="welcome-title">${q.title}</h1>
                             <p class="welcome-text">${q.subtitle}</p>
                             <button class="btn btn-primary btn-start" onclick="nextQuestion()">
