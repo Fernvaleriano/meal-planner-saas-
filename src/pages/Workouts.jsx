@@ -4564,12 +4564,15 @@ function Workouts() {
   // Generate share card as canvas image and share/save
   const handleShareResults = async () => {
     try {
-      // Card dims default to a square but adapt to the photo's aspect ratio
-      // so the whole picture shows (no crop). Capped to keep file size sane
-      // for social sharing.
-      let width = 720;
-      let height = 720;
+      // Locked to a 1080×1080 Instagram-friendly square. Fixed aspect so a
+      // landscape source photo can't reshape the card — the photo is cover-
+      // fit and may be cropped on the sides, which is the trade-off social
+      // posts need (predictable square output).
+      const width = 1080;
+      const height = 1080;
       const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
       const ctx = canvas.getContext('2d');
 
       const drawCard = (logoImg) => {
@@ -4720,28 +4723,19 @@ function Workouts() {
           const img = new Image();
           img.crossOrigin = 'anonymous';
           img.onload = () => {
-            // Resize the canvas to match the photo's aspect so the whole
-            // image is visible. Cap dims to 1080×1350 (Instagram-friendly)
-            // and never upscale beyond the source.
-            const maxW = 1080;
-            const maxH = 1350;
-            const fit = Math.min(maxW / img.width, maxH / img.height, 1);
-            width = Math.max(1, Math.round(img.width * fit));
-            height = Math.max(1, Math.round(img.height * fit));
-            canvas.width = width;
-            canvas.height = height;
-            ctx.drawImage(img, 0, 0, width, height);
+            // Cover-fit the photo inside the locked square: scale to the
+            // longer side, center, and let the shorter side overflow off-
+            // canvas. Subject in the middle stays visible; outer edges get
+            // cropped (expected for social posts).
+            const scale = Math.max(width / img.width, height / img.height);
+            const sw = img.width * scale;
+            const sh = img.height * scale;
+            ctx.drawImage(img, (width - sw) / 2, (height - sh) / 2, sw, sh);
             drawCard(logoImg);
           };
-          img.onerror = () => {
-            canvas.width = width;
-            canvas.height = height;
-            drawCard(logoImg);
-          };
+          img.onerror = () => drawCard(logoImg);
           img.src = shareBgImage;
         } else {
-          canvas.width = width;
-          canvas.height = height;
           drawCard(logoImg);
         }
       };
