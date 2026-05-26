@@ -78,6 +78,13 @@ function Settings() {
   const [profileForm, setProfileForm] = useState({});
 
   const openProfileModal = () => {
+    let exerciseTypesArr = [];
+    const raw = clientData?.exercise_types;
+    if (Array.isArray(raw)) {
+      exerciseTypesArr = raw;
+    } else if (typeof raw === 'string' && raw) {
+      try { const p = JSON.parse(raw); if (Array.isArray(p)) exerciseTypesArr = p; } catch (e) { /* ignore */ }
+    }
     setProfileForm({
       age: clientData?.age || '',
       gender: clientData?.gender || '',
@@ -97,7 +104,15 @@ function Settings() {
       proteinPowderProtein: clientData?.protein_powder_protein || '',
       proteinPowderCarbs: clientData?.protein_powder_carbs || '',
       proteinPowderFat: clientData?.protein_powder_fat || '',
-      budget: clientData?.budget || ''
+      budget: clientData?.budget || '',
+      macroPreference: clientData?.macro_preference || '',
+      fitnessLevel: clientData?.fitness_level || '',
+      exerciseFrequency: clientData?.exercise_frequency || '',
+      workoutDuration: clientData?.workout_duration || '',
+      equipmentAccess: clientData?.equipment_access || '',
+      exerciseTypes: exerciseTypesArr,
+      healthConcerns: clientData?.health_concerns || '',
+      fitnessGoalDetails: clientData?.fitness_goal_details || ''
     });
     setShowProfileModal(true);
   };
@@ -130,7 +145,15 @@ function Settings() {
         proteinPowderProtein: profileForm.proteinPowderProtein ? parseInt(profileForm.proteinPowderProtein) : null,
         proteinPowderCarbs: profileForm.proteinPowderCarbs ? parseInt(profileForm.proteinPowderCarbs) : null,
         proteinPowderFat: profileForm.proteinPowderFat ? parseInt(profileForm.proteinPowderFat) : null,
-        budget: profileForm.budget || null
+        budget: profileForm.budget || null,
+        macroPreference: profileForm.macroPreference || null,
+        fitnessLevel: profileForm.fitnessLevel || null,
+        exerciseFrequency: profileForm.exerciseFrequency || null,
+        workoutDuration: profileForm.workoutDuration || null,
+        equipmentAccess: profileForm.equipmentAccess || null,
+        exerciseTypes: Array.isArray(profileForm.exerciseTypes) ? profileForm.exerciseTypes : [],
+        healthConcerns: profileForm.healthConcerns || null,
+        fitnessGoalDetails: profileForm.fitnessGoalDetails || null
       });
 
       if (response.success) {
@@ -1195,6 +1218,104 @@ function Settings() {
                 </label>
               </div>
 
+              {/* Fitness & Workout Preferences */}
+              <div style={{ marginBottom: '20px' }}>
+                <div style={{ fontWeight: 600, fontSize: '0.85rem', color: 'var(--gray-500)', marginBottom: '12px', textTransform: 'uppercase' }}>Fitness & Workout</div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                  <label style={labelStyle}>
+                    <span style={labelTextStyle}>Fitness Level</span>
+                    <select value={profileForm.fitnessLevel} onChange={e => setProfileForm(f => ({ ...f, fitnessLevel: e.target.value }))} style={inputStyle}>
+                      <option value="">Select</option>
+                      <option value="beginner">Complete Beginner</option>
+                      <option value="some_experience">Some Experience</option>
+                      <option value="intermediate">Intermediate</option>
+                      <option value="advanced">Advanced</option>
+                    </select>
+                  </label>
+                  <label style={labelStyle}>
+                    <span style={labelTextStyle}>Exercise Frequency</span>
+                    <select value={profileForm.exerciseFrequency} onChange={e => setProfileForm(f => ({ ...f, exerciseFrequency: e.target.value }))} style={inputStyle}>
+                      <option value="">Select</option>
+                      <option value="none">Not at all right now</option>
+                      <option value="1-2">1-2 times per week</option>
+                      <option value="3-4">3-4 times per week</option>
+                      <option value="5+">5+ times per week</option>
+                    </select>
+                  </label>
+                  <label style={labelStyle}>
+                    <span style={labelTextStyle}>Workout Duration</span>
+                    <select value={profileForm.workoutDuration} onChange={e => setProfileForm(f => ({ ...f, workoutDuration: e.target.value }))} style={inputStyle}>
+                      <option value="">Select</option>
+                      <option value="15-30">15-30 minutes</option>
+                      <option value="30-45">30-45 minutes</option>
+                      <option value="45-60">45-60 minutes</option>
+                      <option value="60+">60+ minutes</option>
+                    </select>
+                  </label>
+                  <label style={labelStyle}>
+                    <span style={labelTextStyle}>Equipment Access</span>
+                    <select value={profileForm.equipmentAccess} onChange={e => setProfileForm(f => ({ ...f, equipmentAccess: e.target.value }))} style={inputStyle}>
+                      <option value="">Select</option>
+                      <option value="full_gym">Full Gym Membership</option>
+                      <option value="home_gym">Home Gym with Equipment</option>
+                      <option value="minimal">Minimal Equipment</option>
+                      <option value="bodyweight">No Equipment (bodyweight)</option>
+                    </select>
+                  </label>
+                </div>
+                <div style={{ marginTop: '12px' }}>
+                  <span style={labelTextStyle}>Exercise Types You Enjoy</span>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', marginTop: '6px' }}>
+                    {[
+                      { v: 'weight_training', l: 'Weight Training' },
+                      { v: 'cardio', l: 'Cardio' },
+                      { v: 'hiit', l: 'HIIT / Circuit' },
+                      { v: 'yoga_pilates', l: 'Yoga / Pilates' },
+                      { v: 'group_classes', l: 'Group Classes' },
+                      { v: 'sports', l: 'Sports' },
+                      { v: 'walking_hiking', l: 'Walking / Hiking' },
+                      { v: 'swimming', l: 'Swimming' }
+                    ].map(opt => {
+                      const checked = Array.isArray(profileForm.exerciseTypes) && profileForm.exerciseTypes.includes(opt.v);
+                      return (
+                        <label key={opt.v} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem', color: 'var(--gray-700)' }}>
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={e => {
+                              setProfileForm(f => {
+                                const current = Array.isArray(f.exerciseTypes) ? f.exerciseTypes : [];
+                                const next = e.target.checked ? [...current, opt.v] : current.filter(v => v !== opt.v);
+                                return { ...f, exerciseTypes: next };
+                              });
+                            }}
+                          />
+                          <span>{opt.l}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+                <label style={{ ...labelStyle, marginTop: '12px' }}>
+                  <span style={labelTextStyle}>Health Concerns / Injuries</span>
+                  <textarea
+                    value={profileForm.healthConcerns}
+                    onChange={e => setProfileForm(f => ({ ...f, healthConcerns: e.target.value }))}
+                    style={{ ...inputStyle, minHeight: '60px', resize: 'vertical', fontFamily: 'inherit' }}
+                    placeholder="e.g. Shoulder injury, bad knees... Type 'None' if none."
+                  />
+                </label>
+                <label style={{ ...labelStyle, marginTop: '12px' }}>
+                  <span style={labelTextStyle}>Fitness Goals</span>
+                  <textarea
+                    value={profileForm.fitnessGoalDetails}
+                    onChange={e => setProfileForm(f => ({ ...f, fitnessGoalDetails: e.target.value }))}
+                    style={{ ...inputStyle, minHeight: '60px', resize: 'vertical', fontFamily: 'inherit' }}
+                    placeholder="e.g. Run a 5K, do 10 pull-ups, improve flexibility..."
+                  />
+                </label>
+              </div>
+
               {/* Diet Preferences */}
               <div style={{ marginBottom: '20px' }}>
                 <div style={{ fontWeight: 600, fontSize: '0.85rem', color: 'var(--gray-500)', marginBottom: '12px', textTransform: 'uppercase' }}>Diet & Food Preferences</div>
@@ -1222,6 +1343,17 @@ function Settings() {
                     </select>
                   </label>
                 </div>
+                <label style={{ ...labelStyle, marginTop: '12px' }}>
+                  <span style={labelTextStyle}>Macro Preference</span>
+                  <select value={profileForm.macroPreference} onChange={e => setProfileForm(f => ({ ...f, macroPreference: e.target.value }))} style={inputStyle}>
+                    <option value="">Balanced (default)</option>
+                    <option value="balanced">Balanced</option>
+                    <option value="high_protein">High Protein</option>
+                    <option value="low_carb">Low Carb</option>
+                    <option value="high_carb">High Carb</option>
+                    <option value="low_fat">Low Fat</option>
+                  </select>
+                </label>
                 <label style={{ ...labelStyle, marginTop: '12px' }}>
                   <span style={labelTextStyle}>Allergies</span>
                   <input type="text" value={profileForm.allergies} onChange={e => setProfileForm(f => ({ ...f, allergies: e.target.value }))} style={inputStyle} placeholder="e.g. Shellfish, Peanuts" />
