@@ -8,6 +8,10 @@ const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
 const NOTIFICATION_EMAIL = process.env.FORM_NOTIFICATION_EMAIL || process.env.ADMIN_EMAIL || 'contact@ziquefitness.com';
 const FITFORSHIFT_NOTIFICATION_EMAIL = process.env.FITFORSHIFT_NOTIFICATION_EMAIL;
 
+// The /apply lead form copies the owner on both domains so nothing gets missed
+// while ziquefitness.com is still mid-transition to ziquecoach.com.
+const APPLY_NOTIFICATION_EMAILS = ['contact@ziquecoach.com', 'contact@ziquefitness.com'];
+
 exports.handler = async (event) => {
     const headers = {
         'Access-Control-Allow-Origin': '*',
@@ -80,36 +84,38 @@ exports.handler = async (event) => {
         const isTrialReviewForm = form_slug === 'trial-review' ||
                                    metadata?.form_type === 'trial_review';
 
-        let notificationTo = template?.notification_email || NOTIFICATION_EMAIL;
+        let notificationRecipients;
         let formName = template?.name || 'Application Form';
 
-        // Use FitForShift email for first responder and trial review forms if configured
         if ((isFirstResponderForm || isTrialReviewForm) && FITFORSHIFT_NOTIFICATION_EMAIL) {
-            notificationTo = FITFORSHIFT_NOTIFICATION_EMAIL;
+            notificationRecipients = [FITFORSHIFT_NOTIFICATION_EMAIL];
             formName = isTrialReviewForm ? 'FitForShift 30-Day Trial Review' : 'FitForShift Wellness';
+        } else if (form_slug === 'apply') {
+            notificationRecipients = APPLY_NOTIFICATION_EMAILS;
+        } else {
+            notificationRecipients = [template?.notification_email || NOTIFICATION_EMAIL];
         }
 
-        try {
-            // Log email configuration for debugging
-
-            const emailResult = await sendFormNotificationEmail({
-                to: notificationTo,
-                formName: formName,
-                responseData: response_data,
-                metadata: metadata,
-                responseId: responseRecord.id,
-                isFirstResponder: isFirstResponderForm,
-                isTrialReview: isTrialReviewForm
-            });
-
-        } catch (emailError) {
-            // Don't fail the submission if email fails
-            console.error('Failed to send notification email:', {
-                error: emailError.message,
-                stack: emailError.stack,
-                to: notificationTo,
-                formName: formName
-            });
+        for (const recipient of notificationRecipients) {
+            try {
+                await sendFormNotificationEmail({
+                    to: recipient,
+                    formName: formName,
+                    responseData: response_data,
+                    metadata: metadata,
+                    responseId: responseRecord.id,
+                    isFirstResponder: isFirstResponderForm,
+                    isTrialReview: isTrialReviewForm
+                });
+            } catch (emailError) {
+                // Don't fail the submission if email fails
+                console.error('Failed to send notification email:', {
+                    error: emailError.message,
+                    stack: emailError.stack,
+                    to: recipient,
+                    formName: formName
+                });
+            }
         }
 
         return {
