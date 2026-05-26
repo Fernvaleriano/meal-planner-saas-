@@ -110,6 +110,14 @@
             height: 32px;
             width: auto;
             display: block;
+            transition: opacity 0.3s;
+        }
+
+        /* Hide the corner logo on the welcome screen — the big centered logo
+           covers brand identity there, no need to double up. */
+        body.on-welcome .form-header .logo {
+            opacity: 0;
+            pointer-events: none;
         }
 
         .logo-text {
@@ -1017,6 +1025,8 @@
             const currentQ = Math.max(0, currentQuestion - 1); // Exclude welcome
             const progress = Math.min(100, (currentQ / totalQuestions) * 100);
             progressBar.style.width = `${progress}%`;
+
+            document.body.classList.toggle('on-welcome', currentQuestion === 0);
 
             // Update counter
             if (currentQuestion === 0 || currentQuestion === questions.length - 1) {
