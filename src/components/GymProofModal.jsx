@@ -31,6 +31,10 @@ function GymProofModal({ isOpen, onClose }) {
   const [totalCount, setTotalCount] = useState(0);
   const [unlockedBadge, setUnlockedBadge] = useState(null);
   const [sharingBadge, setSharingBadge] = useState(false);
+  // Background photo used by the share card. Defaults to the photo from
+  // this check-in (stamped) so the client doesn't have to do anything;
+  // they can swap it via "Change photo" in the celebration modal.
+  const [shareBgImage, setShareBgImage] = useState(null);
   const fileInputRef = useRef(null);
   const canvasRef = useRef(null);
 
@@ -47,6 +51,7 @@ function GymProofModal({ isOpen, onClose }) {
       setPhotoData(null);
       setStampedPhoto(null);
       setUnlockedBadge(null);
+      setShareBgImage(null);
     }
   }, [isOpen]);
 
@@ -204,6 +209,12 @@ function GymProofModal({ isOpen, onClose }) {
       const newCount = countBeforeSubmit + 1;
       const crossedTier = getNewlyEarnedMilestone(countBeforeSubmit, newCount);
       if (crossedTier) {
+        // Default the share card's background to the photo they just
+        // submitted — that's the natural "check-in photo" for the badge.
+        // Stamped (with timestamp overlay) reads better as a brag image
+        // than the raw photo, so prefer it when available.
+        setShareBgImage(stampedPhoto || photoData || null);
+
         // Delay slightly so the badge unlock feels like a reward on top of success
         setTimeout(() => {
           setUnlockedBadge({
@@ -238,7 +249,9 @@ function GymProofModal({ isOpen, onClose }) {
       const blob = await generateBadgeShareCard({
         tier,
         totalCount: newCount,
-        earnedTiers
+        earnedTiers,
+        clientName: clientData?.client_name,
+        bgImage: shareBgImage,
       });
       const caption = `Just unlocked ${tier.name} ${tier.icon} — ${newCount} gym check-ins strong!`;
       await shareOrDownloadBadge(blob, tier, caption);
@@ -247,6 +260,13 @@ function GymProofModal({ isOpen, onClose }) {
     } finally {
       setSharingBadge(false);
     }
+  };
+
+  // User picked a different background photo for the share card.
+  const handleChangeSharePhoto = (file) => {
+    const reader = new FileReader();
+    reader.onload = (ev) => setShareBgImage(ev.target?.result || null);
+    reader.readAsDataURL(file);
   };
 
   const loadHistory = async () => {
@@ -446,6 +466,8 @@ function GymProofModal({ isOpen, onClose }) {
       onClose={() => setUnlockedBadge(null)}
       onShare={handleShareUnlockedBadge}
       sharing={sharingBadge}
+      shareBgImage={shareBgImage}
+      onChangePhoto={handleChangeSharePhoto}
     />
     </>
   );

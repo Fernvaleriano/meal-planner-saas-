@@ -6,6 +6,7 @@ import { useAuth } from '../context/AuthContext';
 import { apiGet, apiPost, apiDelete } from '../utils/api';
 import { usePullToRefresh, PullToRefreshIndicator } from '../hooks/usePullToRefresh';
 import { BADGE_TIERS, getEarnedTiers, getNextTier, generateBadgeShareCard, shareOrDownloadBadge } from '../utils/badges';
+import BadgeCelebrationModal from '../components/BadgeCelebrationModal';
 
 import { useToast } from '../components/Toast';
 import CoachReactionBadge from '../components/CoachReactionBadge';
@@ -226,6 +227,14 @@ function Progress() {
   const [totalCheckinCount, setTotalCheckinCount] = useState(0);
   const [loadingCheckinCount, setLoadingCheckinCount] = useState(true);
   const [sharingBadge, setSharingBadge] = useState(false);
+  // Share-card background. Auto-set to the most recent gym check-in photo
+  // on load (see loadCheckinCount). User can override via "Change photo"
+  // in the celebration modal.
+  const [shareBgImage, setShareBgImage] = useState(null);
+  // When non-null, the celebration modal is open in "re-share" mode for
+  // an already-earned badge. Carries { tier, newCount, earnedTiers } in
+  // the same shape the modal uses for fresh unlocks.
+  const [shareBadgePreview, setShareBadgePreview] = useState(null);
 
   // Per-metric expanded-history state (keyed by metric config key)
   const [expandedHistory, setExpandedHistory] = useState({});
@@ -245,6 +254,8 @@ function Progress() {
       if (measurementsData?.measurements) setMeasurements(measurementsData.measurements);
       if (photosData?.photos) setPhotos(photosData.photos);
       if (typeof gymProofsData?.pagination?.total === 'number') setTotalCheckinCount(gymProofsData.pagination.total);
+      const latestPhoto = gymProofsData?.proofs?.[0]?.photo_url;
+      if (latestPhoto) setShareBgImage(latestPhoto);
     } catch (err) {
       console.error('Error refreshing progress data:', err);
     }
@@ -266,6 +277,8 @@ function Progress() {
       const data = await apiGet(`/.netlify/functions/save-gym-proof?clientId=${clientData.id}&limit=1`);
       const total = data?.pagination?.total;
       setTotalCheckinCount(typeof total === 'number' ? total : (data?.proofs?.length || 0));
+      const latestPhoto = data?.proofs?.[0]?.photo_url;
+      if (latestPhoto) setShareBgImage(latestPhoto);
     } catch (err) {
       console.error('Error loading gym check-in count:', err);
     } finally {
@@ -672,16 +685,38 @@ function Progress() {
   const nextTier = getNextTier(totalCheckinCount);
   const highestEarned = earnedTiers[earnedTiers.length - 1] || null;
 
-  // Share badge card as image to social media (Web Share API + download fallback)
-  const handleShareBadges = async () => {
-    if (sharingBadge) return;
+  // Open the celebration modal in "re-share" mode so the user can confirm
+  // the featured badge and (optionally) swap the background photo before
+  // the image is generated. The actual generate-and-share happens in
+  // handleShareBadgesConfirm, wired to the modal's onShare prop.
+  const handleShareBadges = () => {
+    const featured = highestEarned || BADGE_TIERS[0];
+    setShareBadgePreview({
+      tier: featured,
+      newCount: totalCheckinCount,
+      earnedTiers,
+    });
+  };
+
+  const handleChangeSharePhoto = (file) => {
+    const reader = new FileReader();
+    reader.onload = (ev) => setShareBgImage(ev.target?.result || null);
+    reader.readAsDataURL(file);
+  };
+
+  // Generate the PNG and share/download. Called by the celebration modal
+  // when the user taps "Save / Share image".
+  const handleShareBadgesConfirm = async () => {
+    if (sharingBadge || !shareBadgePreview) return;
     setSharingBadge(true);
     try {
-      const featured = highestEarned || BADGE_TIERS[0];
+      const featured = shareBadgePreview.tier;
       const blob = await generateBadgeShareCard({
         tier: featured,
         totalCount: totalCheckinCount,
-        earnedTiers
+        earnedTiers,
+        clientName: clientData?.client_name,
+        bgImage: shareBgImage,
       });
       const captionText = highestEarned
         ? `Just unlocked ${featured.name} ${featured.icon} — ${totalCheckinCount} check-ins strong!`
@@ -1304,6 +1339,16 @@ function Progress() {
         </div>,
         document.body
       )}
+
+      {/* Re-share badge modal (Progress > Achievements > "Share to social media") */}
+      <BadgeCelebrationModal
+        badge={shareBadgePreview}
+        onClose={() => setShareBadgePreview(null)}
+        onShare={handleShareBadgesConfirm}
+        sharing={sharingBadge}
+        shareBgImage={shareBgImage}
+        onChangePhoto={handleChangeSharePhoto}
+      />
     </div>
   );
 }
