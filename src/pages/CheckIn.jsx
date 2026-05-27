@@ -40,6 +40,10 @@ function CheckIn() {
   // Badge unlock modal
   const [unlockedBadge, setUnlockedBadge] = useState(null); // { tier, newCount, earnedTiers }
   const [sharingBadge, setSharingBadge] = useState(false);
+  // Share-card background photo. Defaults to the client's most recent gym
+  // check-in photo so the brag image has a natural backdrop. They can swap
+  // it via "Change photo" in the celebration modal.
+  const [shareBgImage, setShareBgImage] = useState(null);
 
   // Scroll position is managed centrally by Layout (per-path restoration).
 
@@ -65,6 +69,16 @@ function CheckIn() {
   useEffect(() => {
     if (clientData?.id) {
       loadHistory();
+      // Grab the most recent gym proof photo (if any) so the badge share
+      // card has a sensible default backdrop. Best-effort — if the client
+      // hasn't done a gym check-in yet, the card falls back to the
+      // brand gradient.
+      apiGet(`/.netlify/functions/save-gym-proof?clientId=${clientData.id}&limit=1`)
+        .then(data => {
+          const url = data?.proofs?.[0]?.photo_url;
+          if (url) setShareBgImage(url);
+        })
+        .catch(() => {});
     }
   }, [clientData?.id]);
 
@@ -141,7 +155,9 @@ function CheckIn() {
       const blob = await generateBadgeShareCard({
         tier,
         totalCount: newCount,
-        earnedTiers
+        earnedTiers,
+        clientName: clientData?.client_name,
+        bgImage: shareBgImage,
       });
       const caption = `Just unlocked ${tier.name} ${tier.icon} — ${newCount} check-ins strong!`;
       const result = await shareOrDownloadBadge(blob, tier, caption);
@@ -154,6 +170,12 @@ function CheckIn() {
     } finally {
       setSharingBadge(false);
     }
+  };
+
+  const handleChangeSharePhoto = (file) => {
+    const reader = new FileReader();
+    reader.onload = (ev) => setShareBgImage(ev.target?.result || null);
+    reader.readAsDataURL(file);
   };
 
   // Band the adherence percentage into low / mid / high so the history
@@ -365,6 +387,8 @@ function CheckIn() {
         onClose={() => setUnlockedBadge(null)}
         onShare={handleShareUnlockedBadge}
         sharing={sharingBadge}
+        shareBgImage={shareBgImage}
+        onChangePhoto={handleChangeSharePhoto}
       />
     </div>
   );

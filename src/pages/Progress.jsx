@@ -226,6 +226,10 @@ function Progress() {
   const [totalCheckinCount, setTotalCheckinCount] = useState(0);
   const [loadingCheckinCount, setLoadingCheckinCount] = useState(true);
   const [sharingBadge, setSharingBadge] = useState(false);
+  // Share-card background. Auto-set to the most recent gym check-in photo
+  // on load (see loadCheckinCount). Re-share button on this page only opens
+  // the celebration modal when a badge actually exists.
+  const [shareBgImage, setShareBgImage] = useState(null);
 
   // Per-metric expanded-history state (keyed by metric config key)
   const [expandedHistory, setExpandedHistory] = useState({});
@@ -245,6 +249,8 @@ function Progress() {
       if (measurementsData?.measurements) setMeasurements(measurementsData.measurements);
       if (photosData?.photos) setPhotos(photosData.photos);
       if (typeof gymProofsData?.pagination?.total === 'number') setTotalCheckinCount(gymProofsData.pagination.total);
+      const latestPhoto = gymProofsData?.proofs?.[0]?.photo_url;
+      if (latestPhoto) setShareBgImage(latestPhoto);
     } catch (err) {
       console.error('Error refreshing progress data:', err);
     }
@@ -266,6 +272,8 @@ function Progress() {
       const data = await apiGet(`/.netlify/functions/save-gym-proof?clientId=${clientData.id}&limit=1`);
       const total = data?.pagination?.total;
       setTotalCheckinCount(typeof total === 'number' ? total : (data?.proofs?.length || 0));
+      const latestPhoto = data?.proofs?.[0]?.photo_url;
+      if (latestPhoto) setShareBgImage(latestPhoto);
     } catch (err) {
       console.error('Error loading gym check-in count:', err);
     } finally {
@@ -681,7 +689,9 @@ function Progress() {
       const blob = await generateBadgeShareCard({
         tier: featured,
         totalCount: totalCheckinCount,
-        earnedTiers
+        earnedTiers,
+        clientName: clientData?.client_name,
+        bgImage: shareBgImage,
       });
       const captionText = highestEarned
         ? `Just unlocked ${featured.name} ${featured.icon} — ${totalCheckinCount} check-ins strong!`
