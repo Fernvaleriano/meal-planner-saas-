@@ -7,6 +7,7 @@ import { apiGet, apiPost, apiDelete } from '../utils/api';
 import { usePullToRefresh, PullToRefreshIndicator } from '../hooks/usePullToRefresh';
 import { BADGE_TIERS, getEarnedTiers, getNextTier, generateBadgeShareCard, shareOrDownloadBadge } from '../utils/badges';
 import BadgeCelebrationModal from '../components/BadgeCelebrationModal';
+import BadgeIcon from '../components/BadgeIcon';
 
 import { useToast } from '../components/Toast';
 import CoachReactionBadge from '../components/CoachReactionBadge';
@@ -948,8 +949,11 @@ function Progress() {
                   return (
                     <div className="next-badge-progress-card">
                       <div className="next-badge-progress-label">
-                        <span>
-                          {remaining} more to unlock <strong>{nextTier.name}</strong> {nextTier.icon}
+                        <span className="next-badge-progress-label-text">
+                          <span>
+                            {remaining} more to unlock <strong>{nextTier.name}</strong>
+                          </span>
+                          <BadgeIcon tier={nextTier} size={16} strokeWidth={2} />
                         </span>
                         <span>{totalCheckinCount} / {nextTier.threshold}</span>
                       </div>
@@ -980,11 +984,19 @@ function Progress() {
                         key={tier.threshold}
                         className={`badge-card ${earned ? 'earned' : 'locked'}`}
                         title={`${tier.name} — ${tier.desc}`}
+                        style={{ '--badge-tier-color': tier.iconColor || '#fbbf24' }}
                       >
                         {earned
                           ? <span className="badge-ribbon">Earned</span>
                           : <span className="badge-lock-icon">🔒</span>}
-                        <span className="badge-icon">{tier.icon}</span>
+                        <span className="badge-icon">
+                          <BadgeIcon
+                            tier={tier}
+                            size={36}
+                            strokeWidth={2}
+                            color={earned ? tier.iconColor : '#94a3b8'}
+                          />
+                        </span>
                         <div className="badge-name">{tier.name}</div>
                         <div className="badge-threshold">{tier.desc}</div>
                         {!earned && (

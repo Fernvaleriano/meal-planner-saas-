@@ -1,15 +1,74 @@
-// Achievement badge tiers earned by total lifetime check-in count.
-// Thresholds are all-time cumulative, not streaks.
+// Lucide icon path data per tier. The same node array shape lucide-react
+// uses internally (`[tag, attrs]` tuples) so the React side and the canvas
+// renderer can share one source of truth. Copied from lucide-react v0.468
+// source files (sprout, flame, zap, dumbbell, medal, trophy, crown, gem).
+const ICON_NODES = {
+  Sprout: [
+    ['path', { d: 'M7 20h10' }],
+    ['path', { d: 'M10 20c5.5-2.5.8-6.4 3-10' }],
+    ['path', { d: 'M9.5 9.4c1.1.8 1.8 2.2 2.3 3.7-2 .4-3.5.4-4.8-.3-1.2-.6-2.3-1.9-3-4.2 2.8-.5 4.4 0 5.5.8z' }],
+    ['path', { d: 'M14.1 6a7 7 0 0 0-1.1 4c1.9-.1 3.3-.6 4.3-1.4 1-1 1.6-2.3 1.7-4.6-2.7.1-4 1-4.9 2z' }],
+  ],
+  Flame: [
+    ['path', { d: 'M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z' }],
+  ],
+  Zap: [
+    ['path', { d: 'M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z' }],
+  ],
+  Dumbbell: [
+    ['path', { d: 'M14.4 14.4 9.6 9.6' }],
+    ['path', { d: 'M18.657 21.485a2 2 0 1 1-2.829-2.828l-1.767 1.768a2 2 0 1 1-2.829-2.829l6.364-6.364a2 2 0 1 1 2.829 2.829l-1.768 1.767a2 2 0 1 1 2.828 2.829z' }],
+    ['path', { d: 'm21.5 21.5-1.4-1.4' }],
+    ['path', { d: 'M3.9 3.9 2.5 2.5' }],
+    ['path', { d: 'M6.404 12.768a2 2 0 1 1-2.829-2.829l1.768-1.767a2 2 0 1 1-2.828-2.829l2.828-2.828a2 2 0 1 1 2.829 2.828l1.767-1.768a2 2 0 1 1 2.829 2.829z' }],
+  ],
+  Medal: [
+    ['path', { d: 'M7.21 15 2.66 7.14a2 2 0 0 1 .13-2.2L4.4 2.8A2 2 0 0 1 6 2h12a2 2 0 0 1 1.6.8l1.6 2.14a2 2 0 0 1 .14 2.2L16.79 15' }],
+    ['path', { d: 'M11 12 5.12 2.2' }],
+    ['path', { d: 'm13 12 5.88-9.8' }],
+    ['path', { d: 'M8 7h8' }],
+    ['circle', { cx: '12', cy: '17', r: '5' }],
+    ['path', { d: 'M12 18v-2h-.5' }],
+  ],
+  Trophy: [
+    ['path', { d: 'M6 9H4.5a2.5 2.5 0 0 1 0-5H6' }],
+    ['path', { d: 'M18 9h1.5a2.5 2.5 0 0 0 0-5H18' }],
+    ['path', { d: 'M4 22h16' }],
+    ['path', { d: 'M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22' }],
+    ['path', { d: 'M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22' }],
+    ['path', { d: 'M18 2H6v7a6 6 0 0 0 12 0V2Z' }],
+  ],
+  Crown: [
+    ['path', { d: 'M11.562 3.266a.5.5 0 0 1 .876 0L15.39 8.87a1 1 0 0 0 1.516.294L21.183 5.5a.5.5 0 0 1 .798.519l-2.834 10.246a1 1 0 0 1-.956.734H5.81a1 1 0 0 1-.957-.734L2.02 6.02a.5.5 0 0 1 .798-.519l4.276 3.664a1 1 0 0 0 1.516-.294z' }],
+    ['path', { d: 'M5 21h14' }],
+  ],
+  Gem: [
+    ['path', { d: 'M6 3h12l4 6-10 13L2 9Z' }],
+    ['path', { d: 'M11 3 8 9l4 13 4-13-3-6' }],
+    ['path', { d: 'M2 9h20' }],
+  ],
+};
+
+// Per-tier visual config. `iconName` keys into ICON_NODES (and the
+// matching lucide-react component on the React side via BadgeIcon). The
+// `iconColor` is used as the stroke color in the canvas share card and
+// can be passed to the React icon for a coloured tile state.
+// `icon` (emoji) is retained for plain-text social share captions where
+// emoji actually read well.
 export const BADGE_TIERS = [
-  { threshold: 1,   icon: '🌱', name: 'First Step',        desc: 'First check-in' },
-  { threshold: 7,   icon: '🔥', name: 'Week Warrior',      desc: '7 check-ins' },
-  { threshold: 14,  icon: '⚡', name: 'Two Weeks Strong',  desc: '14 check-ins' },
-  { threshold: 30,  icon: '💪', name: 'Monthly Champion',  desc: '30 check-ins' },
-  { threshold: 60,  icon: '🏅', name: 'Consistency Hero',  desc: '60 check-ins' },
-  { threshold: 100, icon: '🏆', name: 'Century Club',      desc: '100 check-ins' },
-  { threshold: 200, icon: '👑', name: 'Dedication Master', desc: '200 check-ins' },
-  { threshold: 365, icon: '💎', name: 'Legend',            desc: '365 check-ins' },
+  { threshold: 1,   icon: '🌱', iconName: 'Sprout',   iconColor: '#86efac', name: 'First Step',        desc: 'First check-in' },
+  { threshold: 7,   icon: '🔥', iconName: 'Flame',    iconColor: '#fb923c', name: 'Week Warrior',      desc: '7 check-ins' },
+  { threshold: 14,  icon: '⚡', iconName: 'Zap',      iconColor: '#fbbf24', name: 'Two Weeks Strong',  desc: '14 check-ins' },
+  { threshold: 30,  icon: '💪', iconName: 'Dumbbell', iconColor: '#67e8f9', name: 'Monthly Champion',  desc: '30 check-ins' },
+  { threshold: 60,  icon: '🏅', iconName: 'Medal',    iconColor: '#fcd34d', name: 'Consistency Hero',  desc: '60 check-ins' },
+  { threshold: 100, icon: '🏆', iconName: 'Trophy',   iconColor: '#fde047', name: 'Century Club',      desc: '100 check-ins' },
+  { threshold: 200, icon: '👑', iconName: 'Crown',    iconColor: '#facc15', name: 'Dedication Master', desc: '200 check-ins' },
+  { threshold: 365, icon: '💎', iconName: 'Gem',      iconColor: '#7dd3fc', name: 'Legend',            desc: '365 check-ins' },
 ];
+
+// Lookup helper used by the React BadgeIcon component and any canvas
+// renderer that needs the raw lucide nodes for a tier.
+export const getIconNodesFor = (iconName) => ICON_NODES[iconName] || null;
 
 export const getEarnedTiers = (count) =>
   BADGE_TIERS.filter(t => (count || 0) >= t.threshold);
@@ -34,6 +93,19 @@ const firstNameOf = (clientName) => {
 const ZIQUECOACH_LOGO_URL =
   'https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/assets/ziquecoach-logo-teal.png';
 
+// Tier colours are stored as 6-digit hex (#rrggbb). For canvas gradient
+// stops we need rgba() with adjustable alpha; this builds the string
+// without pulling in a colour library.
+const hexToRgba = (hex, alpha = 1) => {
+  if (!hex || typeof hex !== 'string') return `rgba(255,255,255,${alpha})`;
+  const m = hex.replace('#', '');
+  if (m.length !== 6) return `rgba(255,255,255,${alpha})`;
+  const r = parseInt(m.slice(0, 2), 16);
+  const g = parseInt(m.slice(2, 4), 16);
+  const b = parseInt(m.slice(4, 6), 16);
+  return `rgba(${r},${g},${b},${alpha})`;
+};
+
 const loadCanvasImage = (src) => new Promise((resolve) => {
   if (!src) { resolve(null); return; }
   const img = new Image();
@@ -44,6 +116,41 @@ const loadCanvasImage = (src) => new Promise((resolve) => {
     resolve(null);
   };
   img.src = src;
+});
+
+// Serialize a lucide iconNode array (as in ICON_NODES) into a standalone
+// SVG string with the supplied stroke color + sizing. Mirrors lucide's
+// default attributes (fill="none", stroke-linecap/join="round",
+// stroke-width=2) so the result is visually identical to the React icon.
+const buildLucideSvg = (iconNodes, { size = 24, color = '#ffffff', strokeWidth = 2 } = {}) => {
+  if (!Array.isArray(iconNodes)) return '';
+  const inner = iconNodes.map(([tag, attrs]) => {
+    const attrStr = Object.entries(attrs || {})
+      .filter(([k]) => k !== 'key')
+      .map(([k, v]) => `${k}="${String(v).replace(/"/g, '&quot;')}"`)
+      .join(' ');
+    return `<${tag} ${attrStr}/>`;
+  }).join('');
+  return (
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" ` +
+    `viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="${strokeWidth}" ` +
+    `stroke-linecap="round" stroke-linejoin="round">${inner}</svg>`
+  );
+};
+
+// Wrap an SVG string into a loaded HTMLImageElement (Promise). Uses a
+// data URL so there's no blob lifecycle to worry about — the image
+// resolves once decoded or null if the browser can't render it.
+const svgToImage = (svgString) => new Promise((resolve) => {
+  if (!svgString) { resolve(null); return; }
+  const encoded = encodeURIComponent(svgString)
+    .replace(/'/g, '%27')
+    .replace(/\(/g, '%28')
+    .replace(/\)/g, '%29');
+  const img = new Image();
+  img.onload = () => resolve(img);
+  img.onerror = () => resolve(null);
+  img.src = `data:image/svg+xml;charset=utf-8,${encoded}`;
 });
 
 // Render a 1080x1080 PNG share card for a specific badge.
@@ -66,12 +173,23 @@ export async function generateBadgeShareCard({
   canvas.height = height;
   const ctx = canvas.getContext('2d');
 
-  // Load logo + (optional) background photo before drawing so layout is
-  // deterministic. loadCanvasImage swallows load errors and resolves to
-  // null, so the card still renders even if either asset 404s.
-  const [logoImg, bgImg] = await Promise.all([
+  // Resolve every image asset up front so layout is deterministic: logo,
+  // optional bg photo, the hero badge icon, the medal icon used in the
+  // stats pill, and one mini icon per earned tier. Each helper swallows
+  // errors and resolves to null, so the card still renders if any asset
+  // fails to load. Mini icons are rendered against the same colour as
+  // each tier so the small row reads as a progression at a glance.
+  const heroNodes = getIconNodesFor(tier?.iconName);
+  const medalNodes = getIconNodesFor('Medal');
+  const miniTiers = (earnedTiers || []).slice(-5);
+  const [logoImg, bgImg, heroIconImg, medalIconImg, miniIconImgs] = await Promise.all([
     loadCanvasImage(ZIQUECOACH_LOGO_URL),
     loadCanvasImage(bgImage),
+    svgToImage(buildLucideSvg(heroNodes, { size: 320, color: '#ffffff', strokeWidth: 1.6 })),
+    svgToImage(buildLucideSvg(medalNodes, { size: 48, color: '#fcd34d', strokeWidth: 2 })),
+    Promise.all(miniTiers.map(t =>
+      svgToImage(buildLucideSvg(getIconNodesFor(t.iconName), { size: 96, color: t.iconColor || '#ffffff', strokeWidth: 2 }))
+    )),
   ]);
 
   // Background: cover-fit photo if provided, otherwise the brand gradient.
@@ -137,11 +255,41 @@ export async function generateBadgeShareCard({
   ctx.textAlign = 'center';
   ctx.fillText(headerText, width / 2, 200);
 
-  // Featured badge emoji
-  ctx.font = '320px -apple-system, "Apple Color Emoji", "Segoe UI Emoji", sans-serif';
-  ctx.textBaseline = 'middle';
-  ctx.fillText(tier.icon, width / 2, height * 0.42);
-  ctx.textBaseline = 'alphabetic';
+  // Hero badge medallion. A soft glow disc behind the icon gives it the
+  // weight an emoji had previously, while keeping the line-stroke icon
+  // looking clean. The medallion uses the tier colour so each badge has
+  // its own personality without us needing different artwork per tier.
+  const heroCx = width / 2;
+  const heroCy = height * 0.42;
+  const discR = 220;
+  if (tier?.iconColor) {
+    const glow = ctx.createRadialGradient(heroCx, heroCy, 0, heroCx, heroCy, discR * 1.1);
+    glow.addColorStop(0, hexToRgba(tier.iconColor, 0.55));
+    glow.addColorStop(0.6, hexToRgba(tier.iconColor, 0.18));
+    glow.addColorStop(1, hexToRgba(tier.iconColor, 0));
+    ctx.fillStyle = glow;
+    ctx.beginPath();
+    ctx.arc(heroCx, heroCy, discR * 1.1, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  // Thin ring in tier colour
+  if (tier?.iconColor) {
+    ctx.strokeStyle = hexToRgba(tier.iconColor, 0.6);
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(heroCx, heroCy, discR, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  if (heroIconImg) {
+    const heroSize = 320;
+    ctx.drawImage(
+      heroIconImg,
+      heroCx - heroSize / 2,
+      heroCy - heroSize / 2,
+      heroSize,
+      heroSize
+    );
+  }
 
   // Badge name
   ctx.fillStyle = '#ffffff';
@@ -153,20 +301,19 @@ export async function generateBadgeShareCard({
   ctx.font = '600 38px -apple-system, BlinkMacSystemFont, sans-serif';
   ctx.fillText(`${totalCount} check-ins completed`, width / 2, height * 0.66 + 60);
 
-  // Mini row of earned icons (up to 5 most recent)
-  const miniIcons = (earnedTiers || []).slice(-5);
-  if (miniIcons.length > 1) {
+  // Mini row of earned icons (up to 5 most recent). Each icon is drawn
+  // in its tier colour so the row reads as a coloured progression rather
+  // than a beige line of emoji.
+  if (miniTiers.length > 1 && Array.isArray(miniIconImgs)) {
     const rowY = height * 0.81;
     const iconSize = 90;
-    const totalWidth = miniIcons.length * iconSize + (miniIcons.length - 1) * 22;
-    let x = (width - totalWidth) / 2 + iconSize / 2;
-    ctx.font = `${iconSize}px -apple-system, "Apple Color Emoji", "Segoe UI Emoji", sans-serif`;
-    ctx.textBaseline = 'middle';
-    miniIcons.forEach(t => {
-      ctx.fillText(t.icon, x, rowY);
-      x += iconSize + 22;
+    const gap = 22;
+    const totalWidth = miniTiers.length * iconSize + (miniTiers.length - 1) * gap;
+    let x = (width - totalWidth) / 2;
+    miniIconImgs.forEach((img) => {
+      if (img) ctx.drawImage(img, x, rowY - iconSize / 2, iconSize, iconSize);
+      x += iconSize + gap;
     });
-    ctx.textBaseline = 'alphabetic';
   }
 
   // Stats pill
@@ -185,14 +332,32 @@ export async function generateBadgeShareCard({
   ctx.closePath();
   ctx.fill();
 
+  // Stat pill text alongside a small medal icon (replacing 🏅 emoji).
+  // Pre-measure the text width so the icon + label can be centered as a
+  // single unit inside the pill — otherwise the icon ends up offset and
+  // the line looks crooked.
   ctx.fillStyle = '#ffffff';
   ctx.font = '600 34px -apple-system, BlinkMacSystemFont, sans-serif';
   ctx.textBaseline = 'middle';
-  ctx.fillText(
-    `🏅 ${(earnedTiers || []).length} / ${BADGE_TIERS.length} badges earned`,
-    width / 2,
-    pillY + pillH / 2
-  );
+  const pillLabel = `${(earnedTiers || []).length} / ${BADGE_TIERS.length} badges earned`;
+  const iconSlot = 42;
+  const iconLabelGap = 12;
+  const labelWidth = ctx.measureText(pillLabel).width;
+  const groupWidth = iconSlot + iconLabelGap + labelWidth;
+  const groupStartX = (width - groupWidth) / 2;
+  const centerY = pillY + pillH / 2;
+  if (medalIconImg) {
+    ctx.drawImage(
+      medalIconImg,
+      groupStartX,
+      centerY - iconSlot / 2,
+      iconSlot,
+      iconSlot
+    );
+  }
+  ctx.textAlign = 'left';
+  ctx.fillText(pillLabel, groupStartX + iconSlot + iconLabelGap, centerY);
+  ctx.textAlign = 'center';
   ctx.textBaseline = 'alphabetic';
 
   return new Promise((resolve, reject) => {

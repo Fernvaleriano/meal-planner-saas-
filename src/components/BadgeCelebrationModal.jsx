@@ -1,6 +1,7 @@
 import { useRef } from 'react';
-import { X, Share2, ImageIcon } from 'lucide-react';
+import { X, Share2, ImageIcon, Award } from 'lucide-react';
 import { BADGE_TIERS } from '../utils/badges';
+import BadgeIcon from './BadgeIcon';
 
 // Celebration popup shown when a client crosses a check-in milestone.
 //
@@ -62,12 +63,18 @@ function BadgeCelebrationModal({
         </div>
 
         <div className="badge-unlock-header">BADGE UNLOCKED</div>
-        <div className="badge-unlock-icon">{tier.icon}</div>
+        <div
+          className="badge-unlock-icon-disc"
+          style={{ '--badge-tier-color': tier.iconColor || '#fbbf24' }}
+        >
+          <BadgeIcon tier={tier} size={88} strokeWidth={1.6} color="#ffffff" />
+        </div>
         <div className="badge-unlock-name">{tier.name}</div>
         <div className="badge-unlock-desc">{tier.desc}</div>
 
         <div className="badge-unlock-stats">
-          🏅 {earnedTiers.length} / {BADGE_TIERS.length} badges earned
+          <Award size={16} strokeWidth={2.2} aria-hidden="true" />
+          <span>{earnedTiers.length} / {BADGE_TIERS.length} badges earned</span>
         </div>
 
         {onShare && onChangePhoto && (
