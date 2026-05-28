@@ -1053,6 +1053,34 @@
             padding: 0;
             opacity: 0.7;
         }
+
+        /* Share pill on badge_earned activity rows. Brand turquoise so
+           it reads as a high-signal action even next to the reaction
+           buttons. */
+        .activity-badge-share-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            margin-left: 6px;
+            padding: 4px 10px;
+            background: #2EC4B6;
+            color: #0A1F2E;
+            font-size: 11px;
+            font-weight: 700;
+            border: none;
+            border-radius: 999px;
+            cursor: pointer;
+            transition: transform 0.15s ease, box-shadow 0.2s ease;
+            box-shadow: 0 2px 6px rgba(46, 196, 182, 0.3);
+        }
+        .activity-badge-share-btn:hover:not(:disabled) {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 10px rgba(46, 196, 182, 0.45);
+        }
+        .activity-badge-share-btn:disabled {
+            opacity: 0.6;
+            cursor: wait;
+        }
         .activity-react-btn:hover {
             background: #f5f3ff;
             border-color: #e9e5f5;
@@ -6887,7 +6915,7 @@
                 const isoWeekAgo = weekAgo.toISOString();
 
                 // Fetch all activity types in parallel
-                const [workoutsRes, prsRes, checkinsRes, photosRes, measurementsRes, gymProofsRes] = await Promise.all([
+                const [workoutsRes, prsRes, checkinsRes, photosRes, measurementsRes, gymProofsRes, badgesRes] = await Promise.all([
                     // ANY evidence of effort = win: count non-skipped logs that
                     // have at least one recorded set (do NOT require 'completed').
                     supabaseClient.from('workout_logs')
@@ -6928,6 +6956,18 @@
                     supabaseClient.from('gym_proofs')
                         .select('id, client_id, proof_date, created_at')
                         .in('client_id', clientIds)
+                        .gte('created_at', isoWeekAgo)
+                        .order('created_at', { ascending: false })
+                        .limit(30),
+                    // Badge milestones — saved as notifications by
+                    // save-gym-proof.js when a check-in crosses a
+                    // threshold. The tier itself isn't stored as a
+                    // separate column, so we match on the badge name
+                    // embedded in the message at render time.
+                    supabaseClient.from('notifications')
+                        .select('id, related_client_id, message, title, created_at')
+                        .eq('user_id', coachId)
+                        .eq('type', 'badge_earned')
                         .gte('created_at', isoWeekAgo)
                         .order('created_at', { ascending: false })
                         .limit(30)
@@ -6979,6 +7019,34 @@
                     const c = _activityClientMap[g.client_id];
                     if (!c) return;
                     events.push({ type: 'gym_checkin', icon: '🏋️', label: 'Checked in at the gym', clientId: g.client_id, detail: '', time: g.created_at, ts: new Date(g.created_at).getTime(), itemId: String(g.id), itemType: 'gym_checkin' });
+                });
+
+                // Badge milestones — map the badge name embedded in the
+                // notification message back to the TIERS entry so the
+                // Share button has the tier object to hand to the
+                // canvas generator. If the name can't be matched (older
+                // notification format, manual edit) the event still
+                // renders but without the Share affordance.
+                const shareTiers = (window.CoachBadgeShare && window.CoachBadgeShare.TIERS) || [];
+                ((badgesRes && badgesRes.data) || []).forEach(b => {
+                    const c = _activityClientMap[b.related_client_id];
+                    if (!c) return;
+                    const msg = b.message || '';
+                    const tierIndex = shareTiers.findIndex(t => msg.includes('"' + t.name + '"'));
+                    const tier = tierIndex >= 0 ? shareTiers[tierIndex] : null;
+                    const detail = tier ? tier.name : 'New milestone';
+                    events.push({
+                        type: 'badge',
+                        icon: tier ? tier.icon : '🏅',
+                        label: 'Earned a badge',
+                        clientId: b.related_client_id,
+                        detail,
+                        time: b.created_at,
+                        ts: new Date(b.created_at).getTime(),
+                        itemId: String(b.id),
+                        itemType: 'badge_earned',
+                        tierIndex,
+                    });
                 });
 
                 events.sort((a, b) => b.ts - a.ts);
@@ -7166,6 +7234,7 @@
                 if (counts.gym_checkin) badgesHtml += `<span class="activity-summary-badge workout">🏋️ ${counts.gym_checkin} gym check-in${counts.gym_checkin > 1 ? 's' : ''}</span>`;
                 if (counts.photo) badgesHtml += `<span class="activity-summary-badge photo">📸 ${counts.photo} photo${counts.photo > 1 ? 's' : ''}</span>`;
                 if (counts.measurement) badgesHtml += `<span class="activity-summary-badge measurement">📏 measurements</span>`;
+                if (counts.badge) badgesHtml += `<span class="activity-summary-badge pr">🏅 ${counts.badge} badge${counts.badge > 1 ? 's' : ''}</span>`;
 
                 // Build detail items with per-item reaction/comment buttons
                 let detailsHtml = group.events.map((ev, idx) => {
@@ -7173,6 +7242,13 @@
                     const existingReaction = _activityReactionsMap[evKey] || '';
                     const itemUid = safeClientId + '-' + ev.itemType + '-' + ev.itemId;
                     const escapedDetail = (ev.label + (ev.detail ? ' — ' + ev.detail : '')).replace(/'/g, "\\'");
+                    // Badge events get an extra "Share" pill so the
+                    // coach can drop their client's milestone straight
+                    // into a story. Only shown when we matched a tier
+                    // and the share helper is loaded.
+                    const shareBtnHtml = (ev.type === 'badge' && typeof ev.tierIndex === 'number' && ev.tierIndex >= 0 && window.CoachBadgeShare)
+                        ? `<button class="activity-badge-share-btn" onclick="shareCoachBadgeFromActivity('${ev.clientId}', ${ev.tierIndex}, this)" title="Share badge">📤 Share</button>`
+                        : '';
                     return `
                     <div class="activity-detail-item" data-item-uid="${itemUid}">
                         <span class="activity-detail-icon">${ev.icon}</span>
@@ -7190,6 +7266,7 @@
                                     <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
                                     Comment
                                 </button>
+                                ${shareBtnHtml}
                             </div>
                             <div class="activity-item-reply-row" id="activity-item-reply-${itemUid}" onclick="event.stopPropagation()">
                                 <input type="text" placeholder="Comment on this..." maxlength="500" onkeydown="if(event.key==='Enter'){event.preventDefault();sendItemReply('${ev.clientId}','${escapedDetail}',this)}">
@@ -7219,6 +7296,82 @@
             html += '</div>';
             container.innerHTML = html;
         }
+
+        // Cache the coach's brand logo so we don't hit the DB once per
+        // share. First share kicks off the lookup; later shares reuse
+        // whatever it returned (including the empty fallback).
+        let _cachedCoachBrandLogo = null;
+
+        async function getCoachBrandLogoUrlForActivity() {
+            if (_cachedCoachBrandLogo !== null) return _cachedCoachBrandLogo;
+            try {
+                const { data: sess } = await supabaseClient.auth.getSession();
+                const coachId = sess && sess.session && sess.session.user && sess.session.user.id;
+                if (!coachId) return null;
+                const { data } = await supabaseClient
+                    .from('coaches')
+                    .select('brand_logo_url')
+                    .eq('id', coachId)
+                    .single();
+                _cachedCoachBrandLogo = (data && data.brand_logo_url) || '';
+            } catch (err) {
+                console.warn('Could not load coach brand logo:', err);
+                _cachedCoachBrandLogo = '';
+            }
+            return _cachedCoachBrandLogo;
+        }
+
+        // Called from the activity timeline when the coach taps the
+        // Share pill on a badge_earned event. Looks up the client name,
+        // resolves the tier from CoachBadgeShare.TIERS by index, then
+        // hands the canvas blob to the system share sheet.
+        window.shareCoachBadgeFromActivity = async function (clientId, tierIndex, btn) {
+            if (!window.CoachBadgeShare) return;
+            const tiers = window.CoachBadgeShare.TIERS || [];
+            const tier = tiers[tierIndex];
+            if (!tier) return;
+            const client = _activityClientMap[clientId];
+            const clientName = (client && client.client_name) || 'YOUR CLIENT';
+            const originalLabel = btn.innerHTML;
+            btn.disabled = true;
+            btn.textContent = 'Generating…';
+            try {
+                // Count badges earned by this client so the share card
+                // shows the right "N / 8 badges earned" total. Best-
+                // effort — falls back to just-this-tier on failure.
+                let totalCount = tier.threshold;
+                let earnedTiers = [tier];
+                try {
+                    const { count } = await supabaseClient
+                        .from('gym_proofs')
+                        .select('*', { count: 'exact', head: true })
+                        .eq('client_id', clientId);
+                    if (typeof count === 'number') {
+                        totalCount = count;
+                        earnedTiers = tiers.filter(t => count >= t.threshold);
+                    }
+                } catch (e) { /* fall through with defaults */ }
+
+                const brandLogoUrl = await getCoachBrandLogoUrlForActivity();
+                const blob = await window.CoachBadgeShare.generate({
+                    tier,
+                    clientFirstName: clientName,
+                    brandLogoUrl: brandLogoUrl || undefined,
+                    totalCount,
+                    earnedTiers,
+                });
+                const firstName = String(clientName).trim().split(/\s+/)[0] || 'My client';
+                const caption = firstName + ' just unlocked ' + tier.name + ' ' + tier.icon +
+                    ' — ' + totalCount + ' check-ins strong!';
+                await window.CoachBadgeShare.shareOrDownload(blob, tier, caption);
+            } catch (err) {
+                console.error('Error sharing client badge:', err);
+                alert('Could not generate share image. Please try again.');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalLabel;
+            }
+        };
 
         // Toggle overview card expand/collapse
         function toggleOverviewCard(cardId) {
@@ -10706,6 +10859,7 @@
     </script>
     <script src="/js/voice-to-text.js"></script>
     <script src="/js/api-helper.js"></script>
+    <script src="/js/badge-share-card.js"></script>
     <script src="/js/trainer-support-agent.js"></script>
     <script src="/js/voice-commander.js"></script>
     <script src="/js/twemoji-init.js"></script>
