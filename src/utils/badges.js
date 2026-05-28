@@ -185,7 +185,7 @@ export async function generateBadgeShareCard({
   const [logoImg, bgImg, heroIconImg, medalIconImg, miniIconImgs] = await Promise.all([
     loadCanvasImage(ZIQUECOACH_LOGO_URL),
     loadCanvasImage(bgImage),
-    svgToImage(buildLucideSvg(heroNodes, { size: 320, color: '#ffffff', strokeWidth: 1.6 })),
+    svgToImage(buildLucideSvg(heroNodes, { size: 230, color: '#ffffff', strokeWidth: 1.6 })),
     svgToImage(buildLucideSvg(medalNodes, { size: 48, color: '#fcd34d', strokeWidth: 2 })),
     Promise.all(miniTiers.map(t =>
       svgToImage(buildLucideSvg(getIconNodesFor(t.iconName), { size: 96, color: t.iconColor || '#ffffff', strokeWidth: 2 }))
@@ -259,9 +259,11 @@ export async function generateBadgeShareCard({
   // weight an emoji had previously, while keeping the line-stroke icon
   // looking clean. The medallion uses the tier colour so each badge has
   // its own personality without us needing different artwork per tier.
+  // Shrunk from 220/320 — the larger medallion bled into the tier
+  // name below; the extra breathing room reads as more polished.
   const heroCx = width / 2;
-  const heroCy = height * 0.42;
-  const discR = 220;
+  const heroCy = height * 0.4;
+  const discR = 160;
   if (tier?.iconColor) {
     const glow = ctx.createRadialGradient(heroCx, heroCy, 0, heroCx, heroCy, discR * 1.1);
     glow.addColorStop(0, hexToRgba(tier.iconColor, 0.55));
@@ -281,7 +283,7 @@ export async function generateBadgeShareCard({
     ctx.stroke();
   }
   if (heroIconImg) {
-    const heroSize = 320;
+    const heroSize = 230;
     ctx.drawImage(
       heroIconImg,
       heroCx - heroSize / 2,
