@@ -155,6 +155,19 @@ body {
     overflow-x: hidden;
 }
 
+/* Branded dark-mode background. Same dark-navy gradient + two diagonal
+   turquoise glows used on the badge share cards so the app feels like
+   it belongs to the same family as the shareables. Fixed attachment
+   keeps the glows visible as the user scrolls long pages. Only applied
+   in dark mode — light mode keeps the original slate background. */
+[data-theme="dark"] body {
+    background:
+        radial-gradient(circle at 15% 15%, rgba(46, 196, 182, 0.35), transparent 60%),
+        radial-gradient(circle at 88% 92%, rgba(46, 196, 182, 0.28), transparent 60%),
+        linear-gradient(180deg, #0A1F2E 0%, #061520 100%);
+    background-attachment: fixed;
+}
+
 
 body.is-standalone {
     user-select: none;
