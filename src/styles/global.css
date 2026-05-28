@@ -168,6 +168,34 @@ body {
     background-attachment: fixed;
 }
 
+/* Per-page wrappers all set background: var(--gray-50) which in dark
+   mode resolves to slate and covers the branded body bg. Force them
+   transparent in dark mode so the body's gradient + glows show
+   through. Light mode keeps each page's own background. */
+[data-theme="dark"] .notifications-page,
+[data-theme="dark"] .diary-page,
+[data-theme="dark"] .settings-page,
+[data-theme="dark"] .plans-page,
+[data-theme="dark"] .recipes-page,
+[data-theme="dark"] .checkin-page,
+[data-theme="dark"] .progress-page,
+[data-theme="dark"] .workouts-page,
+[data-theme="dark"] .workouts-page-v2,
+[data-theme="dark"] .feed-page,
+[data-theme="dark"] .workout-history-page,
+[data-theme="dark"] .chat-page,
+[data-theme="dark"] .workout-plans-page,
+[data-theme="dark"] .workout-builder-page {
+    background: transparent;
+}
+
+/* The bright teal page header gradient clashes with the new dark
+   navy body — swap it for a muted darker teal that reads as a
+   header but harmonises with the bg gradient below it. */
+[data-theme="dark"] .page-header-gradient {
+    background: linear-gradient(135deg, #0d3d3a 0%, #0a2825 100%);
+}
+
 
 body.is-standalone {
     user-select: none;
