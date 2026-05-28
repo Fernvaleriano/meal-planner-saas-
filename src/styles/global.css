@@ -201,11 +201,13 @@ body {
     background: transparent;
 }
 
-/* The bright teal page header gradient clashes with the new dark
-   navy body — swap it for a muted darker teal that reads as a
-   header but harmonises with the bg gradient below it. */
+/* Dark-mode page header uses the actual brand turquoise (#2EC4B6).
+   Vivid and on-brand — a deliberate accent against the navy body
+   rather than a muted blend. If it ever reads as too loud the
+   straightforward fallback is the muted #0d3d3a → #0a2825 we
+   shipped previously. */
 [data-theme="dark"] .page-header-gradient {
-    background: linear-gradient(135deg, #0d3d3a 0%, #0a2825 100%);
+    background: linear-gradient(135deg, #2EC4B6 0%, #1FA294 100%);
 }
 
 /* Workouts page has its own sticky top nav (.workout-top-nav) that
