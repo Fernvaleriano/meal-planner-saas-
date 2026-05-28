@@ -195,7 +195,7 @@
 
     const [logoImg, heroIconImg, medalIconImg, miniIconImgs] = await Promise.all([
       loadImage(brandLogoUrl, { crossOrigin: 'anonymous' }),
-      svgToImage(buildLucideSvg(heroNodes, { size: 320, color: '#ffffff', strokeWidth: 1.6 })),
+      svgToImage(buildLucideSvg(heroNodes, { size: 230, color: '#ffffff', strokeWidth: 1.6 })),
       svgToImage(buildLucideSvg(medalNodes, { size: 48, color: '#fcd34d', strokeWidth: 2 })),
       Promise.all(miniTiers.map(function (t) {
         return svgToImage(buildLucideSvg(getIconNodesFor(t.iconName), {
@@ -248,10 +248,12 @@
     ctx.fillText('MY CLIENT ' + clientFirstName.toUpperCase(), width / 2, 200);
 
     // 4. Hero medallion: tier-coloured glow disc + line-stroke icon
-    //    centered inside. Visually parallel to the client share card.
+    //    centered inside. Sized down from the original 220/320 because
+    //    the icon was bleeding into the tier name below; the extra
+    //    breathing room reads as more polished than a larger badge.
     const heroCx = width / 2;
-    const heroCy = height * 0.42;
-    const discR = 220;
+    const heroCy = height * 0.4;
+    const discR = 160;
     if (tier && tier.iconColor) {
       const glow = ctx.createRadialGradient(heroCx, heroCy, 0, heroCx, heroCy, discR * 1.1);
       glow.addColorStop(0, hexToRgba(tier.iconColor, 0.55));
@@ -269,7 +271,7 @@
       ctx.stroke();
     }
     if (heroIconImg) {
-      const heroSize = 320;
+      const heroSize = 230;
       ctx.drawImage(heroIconImg, heroCx - heroSize / 2, heroCy - heroSize / 2, heroSize, heroSize);
     }
 
