@@ -4983,6 +4983,33 @@
             letter-spacing: 0.5px;
         }
 
+        /* "Share" pill on every earned badge tile. Coach-only — clients
+           never see this page. Generates the dark turquoise-glow share
+           card via CoachBadgeShare.generate(). */
+        .badge-share-btn {
+            margin-top: 8px;
+            padding: 6px 14px;
+            background: #2EC4B6;
+            color: #0A1F2E;
+            font-size: 12px;
+            font-weight: 700;
+            border: none;
+            border-radius: 999px;
+            cursor: pointer;
+            transition: transform 0.15s ease, box-shadow 0.2s ease;
+            box-shadow: 0 2px 8px rgba(46, 196, 182, 0.35);
+        }
+
+        .badge-share-btn:hover:not(:disabled) {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(46, 196, 182, 0.5);
+        }
+
+        .badge-share-btn:disabled {
+            opacity: 0.6;
+            cursor: wait;
+        }
+
         .achievements-empty {
             text-align: center;
             padding: 24px 16px;
@@ -9598,6 +9625,7 @@
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="/js/api-helper.js"></script>
+    <script src="/js/badge-share-card.js"></script>
     <script>
         // Voice note playback failure handler. iOS Safari can't decode webm/opus
         // (the format Chrome/Android record by default). When the audio element
@@ -12126,8 +12154,13 @@
         // Total gym proof count (all-time, from pagination.total). Drives achievement badges.
         let totalGymProofCount = 0;
 
-        // Badge tiers earned by number of check-ins submitted
-        const BADGE_TIERS = [
+        // Badge tiers earned by number of check-ins submitted. Sourced
+        // from the shared CoachBadgeShare module (loaded via
+        // /js/badge-share-card.js) so the tier metadata, icons and
+        // colours stay in lock-step with the share card output. Falls
+        // back to the previous inline list if the script ever fails to
+        // load so the grid still renders.
+        const BADGE_TIERS = (window.CoachBadgeShare && window.CoachBadgeShare.TIERS) || [
             { threshold: 1,   icon: '🌱', name: 'First Step',       desc: 'First check-in' },
             { threshold: 7,   icon: '🔥', name: 'Week Warrior',     desc: '7 check-ins' },
             { threshold: 14,  icon: '⚡', name: 'Two Weeks Strong', desc: '14 check-ins' },
@@ -12182,20 +12215,88 @@
                 `;
             }
 
-            // Badge grid
-            const gridHtml = BADGE_TIERS.map(tier => {
+            // Badge grid. Earned tiles get a small Share button that
+            // generates the coach-branded share card on demand and
+            // hands it to the Web Share sheet (or downloads it as a
+            // fallback on desktop). Locked tiles stay clean.
+            const gridHtml = BADGE_TIERS.map((tier, idx) => {
                 const earned = count >= tier.threshold;
+                const shareBtn = earned && window.CoachBadgeShare
+                    ? `<button type="button" class="badge-share-btn" data-tier-index="${idx}" aria-label="Share ${tier.name} badge">Share</button>`
+                    : '';
                 return `
                     <div class="badge-card ${earned ? 'earned' : 'locked'}" title="${tier.name} — ${tier.desc}">
                         ${earned ? '<span class="badge-ribbon">Earned</span>' : '<span class="badge-lock-icon">🔒</span>'}
                         <span class="badge-icon">${tier.icon}</span>
                         <div class="badge-name">${tier.name}</div>
                         <div class="badge-threshold">${tier.desc}</div>
+                        ${shareBtn}
                     </div>
                 `;
             }).join('');
 
             container.innerHTML = summaryHtml + `<div class="badges-grid">${gridHtml}</div>`;
+
+            // Wire up share buttons. Delegating per-card keeps the
+            // handler simple and avoids re-binding when displayBadges
+            // is called again (e.g. on data refresh).
+            container.querySelectorAll('.badge-share-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const tierIdx = Number(btn.dataset.tierIndex);
+                    handleShareClientBadge(BADGE_TIERS[tierIdx], btn);
+                });
+            });
+        }
+
+        // Cache the coach's brand logo so we don't refetch it for
+        // every share. Populated lazily on first share click.
+        let cachedCoachBrandLogo = null;
+
+        async function getCoachBrandLogoUrl() {
+            if (cachedCoachBrandLogo !== null) return cachedCoachBrandLogo;
+            try {
+                if (!currentUser) return null;
+                const { data } = await supabaseClient
+                    .from('coaches')
+                    .select('brand_logo_url')
+                    .eq('id', currentUser.id)
+                    .single();
+                cachedCoachBrandLogo = (data && data.brand_logo_url) || '';
+            } catch (err) {
+                console.warn('Could not load coach brand logo:', err);
+                cachedCoachBrandLogo = '';
+            }
+            return cachedCoachBrandLogo;
+        }
+
+        async function handleShareClientBadge(tier, btn) {
+            if (!tier || !window.CoachBadgeShare) return;
+            const originalLabel = btn.textContent;
+            btn.disabled = true;
+            btn.textContent = 'Generating…';
+            try {
+                const earnedTiers = BADGE_TIERS.filter(t => totalGymProofCount >= t.threshold);
+                const brandLogoUrl = await getCoachBrandLogoUrl();
+                const clientName = (currentClient && (currentClient.client_name || currentClient.name)) || 'YOUR CLIENT';
+                const blob = await window.CoachBadgeShare.generate({
+                    tier,
+                    clientFirstName: clientName,
+                    brandLogoUrl: brandLogoUrl || undefined,
+                    totalCount: totalGymProofCount || tier.threshold,
+                    earnedTiers,
+                });
+                const firstName = String(clientName).trim().split(/\s+/)[0] || 'My client';
+                const caption = firstName + ' just unlocked ' + tier.name + ' ' + tier.icon +
+                    ' — ' + (totalGymProofCount || tier.threshold) + ' check-ins strong!';
+                await window.CoachBadgeShare.shareOrDownload(blob, tier, caption);
+            } catch (err) {
+                console.error('Error sharing client badge:', err);
+                alert('Could not generate share image. Please try again.');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = originalLabel;
+            }
         }
 
         async function loadCheckinReactions() {
