@@ -208,6 +208,17 @@ body {
     background: linear-gradient(135deg, #0d3d3a 0%, #0a2825 100%);
 }
 
+/* Workouts page has its own sticky top nav (.workout-top-nav) that
+   was using --gray-50 (slate) and looked stuck-on against the navy
+   bg. Make it sit flush with the body in dark mode, with a small
+   backdrop blur so content scrolling under it stays readable. */
+[data-theme="dark"] .workout-top-nav {
+    background: rgba(10, 31, 46, 0.7);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(46, 196, 182, 0.1);
+}
+
 
 body.is-standalone {
     user-select: none;
