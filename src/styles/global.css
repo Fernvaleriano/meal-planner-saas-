@@ -155,17 +155,29 @@ body {
     overflow-x: hidden;
 }
 
-/* Branded dark-mode background. Same dark-navy gradient + two diagonal
-   turquoise glows used on the badge share cards so the app feels like
-   it belongs to the same family as the shareables. Fixed attachment
-   keeps the glows visible as the user scrolls long pages. Only applied
-   in dark mode — light mode keeps the original slate background. */
+/* Branded dark-mode background. Flat dark navy gradient (no corner
+   glows on the body) — the glow moves to each card's outer edge
+   instead, see the box-shadow rule below. Fixed attachment so the
+   gradient stays anchored as the user scrolls long pages. */
 [data-theme="dark"] body {
-    background:
-        radial-gradient(circle at 15% 15%, rgba(46, 196, 182, 0.35), transparent 60%),
-        radial-gradient(circle at 88% 92%, rgba(46, 196, 182, 0.28), transparent 60%),
-        linear-gradient(180deg, #0A1F2E 0%, #061520 100%);
+    background: linear-gradient(180deg, #0A1F2E 0%, #061520 100%);
     background-attachment: fixed;
+}
+
+/* Soft turquoise outer glow around every card wrapper in dark mode.
+   Matches the rim-light effect on the phone mockup in our marketing
+   visuals so the app and the shareables share one design language.
+   The selector matches any class that ends with "-card" (e.g.
+   section-card, plan-card, ai-hero-card, quick-action-card) by
+   targeting "-card" while excluding child labels that contain
+   "-card-" in the middle (e.g. plan-card-title, quick-action-card-icon).
+   .section-card is enumerated explicitly because some legacy
+   wrappers use the bare class. */
+[data-theme="dark"] .section-card,
+[data-theme="dark"] [class*="-card"]:not([class*="-card-"]) {
+    box-shadow:
+        0 0 24px rgba(46, 196, 182, 0.22),
+        0 4px 16px rgba(0, 0, 0, 0.35);
 }
 
 /* Per-page wrappers all set background: var(--gray-50) which in dark
