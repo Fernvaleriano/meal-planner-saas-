@@ -1,11 +1,28 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { X, ChevronLeft, ChevronRight, Send, ExternalLink } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, Send, ExternalLink, Trash2 } from 'lucide-react';
 import { apiPost } from '../utils/api';
 
 const PROGRESS_DURATION = 6000; // 6 seconds per story
 
-function StoryViewer({ stories, coachName, coachAvatar, clientId, coachId, onClose }) {
+// Optional props (all default to the original coach-story behaviour so existing
+// call sites are unaffected):
+//   onViewStory(storyId)  — custom "mark viewed" handler (client stories use a
+//                           different endpoint). Falls back to /view-story.
+//   showInteractions      — show the reactions + reply footer (default true).
+//   onDeleteStory(storyId)— if provided, a delete button appears for stories
+//                           whose `canDelete` is not false; resolves then closes.
+function StoryViewer({
+  stories,
+  coachName,
+  coachAvatar,
+  clientId,
+  coachId,
+  onClose,
+  onViewStory = null,
+  showInteractions = true,
+  onDeleteStory = null
+}) {
   const [currentIndex, setCurrentIndex] = useState(() => {
     // Start at first unseen story
     const firstUnseen = stories.findIndex(s => !s.viewed);
@@ -17,6 +34,7 @@ function StoryViewer({ stories, coachName, coachAvatar, clientId, coachId, onClo
   const [showReplyInput, setShowReplyInput] = useState(false);
   const [reacted, setReacted] = useState(null);
   const [sending, setSending] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const timerRef = useRef(null);
   const startTimeRef = useRef(null);
   const elapsedRef = useRef(0);
@@ -27,10 +45,14 @@ function StoryViewer({ stories, coachName, coachAvatar, clientId, coachId, onClo
   // Mark story as viewed
   useEffect(() => {
     if (story && !story.viewed) {
-      apiPost('/.netlify/functions/view-story', {
-        storyId: story.id,
-        clientId
-      }).catch(() => {});
+      if (onViewStory) {
+        Promise.resolve(onViewStory(story.id)).catch(() => {});
+      } else {
+        apiPost('/.netlify/functions/view-story', {
+          storyId: story.id,
+          clientId
+        }).catch(() => {});
+      }
     }
   }, [story?.id, clientId]);
 
@@ -152,6 +174,22 @@ function StoryViewer({ stories, coachName, coachAvatar, clientId, coachId, onClo
     }
   };
 
+  // Delete (author deleting own story, or coach deleting a group story)
+  const handleDelete = async () => {
+    if (deleting || !onDeleteStory) return;
+    if (!window.confirm('Delete this story? This cannot be undone.')) return;
+    setDeleting(true);
+    pauseTimer();
+    try {
+      await onDeleteStory(story.id);
+      onClose();
+    } catch (err) {
+      console.error('Error deleting story:', err);
+      setDeleting(false);
+      setPaused(false);
+    }
+  };
+
   const handleReplyKeyDown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -193,6 +231,16 @@ function StoryViewer({ stories, coachName, coachAvatar, clientId, coachId, onClo
             <div style={styles.coachName}>{coachName}</div>
             <div style={styles.timeAgo}>{formatTimeAgo(story.createdAt)}</div>
           </div>
+          {onDeleteStory && story.canDelete !== false && (
+            <button
+              style={styles.closeBtn}
+              onClick={handleDelete}
+              disabled={deleting}
+              aria-label="Delete story"
+            >
+              <Trash2 size={20} />
+            </button>
+          )}
           <button style={styles.closeBtn} onClick={onClose} aria-label="Close">
             <X size={22} />
           </button>
@@ -245,6 +293,7 @@ function StoryViewer({ stories, coachName, coachAvatar, clientId, coachId, onClo
         )}
 
         {/* Footer: reactions + reply */}
+        {showInteractions && (
         <div style={styles.footer}>
           {!showReplyInput ? (
             <>
@@ -293,6 +342,7 @@ function StoryViewer({ stories, coachName, coachAvatar, clientId, coachId, onClo
             </div>
           )}
         </div>
+        )}
       </div>
     </div>,
     document.body

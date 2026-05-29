@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback, lazy, Suspense } from 'react'
 import { Link } from 'react-router-dom';
 import { Camera, Search, Heart, ScanLine, Mic, ChevronRight, ChevronDown, BarChart3, ClipboardCheck, TrendingUp, BookOpen, Pill, ChefHat, Check, CheckCircle, Minus, Plus, X, Sunrise, Sun, Sunset, Moon, Coffee, Utensils, Dumbbell, Star, Clock, Trophy, UserCircle, Scale } from 'lucide-react';
 import InstallAppBanner from '../components/InstallAppBanner';
+import StoriesBar from '../components/StoriesBar';
 import { useAuth } from '../context/AuthContext';
 import { apiGet, apiPost, apiDelete } from '../utils/api';
 import { SnapPhotoModal, SearchFoodsModal, FavoritesModal, ScanLabelModal } from '../components/FoodModals';
@@ -935,6 +936,18 @@ function Dashboard() {
 
       {/* Install App Banner - prompts users to add to home screen */}
       <InstallAppBanner />
+
+      {/* Client stories — teammates' + your own 24h stories, Instagram-style.
+          Coach stories stay in the top nav; this row is the client group. */}
+      {!clientData?.is_coach && clientData?.id && clientData?.coach_id && (
+        <StoriesBar
+          mode="client"
+          clientId={clientData.id}
+          coachId={clientData.coach_id}
+          selfName={clientData.client_name}
+          selfAvatar={clientData.profile_photo_url}
+        />
+      )}
 
       {dataStale && (
         <div
