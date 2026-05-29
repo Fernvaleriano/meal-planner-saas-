@@ -443,7 +443,7 @@ function StoryViewer({
                 <div style={styles.viewersEmpty}>No views yet. Share it around!</div>
               )}
               {!loadingViewers && Array.isArray(viewers) && viewers.map(v => (
-                <div key={v.clientId} style={styles.viewerRow}>
+                <div key={v.clientId != null ? `c${v.clientId}` : `k${v.coachId}`} style={styles.viewerRow}>
                   <img
                     src={v.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(v.name)}&background=0d9488&color=fff`}
                     alt=""
