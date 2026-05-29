@@ -63,6 +63,16 @@ function StoriesBar({ mode = 'client', clientId, coachId, selfName, selfAvatar }
     });
   }, [isClient, clientId, coachId]);
 
+  const handleReactStory = useCallback((storyId, reaction) => {
+    if (!isClient || !clientId) return Promise.resolve();
+    return apiPost('/.netlify/functions/react-to-client-story', { storyId, clientId, reaction });
+  }, [isClient, clientId]);
+
+  const handleLoadViewers = useCallback((storyId) => {
+    if (!clientId) return Promise.resolve({ viewers: [] });
+    return apiGet(`/.netlify/functions/get-client-story-viewers?storyId=${storyId}&clientId=${clientId}`);
+  }, [clientId]);
+
   const closeViewer = () => {
     setOpenGroup(null);
     fetchGroups(); // refresh seen/expired state
@@ -142,6 +152,8 @@ function StoriesBar({ mode = 'client', clientId, coachId, selfName, selfAvatar }
           showInteractions={false}
           onViewStory={handleViewStory}
           onDeleteStory={handleDeleteStory}
+          onReactStory={isClient ? handleReactStory : null}
+          onLoadViewers={isClient ? handleLoadViewers : null}
           onClose={closeViewer}
         />
       )}
