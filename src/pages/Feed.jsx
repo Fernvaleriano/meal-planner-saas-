@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { apiGet, apiPost, apiDelete } from '../utils/api';
 import { usePullToRefresh, PullToRefreshIndicator } from '../hooks/usePullToRefresh';
 import ProgramsEndingSoon from '../components/ProgramsEndingSoon';
+import StoriesBar from '../components/StoriesBar';
 
 // Available reaction emojis
 const REACTIONS = ['👏', '💪', '🔥', '⭐', '❤️'];
@@ -955,6 +956,10 @@ function Feed() {
           <Filter size={20} />
         </button>
       </div>
+
+      {/* Client stories — your clients' 24h stories. Tap one to view; you can
+          delete any story from the viewer. */}
+      {coachId && <StoriesBar mode="coach" coachId={coachId} />}
 
       {/* Programs Ending Soon Widget */}
       <ProgramsEndingSoon coachId={coachId} />
