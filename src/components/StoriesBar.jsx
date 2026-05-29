@@ -7,15 +7,18 @@ import CreateStoryModal from './CreateStoryModal';
 const avatarFor = (name, url) =>
   url || `https://ui-avatars.com/api/?name=${encodeURIComponent(name || 'Member')}&background=0d9488&color=fff`;
 
-// Instagram-style row of client "stories" rings.
-//   mode="client": shown to a client. Leads with a "Your story" (+) tile, then
-//                  the coach's clients' group-visible stories (and the client's
-//                  own). Tapping a ring opens the viewer; the + posts a story.
+// Instagram-style row of "stories" rings.
+//   mode="client": shown to a client. Order: "Your story" (+) tile, the coach's
+//                  ring, then the coach's clients' group-visible stories (and
+//                  the client's own). Tapping a ring opens the viewer.
 //   mode="coach":  shown to a coach. Lists every client's active stories so the
-//                  coach can review and delete them. No posting tile.
+//                  coach can review and delete them. No posting tile, no coach
+//                  ring (coaches post their own stories elsewhere).
 function StoriesBar({ mode = 'client', clientId, coachId, selfName, selfAvatar }) {
   const [groups, setGroups] = useState([]);
-  const [openGroup, setOpenGroup] = useState(null); // group object whose stories are open
+  const [coach, setCoach] = useState(null); // { name, avatar, stories, hasUnseen }
+  const [openGroup, setOpenGroup] = useState(null); // member/self group whose stories are open
+  const [openCoach, setOpenCoach] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
   const isClient = mode === 'client';
 
@@ -23,9 +26,7 @@ function StoriesBar({ mode = 'client', clientId, coachId, selfName, selfAvatar }
     if (!coachId) return;
     if (isClient && !clientId) return;
     try {
-      const qs = isClient
-        ? `clientId=${clientId}&coachId=${coachId}`
-        : `coachId=${coachId}`;
+      const qs = isClient ? `clientId=${clientId}&coachId=${coachId}` : `coachId=${coachId}`;
       const data = await apiGet(`/.netlify/functions/get-group-stories?${qs}`);
       setGroups(data.groups || []);
     } catch (err) {
@@ -33,7 +34,22 @@ function StoriesBar({ mode = 'client', clientId, coachId, selfName, selfAvatar }
     }
   }, [isClient, clientId, coachId]);
 
+  // Coach's own stories (client viewer only) — folded into this same row.
+  const fetchCoachStories = useCallback(async () => {
+    if (!isClient || !clientId || !coachId) return;
+    try {
+      const data = await apiGet(`/.netlify/functions/get-coach-stories?clientId=${clientId}&coachId=${coachId}`);
+      const stories = data.stories || [];
+      setCoach(stories.length > 0
+        ? { name: data.coachName, avatar: data.coachAvatar, stories, hasUnseen: !!data.hasUnseenStories }
+        : null);
+    } catch (err) {
+      console.error('Error loading coach stories:', err);
+    }
+  }, [isClient, clientId, coachId]);
+
   useEffect(() => { fetchGroups(); }, [fetchGroups]);
+  useEffect(() => { fetchCoachStories(); }, [fetchCoachStories]);
 
   const handleViewStory = useCallback((storyId) => {
     if (!isClient || !clientId) return Promise.resolve();
@@ -51,13 +67,17 @@ function StoriesBar({ mode = 'client', clientId, coachId, selfName, selfAvatar }
     setOpenGroup(null);
     fetchGroups(); // refresh seen/expired state
   };
+  const closeCoachViewer = () => {
+    setOpenCoach(false);
+    fetchCoachStories();
+  };
 
   // The viewer's own group (if they've posted), used to decide what the
   // "Your story" tile does on tap.
   const selfGroup = isClient ? groups.find(g => g.isSelf) : null;
   const otherGroups = isClient ? groups.filter(g => !g.isSelf) : groups;
 
-  // Coach mode with nothing to show → render nothing.
+  // Nothing for anyone to see and (coach mode) no way to post → render nothing.
   if (!isClient && groups.length === 0) return null;
 
   return (
@@ -82,6 +102,18 @@ function StoriesBar({ mode = 'client', clientId, coachId, selfName, selfAvatar }
           </div>
         )}
 
+        {/* Client: the coach's ring */}
+        {isClient && coach && (
+          <div style={styles.item}>
+            <button style={styles.ringBtn} onClick={() => setOpenCoach(true)} aria-label={`View ${coach.name}'s story`}>
+              <div style={{ ...styles.ring, ...(coach.hasUnseen ? styles.ringUnseen : styles.ringSeen) }}>
+                <img src={avatarFor(coach.name, coach.avatar)} alt="" style={styles.avatar} />
+              </div>
+            </button>
+            <span style={styles.label}>{coach.name?.split(' ')[0] || 'Coach'}</span>
+          </div>
+        )}
+
         {/* Everyone else */}
         {otherGroups.map(group => (
           <div key={group.authorClientId} style={styles.item}>
@@ -99,6 +131,7 @@ function StoriesBar({ mode = 'client', clientId, coachId, selfName, selfAvatar }
         ))}
       </div>
 
+      {/* Member / own stories viewer (no reactions, deletable by owner/coach) */}
       {openGroup && openGroup.stories?.length > 0 && (
         <StoryViewer
           stories={openGroup.stories}
@@ -110,6 +143,18 @@ function StoriesBar({ mode = 'client', clientId, coachId, selfName, selfAvatar }
           onViewStory={handleViewStory}
           onDeleteStory={handleDeleteStory}
           onClose={closeViewer}
+        />
+      )}
+
+      {/* Coach stories viewer — original behaviour (reactions + replies on) */}
+      {openCoach && coach?.stories?.length > 0 && (
+        <StoryViewer
+          stories={coach.stories}
+          coachName={coach.name}
+          coachAvatar={coach.avatar}
+          clientId={clientId}
+          coachId={coachId}
+          onClose={closeCoachViewer}
         />
       )}
 
