@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { X, ChevronLeft, ChevronRight, Send, ExternalLink, Trash2 } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, Send, ExternalLink, Trash2, Eye, Loader2 } from 'lucide-react';
 import { apiPost } from '../utils/api';
 
 const PROGRESS_DURATION = 6000; // 6 seconds per story
@@ -9,9 +9,13 @@ const PROGRESS_DURATION = 6000; // 6 seconds per story
 // call sites are unaffected):
 //   onViewStory(storyId)  — custom "mark viewed" handler (client stories use a
 //                           different endpoint). Falls back to /view-story.
-//   showInteractions      — show the reactions + reply footer (default true).
+//   showInteractions      — show the coach reactions + reply footer (default true).
 //   onDeleteStory(storyId)— if provided, a delete button appears for stories
 //                           whose `canDelete` is not false; resolves then closes.
+//   onReactStory(id,emoji)— if provided, viewers see reaction emojis on stories
+//                           that aren't their own; returns the saved reaction.
+//   onLoadViewers(storyId)— if provided, the author sees a "Seen by" list on
+//                           their own stories; resolves to { viewers, count }.
 function StoryViewer({
   stories,
   coachName,
@@ -21,7 +25,9 @@ function StoryViewer({
   onClose,
   onViewStory = null,
   showInteractions = true,
-  onDeleteStory = null
+  onDeleteStory = null,
+  onReactStory = null,
+  onLoadViewers = null
 }) {
   const [currentIndex, setCurrentIndex] = useState(() => {
     // Start at first unseen story
@@ -35,12 +41,19 @@ function StoryViewer({
   const [reacted, setReacted] = useState(null);
   const [sending, setSending] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [showViewers, setShowViewers] = useState(false);
+  const [viewers, setViewers] = useState(null); // null = not loaded, [] = loaded empty
+  const [loadingViewers, setLoadingViewers] = useState(false);
   const timerRef = useRef(null);
   const startTimeRef = useRef(null);
   const elapsedRef = useRef(0);
   const containerRef = useRef(null);
 
   const story = stories[currentIndex];
+  // Is the current story authored by the person viewing? (client stories carry
+  // authorClientId; coach stories don't, so this stays false for them.)
+  const isOwnStory = !!(clientId && story && story.authorClientId != null
+    && Number(story.authorClientId) === Number(clientId));
 
   // Mark story as viewed
   useEffect(() => {
@@ -86,17 +99,19 @@ function StoryViewer({
     setReacted(null);
     setShowReplyInput(false);
     setReplyText('');
+    setShowViewers(false);
+    setViewers(null);
     startTimer();
   }, [startTimer]);
 
   useEffect(() => {
-    if (!paused && !showReplyInput) {
+    if (!paused && !showReplyInput && !showViewers) {
       resetAndStart();
     }
     return () => {
       if (timerRef.current) cancelAnimationFrame(timerRef.current);
     };
-  }, [currentIndex, paused, showReplyInput]);
+  }, [currentIndex, paused, showReplyInput, showViewers]);
 
   const goNext = () => {
     if (currentIndex < stories.length - 1) {
@@ -172,6 +187,42 @@ function StoryViewer({
     } finally {
       setSending(false);
     }
+  };
+
+  // React to someone else's client story (toggle the emoji).
+  const handleClientReact = async (emoji) => {
+    if (!onReactStory) return;
+    const next = reacted === emoji ? null : emoji;
+    setReacted(next);
+    try {
+      await onReactStory(story.id, next);
+    } catch (err) {
+      console.error('Error reacting:', err);
+    }
+  };
+
+  // Open the "Seen by" list on your own story.
+  const openViewers = async () => {
+    if (!onLoadViewers) return;
+    setShowViewers(true);
+    pauseTimer();
+    if (viewers === null && !loadingViewers) {
+      setLoadingViewers(true);
+      try {
+        const res = await onLoadViewers(story.id);
+        setViewers(res?.viewers || []);
+      } catch (err) {
+        console.error('Error loading viewers:', err);
+        setViewers([]);
+      } finally {
+        setLoadingViewers(false);
+      }
+    }
+  };
+
+  const closeViewers = () => {
+    setShowViewers(false);
+    setPaused(false);
   };
 
   // Delete (author deleting own story, or coach deleting a group story)
@@ -342,6 +393,69 @@ function StoryViewer({
             </div>
           )}
         </div>
+        )}
+
+        {/* Client-story footer: your own story shows "Seen by"; others show
+            reaction emojis. Only active when the client-story handlers are
+            supplied (coach stories use the footer above instead). */}
+        {!showInteractions && (onReactStory || onLoadViewers) && (
+          <div style={styles.footer}>
+            {isOwnStory ? (
+              onLoadViewers && (
+                <button style={styles.seenByBtn} onClick={openViewers}>
+                  <Eye size={16} /> Seen by — tap to see who
+                </button>
+              )
+            ) : (
+              onReactStory && (
+                <div style={styles.reactions}>
+                  {['❤️', '🔥', '👏', '💪'].map(emoji => (
+                    <button
+                      key={emoji}
+                      style={{ ...styles.reactionBtn, ...(reacted === emoji ? styles.reactionBtnActive : {}) }}
+                      onClick={() => handleClientReact(emoji)}
+                    >
+                      {emoji}
+                    </button>
+                  ))}
+                </div>
+              )
+            )}
+          </div>
+        )}
+
+        {/* "Seen by" panel — slides over the footer for the author */}
+        {showViewers && (
+          <div style={styles.viewersPanel} onClick={(e) => e.stopPropagation()}>
+            <div style={styles.viewersHeader}>
+              <span style={styles.viewersTitle}>
+                <Eye size={16} /> Viewers{Array.isArray(viewers) ? ` · ${viewers.length}` : ''}
+              </span>
+              <button style={styles.closeBtn} onClick={closeViewers} aria-label="Close viewers">
+                <X size={20} />
+              </button>
+            </div>
+            <div style={styles.viewersList}>
+              {loadingViewers && (
+                <div style={styles.viewersEmpty}><Loader2 size={18} className="spin" /> Loading…</div>
+              )}
+              {!loadingViewers && Array.isArray(viewers) && viewers.length === 0 && (
+                <div style={styles.viewersEmpty}>No views yet. Share it around!</div>
+              )}
+              {!loadingViewers && Array.isArray(viewers) && viewers.map(v => (
+                <div key={v.clientId} style={styles.viewerRow}>
+                  <img
+                    src={v.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(v.name)}&background=0d9488&color=fff`}
+                    alt=""
+                    style={styles.viewerAvatar}
+                  />
+                  <span style={styles.viewerName}>{v.name}</span>
+                  {v.reaction && <span style={styles.viewerReaction}>{v.reaction}</span>}
+                  <span style={styles.viewerTime}>{formatTimeAgo(v.viewedAt)}</span>
+                </div>
+              ))}
+            </div>
+          </div>
         )}
       </div>
     </div>,
@@ -620,6 +734,58 @@ const styles = {
     alignItems: 'center',
     justifyContent: 'center',
   },
+  seenByBtn: {
+    flex: 1,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    background: 'rgba(255,255,255,0.15)',
+    border: '1px solid rgba(255,255,255,0.25)',
+    borderRadius: 20,
+    color: '#fff',
+    padding: '10px 16px',
+    fontSize: 14,
+    fontWeight: 600,
+    cursor: 'pointer',
+  },
+  viewersPanel: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    maxHeight: '55%',
+    background: '#15171c',
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    zIndex: 20,
+    display: 'flex',
+    flexDirection: 'column',
+    paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+  },
+  viewersHeader: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: '12px 14px',
+    borderBottom: '1px solid rgba(255,255,255,0.1)',
+  },
+  viewersTitle: {
+    display: 'flex', alignItems: 'center', gap: 8,
+    color: '#fff', fontWeight: 700, fontSize: 15,
+  },
+  viewersList: { overflowY: 'auto', padding: '6px 0' },
+  viewersEmpty: {
+    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+    color: 'rgba(255,255,255,0.6)', fontSize: 14, padding: '24px 16px',
+  },
+  viewerRow: {
+    display: 'flex', alignItems: 'center', gap: 10, padding: '8px 16px',
+  },
+  viewerAvatar: { width: 36, height: 36, borderRadius: '50%', objectFit: 'cover', flex: '0 0 auto' },
+  viewerName: { color: '#fff', fontSize: 14, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
+  viewerReaction: { fontSize: 18, flex: '0 0 auto' },
+  viewerTime: { color: 'rgba(255,255,255,0.5)', fontSize: 12, flex: '0 0 auto' },
 };
 
 export default StoryViewer;
