@@ -163,7 +163,7 @@ function CreateStoryModal({ clientId, onClose, onCreated }) {
             style={{ ...styles.visBtn, ...(visibility === 'group' ? styles.visBtnActive : {}) }}
             onClick={() => setVisibility('group')}
           >
-            <Users size={15} /> Share with my group
+            <Users size={15} /> Share with members
           </button>
           <button
             style={{ ...styles.visBtn, ...(visibility === 'coach' ? styles.visBtnActive : {}) }}
