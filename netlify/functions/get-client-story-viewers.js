@@ -46,34 +46,61 @@ exports.handler = async (event) => {
 
     const { data: views } = await supabase
       .from('client_story_views')
-      .select('viewer_client_id, viewed_at')
+      .select('viewer_client_id, viewer_coach_id, viewed_at')
       .eq('story_id', storyId)
       .order('viewed_at', { ascending: false });
 
     const { data: reactions } = await supabase
       .from('client_story_reactions')
-      .select('reactor_client_id, reaction')
+      .select('reactor_client_id, reactor_coach_id, reaction')
       .eq('story_id', storyId);
-    const reactionMap = new Map((reactions || []).map(r => [r.reactor_client_id, r.reaction]));
+    // Reactions keyed by actor: 'c:<clientId>' or 'k:<coachId>'.
+    const reactionMap = new Map();
+    (reactions || []).forEach(r => {
+      if (r.reactor_client_id != null) reactionMap.set(`c:${r.reactor_client_id}`, r.reaction);
+      else if (r.reactor_coach_id != null) reactionMap.set(`k:${r.reactor_coach_id}`, r.reaction);
+    });
 
-    const viewerIds = [...new Set((views || []).map(v => v.viewer_client_id))];
-    let profileMap = new Map();
-    if (viewerIds.length > 0) {
+    // Resolve client + coach viewer profiles.
+    const clientViewerIds = [...new Set((views || []).filter(v => v.viewer_client_id != null).map(v => v.viewer_client_id))];
+    const coachViewerIds = [...new Set((views || []).filter(v => v.viewer_coach_id != null).map(v => v.viewer_coach_id))];
+
+    let clientMap = new Map();
+    if (clientViewerIds.length > 0) {
       const { data: people } = await supabase
         .from('clients')
         .select('id, client_name, profile_photo_url, avatar_url')
-        .in('id', viewerIds);
-      profileMap = new Map((people || []).map(p => [p.id, p]));
+        .in('id', clientViewerIds);
+      clientMap = new Map((people || []).map(p => [p.id, p]));
+    }
+    let coachMap = new Map();
+    if (coachViewerIds.length > 0) {
+      const { data: people } = await supabase
+        .from('coaches')
+        .select('id, brand_name, name, profile_photo_url, brand_logo_url')
+        .in('id', coachViewerIds);
+      coachMap = new Map((people || []).map(p => [p.id, p]));
     }
 
     const viewers = (views || []).map(v => {
-      const p = profileMap.get(v.viewer_client_id) || {};
+      if (v.viewer_coach_id != null) {
+        const p = coachMap.get(v.viewer_coach_id) || {};
+        return {
+          coachId: v.viewer_coach_id,
+          name: p.brand_name || p.name || 'Your coach',
+          avatar: p.profile_photo_url || p.brand_logo_url || null,
+          isCoach: true,
+          viewedAt: v.viewed_at,
+          reaction: reactionMap.get(`k:${v.viewer_coach_id}`) || null
+        };
+      }
+      const p = clientMap.get(v.viewer_client_id) || {};
       return {
         clientId: v.viewer_client_id,
         name: p.client_name || 'Member',
         avatar: p.profile_photo_url || p.avatar_url || null,
         viewedAt: v.viewed_at,
-        reaction: reactionMap.get(v.viewer_client_id) || null
+        reaction: reactionMap.get(`c:${v.viewer_client_id}`) || null
       };
     });
 

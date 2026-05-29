@@ -52,9 +52,10 @@ function StoriesBar({ mode = 'client', clientId, coachId, selfName, selfAvatar }
   useEffect(() => { fetchCoachStories(); }, [fetchCoachStories]);
 
   const handleViewStory = useCallback((storyId) => {
-    if (!isClient || !clientId) return Promise.resolve();
-    return apiPost('/.netlify/functions/view-client-story', { storyId, clientId });
-  }, [isClient, clientId]);
+    if (isClient && clientId) return apiPost('/.netlify/functions/view-client-story', { storyId, clientId });
+    if (!isClient && coachId) return apiPost('/.netlify/functions/view-client-story', { storyId, coachId });
+    return Promise.resolve();
+  }, [isClient, clientId, coachId]);
 
   const handleDeleteStory = useCallback((storyId) => {
     return apiPost('/.netlify/functions/delete-client-story', {
@@ -64,9 +65,10 @@ function StoriesBar({ mode = 'client', clientId, coachId, selfName, selfAvatar }
   }, [isClient, clientId, coachId]);
 
   const handleReactStory = useCallback((storyId, reaction) => {
-    if (!isClient || !clientId) return Promise.resolve();
-    return apiPost('/.netlify/functions/react-to-client-story', { storyId, clientId, reaction });
-  }, [isClient, clientId]);
+    if (isClient && clientId) return apiPost('/.netlify/functions/react-to-client-story', { storyId, clientId, reaction });
+    if (!isClient && coachId) return apiPost('/.netlify/functions/react-to-client-story', { storyId, coachId, reaction });
+    return Promise.resolve();
+  }, [isClient, clientId, coachId]);
 
   const handleLoadViewers = useCallback((storyId) => {
     if (!clientId) return Promise.resolve({ viewers: [] });
@@ -152,7 +154,7 @@ function StoriesBar({ mode = 'client', clientId, coachId, selfName, selfAvatar }
           showInteractions={false}
           onViewStory={handleViewStory}
           onDeleteStory={handleDeleteStory}
-          onReactStory={isClient ? handleReactStory : null}
+          onReactStory={handleReactStory}
           onLoadViewers={isClient ? handleLoadViewers : null}
           onClose={closeViewer}
         />
