@@ -89,17 +89,14 @@ function CreateStoryModal({ clientId, onClose, onCreated }) {
         </div>
 
         <div style={styles.body}>
-          {imageData ? (
-            <div style={styles.previewWrap}>
-              <img src={imageData} alt="Preview" style={styles.preview} />
-              <button style={styles.changeBtn} onClick={() => fileRef.current?.click()}>Change photo</button>
-            </div>
-          ) : (
-            <button style={styles.dropZone} onClick={() => fileRef.current?.click()}>
-              <ImageIcon size={28} />
-              <span>Tap to add a photo (optional)</span>
-            </button>
-          )}
+          <textarea
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            placeholder="What's on your mind?"
+            maxLength={500}
+            rows={4}
+            style={styles.textarea}
+          />
           <input
             ref={fileRef}
             type="file"
@@ -107,14 +104,17 @@ function CreateStoryModal({ clientId, onClose, onCreated }) {
             onChange={handleFile}
             style={{ display: 'none' }}
           />
-          <textarea
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            placeholder="What's on your mind?"
-            maxLength={500}
-            rows={imageData ? 2 : 4}
-            style={styles.textarea}
-          />
+          {imageData ? (
+            <div style={styles.thumbRow}>
+              <img src={imageData} alt="Preview" style={styles.thumb} />
+              <button style={styles.changeBtn} onClick={() => fileRef.current?.click()}>Change</button>
+              <button style={styles.removeBtn} onClick={() => setImageData(null)}>Remove</button>
+            </div>
+          ) : (
+            <button style={styles.addPhotoBtn} onClick={() => fileRef.current?.click()}>
+              <ImageIcon size={18} /> Add a photo
+            </button>
+          )}
         </div>
 
         {/* Visibility */}
@@ -169,14 +169,15 @@ const styles = {
   title: { fontSize: 17, fontWeight: 700 },
   iconBtn: { background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', padding: 4 },
   body: { display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 14, marginTop: 4 },
-  dropZone: {
-    display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-    gap: 8, padding: '36px 12px', borderRadius: 12, border: '2px dashed var(--border-color, #cbd5e1)',
-    background: 'transparent', color: 'var(--text-secondary, #64748b)', cursor: 'pointer', fontSize: 14
+  addPhotoBtn: {
+    alignSelf: 'flex-start', display: 'inline-flex', alignItems: 'center', gap: 8,
+    padding: '8px 14px', borderRadius: 20, border: '1px solid var(--border-color, #e2e8f0)',
+    background: 'transparent', color: '#2cb5a5', cursor: 'pointer', fontSize: 14, fontWeight: 600
   },
-  previewWrap: { display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'center' },
-  preview: { width: '100%', maxHeight: 320, objectFit: 'cover', borderRadius: 12 },
+  thumbRow: { display: 'flex', alignItems: 'center', gap: 12 },
+  thumb: { width: 64, height: 64, objectFit: 'cover', borderRadius: 10, flex: '0 0 auto' },
   changeBtn: { background: 'none', border: 'none', color: '#2cb5a5', fontWeight: 600, cursor: 'pointer', fontSize: 13 },
+  removeBtn: { background: 'none', border: 'none', color: 'var(--text-secondary, #64748b)', fontWeight: 600, cursor: 'pointer', fontSize: 13 },
   textarea: {
     width: '100%', padding: '11px 12px', borderRadius: 10, fontSize: 15, boxSizing: 'border-box', resize: 'vertical',
     border: '1px solid var(--border-color, #e2e8f0)', background: 'var(--input-bg, #f8fafc)', color: 'inherit',
