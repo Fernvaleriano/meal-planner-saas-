@@ -22,34 +22,31 @@ function StoriesBar({ mode = 'client', clientId, coachId, selfName, selfAvatar }
   const [showCreate, setShowCreate] = useState(false);
   const isClient = mode === 'client';
 
-  const fetchGroups = useCallback(async () => {
+  // Load the coach ring + everyone's rings in ONE pass so the whole row
+  // appears together instead of popping in one by one. The two state updates
+  // after a single await are batched by React into a single render.
+  const fetchAll = useCallback(async () => {
     if (!coachId) return;
     if (isClient && !clientId) return;
     try {
-      const qs = isClient ? `clientId=${clientId}&coachId=${coachId}` : `coachId=${coachId}`;
-      const data = await apiGet(`/.netlify/functions/get-group-stories?${qs}`);
-      setGroups(data.groups || []);
-    } catch (err) {
-      console.error('Error loading group stories:', err);
-    }
-  }, [isClient, clientId, coachId]);
-
-  // Coach's own stories (client viewer only) — folded into this same row.
-  const fetchCoachStories = useCallback(async () => {
-    if (!isClient || !clientId || !coachId) return;
-    try {
-      const data = await apiGet(`/.netlify/functions/get-coach-stories?clientId=${clientId}&coachId=${coachId}`);
-      const stories = data.stories || [];
-      setCoach(stories.length > 0
-        ? { name: data.coachName, avatar: data.coachAvatar, stories, hasUnseen: !!data.hasUnseenStories }
+      const groupQs = isClient ? `clientId=${clientId}&coachId=${coachId}` : `coachId=${coachId}`;
+      const [groupData, coachData] = await Promise.all([
+        apiGet(`/.netlify/functions/get-group-stories?${groupQs}`),
+        isClient && clientId
+          ? apiGet(`/.netlify/functions/get-coach-stories?clientId=${clientId}&coachId=${coachId}`)
+          : Promise.resolve(null)
+      ]);
+      setGroups(groupData?.groups || []);
+      const cStories = coachData?.stories || [];
+      setCoach(cStories.length > 0
+        ? { name: coachData.coachName, avatar: coachData.coachAvatar, stories: cStories, hasUnseen: !!coachData.hasUnseenStories }
         : null);
     } catch (err) {
-      console.error('Error loading coach stories:', err);
+      console.error('Error loading stories bar:', err);
     }
   }, [isClient, clientId, coachId]);
 
-  useEffect(() => { fetchGroups(); }, [fetchGroups]);
-  useEffect(() => { fetchCoachStories(); }, [fetchCoachStories]);
+  useEffect(() => { fetchAll(); }, [fetchAll]);
 
   const handleViewStory = useCallback((storyId) => {
     if (isClient && clientId) return apiPost('/.netlify/functions/view-client-story', { storyId, clientId });
@@ -77,11 +74,11 @@ function StoriesBar({ mode = 'client', clientId, coachId, selfName, selfAvatar }
 
   const closeViewer = () => {
     setOpenGroup(null);
-    fetchGroups(); // refresh seen/expired state
+    fetchAll(); // refresh seen/expired state
   };
   const closeCoachViewer = () => {
     setOpenCoach(false);
-    fetchCoachStories();
+    fetchAll();
   };
 
   // The viewer's own group (if they've posted), used to decide what the
@@ -176,7 +173,7 @@ function StoriesBar({ mode = 'client', clientId, coachId, selfName, selfAvatar }
         <CreateStoryModal
           clientId={clientId}
           onClose={() => setShowCreate(false)}
-          onCreated={fetchGroups}
+          onCreated={fetchAll}
         />
       )}
     </div>
