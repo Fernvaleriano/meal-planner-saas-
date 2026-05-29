@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Image as ImageIcon, Quote, Loader2, Users, Lock } from 'lucide-react';
+import { X, Image as ImageIcon, Loader2, Users, Lock } from 'lucide-react';
 import { apiPost } from '../utils/api';
 
 // Downscale a selected image to a max dimension and re-encode as JPEG so the
@@ -35,11 +35,8 @@ function fileToDownscaledDataUrl(file, maxDim = 1080, quality = 0.82) {
 }
 
 function CreateStoryModal({ clientId, onClose, onCreated }) {
-  const [mode, setMode] = useState('image'); // 'image' | 'quote'
   const [imageData, setImageData] = useState(null); // data URL preview + payload
-  const [caption, setCaption] = useState('');
-  const [quoteText, setQuoteText] = useState('');
-  const [quoteAuthor, setQuoteAuthor] = useState('');
+  const [text, setText] = useState(''); // caption when a photo is attached, else the message
   const [visibility, setVisibility] = useState('group'); // 'group' | 'coach'
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
@@ -57,22 +54,22 @@ function CreateStoryModal({ clientId, onClose, onCreated }) {
     }
   };
 
-  const canSubmit =
-    !submitting &&
-    ((mode === 'image' && imageData) || (mode === 'quote' && quoteText.trim()));
+  // A photo OR some text is enough to post.
+  const canSubmit = !submitting && (!!imageData || !!text.trim());
 
   const handleSubmit = async () => {
     if (!canSubmit) return;
     setSubmitting(true);
     setError('');
     try {
+      // With a photo → image story (text becomes the caption).
+      // Without a photo → text story.
       await apiPost('/.netlify/functions/create-client-story', {
         clientId,
-        contentType: mode,
-        imageBase64: mode === 'image' ? imageData : undefined,
-        caption: mode === 'image' ? caption.trim() : undefined,
-        quoteText: mode === 'quote' ? quoteText.trim() : undefined,
-        quoteAuthor: mode === 'quote' ? quoteAuthor.trim() : undefined,
+        contentType: imageData ? 'image' : 'quote',
+        imageBase64: imageData || undefined,
+        caption: imageData ? text.trim() : undefined,
+        quoteText: imageData ? undefined : text.trim(),
         visibility
       });
       onCreated?.();
@@ -91,71 +88,34 @@ function CreateStoryModal({ clientId, onClose, onCreated }) {
           <button style={styles.iconBtn} onClick={onClose} aria-label="Close"><X size={20} /></button>
         </div>
 
-        {/* Mode toggle */}
-        <div style={styles.modeRow}>
-          <button
-            style={{ ...styles.modeBtn, ...(mode === 'image' ? styles.modeBtnActive : {}) }}
-            onClick={() => setMode('image')}
-          >
-            <ImageIcon size={16} /> Photo
-          </button>
-          <button
-            style={{ ...styles.modeBtn, ...(mode === 'quote' ? styles.modeBtnActive : {}) }}
-            onClick={() => setMode('quote')}
-          >
-            <Quote size={16} /> Quote
-          </button>
+        <div style={styles.body}>
+          {imageData ? (
+            <div style={styles.previewWrap}>
+              <img src={imageData} alt="Preview" style={styles.preview} />
+              <button style={styles.changeBtn} onClick={() => fileRef.current?.click()}>Change photo</button>
+            </div>
+          ) : (
+            <button style={styles.dropZone} onClick={() => fileRef.current?.click()}>
+              <ImageIcon size={28} />
+              <span>Tap to add a photo (optional)</span>
+            </button>
+          )}
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/*"
+            onChange={handleFile}
+            style={{ display: 'none' }}
+          />
+          <textarea
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            placeholder="What's on your mind?"
+            maxLength={500}
+            rows={imageData ? 2 : 4}
+            style={styles.textarea}
+          />
         </div>
-
-        {mode === 'image' ? (
-          <div style={styles.body}>
-            {imageData ? (
-              <div style={styles.previewWrap}>
-                <img src={imageData} alt="Preview" style={styles.preview} />
-                <button style={styles.changeBtn} onClick={() => fileRef.current?.click()}>Change photo</button>
-              </div>
-            ) : (
-              <button style={styles.dropZone} onClick={() => fileRef.current?.click()}>
-                <ImageIcon size={28} />
-                <span>Tap to choose a photo</span>
-              </button>
-            )}
-            <input
-              ref={fileRef}
-              type="file"
-              accept="image/*"
-              onChange={handleFile}
-              style={{ display: 'none' }}
-            />
-            <input
-              type="text"
-              value={caption}
-              onChange={(e) => setCaption(e.target.value)}
-              placeholder="Add a caption (optional)"
-              maxLength={500}
-              style={styles.input}
-            />
-          </div>
-        ) : (
-          <div style={styles.body}>
-            <textarea
-              value={quoteText}
-              onChange={(e) => setQuoteText(e.target.value)}
-              placeholder="What's on your mind?"
-              maxLength={500}
-              rows={4}
-              style={styles.textarea}
-            />
-            <input
-              type="text"
-              value={quoteAuthor}
-              onChange={(e) => setQuoteAuthor(e.target.value)}
-              placeholder="Attribution (optional)"
-              maxLength={120}
-              style={styles.input}
-            />
-          </div>
-        )}
 
         {/* Visibility */}
         <div style={styles.visRow}>
@@ -208,14 +168,7 @@ const styles = {
   header: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
   title: { fontSize: 17, fontWeight: 700 },
   iconBtn: { background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', padding: 4 },
-  modeRow: { display: 'flex', gap: 8, marginBottom: 14 },
-  modeBtn: {
-    flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-    padding: '10px 12px', borderRadius: 10, border: '1px solid var(--border-color, #e2e8f0)',
-    background: 'transparent', color: 'inherit', cursor: 'pointer', fontSize: 14, fontWeight: 600
-  },
-  modeBtnActive: { background: '#2cb5a5', borderColor: '#2cb5a5', color: '#fff' },
-  body: { display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 14 },
+  body: { display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 14, marginTop: 4 },
   dropZone: {
     display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
     gap: 8, padding: '36px 12px', borderRadius: 12, border: '2px dashed var(--border-color, #cbd5e1)',
@@ -224,10 +177,6 @@ const styles = {
   previewWrap: { display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'center' },
   preview: { width: '100%', maxHeight: 320, objectFit: 'cover', borderRadius: 12 },
   changeBtn: { background: 'none', border: 'none', color: '#2cb5a5', fontWeight: 600, cursor: 'pointer', fontSize: 13 },
-  input: {
-    width: '100%', padding: '11px 12px', borderRadius: 10, fontSize: 14, boxSizing: 'border-box',
-    border: '1px solid var(--border-color, #e2e8f0)', background: 'var(--input-bg, #f8fafc)', color: 'inherit'
-  },
   textarea: {
     width: '100%', padding: '11px 12px', borderRadius: 10, fontSize: 15, boxSizing: 'border-box', resize: 'vertical',
     border: '1px solid var(--border-color, #e2e8f0)', background: 'var(--input-bg, #f8fafc)', color: 'inherit',
