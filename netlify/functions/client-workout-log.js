@@ -293,15 +293,39 @@ exports.handler = async (event) => {
         const incomingByKey = new Map();
         for (const e of incoming) incomingByKey.set(keyOf(e), e);
         const existingKeys = new Set(existing.map(keyOf));
-        // Walk existing in order: replace with incoming when present,
-        // otherwise KEEP the existing exercise (never drop on a client save).
+        // SWAP HANDLING: a swapped-in exercise carries `swappedFrom` = the key
+        // of the exercise it replaced. Without this, the merge below can't tell
+        // a swap from an omission: it would KEEP the swapped-out exercise (it's
+        // no longer in `incoming`) AND APPEND the swapped-in one as "new",
+        // making the old exercise reappear and the new one jump to the bottom
+        // on reload. Map each swap source key -> the replacement exercise so we
+        // can substitute it in place, preserving order.
+        const swapBySourceKey = new Map();
+        for (const e of incoming) {
+          if (e && e.swappedFrom != null) swapBySourceKey.set(String(e.swappedFrom), e);
+        }
+        const placedKeys = new Set(); // incoming exercises positioned in place
+        // Walk existing in order: replace with incoming when present, substitute
+        // a swap in place when this slot was swapped out, otherwise KEEP the
+        // existing exercise (never drop on a client save — data-loss guard).
         const merged = existing.map((e) => {
           const k = keyOf(e);
-          return incomingByKey.has(k) ? incomingByKey.get(k) : e;
+          if (incomingByKey.has(k)) {
+            placedKeys.add(k);
+            return incomingByKey.get(k);
+          }
+          if (swapBySourceKey.has(k)) {
+            const swapped = swapBySourceKey.get(k);
+            placedKeys.add(keyOf(swapped));
+            return swapped;
+          }
+          return e;
         });
-        // Append genuinely new incoming exercises (e.g. a swap/add).
+        // Append genuinely new incoming exercises (e.g. a true add), but NOT
+        // ones already placed in place above (updates and swaps).
         for (const e of incoming) {
-          if (!existingKeys.has(keyOf(e))) merged.push(e);
+          const k = keyOf(e);
+          if (!existingKeys.has(k) && !placedKeys.has(k)) merged.push(e);
         }
         return merged;
       };
