@@ -3718,7 +3718,11 @@ function Workouts() {
       apiPut('/.netlify/functions/client-workout-log', {
         assignmentId: workout.id,
         dayIndex: workout.day_index,
-        workout_data: workoutDataToSave
+        workout_data: workoutDataToSave,
+        // Explicit reorder signal: tells the server this is an intentional
+        // re-arrangement of the SAME exercises, so it should honor the order
+        // we sent instead of falling back to the original saved order.
+        reorder: true
       }).catch(err => console.error('Error moving exercise:', err));
     }
   }, []);
@@ -3786,7 +3790,11 @@ function Workouts() {
       apiPut('/.netlify/functions/client-workout-log', {
         assignmentId: workout.id,
         dayIndex: workout.day_index,
-        workout_data: workoutDataToSave
+        workout_data: workoutDataToSave,
+        // Explicit reorder signal: tells the server this is an intentional
+        // re-arrangement of the SAME exercises, so it should honor the order
+        // we sent instead of falling back to the original saved order.
+        reorder: true
       }).catch(err => console.error('Error moving exercise:', err));
     }
   }, []);
