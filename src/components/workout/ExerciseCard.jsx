@@ -145,7 +145,7 @@ const parseVoiceInputForSets = (transcript) => {
   }
 };
 
-function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick, workoutStarted, onSwapExercise, onDeleteExercise, onMoveUp, onMoveDown, isFirst, isLast, isSectionEnd, onUpdateExercise, onOpenSetEditor, weightUnit = 'lbs', clientId }) {
+function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick, workoutStarted, onSwapExercise, onDeleteExercise, onMoveUp, onMoveDown, isFirst, isLast, isSectionEnd, onUpdateExercise, onOpenSetEditor, weightUnit = 'lbs', clientId, onDragStart, onDragMove, onDragEnd, isDragging = false, dropAbove = false, dropBelow = false }) {
   // Early return if exercise is invalid
   if (!exercise || typeof exercise !== 'object') {
     return null;
@@ -235,6 +235,25 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
   const swipeThreshold = 60;
   const headerMaxSwipe = 200;
   const setsMaxSwipe = 70; // Smaller swipe for add set button
+
+  // Long-press drag-to-reorder state. Holding still on the card header for
+  // ~350ms "lifts" the card; moving the finger then drags it to a new slot.
+  // A quick horizontal/vertical move before the timer fires is treated as a
+  // swipe/scroll (the existing behavior) and cancels the pending long-press.
+  const [dragOffsetY, setDragOffsetY] = useState(0);
+  const longPressTimer = useRef(null);
+  const dragStartYRef = useRef(0);
+  const isDraggingRef = useRef(false);
+
+  const cancelLongPress = () => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+  };
+
+  // Clear any pending long-press timer if the card unmounts mid-hold.
+  useEffect(() => () => cancelLongPress(), []);
 
   // Voice input state
   const [isListening, setIsListening] = useState(false);
@@ -520,13 +539,44 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
     completeTouchStartY.current = e.touches[0].clientY;
     setIsHeaderSwiping(false);
     setIsCompleteSwiping(false);
+
+    // Arm the long-press timer; if the finger holds still it becomes a drag.
+    if (onDragStart) {
+      dragStartYRef.current = e.touches[0].clientY;
+      cancelLongPress();
+      longPressTimer.current = setTimeout(() => {
+        longPressTimer.current = null;
+        isDraggingRef.current = true;
+        setDragOffsetY(0);
+        // Snap any open swipe row shut so the lift starts from a clean card.
+        setHeaderSwipeOffset(0);
+        setCompleteSwipeOffset(0);
+        if (navigator.vibrate) { try { navigator.vibrate(15); } catch { /* no-op */ } }
+        onDragStart(index);
+      }, 350);
+    }
   };
 
   const handleHeaderTouchMove = (e) => {
     const touchX = e.touches[0].clientX;
     const touchY = e.touches[0].clientY;
+
+    // Once the long-press has fired, the gesture is a drag-reorder: follow the
+    // finger vertically and report position to the parent. Nothing else runs.
+    if (isDraggingRef.current) {
+      e.preventDefault();
+      setDragOffsetY(touchY - dragStartYRef.current);
+      if (onDragMove) onDragMove(touchY);
+      return;
+    }
+
     const diffX = headerTouchStartX.current - touchX; // positive = left swipe
     const diffY = Math.abs(headerTouchStartY.current - touchY);
+
+    // A real swipe/scroll before the hold completes cancels the pending drag.
+    if (longPressTimer.current && (Math.abs(diffX) > 8 || diffY > 8)) {
+      cancelLongPress();
+    }
 
     if (diffY > Math.abs(diffX) && !isHeaderSwiping && !isCompleteSwiping) return;
 
@@ -562,6 +612,17 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
   };
 
   const handleHeaderTouchEnd = () => {
+    cancelLongPress();
+
+    // Finish an in-progress drag-reorder: drop the card and let the parent
+    // commit the new order. Skip the swipe-end logic entirely.
+    if (isDraggingRef.current) {
+      isDraggingRef.current = false;
+      setDragOffsetY(0);
+      if (onDragEnd) onDragEnd();
+      return;
+    }
+
     // Cancel any pending RAF to prevent it from setting stale swipe state
     if (headerSwipeRaf.current) {
       cancelAnimationFrame(headerSwipeRaf.current);
@@ -783,9 +844,17 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
 
   return (
     <div
-      className={`exercise-card-wrapper ${headerSwipeOffset > 0 ? 'swiped' : ''}`}
+      className={`exercise-card-wrapper ${headerSwipeOffset > 0 ? 'swiped' : ''} ${isDragging ? 'dragging' : ''}`}
       ref={cardRef}
+      data-exercise-index={index}
+      style={isDragging ? {
+        transform: `translateY(${dragOffsetY}px) scale(1.02)`,
+        transition: 'none'
+      } : undefined}
     >
+      {/* Drop target indicator (above this card) */}
+      {dropAbove && <div className="drag-drop-indicator" aria-hidden="true" />}
+
       {/* Main Card Content */}
       <div
         className={`exercise-card-v2 ${isCompleted ? 'completed' : ''} ${workoutStarted ? 'active' : ''} ${isSuperset ? 'superset-exercise' : ''} ${isWarmup ? 'warmup-exercise' : ''} ${isStretch ? 'stretch-exercise' : ''} ${isSectionEnd ? 'section-end' : ''} ${isLast ? 'is-last' : ''}`}
@@ -849,6 +918,7 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
             onTouchStart={handleHeaderTouchStart}
             onTouchMove={handleHeaderTouchMove}
             onTouchEnd={handleHeaderTouchEnd}
+            onTouchCancel={handleHeaderTouchEnd}
           >
             <div className="exercise-details">
               <div className="exercise-title-row">
@@ -1119,6 +1189,9 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
         </Portal>
       )}
 
+      {/* Drop target indicator (below the last card — drop at the very end) */}
+      {dropBelow && <div className="drag-drop-indicator" aria-hidden="true" />}
+
     </div>
   );
 }
@@ -1179,6 +1252,13 @@ const arePropsEqual = (prev, next) => {
   if (prev.isSectionEnd !== next.isSectionEnd) return false;
   if (prev.weightUnit !== next.weightUnit) return false;
   if (prev.clientId !== next.clientId) return false;
+
+  // Drag-reorder visual state — must re-render when these flip, otherwise the
+  // lifted card and drop-indicator lines never appear (the comparator below
+  // would otherwise short-circuit them away).
+  if (prev.isDragging !== next.isDragging) return false;
+  if (prev.dropAbove !== next.dropAbove) return false;
+  if (prev.dropBelow !== next.dropBelow) return false;
 
   // Skip comparing function props (onToggleComplete, onClick, onSwapExercise, etc.)
   // — they change reference on every parent render but their behavior is stable
