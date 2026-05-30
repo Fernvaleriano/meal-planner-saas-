@@ -3614,7 +3614,10 @@ function Workouts() {
         apiPut('/.netlify/functions/client-workout-log', {
           assignmentId: workout.id,
           dayIndex: workout.day_index,
-          workout_data: workoutDataToSave
+          workout_data: workoutDataToSave,
+          // Tell the backend this was an INTENTIONAL delete, so its data-loss
+          // guard removes it from the plan instead of restoring it on reload.
+          deletedExercises: [{ id: exerciseToDelete.id, name: exerciseToDelete.name }]
         }).catch(err => {
           console.error('Error deleting exercise:', err);
         });
