@@ -245,6 +245,20 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
   const dragStartYRef = useRef(0);
   const isDraggingRef = useRef(false);
 
+  // While a drag is active we block the page from scrolling. React attaches
+  // touch listeners as passive, so preventDefault inside onTouchMove can't
+  // reliably stop the scroll — a dedicated non-passive document listener can.
+  const blockScrollRef = useRef(null);
+  if (!blockScrollRef.current) {
+    blockScrollRef.current = (e) => { if (e.cancelable) e.preventDefault(); };
+  }
+  const lockPageScroll = () => {
+    document.addEventListener('touchmove', blockScrollRef.current, { passive: false });
+  };
+  const unlockPageScroll = () => {
+    document.removeEventListener('touchmove', blockScrollRef.current, { passive: false });
+  };
+
   const cancelLongPress = () => {
     if (longPressTimer.current) {
       clearTimeout(longPressTimer.current);
@@ -252,8 +266,8 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
     }
   };
 
-  // Clear any pending long-press timer if the card unmounts mid-hold.
-  useEffect(() => () => cancelLongPress(), []);
+  // Clear any pending long-press timer / scroll lock if the card unmounts mid-hold.
+  useEffect(() => () => { cancelLongPress(); unlockPageScroll(); }, []);
 
   // Voice input state
   const [isListening, setIsListening] = useState(false);
@@ -548,6 +562,7 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
         longPressTimer.current = null;
         isDraggingRef.current = true;
         setDragOffsetY(0);
+        lockPageScroll();
         // Snap any open swipe row shut so the lift starts from a clean card.
         setHeaderSwipeOffset(0);
         setCompleteSwipeOffset(0);
@@ -619,6 +634,7 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
     if (isDraggingRef.current) {
       isDraggingRef.current = false;
       setDragOffsetY(0);
+      unlockPageScroll();
       if (onDragEnd) onDragEnd();
       return;
     }

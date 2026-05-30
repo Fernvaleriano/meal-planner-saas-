@@ -3889,20 +3889,31 @@ function Workouts() {
   const dropIndexRef = useRef(null);
   const [dragIndex, setDragIndex] = useState(null);
   const [dropIndex, setDropIndex] = useState(null);
+  // Auto-scroll state: the scrollable ancestor, the finger's last Y position,
+  // and the RAF handle for the scroll loop that runs while the finger hovers
+  // near the top/bottom edge during a drag.
+  const dragScrollParentRef = useRef(null);
+  const dragLastYRef = useRef(0);
+  const dragScrollRafRef = useRef(null);
 
-  const handleExerciseDragStart = useCallback((idx) => {
-    dragIndexRef.current = idx;
-    dropIndexRef.current = idx;
-    setDragIndex(idx);
-    setDropIndex(idx);
-  }, []);
+  // Walk up from the list to find the element that actually scrolls (a styled
+  // container or, failing that, the page itself).
+  const findScrollParent = (el) => {
+    let node = el?.parentElement;
+    while (node) {
+      const oy = window.getComputedStyle(node).overflowY;
+      if ((oy === 'auto' || oy === 'scroll') && node.scrollHeight > node.clientHeight) return node;
+      node = node.parentElement;
+    }
+    return document.scrollingElement || document.documentElement;
+  };
 
-  const handleExerciseDragMove = useCallback((clientY) => {
+  // Map the finger's Y position onto an insertion slot (0..count) by finding
+  // the first card whose vertical midpoint sits below the finger.
+  const computeDropIndex = (clientY) => {
     const list = exercisesListRef.current;
     if (!list) return;
     const cards = list.querySelectorAll('[data-exercise-index]');
-    // Default to "after the last card"; the loop narrows it to the first card
-    // whose vertical midpoint sits below the finger.
     let insert = cards.length;
     for (let i = 0; i < cards.length; i++) {
       const rect = cards[i].getBoundingClientRect();
@@ -3916,6 +3927,52 @@ function Workouts() {
       dropIndexRef.current = insert;
       setDropIndex(insert);
     }
+  };
+
+  // Continuous scroll while the finger rests near a screen edge, so a card can
+  // be dragged to a slot that's currently off-screen.
+  const DRAG_EDGE = 90;       // px from the viewport edge that triggers scroll
+  const DRAG_MAX_SPEED = 16;  // px per frame at the very edge
+  const autoScrollStep = () => {
+    if (dragIndexRef.current == null) { dragScrollRafRef.current = null; return; }
+    const container = dragScrollParentRef.current;
+    const clientY = dragLastYRef.current;
+    const vh = window.innerHeight;
+    let delta = 0;
+    if (clientY < DRAG_EDGE) delta = -DRAG_MAX_SPEED * ((DRAG_EDGE - clientY) / DRAG_EDGE);
+    else if (clientY > vh - DRAG_EDGE) delta = DRAG_MAX_SPEED * ((clientY - (vh - DRAG_EDGE)) / DRAG_EDGE);
+
+    if (delta !== 0 && container) {
+      if (container === document.scrollingElement || container === document.documentElement) {
+        window.scrollBy(0, delta);
+      } else {
+        container.scrollTop += delta;
+      }
+      computeDropIndex(clientY);
+      dragScrollRafRef.current = requestAnimationFrame(autoScrollStep);
+    } else {
+      dragScrollRafRef.current = null;
+    }
+  };
+
+  const handleExerciseDragStart = useCallback((idx) => {
+    dragIndexRef.current = idx;
+    dropIndexRef.current = idx;
+    dragScrollParentRef.current = findScrollParent(exercisesListRef.current);
+    setDragIndex(idx);
+    setDropIndex(idx);
+  }, []);
+
+  const handleExerciseDragMove = useCallback((clientY) => {
+    dragLastYRef.current = clientY;
+    computeDropIndex(clientY);
+    // Kick off the auto-scroll loop if the finger is near an edge and it isn't
+    // already running.
+    const vh = window.innerHeight;
+    const nearEdge = clientY < DRAG_EDGE || clientY > vh - DRAG_EDGE;
+    if (nearEdge && dragScrollRafRef.current == null && dragIndexRef.current != null) {
+      dragScrollRafRef.current = requestAnimationFrame(autoScrollStep);
+    }
   }, []);
 
   const handleExerciseDragEnd = useCallback(() => {
@@ -3923,6 +3980,10 @@ function Workouts() {
     const to = dropIndexRef.current;
     dragIndexRef.current = null;
     dropIndexRef.current = null;
+    if (dragScrollRafRef.current) {
+      cancelAnimationFrame(dragScrollRafRef.current);
+      dragScrollRafRef.current = null;
+    }
     setDragIndex(null);
     setDropIndex(null);
     if (from != null && to != null) {
