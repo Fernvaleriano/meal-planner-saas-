@@ -32256,6 +32256,32 @@ textarea,
     margin-bottom: 12px;
 }
 
+/* Long-press drag-to-reorder: the held card lifts above its neighbours and
+   follows the finger (translateY set inline). overflow:visible lets the
+   scale + shadow show instead of being clipped by the wrapper. */
+.exercise-card-wrapper.dragging {
+    z-index: 100;
+    overflow: visible;
+    opacity: 0.97;
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.35);
+    cursor: grabbing;
+}
+
+/* Turquoise insertion line marking where the dragged card will drop. */
+.drag-drop-indicator {
+    height: 4px;
+    margin: 4px 10px;
+    border-radius: 999px;
+    background: #2EC4B6;
+    box-shadow: 0 0 8px rgba(46, 196, 182, 0.7);
+    animation: dropLinePulse 0.9s ease-in-out infinite;
+}
+
+@keyframes dropLinePulse {
+    0%, 100% { opacity: 0.55; }
+    50% { opacity: 1; }
+}
+
 .swipe-actions {
     position: absolute;
     top: 0;

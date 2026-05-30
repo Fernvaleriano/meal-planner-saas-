@@ -3799,6 +3799,137 @@ function Workouts() {
     }
   }, []);
 
+  // Handle reordering an exercise via long-press drag-and-drop.
+  // fromIndex = the exercise's current position; insertIndex = the slot it was
+  // dropped into (0..length, where length means "after the last exercise").
+  // Mirrors the data-access + persistence contract of the up/down move handlers
+  // above so dragging saves exactly the same way the arrow buttons already do.
+  const handleReorderExercise = useCallback((fromIndex, insertIndex) => {
+    const workout = todayWorkoutRef.current;
+    if (!workout?.workout_data) return;
+
+    // Get exercises from either direct array or days structure
+    let currentExercises = [];
+    let isUsingDays = false;
+    let dayIndex = workout.day_index || 0;
+
+    if (Array.isArray(workout.workout_data.exercises) && workout.workout_data.exercises.length > 0) {
+      currentExercises = [...workout.workout_data.exercises];
+    } else if (workout.workout_data.days && Array.isArray(workout.workout_data.days)) {
+      isUsingDays = true;
+      const safeIndex = Math.abs(dayIndex) % workout.workout_data.days.length;
+      currentExercises = [...(workout.workout_data.days[safeIndex]?.exercises || [])];
+    }
+
+    if (currentExercises.length < 2) return;
+    if (fromIndex < 0 || fromIndex >= currentExercises.length) return;
+
+    // Convert the insertion slot to a destination index (account for the gap
+    // left behind when the dragged item is removed), then bail on a no-op drop.
+    let dest = insertIndex > fromIndex ? insertIndex - 1 : insertIndex;
+    dest = Math.max(0, Math.min(dest, currentExercises.length - 1));
+    if (dest === fromIndex) return;
+
+    const [moved] = currentExercises.splice(fromIndex, 1);
+    currentExercises.splice(dest, 0, moved);
+
+    // Update state
+    setTodayWorkout(prev => {
+      if (!prev) return prev;
+
+      if (isUsingDays) {
+        const updatedDays = [...(prev.workout_data.days || [])];
+        const safeIndex = Math.abs(dayIndex) % updatedDays.length;
+        updatedDays[safeIndex] = { ...updatedDays[safeIndex], exercises: currentExercises };
+        return { ...prev, workout_data: { ...prev.workout_data, days: updatedDays } };
+      } else {
+        return { ...prev, workout_data: { ...prev.workout_data, exercises: currentExercises } };
+      }
+    });
+
+    // Save to backend
+    const workoutDataToSave = isUsingDays ? {
+      ...workout.workout_data,
+      days: workout.workout_data.days.map((day, idx) => {
+        if (idx === (Math.abs(dayIndex) % workout.workout_data.days.length)) {
+          return { ...day, exercises: currentExercises };
+        }
+        return day;
+      })
+    } : { ...workout.workout_data, exercises: currentExercises };
+
+    // Use correct endpoint based on workout type
+    if (workout.is_adhoc) {
+      const isRealId = workout.id && !String(workout.id).startsWith('adhoc-') && !String(workout.id).startsWith('custom-');
+      const dateStr = workout.workout_date || new Date().toISOString().split('T')[0];
+      apiPut('/.netlify/functions/adhoc-workouts', {
+        ...(isRealId ? { workoutId: workout.id } : {}),
+        clientId: workout.client_id,
+        workoutDate: dateStr,
+        workoutData: workoutDataToSave,
+        name: workout.name
+      }).catch(err => console.error('Error reordering exercise in adhoc:', err));
+    } else {
+      apiPut('/.netlify/functions/client-workout-log', {
+        assignmentId: workout.id,
+        dayIndex: workout.day_index,
+        workout_data: workoutDataToSave,
+        // Same explicit reorder signal the arrow-button moves send.
+        reorder: true
+      }).catch(err => console.error('Error reordering exercise:', err));
+    }
+  }, []);
+
+  // ── Long-press drag-to-reorder coordination ────────────────────────────────
+  // dragIndex = exercise being dragged; dropIndex = insertion slot under the
+  // finger. Refs mirror the state so the drop-commit reads fresh values without
+  // waiting for a re-render.
+  const exercisesListRef = useRef(null);
+  const dragIndexRef = useRef(null);
+  const dropIndexRef = useRef(null);
+  const [dragIndex, setDragIndex] = useState(null);
+  const [dropIndex, setDropIndex] = useState(null);
+
+  const handleExerciseDragStart = useCallback((idx) => {
+    dragIndexRef.current = idx;
+    dropIndexRef.current = idx;
+    setDragIndex(idx);
+    setDropIndex(idx);
+  }, []);
+
+  const handleExerciseDragMove = useCallback((clientY) => {
+    const list = exercisesListRef.current;
+    if (!list) return;
+    const cards = list.querySelectorAll('[data-exercise-index]');
+    // Default to "after the last card"; the loop narrows it to the first card
+    // whose vertical midpoint sits below the finger.
+    let insert = cards.length;
+    for (let i = 0; i < cards.length; i++) {
+      const rect = cards[i].getBoundingClientRect();
+      const mid = rect.top + rect.height / 2;
+      if (clientY < mid) {
+        insert = Number(cards[i].getAttribute('data-exercise-index'));
+        break;
+      }
+    }
+    if (insert !== dropIndexRef.current) {
+      dropIndexRef.current = insert;
+      setDropIndex(insert);
+    }
+  }, []);
+
+  const handleExerciseDragEnd = useCallback(() => {
+    const from = dragIndexRef.current;
+    const to = dropIndexRef.current;
+    dragIndexRef.current = null;
+    dropIndexRef.current = null;
+    setDragIndex(null);
+    setDropIndex(null);
+    if (from != null && to != null) {
+      handleReorderExercise(from, to);
+    }
+  }, [handleReorderExercise]);
+
   // Start workout — show readiness check first (only once per session)
   const handleStartWorkout = useCallback(() => {
     if (readinessData || workoutStarted) {
@@ -5512,9 +5643,16 @@ function Workouts() {
                 </button>
               </div>
             )}
-            <div className="exercises-list-v2">
+            <div className="exercises-list-v2" ref={exercisesListRef}>
               {exercises.map((exercise, index) => {
                 if (!exercise || !exercise.id) return null;
+
+                // Drag-reorder visual flags. Hide the drop line on no-op slots
+                // (dropping back onto itself, just above or just below).
+                const dragNoOp = dragIndex != null && (dropIndex === dragIndex || dropIndex === dragIndex + 1);
+                const showDropLine = dragIndex != null && !dragNoOp;
+                const dropAbove = showDropLine && dropIndex === index;
+                const dropBelow = showDropLine && dropIndex >= exercises.length && index === exercises.length - 1;
 
                 // Determine phase for section headers
                 const phase = exercise.phase || (exercise.isWarmup ? 'warmup' : exercise.isStretch ? 'cooldown' : 'main');
@@ -5563,6 +5701,12 @@ function Workouts() {
                       onOpenSetEditor={openSetEditor}
                       weightUnit={weightUnit}
                       clientId={clientData?.id}
+                      onDragStart={handleExerciseDragStart}
+                      onDragMove={handleExerciseDragMove}
+                      onDragEnd={handleExerciseDragEnd}
+                      isDragging={dragIndex === index}
+                      dropAbove={dropAbove}
+                      dropBelow={dropBelow}
                     />
                   </ErrorBoundary>
                 );
