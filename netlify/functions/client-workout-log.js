@@ -255,6 +255,12 @@ exports.handler = async (event) => {
       // carries NO deletedExercises, so the data-loss guard below still
       // preserves anything that was merely omitted.
       const deletedExercises = Array.isArray(body.deletedExercises) ? body.deletedExercises : [];
+      // REORDER signal: the client sent the SAME exercises in a new order
+      // (user dragged / moved an exercise up or down). When set, the merge
+      // below honors the incoming order instead of preserving the original
+      // saved order. The data-loss guard still applies — any plan exercise
+      // the client omitted is preserved, just appended after the reordered set.
+      const reorder = body.reorder === true;
 
       if (!assignmentId) {
         return {
@@ -290,7 +296,7 @@ exports.handler = async (event) => {
       // replacing the day's array with it permanently strips those
       // exercises from the plan. Merge instead: update/add what was sent,
       // but preserve any existing plan exercise the client omitted.
-      const mergeDayExercises = (existingArr, incomingArr, deletedArr = []) => {
+      const mergeDayExercises = (existingArr, incomingArr, deletedArr = [], reorderIntent = false) => {
         const existing = Array.isArray(existingArr) ? existingArr : [];
         const incoming = Array.isArray(incomingArr) ? incomingArr : [];
         const keyOf = (e) =>
@@ -306,6 +312,27 @@ exports.handler = async (event) => {
         const incomingByKey = new Map();
         for (const e of incoming) incomingByKey.set(keyOf(e), e);
         const existingKeys = new Set(existing.map(keyOf));
+        // REORDER intent: trust the incoming sequence. Lay the exercises out in
+        // the order the client sent, then append any plan exercise the client
+        // omitted (data-loss guard) so a glitchy/shortened reload can still
+        // never strip the plan. Reorder saves never carry swaps/adds, so the
+        // simpler incoming-order walk is correct and keeps the order stable.
+        if (reorderIntent) {
+          const placed = new Set();
+          const ordered = [];
+          for (const e of incoming) {
+            const k = keyOf(e);
+            if (deletedKeys.has(k)) continue;
+            placed.add(k);
+            ordered.push(e);
+          }
+          for (const e of existing) {
+            const k = keyOf(e);
+            if (placed.has(k) || deletedKeys.has(k)) continue;
+            ordered.push(e);
+          }
+          return ordered;
+        }
         // SWAP HANDLING: a swapped-in exercise carries `swappedFrom` = the key
         // of the exercise it replaced. Without this, the merge below can't tell
         // a swap from an omission: it would KEEP the swapped-out exercise (it's
@@ -366,7 +393,7 @@ exports.handler = async (event) => {
         updatedDays[safeDayIndex] = {
           ...updatedDays[safeDayIndex],
           exercises: (incomingExercises || deletedExercises.length > 0)
-            ? mergeDayExercises(updatedDays[safeDayIndex].exercises, incomingExercises, deletedExercises)
+            ? mergeDayExercises(updatedDays[safeDayIndex].exercises, incomingExercises, deletedExercises, reorder)
             : updatedDays[safeDayIndex].exercises
         };
 
@@ -380,7 +407,7 @@ exports.handler = async (event) => {
         updatedWorkoutData = {
           ...currentWorkoutData,
           exercises: (workout_data.exercises || deletedExercises.length > 0)
-            ? mergeDayExercises(currentWorkoutData.exercises, workout_data.exercises, deletedExercises)
+            ? mergeDayExercises(currentWorkoutData.exercises, workout_data.exercises, deletedExercises, reorder)
             : currentWorkoutData.exercises
         };
       }
