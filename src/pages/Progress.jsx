@@ -560,6 +560,18 @@ function Progress() {
     document.body.style.overflow = '';
   };
 
+  // Safety net: the comparison modal locks body scroll imperatively
+  // (confirmPhotoSelection sets overflow:hidden, closeComparison clears it).
+  // If the user navigates away while the modal is open, closeComparison never
+  // runs and the page stays frozen/unscrollable until reload. This guarantees
+  // the lock is released whenever the modal closes OR the page unmounts.
+  useEffect(() => {
+    if (!showComparison) return;
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [showComparison]);
+
   const handleAiAnalysis = async () => {
     if (selectedPhotos.length !== 2) return;
     setAnalyzingPhotos(true);
