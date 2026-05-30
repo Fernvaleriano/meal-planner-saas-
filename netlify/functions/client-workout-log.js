@@ -249,6 +249,12 @@ exports.handler = async (event) => {
     if (event.httpMethod === 'PUT') {
       const body = JSON.parse(event.body || '{}');
       const { assignmentId, dayIndex, workout_data } = body;
+      // EXPLICIT DELETE list: which exercises the user intentionally removed
+      // (swipe → DELETE). This is the ONLY way a client save is allowed to
+      // drop a plan exercise. A shortened list from a memory-loss reload
+      // carries NO deletedExercises, so the data-loss guard below still
+      // preserves anything that was merely omitted.
+      const deletedExercises = Array.isArray(body.deletedExercises) ? body.deletedExercises : [];
 
       if (!assignmentId) {
         return {
@@ -284,12 +290,19 @@ exports.handler = async (event) => {
       // replacing the day's array with it permanently strips those
       // exercises from the plan. Merge instead: update/add what was sent,
       // but preserve any existing plan exercise the client omitted.
-      const mergeDayExercises = (existingArr, incomingArr) => {
+      const mergeDayExercises = (existingArr, incomingArr, deletedArr = []) => {
         const existing = Array.isArray(existingArr) ? existingArr : [];
         const incoming = Array.isArray(incomingArr) ? incomingArr : [];
-        if (incoming.length === 0) return existing; // never wipe
         const keyOf = (e) =>
           e && (e.id != null ? `id:${e.id}` : `nm:${String(e.name || '').toLowerCase()}`);
+        // Keys the user EXPLICITLY deleted — these we honor (drop from the
+        // plan). Everything else omitted from `incoming` is still preserved.
+        const deletedKeys = new Set(
+          (Array.isArray(deletedArr) ? deletedArr : []).map(keyOf).filter(Boolean)
+        );
+        // Never wipe on an empty incoming list UNLESS the user explicitly
+        // asked to delete something (e.g. removing the last visible exercise).
+        if (incoming.length === 0 && deletedKeys.size === 0) return existing;
         const incomingByKey = new Map();
         for (const e of incoming) incomingByKey.set(keyOf(e), e);
         const existingKeys = new Set(existing.map(keyOf));
@@ -306,26 +319,34 @@ exports.handler = async (event) => {
         }
         const placedKeys = new Set(); // incoming exercises positioned in place
         // Walk existing in order: replace with incoming when present, substitute
-        // a swap in place when this slot was swapped out, otherwise KEEP the
-        // existing exercise (never drop on a client save — data-loss guard).
-        const merged = existing.map((e) => {
+        // a swap in place when this slot was swapped out, drop it only if the
+        // user EXPLICITLY deleted it, otherwise KEEP the existing exercise
+        // (never drop a merely-omitted one — data-loss guard).
+        const merged = [];
+        for (const e of existing) {
           const k = keyOf(e);
           if (incomingByKey.has(k)) {
             placedKeys.add(k);
-            return incomingByKey.get(k);
+            merged.push(incomingByKey.get(k));
+            continue;
           }
           if (swapBySourceKey.has(k)) {
             const swapped = swapBySourceKey.get(k);
             placedKeys.add(keyOf(swapped));
-            return swapped;
+            merged.push(swapped);
+            continue;
           }
-          return e;
-        });
+          if (deletedKeys.has(k)) {
+            continue; // explicit delete — honor the user's removal
+          }
+          merged.push(e);
+        }
         // Append genuinely new incoming exercises (e.g. a true add), but NOT
-        // ones already placed in place above (updates and swaps).
+        // ones already placed in place above (updates and swaps) and never a
+        // key the user just asked to delete.
         for (const e of incoming) {
           const k = keyOf(e);
-          if (!existingKeys.has(k) && !placedKeys.has(k)) merged.push(e);
+          if (!existingKeys.has(k) && !placedKeys.has(k) && !deletedKeys.has(k)) merged.push(e);
         }
         return merged;
       };
@@ -344,8 +365,8 @@ exports.handler = async (event) => {
         // plan exercises the client omitted — see DATA-LOSS GUARD above).
         updatedDays[safeDayIndex] = {
           ...updatedDays[safeDayIndex],
-          exercises: incomingExercises
-            ? mergeDayExercises(updatedDays[safeDayIndex].exercises, incomingExercises)
+          exercises: (incomingExercises || deletedExercises.length > 0)
+            ? mergeDayExercises(updatedDays[safeDayIndex].exercises, incomingExercises, deletedExercises)
             : updatedDays[safeDayIndex].exercises
         };
 
@@ -358,8 +379,8 @@ exports.handler = async (event) => {
         // Flat structure - update exercises directly (merge, never drop)
         updatedWorkoutData = {
           ...currentWorkoutData,
-          exercises: workout_data.exercises
-            ? mergeDayExercises(currentWorkoutData.exercises, workout_data.exercises)
+          exercises: (workout_data.exercises || deletedExercises.length > 0)
+            ? mergeDayExercises(currentWorkoutData.exercises, workout_data.exercises, deletedExercises)
             : currentWorkoutData.exercises
         };
       }
