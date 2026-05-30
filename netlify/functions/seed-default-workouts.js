@@ -494,8 +494,7 @@ const DEFAULT_PROGRAMS = [
           { name: 'Bodyweight Squat', sets: 2, trackingType: 'reps', setsData: [{ reps: 15, restSeconds: 30 }, { reps: 15, restSeconds: 30 }], notes: 'WARM-UP — Grease the squat pattern. Full depth, slow tempo.', section: 'warm-up' },
 
           { name: 'Dumbbell Goblet Squat', sets: 4, trackingType: 'reps', setsData: [{ reps: 12, restSeconds: 90 }, { reps: 10, restSeconds: 90 }, { reps: 10, restSeconds: 90 }, { reps: 8, restSeconds: 90 }], notes: 'Quad-focused opener (sub for pendulum squat — swap to the pendulum if your gym has one). Sit straight down, chest tall, drive through mid-foot. Add a little weight each set.' },
-          { name: 'Hack Squat Machine Squat', sets: 3, trackingType: 'reps', setsData: [{ reps: 12, restSeconds: 90 }, { reps: 10, restSeconds: 90 }, { reps: 10, restSeconds: 90 }], notes: 'Feet a touch low on the platform for quad bias. Big stretch at the bottom, no bouncing.' },
-          { name: 'Leg press machine normal stance', sets: 3, trackingType: 'reps', setsData: [{ reps: 12, restSeconds: 75 }, { reps: 12, restSeconds: 75 }, { reps: 12, restSeconds: 75 }], notes: 'Feet shoulder-width. Deep but controlled — do not let the lower back round.' },
+          { name: 'Hack Squat Machine Squat', sets: 4, trackingType: 'reps', setsData: [{ reps: 12, restSeconds: 90 }, { reps: 10, restSeconds: 90 }, { reps: 10, restSeconds: 90 }, { reps: 10, restSeconds: 90 }], notes: 'Feet a touch low on the platform for quad bias. Big stretch at the bottom, no bouncing.' },
           { name: 'Dumbbell lunge alternating on the spot', sets: 3, trackingType: 'reps', setsData: [{ reps: 10, restSeconds: 60 }, { reps: 10, restSeconds: 60 }, { reps: 10, restSeconds: 60 }], notes: '10 per leg. Tall torso, knee tracks over the ankle.' },
           { name: 'Seated leg extension_both legs', sets: 3, trackingType: 'reps', setsData: [{ reps: 15, restSeconds: 60 }, { reps: 15, restSeconds: 60 }, { reps: 15, restSeconds: 60 }], notes: 'Quad finisher. Squeeze hard at the top for 1 sec.' },
           { name: 'Dumbbell Standing Calf Raise', sets: 4, trackingType: 'reps', setsData: [{ reps: 15, restSeconds: 45 }, { reps: 15, restSeconds: 45 }, { reps: 15, restSeconds: 45 }, { reps: 15, restSeconds: 45 }], notes: 'Full range — big stretch at the bottom, squeeze at the top.' },
@@ -539,9 +538,8 @@ const DEFAULT_PROGRAMS = [
           { name: 'Bodyweight Squat', sets: 2, trackingType: 'reps', setsData: [{ reps: 15, restSeconds: 30 }, { reps: 15, restSeconds: 30 }], notes: 'WARM-UP — Wide / sumo stance to prep the hips.', section: 'warm-up' },
 
           { name: 'Barbell Sumo Deadlift', sets: 4, trackingType: 'reps', setsData: [{ reps: 10, restSeconds: 120 }, { reps: 8, restSeconds: 120 }, { reps: 8, restSeconds: 120 }, { reps: 6, restSeconds: 120 }], notes: 'Your favourite — wide stance, toes out, flat back. Push the floor apart and drive the hips through. Brace hard.' },
-          { name: 'Barbell Romanian Deadlift', sets: 3, trackingType: 'reps', setsData: [{ reps: 10, restSeconds: 90 }, { reps: 10, restSeconds: 90 }, { reps: 10, restSeconds: 90 }], notes: 'RDLs — hinge at the hips, soft knees, feel the hamstring stretch. Bar / dumbbells stay close to the legs.' },
-          { name: 'Kettlebell Sumo Squat', sets: 3, trackingType: 'reps', setsData: [{ reps: 12, restSeconds: 75 }, { reps: 12, restSeconds: 75 }, { reps: 12, restSeconds: 75 }], notes: 'Wide stance, toes out, dumbbell or kettlebell held at the chest. Sit straight down, squeeze the glutes up.' },
-          { name: 'Barbell Hip Thrust', sets: 3, trackingType: 'reps', setsData: [{ reps: 12, restSeconds: 75 }, { reps: 12, restSeconds: 75 }, { reps: 12, restSeconds: 75 }], notes: 'Glute builder. Chin tucked, ribs down, full lockout — squeeze hard at the top for 1 sec.' },
+          { name: 'Barbell Romanian Deadlift', sets: 4, trackingType: 'reps', setsData: [{ reps: 10, restSeconds: 90 }, { reps: 10, restSeconds: 90 }, { reps: 10, restSeconds: 90 }, { reps: 10, restSeconds: 90 }], notes: 'RDLs — hinge at the hips, soft knees, feel the hamstring stretch. Bar / dumbbells stay close to the legs.' },
+          { name: 'Barbell Hip Thrust', sets: 4, trackingType: 'reps', setsData: [{ reps: 12, restSeconds: 75 }, { reps: 12, restSeconds: 75 }, { reps: 12, restSeconds: 75 }, { reps: 12, restSeconds: 75 }], notes: 'Glute builder. Chin tucked, ribs down, full lockout — squeeze hard at the top for 1 sec.' },
           { name: 'Lying leg curl machine', sets: 3, trackingType: 'reps', setsData: [{ reps: 12, restSeconds: 60 }, { reps: 12, restSeconds: 60 }, { reps: 12, restSeconds: 60 }], notes: 'Hamstring isolation. Slow 3-sec negative.' },
           { name: 'Dumbbell Standing Calf Raise', sets: 4, trackingType: 'reps', setsData: [{ reps: 15, restSeconds: 45 }, { reps: 15, restSeconds: 45 }, { reps: 15, restSeconds: 45 }, { reps: 15, restSeconds: 45 }], notes: 'Full range of motion.' },
 
@@ -564,7 +562,7 @@ const DEFAULT_PROGRAMS = [
           { name: 'Low Sled Push', sets: 4, trackingType: 'time', duration: 30, setsData: [{ duration: 30, restSeconds: 60 }, { duration: 30, restSeconds: 60 }, { duration: 30, restSeconds: 60 }, { duration: 30, restSeconds: 60 }], notes: 'Drive 30 sec, low and hard, full leg extension each step. Great conditioning with zero shoulder strain.' },
           { name: 'Kettlebell Sumo Squat', sets: 3, trackingType: 'reps', setsData: [{ reps: 15, restSeconds: 45 }, { reps: 15, restSeconds: 45 }, { reps: 15, restSeconds: 45 }], notes: 'Kettlebell goblet-style, wide stance. Keep the pace up to keep the heart rate elevated.' },
           { name: 'Mountain climbers', sets: 3, trackingType: 'time', duration: 40, setsData: [{ duration: 40, restSeconds: 30 }, { duration: 40, restSeconds: 30 }, { duration: 40, restSeconds: 30 }], notes: 'Drive the knees to the chest. Keep the hips low and steady.' },
-          { name: 'Kettlebell Swing', sets: 3, trackingType: 'reps', setsData: [{ reps: 20, restSeconds: 45 }, { reps: 20, restSeconds: 45 }, { reps: 20, restSeconds: 45 }], notes: 'Second swing block — lighter bell, higher reps to finish the conditioning.' },
+          { name: 'Kettlebell Step Up', sets: 3, trackingType: 'reps', setsData: [{ reps: 12, restSeconds: 45 }, { reps: 12, restSeconds: 45 }, { reps: 12, restSeconds: 45 }], notes: '12 per leg. Drive through the top foot, control the way down. Keeps the heart rate up with a single-leg challenge.' },
           { name: 'High plank', sets: 3, trackingType: 'time', duration: 30, setsData: [{ duration: 30, restSeconds: 30 }, { duration: 30, restSeconds: 30 }, { duration: 30, restSeconds: 30 }], notes: 'Core. Straight line from head to heels — squeeze glutes and brace abs.' },
 
           { name: 'Child Pose Lower back Stretch', sets: 1, trackingType: 'time', duration: 30, setsData: [{ duration: 30, restSeconds: 0 }], notes: 'COOL-DOWN — Sink the hips back, breathe deep.', section: 'cool-down' },
@@ -573,18 +571,19 @@ const DEFAULT_PROGRAMS = [
         ]
       },
 
-      // ── DAY 5: UPPER — Back, Arms & Core (light, shoulder-safe) ──────────
+      // ── DAY 5: SHOULDERS, ARMS & CORE (light, shoulder-safe) ────────────
+      // Deliberately NO chin-up / pulldown / seated row here — those are the
+      // job of Day 2. This day hits delts, arms and core with different
+      // movements so the week has no repeated exercises.
       {
-        name: 'Day 5 — Upper (Back, Arms & Core)',
+        name: 'Day 5 — Shoulders, Arms & Core',
         exercises: [
           { name: 'Jogging', sets: 1, trackingType: 'time', duration: 120, setsData: [{ duration: 120, restSeconds: 15 }], notes: 'WARM-UP — Easy jog to warm up.', section: 'warm-up' },
-          { name: 'Arm circle', sets: 1, trackingType: 'time', duration: 30, setsData: [{ duration: 30, restSeconds: 10 }], notes: 'WARM-UP — Loosen the shoulders before pulling.', section: 'warm-up' },
+          { name: 'Arm circle', sets: 1, trackingType: 'time', duration: 30, setsData: [{ duration: 30, restSeconds: 10 }], notes: 'WARM-UP — Loosen the shoulders gently.', section: 'warm-up' },
 
-          { name: 'Chin Up', sets: 3, trackingType: 'reps', setsData: [{ reps: 5, restSeconds: 90 }, { reps: 4, restSeconds: 90 }, { reps: 3, restSeconds: 90 }], notes: 'Supinated grip again — second, lighter dose this week. Stop 1 rep short of failure each set.' },
-          { name: 'Cable bar lateral pulldown', sets: 3, trackingType: 'reps', setsData: [{ reps: 12, restSeconds: 60 }, { reps: 12, restSeconds: 60 }, { reps: 12, restSeconds: 60 }], notes: 'Close / neutral grip if available — keeps the shoulder happy. Pull to the upper chest.' },
-          { name: 'Cable seated row', sets: 3, trackingType: 'reps', setsData: [{ reps: 12, restSeconds: 60 }, { reps: 12, restSeconds: 60 }, { reps: 12, restSeconds: 60 }], notes: 'Mid-back thickness. Squeeze and control.' },
+          { name: 'Kettlebell Row', sets: 3, trackingType: 'reps', setsData: [{ reps: 12, restSeconds: 60 }, { reps: 12, restSeconds: 60 }, { reps: 12, restSeconds: 60 }], notes: 'Upper-back anchor (a different row to Day 2). Flat back, drive the elbow to the hip, squeeze.' },
           { name: 'Cable lateral raises', sets: 3, trackingType: 'reps', setsData: [{ reps: 15, restSeconds: 45 }, { reps: 15, restSeconds: 45 }, { reps: 15, restSeconds: 45 }], notes: 'LIGHT and strict — protects the shoulder. Stop if there is any pinch; skip entirely on a bad shoulder day.' },
-          { name: 'EZ Barbell Curl', sets: 3, trackingType: 'reps', setsData: [{ reps: 12, restSeconds: 45 }, { reps: 12, restSeconds: 45 }, { reps: 12, restSeconds: 45 }], notes: 'Easier on the wrists. No swinging.' },
+          { name: 'Bicep Curl Low Cable Machine Normal Grip', sets: 3, trackingType: 'reps', setsData: [{ reps: 12, restSeconds: 45 }, { reps: 12, restSeconds: 45 }, { reps: 12, restSeconds: 45 }], notes: 'Cable curl for constant tension (different stimulus to Day 2 curls). No swinging.' },
           { name: 'Cable pushdown', sets: 3, trackingType: 'reps', setsData: [{ reps: 15, restSeconds: 45 }, { reps: 15, restSeconds: 45 }, { reps: 15, restSeconds: 45 }], notes: 'Triceps with low shoulder stress. Elbows pinned to the sides.' },
           { name: 'Lying leg raise', sets: 3, trackingType: 'reps', setsData: [{ reps: 12, restSeconds: 30 }, { reps: 12, restSeconds: 30 }, { reps: 12, restSeconds: 30 }], notes: 'Lower-ab focus. Press the lower back into the floor, control the descent.' },
 
