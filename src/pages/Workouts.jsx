@@ -2526,6 +2526,15 @@ function Workouts() {
         repType: oldExercise.repType || null,
         duration: oldExercise.duration,
         reference_links: swapRefLinks.length > 0 ? swapRefLinks : undefined,
+        // Tag which plan slot this swap replaces, using the SAME key form the
+        // server merge uses (id when present, else lowercased name). The
+        // server's data-loss guard otherwise can't tell a swap (replace in
+        // place) from an omission (keep old) + an add (append at bottom),
+        // which made the original reappear and the swap jump to the end on
+        // reload. See mergeDayExercises in client-workout-log.js.
+        swappedFrom: oldExercise.id != null
+          ? `id:${oldExercise.id}`
+          : `nm:${String(oldExercise.name || '').toLowerCase()}`,
       };
 
       // Get exercises from either direct array or days structure
