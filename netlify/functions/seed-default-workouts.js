@@ -493,7 +493,7 @@ const DEFAULT_PROGRAMS = [
           { name: 'High knees', sets: 1, trackingType: 'time', duration: 45, setsData: [{ duration: 45, restSeconds: 15 }], notes: 'WARM-UP — Drive the knees up, pump the arms.', section: 'warm-up' },
           { name: 'Bodyweight Squat', sets: 2, trackingType: 'reps', setsData: [{ reps: 15, restSeconds: 30 }, { reps: 15, restSeconds: 30 }], notes: 'WARM-UP — Grease the squat pattern. Full depth, slow tempo.', section: 'warm-up' },
 
-          { name: 'Dumbbell Goblet Squat', sets: 4, trackingType: 'reps', setsData: [{ reps: 12, restSeconds: 90 }, { reps: 10, restSeconds: 90 }, { reps: 10, restSeconds: 90 }, { reps: 8, restSeconds: 90 }], notes: 'Quad-focused opener (sub for pendulum squat — swap to the pendulum if your gym has one). Sit straight down, chest tall, drive through mid-foot. Add a little weight each set.' },
+          { name: 'Pendulum Squat', sets: 4, trackingType: 'reps', setsData: [{ reps: 12, restSeconds: 90 }, { reps: 10, restSeconds: 90 }, { reps: 10, restSeconds: 90 }, { reps: 8, restSeconds: 90 }], notes: 'Your favourite — lead with it while you are fresh. Deep, controlled reps, drive through mid-foot. Add a little weight each set.' },
           { name: 'Hack Squat Machine Squat', sets: 4, trackingType: 'reps', setsData: [{ reps: 12, restSeconds: 90 }, { reps: 10, restSeconds: 90 }, { reps: 10, restSeconds: 90 }, { reps: 10, restSeconds: 90 }], notes: 'Feet a touch low on the platform for quad bias. Big stretch at the bottom, no bouncing.' },
           { name: 'Dumbbell lunge alternating on the spot', sets: 3, trackingType: 'reps', setsData: [{ reps: 10, restSeconds: 60 }, { reps: 10, restSeconds: 60 }, { reps: 10, restSeconds: 60 }], notes: '10 per leg. Tall torso, knee tracks over the ankle.' },
           { name: 'Seated leg extension_both legs', sets: 3, trackingType: 'reps', setsData: [{ reps: 15, restSeconds: 60 }, { reps: 15, restSeconds: 60 }, { reps: 15, restSeconds: 60 }], notes: 'Quad finisher. Squeeze hard at the top for 1 sec.' },
@@ -649,19 +649,31 @@ exports.handler = async (event) => {
     const programsToSeed = DEFAULT_PROGRAMS.filter(p => !existingNames.has(p.name));
 
     // ── Enrich exercises with DB data (video, thumbnail, etc.) ──────────
-    // Fetch all global exercises and match case-insensitively in JS
-    // (PostgREST .or() with 30+ ilike filters is unreliable)
+    // Fetch all global exercises AND this coach's own custom exercises, then
+    // match case-insensitively in JS (PostgREST .or() with 30+ ilike filters
+    // is unreliable). Including the coach's customs lets a template reference
+    // a custom move (e.g. a coach-added "Pendulum Squat") and still attach its
+    // thumbnail/video. Globals are added first and take priority, so a coach
+    // custom that happens to share a name with a global never overrides it —
+    // only genuinely custom-only names get enriched from the coach set.
     const { data: allDbExercises, error: exError } = await supabase
       .from('exercises')
-      .select('id, name, video_url, animation_url, thumbnail_url, muscle_group, equipment')
-      .is('coach_id', null)
-      .limit(3000);
+      .select('id, name, video_url, animation_url, thumbnail_url, muscle_group, equipment, coach_id')
+      .or(`coach_id.is.null,coach_id.eq.${coachId}`)
+      .limit(5000);
 
     if (exError) throw exError;
 
-    const exerciseLookup = new Map(
-      (allDbExercises || []).map(ex => [ex.name.toLowerCase(), ex])
-    );
+    const exerciseLookup = new Map();
+    // Globals first (priority), then fill in any custom-only names.
+    for (const ex of (allDbExercises || [])) {
+      if (ex.coach_id === null) exerciseLookup.set(ex.name.toLowerCase(), ex);
+    }
+    for (const ex of (allDbExercises || [])) {
+      if (ex.coach_id !== null && !exerciseLookup.has(ex.name.toLowerCase())) {
+        exerciseLookup.set(ex.name.toLowerCase(), ex);
+      }
+    }
 
     // ── Build rows with enriched exercise data ──────────────────────────
     const rows = programsToSeed.map(prog => {
