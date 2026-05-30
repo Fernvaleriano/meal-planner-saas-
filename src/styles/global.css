@@ -31229,13 +31229,13 @@ textarea,
 /* Coach Recommended Swaps Section */
 .swap-coach-section {
     padding: 12px 20px;
-    background: linear-gradient(135deg, rgba(139, 92, 246, 0.08) 0%, rgba(99, 102, 241, 0.08) 100%);
-    border-bottom: 1px solid rgba(139, 92, 246, 0.2);
+    background: linear-gradient(135deg, rgba(46, 196, 182, 0.08) 0%, rgba(46, 196, 182, 0.08) 100%);
+    border-bottom: 1px solid rgba(46, 196, 182, 0.2);
 }
 
 [data-theme="dark"] .swap-coach-section {
-    background: linear-gradient(135deg, rgba(139, 92, 246, 0.15) 0%, rgba(99, 102, 241, 0.15) 100%);
-    border-color: rgba(139, 92, 246, 0.3);
+    background: linear-gradient(135deg, rgba(46, 196, 182, 0.15) 0%, rgba(46, 196, 182, 0.15) 100%);
+    border-color: rgba(46, 196, 182, 0.3);
 }
 
 .swap-coach-header {
@@ -31250,7 +31250,7 @@ textarea,
     gap: 6px;
     font-size: 13px;
     font-weight: 600;
-    color: #8b5cf6;
+    color: #2EC4B6;
 }
 
 .swap-coach-label svg {
@@ -31270,7 +31270,7 @@ textarea,
     gap: 12px;
     padding: 12px;
     background: white;
-    border: 2px solid rgba(139, 92, 246, 0.3);
+    border: 2px solid rgba(46, 196, 182, 0.3);
     border-radius: 12px;
     cursor: pointer;
     transition: all 0.2s;
@@ -31280,17 +31280,17 @@ textarea,
 
 [data-theme="dark"] .swap-coach-item {
     background: #1e293b;
-    border-color: rgba(139, 92, 246, 0.4);
+    border-color: rgba(46, 196, 182, 0.4);
 }
 
 .swap-coach-item:hover {
-    border-color: #8b5cf6;
-    background: rgba(139, 92, 246, 0.05);
+    border-color: #2EC4B6;
+    background: rgba(46, 196, 182, 0.05);
     transform: translateX(4px);
 }
 
 [data-theme="dark"] .swap-coach-item:hover {
-    background: rgba(139, 92, 246, 0.2);
+    background: rgba(46, 196, 182, 0.2);
 }
 
 .swap-coach-item .swap-exercise-thumb {
@@ -31335,12 +31335,12 @@ textarea,
     gap: 4px;
     margin-top: 4px;
     font-size: 11px;
-    color: #8b5cf6;
+    color: #2EC4B6;
     font-weight: 500;
 }
 
 .swap-coach-item .swap-arrow {
-    color: #8b5cf6;
+    color: #2EC4B6;
     flex-shrink: 0;
 }
 
