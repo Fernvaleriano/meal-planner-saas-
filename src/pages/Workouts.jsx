@@ -4365,7 +4365,26 @@ function Workouts() {
       // Normalize AI exercise data — AI workouts from generate-workout-claude.js
       // are missing trackingType/exercise_type and have reps as strings like "8-10".
       // Ensure all exercises have the fields that ExerciseCard and ExerciseDetailModal expect.
-      const normalized = filtered.map(ex => {
+      const normalized = filtered.map(rawEx => {
+        // Reconcile the two warm-up/cool-down labeling conventions present in
+        // stored workout data so the phase dividers and card styling below show
+        // the right "Warm-Up" / "Cool-Down" header regardless of which one a
+        // workout used:
+        //   - seeded default templates (seed-default-workouts.js) tag exercises
+        //     with `section: 'warm-up' | 'cool-down'` (no isWarmup/phase)
+        //   - coach-builder & AI workouts tag with isWarmup/isStretch/phase
+        //     (no section)
+        // The render path only reads isWarmup/isStretch/phase, so back-fill those
+        // from `section` when missing. Purely additive — never clears an existing
+        // flag — so hand-built warm-ups are untouched. Mirrors the multi-field
+        // check already used in client-profile.html and ExerciseDetailModal.jsx.
+        const isWarmup = rawEx.isWarmup || rawEx.phase === 'warmup' || rawEx.section === 'warm-up';
+        const isStretch = rawEx.isStretch || rawEx.phase === 'cooldown' || rawEx.section === 'cool-down';
+        const phase = rawEx.phase || (isWarmup ? 'warmup' : isStretch ? 'cooldown' : 'main');
+        const ex = (isWarmup !== !!rawEx.isWarmup || isStretch !== !!rawEx.isStretch || phase !== rawEx.phase)
+          ? { ...rawEx, isWarmup, isStretch, phase }
+          : rawEx;
+
         if (ex.trackingType && ex.exercise_type) return ex; // Already has required fields
         // Also check setsData for duration (workout builder stores per-set duration there)
         const hasSetsDataDuration = Array.isArray(ex.setsData) && ex.setsData.some(s => s?.duration);
