@@ -290,42 +290,56 @@ exports.handler = async (event) => {
         if (incoming.length === 0) return existing; // never wipe
         const keyOf = (e) =>
           e && (e.id != null ? `id:${e.id}` : `nm:${String(e.name || '').toLowerCase()}`);
-        const incomingByKey = new Map();
-        for (const e of incoming) incomingByKey.set(keyOf(e), e);
-        const existingKeys = new Set(existing.map(keyOf));
         // SWAP HANDLING: a swapped-in exercise carries `swappedFrom` = the key
-        // of the exercise it replaced. Without this, the merge below can't tell
-        // a swap from an omission: it would KEEP the swapped-out exercise (it's
-        // no longer in `incoming`) AND APPEND the swapped-in one as "new",
-        // making the old exercise reappear and the new one jump to the bottom
-        // on reload. Map each swap source key -> the replacement exercise so we
-        // can substitute it in place, preserving order.
+        // of the exercise it replaced. The swapped-out exercise is no longer in
+        // `incoming`; without this map the data-loss guard below would treat it
+        // as an omission and re-insert it, making the old exercise reappear
+        // alongside the new one. Map each swap source key so we can recognise
+        // (and therefore drop) the exercise that was intentionally replaced.
         const swapBySourceKey = new Map();
         for (const e of incoming) {
           if (e && e.swappedFrom != null) swapBySourceKey.set(String(e.swappedFrom), e);
         }
-        const placedKeys = new Set(); // incoming exercises positioned in place
-        // Walk existing in order: replace with incoming when present, substitute
-        // a swap in place when this slot was swapped out, otherwise KEEP the
-        // existing exercise (never drop on a client save — data-loss guard).
-        const merged = existing.map((e) => {
-          const k = keyOf(e);
-          if (incomingByKey.has(k)) {
-            placedKeys.add(k);
-            return incomingByKey.get(k);
-          }
-          if (swapBySourceKey.has(k)) {
-            const swapped = swapBySourceKey.get(k);
-            placedKeys.add(keyOf(swapped));
-            return swapped;
-          }
-          return e;
-        });
-        // Append genuinely new incoming exercises (e.g. a true add), but NOT
-        // ones already placed in place above (updates and swaps).
+        // Build the merged list by honoring the INCOMING order so client-side
+        // reorders (move up/down, drag) actually persist. Previously the merge
+        // walked `existing` in its stored order and only substituted matching
+        // incoming exercises in place, which silently discarded any reorder —
+        // the moved exercise snapped back on reload.
+        const placedKeys = new Set();
+        const merged = [];
         for (const e of incoming) {
           const k = keyOf(e);
-          if (!existingKeys.has(k) && !placedKeys.has(k)) merged.push(e);
+          if (placedKeys.has(k)) continue; // guard against dup keys in incoming
+          placedKeys.add(k);
+          merged.push(e);
+        }
+        // DATA-LOSS GUARD: a CLIENT save must never drop a plan exercise it
+        // omitted (e.g. play mode / a memory-loss reload sends a shortened
+        // list missing warm-ups/stretches). Re-insert any existing exercise
+        // that wasn't sent AND wasn't swapped out, positioning it next to its
+        // original neighbor so its relative place (top/middle/bottom) holds.
+        const findIdx = (k) => merged.findIndex((m) => keyOf(m) === k);
+        for (let i = 0; i < existing.length; i++) {
+          const e = existing[i];
+          const k = keyOf(e);
+          if (placedKeys.has(k)) continue;        // sent in incoming (update/reorder)
+          if (swapBySourceKey.has(k)) continue;   // intentionally swapped out
+          // Anchor after the nearest preceding existing exercise that survived;
+          // else before the nearest following one; else append at the end.
+          let insertAt = merged.length;
+          let anchored = false;
+          for (let j = i - 1; j >= 0; j--) {
+            const idx = findIdx(keyOf(existing[j]));
+            if (idx !== -1) { insertAt = idx + 1; anchored = true; break; }
+          }
+          if (!anchored) {
+            for (let j = i + 1; j < existing.length; j++) {
+              const idx = findIdx(keyOf(existing[j]));
+              if (idx !== -1) { insertAt = idx; break; }
+            }
+          }
+          merged.splice(insertAt, 0, e);
+          placedKeys.add(k);
         }
         return merged;
       };
