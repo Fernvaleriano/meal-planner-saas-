@@ -594,6 +594,44 @@ const DEFAULT_PROGRAMS = [
         ]
       }
     ]}
+  },
+
+  // ─── SAMPLE DAY — FULL BODY (single test day) ───────────────────────────────
+  // A short, one-day sample so the coach can see a freshly-seeded program load
+  // with every exercise's reference video/thumbnail attached automatically.
+  // Every exercise name below already exists in the library (reused from the
+  // templates above), so the enrichment step matches them and fills in media —
+  // no manual per-exercise loading needed.
+  {
+    name: 'Sample Day — Full Body (Test)',
+    description: 'Sample | 1 day | ~50 min | Warm-up + 6 lifts + stretches — links auto-load',
+    program_type: 'strength',
+    difficulty: 'beginner',
+    days_per_week: 1,
+    program_data: { days: [
+      {
+        name: 'Day 1 — Full Body Sample',
+        exercises: [
+          // WARM-UP
+          { name: 'Jumping jack', sets: 1, trackingType: 'time', duration: 60, setsData: [{ duration: 60, restSeconds: 15 }], notes: 'WARM-UP — Get your heart rate up. Light, controlled pace.', section: 'warm-up' },
+          { name: 'Arm circle', sets: 1, trackingType: 'time', duration: 30, setsData: [{ duration: 30, restSeconds: 10 }], notes: 'WARM-UP — 15 sec forward, 15 sec backward. Loosen shoulders.', section: 'warm-up' },
+          { name: 'High knees', sets: 1, trackingType: 'time', duration: 45, setsData: [{ duration: 45, restSeconds: 15 }], notes: 'WARM-UP — Drive knees to hip height. Stay light on your feet.', section: 'warm-up' },
+
+          // MAIN WORKOUT — compound first, then isolation
+          { name: 'Chest Press Machine', sets: 3, trackingType: 'reps', setsData: [{ reps: 12, restSeconds: 60 }, { reps: 12, restSeconds: 60 }, { reps: 12, restSeconds: 60 }], notes: 'Controlled tempo — 2 sec out, 2 sec back.' },
+          { name: 'Cable bar lateral pulldown', sets: 3, trackingType: 'reps', setsData: [{ reps: 12, restSeconds: 60 }, { reps: 12, restSeconds: 60 }, { reps: 12, restSeconds: 60 }], notes: 'Pull the bar to your upper chest, squeeze the shoulder blades.' },
+          { name: 'Leg press machine normal stance', sets: 3, trackingType: 'reps', setsData: [{ reps: 12, restSeconds: 75 }, { reps: 12, restSeconds: 75 }, { reps: 12, restSeconds: 75 }], notes: 'Feet shoulder-width. Go to 90 degrees. Do not lock out at the top.' },
+          { name: 'Dumbbell Seated Shoulder Press', sets: 3, trackingType: 'reps', setsData: [{ reps: 10, restSeconds: 60 }, { reps: 10, restSeconds: 60 }, { reps: 10, restSeconds: 60 }], notes: 'Seated for stability. Press up without fully locking the elbows.' },
+          { name: 'EZ Barbell Curl', sets: 3, trackingType: 'reps', setsData: [{ reps: 12, restSeconds: 45 }, { reps: 12, restSeconds: 45 }, { reps: 12, restSeconds: 45 }], notes: 'No swinging — control the weight, squeeze at the top.' },
+          { name: 'Cable pushdown', sets: 3, trackingType: 'reps', setsData: [{ reps: 12, restSeconds: 45 }, { reps: 12, restSeconds: 45 }, { reps: 12, restSeconds: 45 }], notes: 'Keep elbows pinned to your sides. Squeeze the triceps at the bottom.' },
+
+          // COOL-DOWN
+          { name: 'Above head chest stretch', sets: 1, trackingType: 'time', duration: 30, setsData: [{ duration: 30, restSeconds: 0 }], notes: 'COOL-DOWN — Clasp hands overhead, open the chest. Deep breaths.', section: 'cool-down' },
+          { name: 'Seated Toe Touch Hamstrings Stretch', sets: 1, trackingType: 'time', duration: 30, setsData: [{ duration: 30, restSeconds: 0 }], notes: 'COOL-DOWN — Reach for the toes, no bouncing.', section: 'cool-down' },
+          { name: 'Child Pose Lower back Stretch', sets: 1, trackingType: 'time', duration: 30, setsData: [{ duration: 30, restSeconds: 0 }], notes: 'COOL-DOWN — Sink the hips back, breathe deep. Nice work!', section: 'cool-down' }
+        ]
+      }
+    ]}
   }
 ];
 
