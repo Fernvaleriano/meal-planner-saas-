@@ -420,3 +420,45 @@ A partial React rebuild exists in `src/` but is **not the primary codebase**. So
 2. Exercise names must exist in the `exercises` table **with exact case matching** (the seed function looks them up to attach video/thumbnail URLs)
 3. The `CURRENT_DEFAULT_PROGRAM_NAMES` array auto-updates from `DEFAULT_PROGRAMS`
 4. Existing coaches who already have the template (by name) will NOT get a duplicate
+
+---
+
+## WORKOUT COACHING — CLIENT ROSTER & KEY INFO
+
+(Used when building workout programs. Always search the exercise database for
+EXACT exercise names — case-insensitive — before programming. Format,
+superset notation, name corrections, and custom exercises per the founder's
+"Workout Programming Instructions".)
+
+- **Nereyda** — Home gym: Smith machine, cables, DBs, bench, pull-up bar, leg
+  developer. Phase 2 program done.
+- **Kala Hinojos** (k.hinojos@yahoo.com, 575-399-5863, clientId 153) —
+  All-in-one home gym machine, bike, DBs only. Beginner. **BAD BACK + BAD LEFT
+  SHOULDER.** No lying leg curl, no pec deck. Has 3-day + full body programs.
+- **Brenda H** (575-318-3200) — 41F, 5'2", 165 lbs. Full home gym (cables,
+  trap bar, KBs, DBs, treadmill, bike, bands, Swiss ball, BOSU, step box,
+  medicine balls). **MAJOR HEALTH CONCERNS:** Pituitary tumor removed March
+  2025, Hashimoto's/hypothyroidism, right shoulder AC joint pain, left elbow
+  tennis elbow, achy knees, tight hip flexors (right worse), right foot heel
+  spur/Morton's neuroma/plantar fasciitis, dizzy spells sitting to standing.
+  **AVOID:** Overhead pressing, jumping, plyometrics, deep squats, lunges,
+  heavy gripping, situps/crunches, quick position changes. **Hip flexor
+  stretches EVERY session. Bike warm-ups OK.**
+- **Caro Dressler** — Limited equipment: Rotating climbing wall, upright bike,
+  recumbent bike, bumper plates, foam roller, DBs, curl bar, bench, medicine
+  balls, leg curl machine, leg extension machine, adduction machine, Swiss
+  ball. **NO barbell, NO cables, NO squat rack.** Sessions 35-40 min. Has
+  4-day, 5-day Phase 2, and Ab/HIIT programs.
+- **Mario Gonzalez** — Ex-boxer, full gym access, advanced but out of shape.
+  No injuries. 60 min sessions, 5 days/week. Goals: strength, power, speed,
+  conditioning, running. Has 5-day functional program.
+- **Javi** (575-390-4499) — 19yr male, 183.4 lbs, 5'10". Full gym. Beginner.
+  No injuries. Muay Thai focus — already has Muay Thai programs Sat/Sun. Has 3
+  gym days Mon/Wed/Fri.
+- **Fernando's brother** — Full gym (his own). High volume style
+  (run-the-rack). Has 3-day Legs/Back/Push split.
+- **Fernando's friend** — Home gym: Archon cable system, DBs 5-50lb, KBs
+  15/50/72lb, bands. Has shoulder destroyer workout.
+- **New client (18yr male)** — 165 lbs, 5'8". Full gym. Some experience. Goal:
+  lose weight. Hates vegetables, loves chicken/rice/steak. Has 3-day PPL fat
+  loss program.
