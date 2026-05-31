@@ -462,3 +462,12 @@ superset notation, name corrections, and custom exercises per the founder's
 - **New client (18yr male)** — 165 lbs, 5'8". Full gym. Some experience. Goal:
   lose weight. Hates vegetables, loves chicken/rice/steak. Has 3-day PPL fat
   loss program.
+
+### WORKOUT RULE — EVERY EXERCISE MUST HAVE A THUMBNAIL
+Every exercise in every program MUST resolve to a thumbnail. In practice that
+means each exercise name MUST match the exercise database EXACTLY
+(case-insensitive). Before delivering ANY program, verify the complete
+exercise list against the database (`/home/claude/original_database.xlsx`,
+"Exercise" column) — zero unmatched names. If a name doesn't match, search the
+DB and use the exact DB spelling (apply the standard name corrections first).
+No thumbnail = not done.
