@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Exercise Thumbnail Generator (one-time maintenance)</title>
+<style>
+  :root { --navy:#0A1F2E; --turq:#2EC4B6; }
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+         background:#0A1F2E; color:#fff; margin:0; padding:24px; }
+  .wrap { max-width:760px; margin:0 auto; }
+  h1 { font-size:22px; margin:0 0 6px; }
+  p.lead { color:#b9c6cf; margin:0 0 20px; line-height:1.5; }
+  button { background:var(--turq); color:#04201c; border:0; border-radius:10px;
+           padding:12px 22px; font-size:16px; font-weight:700; cursor:pointer; }
+  button:disabled { opacity:.5; cursor:default; }
+  .bar { height:14px; background:#13303f; border-radius:8px; overflow:hidden; margin:20px 0 8px; }
+  .bar > div { height:100%; width:0; background:var(--turq); transition:width .2s; }
+  .counts { font-size:14px; color:#b9c6cf; margin-bottom:16px; }
+  .counts b { color:#fff; }
+  #log { font-size:12px; line-height:1.5; max-height:340px; overflow:auto;
+         background:#0d2533; border:1px solid #19384a; border-radius:10px; padding:12px; }
+  .ok { color:#7fe3d6; } .skip { color:#9aa7b0; } .err { color:#ff8a80; }
+  .hidden { position:absolute; left:-9999px; width:1px; height:1px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Exercise Thumbnail Generator</h1>
+  <p class="lead">
+    One-time cleanup. This finds exercises that have a video but no picture, grabs a
+    still frame from each clip, and saves it as that exercise's thumbnail. It's safe to
+    re-run &mdash; anything already done is skipped automatically. Leave this tab open and
+    on-screen while it runs (a few minutes).
+  </p>
+  <button id="startBtn">Start</button>
+  <div class="bar"><div id="barFill"></div></div>
+  <div class="counts" id="counts">Idle.</div>
+  <div id="log"></div>
+</div>
+
+<!-- offscreen workspace -->
+<video id="vid" class="hidden" crossorigin="anonymous" muted playsinline preload="auto"></video>
+<canvas id="cv" class="hidden"></canvas>
+
+<script>
+(function () {
+  // The exercises that were missing a thumbnail (have a video) at build time.
+  // We re-check each against the live database before processing, so already-fixed
+  // ones are skipped — the list just bounds the work.
+  const IDS = [16,105,559,575,934,943,1472,3567,3638,4281,4324,4326,4363,5135,5238,5400,8998,10167,10180,10181,10512,10530,11430,11518,19807,19808,19809,19810,19811,19842,19848,19877,19879,19882,19893,19894,19902,19909,19910,19911,19926,19929,19930,20152,20185,20230,20340,20341,20354,20356,20359,20362,20370,20371,20372,20374,20375,20378,20381,20382,20383,20388,20390,20395,20397,20398,20399,20403,20407,20408,20414,20416,20421,20423,20428,20435,20447,20491,20505,20508,20509,20510,20511,20512,20513,20514,20515,20516,20517,20518,20519,20520,20521,20522,20523,20524,20525,20526,20527,20528,20530,20531,20532,20533,20534,20535,20536,20537,20538,20540,20541,20542,20543,20544,20545,20546,20547,20548,20549,20551,20552,20553,20554,20555,20556,20557,20565,20570,20571,20572,20573,20585,20596,20597,20598,20602,20605,20607,20609,20610,20617,20620,20629,20632,20726,20744,20775,20776,20780,20788,20792,20795,20805,20814,20818,20822,20823,20860,20862,20875,20952,20961,20962,20971,20973,20974,21112,21161,21238,21248,21249,21295,21311,21322,21336,21462,21495,21500,21502,21521,21622];
+
+  const THUMB_WIDTH = 400;       // output width in px (height keeps aspect ratio)
+  const JPEG_QUALITY = 0.82;
+  const LOAD_TIMEOUT_MS = 25000; // per-clip safety timeout
+
+  const vid = document.getElementById('vid');
+  const cv = document.getElementById('cv');
+  const ctx = cv.getContext('2d');
+  const startBtn = document.getElementById('startBtn');
+  const barFill = document.getElementById('barFill');
+  const countsEl = document.getElementById('counts');
+  const logEl = document.getElementById('log');
+
+  let done = 0, made = 0, skipped = 0, failed = 0, total = 0;
+
+  function log(msg, cls) {
+    const line = document.createElement('div');
+    if (cls) line.className = cls;
+    line.textContent = msg;
+    logEl.appendChild(line);
+    logEl.scrollTop = logEl.scrollHeight;
+  }
+  function updateCounts() {
+    barFill.style.width = total ? Math.round((done / total) * 100) + '%' : '0%';
+    countsEl.innerHTML = 'Done <b>' + done + '</b> / ' + total +
+      ' &nbsp;•&nbsp; pictures made <b>' + made + '</b>' +
+      ' &nbsp;•&nbsp; skipped <b>' + skipped + '</b>' +
+      ' &nbsp;•&nbsp; failed <b>' + failed + '</b>';
+  }
+
+  // Grab one frame from a video URL -> jpeg data URL
+  function captureFrame(url) {
+    return new Promise(function (resolve, reject) {
+      let settled = false;
+      const timer = setTimeout(function () {
+        if (!settled) { settled = true; cleanup(); reject(new Error('timed out loading clip')); }
+      }, LOAD_TIMEOUT_MS);
+
+      function cleanup() {
+        vid.removeEventListener('loadeddata', onLoaded);
+        vid.removeEventListener('seeked', onSeeked);
+        vid.removeEventListener('error', onError);
+        try { vid.pause(); } catch (e) {}
+      }
+      function onError() {
+        if (settled) return; settled = true; clearTimeout(timer); cleanup();
+        reject(new Error('clip would not load'));
+      }
+      function onLoaded() {
+        // Seek slightly into the clip to avoid an intro/black frame.
+        const t = isFinite(vid.duration) && vid.duration > 1
+          ? Math.min(0.6, vid.duration * 0.1) : 0.1;
+        try { vid.currentTime = t; } catch (e) { onSeeked(); }
+      }
+      function onSeeked() {
+        if (settled) return;
+        try {
+          const vw = vid.videoWidth, vh = vid.videoHeight;
+          if (!vw || !vh) throw new Error('no video frame available');
+          const w = THUMB_WIDTH, h = Math.round(THUMB_WIDTH * vh / vw);
+          cv.width = w; cv.height = h;
+          ctx.drawImage(vid, 0, 0, w, h);
+          const dataUrl = cv.toDataURL('image/jpeg', JPEG_QUALITY);
+          settled = true; clearTimeout(timer); cleanup();
+          resolve(dataUrl);
+        } catch (e) {
+          settled = true; clearTimeout(timer); cleanup();
+          reject(e);
+        }
+      }
+
+      vid.addEventListener('loadeddata', onLoaded);
+      vid.addEventListener('seeked', onSeeked);
+      vid.addEventListener('error', onError);
+      vid.src = url;
+      vid.load();
+    });
+  }
+
+  async function saveThumbnail(exerciseId, dataUrl) {
+    const res = await fetch('/.netlify/functions/upload-exercise-thumbnail', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        exerciseId: exerciseId,
+        imageBase64: dataUrl,
+        imageName: exerciseId + '.jpg'
+      })
+    });
+    if (!res.ok) {
+      const txt = await res.text().catch(function () { return ''; });
+      throw new Error('save failed (' + res.status + ') ' + txt.slice(0, 120));
+    }
+    return res.json();
+  }
+
+  // Pull fresh records (video + current thumbnail) for our IDs, in chunks.
+  async function fetchTargets() {
+    const out = [];
+    const chunkSize = 60;
+    for (let i = 0; i < IDS.length; i += chunkSize) {
+      const chunk = IDS.slice(i, i + chunkSize);
+      const res = await fetch('/.netlify/functions/exercises?ids=' + chunk.join(','));
+      if (!res.ok) throw new Error('Could not load exercise list (' + res.status + ')');
+      const data = await res.json();
+      (data.exercises || []).forEach(function (ex) { out.push(ex); });
+    }
+    return out;
+  }
+
+  async function run() {
+    startBtn.disabled = true;
+    log('Loading the list from your database…');
+    let targets;
+    try {
+      targets = await fetchTargets();
+    } catch (e) {
+      log('Could not load the list: ' + e.message, 'err');
+      startBtn.disabled = false;
+      return;
+    }
+
+    total = targets.length;
+    updateCounts();
+    log('Found ' + total + ' exercises to check.');
+
+    for (const ex of targets) {
+      const url = ex.video_url || ex.animation_url;
+      if (ex.thumbnail_url) {
+        skipped++; done++; updateCounts();
+        log('· #' + ex.id + ' already has a picture — skipped', 'skip');
+        continue;
+      }
+      if (!url) {
+        skipped++; done++; updateCounts();
+        log('· #' + ex.id + ' has no clip — skipped', 'skip');
+        continue;
+      }
+      try {
+        const dataUrl = await captureFrame(url);
+        await saveThumbnail(ex.id, dataUrl);
+        made++; done++; updateCounts();
+        log('✓ #' + ex.id + ' picture saved', 'ok');
+      } catch (e) {
+        failed++; done++; updateCounts();
+        log('✗ #' + ex.id + ' ' + e.message, 'err');
+      }
+    }
+
+    log('— Finished. ' + made + ' pictures made, ' + skipped + ' skipped, ' + failed + ' failed. —');
+    if (failed > 0) {
+      log('You can press Start again to retry the failed ones (the rest are skipped automatically).');
+    }
+    startBtn.disabled = false;
+  }
+
+  startBtn.addEventListener('click', run);
+})();
+</script>
+</body>
+</html>
