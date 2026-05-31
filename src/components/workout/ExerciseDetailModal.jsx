@@ -3328,7 +3328,16 @@ function ExerciseDetailModal({
                 const wasCompleted = isCompleted;
                 onToggleComplete?.();
                 if (!wasCompleted) {
-                  const nextEx = exercises[currentIndex + 1];
+                  // Find our real position by the actual exercise object, not by
+                  // id — two of the same exercise (e.g. a warm-up squat and a
+                  // main squat) share an id, so an id lookup always returns the
+                  // first one and the auto-advance gets stuck. The exercises
+                  // array keeps stable references, so indexOf pinpoints the
+                  // exact slot. Fall back to currentIndex if the reference isn't
+                  // found for any reason.
+                  let idx = exercises.indexOf(exercise);
+                  if (idx === -1) idx = currentIndex;
+                  const nextEx = exercises[idx + 1];
                   if (nextEx) {
                     // Brief pause so the green check registers visually before
                     // sliding to the next exercise.
