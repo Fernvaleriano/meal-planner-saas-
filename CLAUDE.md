@@ -36,18 +36,6 @@ headers in a casual conversation — stop, delete, rewrite plain.
   `thumbnail_url` in the `exercises` table. Filter on it before adding an
   exercise. No thumbnail, do not use it. (Exercise names must also match
   the `exercises` table exactly, case-sensitive.)
-- **WORKOUTS: saved reference links auto-attach on plan open (do NOT
-  break this).** The coach saves per-exercise reference links globally in
-  the `coach_exercise_references` table (match on `coach_id` +
-  case-insensitive `exercise_name`; stored shape is snake_case
-  `reference_links`, an array of `{url, title, type}`). The builder render
-  reads `exercise.reference_links` (snake_case). When a saved plan is
-  opened, `selectProgram` in `coach-workouts.html` calls
-  `attachGlobalRefsToDays`, which merges those saved links into every
-  exercise so they always show. There is intentionally NO "Load Saved
-  Links" button anymore (removed May 2026) because the coach hated tapping
-  it per exercise. If you ever rebuild the loader or the reference-links
-  panel, keep the auto-attach and do not reintroduce the manual button.
 
 ## ⚠️ OPERATIONAL REMINDERS — ACTION REQUIRED (read me)
 

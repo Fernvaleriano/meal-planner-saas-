@@ -8037,12 +8037,6 @@
                 workoutDays = program.program_data?.days || [];
                 // Enrich exercises with fresh video URLs from the database
                 await enrichWorkoutDaysWithVideos(workoutDays);
-                // Auto-attach the coach's saved reference links so they show
-                // immediately on open. Without this, opening a saved plan shows
-                // empty links and forces a manual "Load Saved Links" tap per
-                // exercise (the merge otherwise only runs when adding from the
-                // picker). This makes that button unnecessary.
-                attachGlobalRefsToDays(workoutDays);
                 document.getElementById('isClubWorkout').checked = !!program.is_club_workout;
                 activeDayIndex = 0;
                 selectedExerciseIndex = null;
@@ -9052,6 +9046,18 @@
                                     ${hasGlobalRefs(exercise.name) ? 'Update Global Links' : 'Save Globally'}
                                 </button>
                             ` : ''}
+                            ${(!exercise.reference_links || exercise.reference_links.length === 0) && hasGlobalRefs(exercise.name) ? `
+                                <button class="load-global-btn" onclick="loadGlobalRefsForExercise(${di}, ${ei})" title="Load your saved global reference links for this exercise">
+                                    <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                                    Load Saved Links
+                                </button>
+                            ` : ''}
+                            ${(exercise.reference_links && exercise.reference_links.length > 0) && hasGlobalRefs(exercise.name) ? `
+                                <button class="load-global-btn" onclick="loadGlobalRefsForExercise(${di}, ${ei})" title="Load any additional saved global links">
+                                    <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                                    Load Saved
+                                </button>
+                            ` : ''}
                         </div>
                     </div>
                 </div>
@@ -9302,6 +9308,18 @@
                                         ${hasGlobalRefs(exercise.name) ? 'Update Global Links' : 'Save Globally'}
                                     </button>
                                 ` : ''}
+                                ${(!exercise.reference_links || exercise.reference_links.length === 0) && hasGlobalRefs(exercise.name) ? `
+                                    <button class="load-global-btn" onclick="loadGlobalRefsForExercise(${dayIndex}, ${exIndex})" title="Load your saved global reference links for this exercise">
+                                        <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                                        Load Saved Links
+                                    </button>
+                                ` : ''}
+                                ${(exercise.reference_links && exercise.reference_links.length > 0) && hasGlobalRefs(exercise.name) ? `
+                                    <button class="load-global-btn" onclick="loadGlobalRefsForExercise(${dayIndex}, ${exIndex})" title="Load any additional saved global links">
+                                        <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                                        Load Saved
+                                    </button>
+                                ` : ''}
                             </div>
                         </div>
                         ${exercise.recommendedSwaps && exercise.recommendedSwaps.length > 0 ? `
@@ -9470,26 +9488,6 @@
         function getGlobalRefsForExercise(exerciseName) {
             if (!exerciseName || !globalRefsLoaded) return [];
             return globalExerciseReferences[exerciseName.toLowerCase()] || [];
-        }
-
-        // Merge the coach's saved global links into every exercise across the
-        // given days. Runs when a saved plan is opened so links show up without
-        // the coach tapping "Load Saved Links" on each exercise. Only adds links
-        // not already present (matched by URL), so it never duplicates or
-        // overwrites links the coach added manually.
-        function attachGlobalRefsToDays(days) {
-            if (!days || !globalRefsLoaded) return;
-            days.forEach(day => {
-                (day.exercises || []).forEach(ex => {
-                    const globalRefs = getGlobalRefsForExercise(ex.name);
-                    if (globalRefs.length === 0) return;
-                    if (!Array.isArray(ex.reference_links)) ex.reference_links = [];
-                    const existingUrls = new Set(ex.reference_links.map(l => l.url));
-                    globalRefs.forEach(ref => {
-                        if (!existingUrls.has(ref.url)) ex.reference_links.push({ ...ref });
-                    });
-                });
-            });
         }
 
         function hasGlobalRefs(exerciseName) {
