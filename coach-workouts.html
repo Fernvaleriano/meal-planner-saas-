@@ -9302,18 +9302,6 @@
                                         ${hasGlobalRefs(exercise.name) ? 'Update Global Links' : 'Save Globally'}
                                     </button>
                                 ` : ''}
-                                ${(!exercise.reference_links || exercise.reference_links.length === 0) && hasGlobalRefs(exercise.name) ? `
-                                    <button class="load-global-btn" onclick="loadGlobalRefsForExercise(${dayIndex}, ${exIndex})" title="Load your saved global reference links for this exercise">
-                                        <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-                                        Load Saved Links
-                                    </button>
-                                ` : ''}
-                                ${(exercise.reference_links && exercise.reference_links.length > 0) && hasGlobalRefs(exercise.name) ? `
-                                    <button class="load-global-btn" onclick="loadGlobalRefsForExercise(${dayIndex}, ${exIndex})" title="Load any additional saved global links">
-                                        <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-                                        Load Saved
-                                    </button>
-                                ` : ''}
                             </div>
                         </div>
                         ${exercise.recommendedSwaps && exercise.recommendedSwaps.length > 0 ? `
