@@ -36,6 +36,19 @@ headers in a casual conversation — stop, delete, rewrite plain.
   `thumbnail_url` in the `exercises` table. Filter on it before adding an
   exercise. No thumbnail, do not use it. (Exercise names must also match
   the `exercises` table exactly, case-sensitive.)
+- **WORKOUTS: always pre-fill the coach's saved reference links.** When
+  building a plan by writing JSON straight into `workout_programs`
+  (instead of clicking through the builder UI), the builder's auto-merge
+  of the coach's saved links does NOT run, so every exercise shows a
+  "Load Saved Links" button the coach has to tap one by one. AVOID THIS.
+  For each exercise, set its `reference_links` from the
+  `coach_exercise_references` table (match on `coach_id` +
+  case-insensitive `exercise_name`) whenever a saved entry exists and the
+  exercise has none yet. The stored shape is snake_case `reference_links`,
+  an array of `{url, title, type}`. Do this as part of every plan insert,
+  not as a follow-up. (The builder render reads `exercise.reference_links`
+  snake_case; the auto-merge on manual add lives in `addExerciseToDay` in
+  `coach-workouts.html`.)
 
 ## ⚠️ OPERATIONAL REMINDERS — ACTION REQUIRED (read me)
 
