@@ -24,6 +24,19 @@ response, every chat, forever — not just technical ones.
 If you find yourself writing a wall of text with code blocks and
 headers in a casual conversation — stop, delete, rewrite plain.
 
+## 🔒 STANDING RULES — NEVER ASK, ALWAYS DO (founder locked these in)
+
+- **NO EM DASHES. EVER.** Never use the em dash character in ANY notes,
+  workout coaching cues, plan descriptions, messages, marketing copy, or
+  anything the founder or a client will read. Use periods, commas, or the
+  word "to" for ranges (e.g. "8 to 10 reps"). A normal hyphen in a word
+  like "warm-up" is fine. This applies to everything, forever.
+- **WORKOUTS: only use exercises that have a thumbnail.** When building or
+  editing any workout plan, every exercise picked MUST have a non-null
+  `thumbnail_url` in the `exercises` table. Filter on it before adding an
+  exercise. No thumbnail, do not use it. (Exercise names must also match
+  the `exercises` table exactly, case-sensitive.)
+
 ## ⚠️ OPERATIONAL REMINDERS — ACTION REQUIRED (read me)
 
 - **DECISION (May 2026): WEB-ONLY. Native / App Store is intentionally
