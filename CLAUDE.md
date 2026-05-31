@@ -36,19 +36,18 @@ headers in a casual conversation — stop, delete, rewrite plain.
   `thumbnail_url` in the `exercises` table. Filter on it before adding an
   exercise. No thumbnail, do not use it. (Exercise names must also match
   the `exercises` table exactly, case-sensitive.)
-- **WORKOUTS: always pre-fill the coach's saved reference links.** When
-  building a plan by writing JSON straight into `workout_programs`
-  (instead of clicking through the builder UI), the builder's auto-merge
-  of the coach's saved links does NOT run, so every exercise shows a
-  "Load Saved Links" button the coach has to tap one by one. AVOID THIS.
-  For each exercise, set its `reference_links` from the
-  `coach_exercise_references` table (match on `coach_id` +
-  case-insensitive `exercise_name`) whenever a saved entry exists and the
-  exercise has none yet. The stored shape is snake_case `reference_links`,
-  an array of `{url, title, type}`. Do this as part of every plan insert,
-  not as a follow-up. (The builder render reads `exercise.reference_links`
-  snake_case; the auto-merge on manual add lives in `addExerciseToDay` in
-  `coach-workouts.html`.)
+- **WORKOUTS: saved reference links auto-attach on plan open (do NOT
+  break this).** The coach saves per-exercise reference links globally in
+  the `coach_exercise_references` table (match on `coach_id` +
+  case-insensitive `exercise_name`; stored shape is snake_case
+  `reference_links`, an array of `{url, title, type}`). The builder render
+  reads `exercise.reference_links` (snake_case). When a saved plan is
+  opened, `selectProgram` in `coach-workouts.html` calls
+  `attachGlobalRefsToDays`, which merges those saved links into every
+  exercise so they always show. There is intentionally NO "Load Saved
+  Links" button anymore (removed May 2026) because the coach hated tapping
+  it per exercise. If you ever rebuild the loader or the reference-links
+  panel, keep the auto-attach and do not reintroduce the manual button.
 
 ## ⚠️ OPERATIONAL REMINDERS — ACTION REQUIRED (read me)
 
