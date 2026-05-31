@@ -3321,7 +3321,21 @@ function ExerciseDetailModal({
             </div>
             <button
               className={`complete-exercise-btn ${isCompleted ? 'completed' : ''}`}
-              onClick={onToggleComplete}
+              onClick={() => {
+                // Capture state BEFORE toggling: only auto-advance when the
+                // user is checking the exercise OFF (marking it done), never
+                // when they're un-doing a completion.
+                const wasCompleted = isCompleted;
+                onToggleComplete?.();
+                if (!wasCompleted) {
+                  const nextEx = exercises[currentIndex + 1];
+                  if (nextEx) {
+                    // Brief pause so the green check registers visually before
+                    // sliding to the next exercise.
+                    setTimeout(() => handleExerciseSelect(nextEx), 250);
+                  }
+                }
+              }}
               type="button"
             >
               <Check size={28} />
