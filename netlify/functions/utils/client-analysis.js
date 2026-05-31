@@ -50,7 +50,7 @@ async function analyzeClientHistory(supabase, clientId) {
   try {
     const [logsRes, assignmentsRes] = await Promise.all([
       supabase.from('workout_logs')
-        .select('id, workout_date, duration_minutes, perceived_exertion')
+        .select('id, workout_date, duration_minutes, perceived_exertion, notes')
         .eq('client_id', clientId)
         .gte('workout_date', sixtyDaysAgo)
         .order('workout_date', { ascending: true }),
@@ -84,7 +84,7 @@ async function analyzeClientHistory(supabase, clientId) {
   let exLogs = [];
   try {
     const { data } = await supabase.from('exercise_logs')
-      .select('exercise_name, max_weight, total_volume, total_sets, total_reps, is_pr, workout_log_id')
+      .select('exercise_name, max_weight, total_volume, total_sets, total_reps, is_pr, workout_log_id, client_notes')
       .in('workout_log_id', logIds)
       .limit(500);
     exLogs = data || [];
@@ -186,6 +186,28 @@ async function analyzeClientHistory(supabase, clientId) {
   }
   exerciseAnalysis.sort((a, b) => b.sessions - a.sessions);
 
+  // ─── Recent client comments (free-text the client wrote) ──────────────────
+  // The client's own words about how training felt — the qualitative signal a
+  // real coach reads before writing the next block. Pain, fatigue, enjoyment,
+  // and difficulty cues that the numbers alone can't show. We do NOT read voice
+  // notes here (client_voice_note_path) since the model can't hear audio.
+  const clientComments = [];
+  for (const ex of exLogs) {
+    const note = (ex.client_notes || '').trim();
+    if (note) clientComments.push({ date: logDateMap[ex.workout_log_id] || null, context: ex.exercise_name, text: note });
+  }
+  for (const l of logs) {
+    const note = (l.notes || '').trim();
+    if (note) clientComments.push({ date: l.workout_date || null, context: 'whole session', text: note });
+  }
+  // Most recent first; cap count + length to protect the prompt token budget
+  clientComments.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+  const recentComments = clientComments.slice(0, 8).map(c => ({
+    date: c.date,
+    context: c.context,
+    text: c.text.length > 200 ? c.text.slice(0, 197) + '…' : c.text
+  }));
+
   // Aggregate metrics
   const rpeValues = logs.map(l => l.perceived_exertion).filter(v => v != null);
   const avgRPE = rpeValues.length > 0 ? rpeValues.reduce((s, v) => s + v, 0) / rpeValues.length : null;
@@ -231,6 +253,7 @@ async function analyzeClientHistory(supabase, clientId) {
     lastProgramName: lastAssignments[0]?.name || null,
     programHistory: lastAssignments.map(p => p.name),
     exerciseAnalysis: exerciseAnalysis.slice(0, 12),
+    clientComments: recentComments,
     overallRecommendation
   };
 }
@@ -266,6 +289,14 @@ function formatAnalysisForPrompt(analysis) {
     }
   }
 
+  if (analysis.clientComments && analysis.clientComments.length > 0) {
+    lines.push(`\n=== WHAT THE CLIENT HAS BEEN SAYING (their own words) ===`);
+    lines.push('First-hand feedback the client typed while training. Weight this heavily — it reveals pain, fatigue, enjoyment, and difficulty the numbers alone miss.');
+    for (const c of analysis.clientComments) {
+      lines.push(`  • [${c.date || 'recent'}, ${c.context}] "${c.text}"`);
+    }
+  }
+
   lines.push(`\nOverall: ${analysis.overallRecommendation}`);
 
   lines.push(`\n=== HOW TO ACT ON THIS BRIEFING ===
@@ -276,6 +307,7 @@ function formatAnalysisForPrompt(analysis) {
 - "✓ PERSIST" exercises: keep them. Stable progress is GOOD.
 - DELOAD if flagged: drop 1 set per exercise, drop ~25% load, keep technique focus.
 - Sets/reps/rest schemes: follow the goal-appropriate ranges, but if RPE is high, lean toward fewer reps + more rest. If RPE is low, push more volume.
+- CLIENT COMMENTS: treat their words as priority signal. If they flagged pain or a joint issue on a movement, swap or regress it even if the numbers look fine. If something felt great or too easy, lean into it (keep it, progress it). If they mentioned time/energy constraints, respect them.
 
 DO NOT change everything — that's not how good coaching works. Progressive overload + selective novelty is the goal.`);
 
