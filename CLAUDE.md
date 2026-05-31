@@ -420,3 +420,24 @@ A partial React rebuild exists in `src/` but is **not the primary codebase**. So
 2. Exercise names must exist in the `exercises` table **with exact case matching** (the seed function looks them up to attach video/thumbnail URLs)
 3. The `CURRENT_DEFAULT_PROGRAM_NAMES` array auto-updates from `DEFAULT_PROGRAMS`
 4. Existing coaches who already have the template (by name) will NOT get a duplicate
+
+## STRETCH / COOL-DOWN RULE (founder-mandated — applies to EVERY workout day)
+
+The cool-down stretches must always be **sophisticated and match the
+muscles actually trained that day**. This is a hard rule, not a nicety.
+
+- **Match the body part to the day.** Upper-body day → upper-body
+  stretches (chest/pec, lats, cross-body & reverse shoulder, triceps
+  overhead, biceps, neck/traps). Leg day → leg stretches (quad, hamstring,
+  hip flexor, glute/figure-4, adductor, calf). **NEVER** put lower-body
+  stretches (figure-four glute, child's pose alone) on an upper-body day,
+  and vice-versa. That mismatch is exactly what the founder called out.
+- **Vary them.** Do not paste the same 1–2 stretches at the end of every
+  day. Each day's cool-down should be a thoughtful, distinct set that hits
+  the specific muscles worked, ideally 4–5 stretches.
+- **Always give real variety** — pull from the full stretch library, don't
+  default to the same generic handful.
+- **Every exercise (stretches included) must have a thumbnail** — only use
+  exercises where `thumbnail_url` is non-null. Confirm before saving.
+- Child's-pose / lumbar-decompression at the very end is fine on any day
+  (back-friendly), but it is the *closer*, not the whole cool-down.
