@@ -129,6 +129,9 @@ export function usePullToRefresh(onRefresh, options = {}) {
 
         // Safety timeout — force-reset after 10 seconds
         refreshTimeoutRef.current = setTimeout(() => {
+          // Clear the ref synchronously so updateIndicatorDOM doesn't re-enter
+          // the "refreshing" branch (the state→ref sync is async via useEffect).
+          isRefreshingRef.current = false;
           setIsRefreshing(false);
           updateIndicatorDOM(0);
         }, 10000);
@@ -140,6 +143,11 @@ export function usePullToRefresh(onRefresh, options = {}) {
         } finally {
           clearTimeout(refreshTimeoutRef.current);
           refreshTimeoutRef.current = null;
+          // Clear the ref synchronously BEFORE updateIndicatorDOM(0), otherwise
+          // it still reads isRefreshingRef.current === true (state→ref sync runs
+          // later via useEffect) and re-shows the indicator at 50px — leaving the
+          // "Pull to refresh" banner stuck on screen after the refresh finishes.
+          isRefreshingRef.current = false;
           setIsRefreshing(false);
           updateIndicatorDOM(0);
           // Reset spinner text
@@ -180,6 +188,9 @@ export function usePullToRefresh(onRefresh, options = {}) {
     const resetAll = () => {
       touchStartRef.current = 0;
       pullDistanceRef.current = 0;
+      // Clear the ref synchronously so updateIndicatorDOM doesn't re-enter the
+      // "refreshing" branch (state→ref sync is async via useEffect).
+      isRefreshingRef.current = false;
       setIsRefreshing(false);
       updateIndicatorDOM(0);
       if (refreshTimeoutRef.current) {
