@@ -4073,8 +4073,12 @@ function Workouts() {
   // exercisesOverride: optional array of exercises with final logged data (from play mode)
   // elapsedSeconds: optional actual elapsed time in seconds (from play mode timer)
   // to avoid race condition where React state hasn't updated yet
-  const handleCompleteWorkout = useCallback(async (exercisesOverride, elapsedSeconds) => {
-    if (!workoutLog?.id) return;
+  const handleCompleteWorkout = useCallback(async (exercisesOverride, elapsedSeconds, logOverride) => {
+    // logOverride lets the caller pass a freshly-created log so we don't depend
+    // on the workoutLog state having re-rendered yet (avoids a silent no-op
+    // when the log was just created on demand in handleFinishClick).
+    const activeLog = logOverride?.id ? logOverride : workoutLog;
+    if (!activeLog?.id) return;
     setShowFinishConfirm(false);
     setCompletingWorkout(true);
 
@@ -4139,7 +4143,7 @@ function Workouts() {
       try {
         result = await Promise.race([
           apiPut('/.netlify/functions/workout-logs', {
-            workoutId: workoutLog.id,
+            workoutId: activeLog.id,
             status: 'completed',
             completedAt: new Date().toISOString(),
             durationMinutes,
@@ -4756,24 +4760,62 @@ function Workouts() {
     return computed || todayWorkout?.workout_data?.estimatedCalories || 0;
   }, [todayWorkout, exercises, calorieOpts]);
 
+  // Make sure a workout log exists before we try to finish. The log is normally
+  // created eagerly when the workout view opens, but that's a fire-and-forget
+  // request — if it failed (network blip) or is still in flight, workoutLog can
+  // be null. The server POST is idempotent (returns the existing log for the
+  // same client+date+assignment), so creating here can't make a duplicate.
+  const ensureWorkoutLog = useCallback(async () => {
+    if (workoutLog?.id) return workoutLog;
+    if (!clientData?.id || !todayWorkout?.id) return null;
+    try {
+      const res = await apiPost('/.netlify/functions/workout-logs', {
+        clientId: clientData.id,
+        coachId: clientData.coach_id,
+        assignmentId: todayWorkout.is_adhoc ? null : todayWorkout.id,
+        workoutDate: formatDate(selectedDate),
+        workoutName: todayWorkout?.name || 'Workout',
+        status: 'in_progress'
+      });
+      const created = res?.workout || res?.log || null;
+      if (created) setWorkoutLog(created);
+      return created;
+    } catch (err) {
+      console.error('Error creating workout log on demand:', err);
+      return null;
+    }
+  }, [workoutLog, clientData?.id, clientData?.coach_id, todayWorkout, selectedDate]);
+
   // Handle finish button click - show confirmation if activities are incomplete
   // exercisesOverride: optional array of exercises with final logged data (from play mode)
   // elapsedSeconds: optional actual elapsed time in seconds (from play mode timer)
-  const handleFinishClick = useCallback((exercisesOverride, elapsedSeconds) => {
-    if (!workoutLog?.id) return;
+  const handleFinishClick = useCallback(async (exercisesOverride, elapsedSeconds) => {
+    // When wired directly to onClick, React passes the click event as the first
+    // arg — only treat a real array as a play-mode override.
+    const override = Array.isArray(exercisesOverride) ? exercisesOverride : undefined;
+
+    // Resolve (creating if needed) the workout log up front. Previously this
+    // returned silently when workoutLog was missing, so tapping Finish did
+    // nothing at all — the "doesn't always work" bug.
+    const log = await ensureWorkoutLog();
+    if (!log?.id) {
+      showError('Could not save your workout — check your connection and try again.');
+      return;
+    }
+
     // Store actual duration from play mode timer if provided
     if (elapsedSeconds && elapsedSeconds > 0) {
       setActualDurationMinutes(Math.round(elapsedSeconds / 60));
       // Track how many exercises were covered by the guided workout timer
       // so we can add estimated time for any exercises added later
-      setGuidedExerciseCount(exercisesOverride?.length || exercises.length);
+      setGuidedExerciseCount(override?.length || exercises.length);
     }
-    if (completedExercises.size < exercises.length && !exercisesOverride) {
+    if (completedExercises.size < exercises.length && !override) {
       setShowFinishConfirm(true);
     } else {
-      handleCompleteWorkout(exercisesOverride, elapsedSeconds);
+      handleCompleteWorkout(override, elapsedSeconds, log);
     }
-  }, [workoutLog?.id, completedExercises.size, exercises.length, handleCompleteWorkout]);
+  }, [ensureWorkoutLog, completedExercises.size, exercises.length, handleCompleteWorkout, showError]);
 
   // Mark all exercises as done and complete
   const handleMarkAllDone = useCallback(() => {
