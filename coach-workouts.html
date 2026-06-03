@@ -11430,6 +11430,27 @@
          * Check selected clients' equipment restrictions against current workout
          * and display alert banners in the schedule modal.
          */
+        // Returns true when a restricted-equipment term `r` (already lowercased)
+        // applies to an exercise, judged by its equipment field and/or its name.
+        // Tolerant of plurals and word order so a restriction like "battle ropes"
+        // still flags an exercise named "Battle Rope Double Arm Slams" (whose
+        // equipment column is just "bodyweight").
+        function restrictionMatchesExercise(r, exEquipLower, exNameLower) {
+            if (!r) return false;
+            // 1) Equipment-field overlap ("cable" vs "cable machine", etc.)
+            if (exEquipLower && (exEquipLower.includes(r) || r.includes(exEquipLower))) return true;
+            // 2) Whole restriction appears verbatim in the name
+            if (exNameLower && exNameLower.includes(r)) return true;
+            // 3) Word-level name match: every significant word of the restriction
+            //    must appear as a word in the exercise name (plural-tolerant).
+            const singularize = w => (w.length > 3 ? w.replace(/s$/, '') : w);
+            const stop = new Set(['the','a','an','with','and','of','for','machine','equipment']);
+            const rWords = r.split(/[^a-z0-9]+/).filter(w => w && !stop.has(w)).map(singularize);
+            if (rWords.length === 0) return false;
+            const nameWords = new Set((exNameLower || '').split(/[^a-z0-9]+/).filter(Boolean).map(singularize));
+            return rWords.every(w => nameWords.has(w));
+        }
+
         function checkAndDisplayEquipmentAlerts() {
             const container = document.getElementById('equipmentAlertContainer');
             if (!container) return;
@@ -11461,10 +11482,7 @@
                         const ex = exercises[exIdx];
                         const exEquipLower = (ex.equipment || '').toLowerCase();
                         const exNameLower = (ex.name || '').toLowerCase();
-                        const matched = restrictedLower.find(r =>
-                            (exEquipLower && (exEquipLower.includes(r) || r.includes(exEquipLower))) ||
-                            exNameLower.includes(r)
-                        );
+                        const matched = restrictedLower.find(r => restrictionMatchesExercise(r, exEquipLower, exNameLower));
                         if (matched) {
                             const matchedOriginal = unavailable.find(e => e.toLowerCase() === matched);
                             conflicts.push({
@@ -11562,10 +11580,7 @@
                     const equipLower = (ex.equipment || '').toLowerCase();
                     const nameLower = (ex.name || '').toLowerCase();
                     // Exclude exercises that use any restricted equipment
-                    return !restrictedLower.some(r =>
-                        (equipLower && (equipLower.includes(r) || r.includes(equipLower))) ||
-                        nameLower.includes(r)
-                    );
+                    return !restrictedLower.some(r => restrictionMatchesExercise(r, equipLower, nameLower));
                 });
 
                 const container = document.getElementById('swapSuggestionsList');
