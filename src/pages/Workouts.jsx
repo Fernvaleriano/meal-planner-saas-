@@ -5305,7 +5305,12 @@ function Workouts() {
                       if (group.length === 1) {
                         const workout = first;
                         const cardExercises = getWorkoutExercises(workout);
-                        const cardCompletedCount = getWorkoutCompletedCount(workout);
+                        // Pass client id + selected date so the durable client+date
+                        // completion store is read (assignment cards carry no
+                        // workout_date). Without these the card only saw the
+                        // per-exercise localStorage key — which the finish step
+                        // clears — so it read 0 after "Mark everything as done".
+                        const cardCompletedCount = getWorkoutCompletedCount(workout, clientData?.id, formatDate(selectedDate));
                         const cardDayName = workout.name || workout.workout_data?.name || 'Workout';
                         const totalDays = workout.workout_data?.days?.length || 0;
                         const currentDay = totalDays > 0 ? (workout.day_index || 0) + 1 : 0;
@@ -5377,7 +5382,7 @@ function Workouts() {
                           <div className="workout-card-content workout-card-content-merged">
                             {group.map((workout, idx) => {
                               const cardExercises = getWorkoutExercises(workout);
-                              const cardCompletedCount = getWorkoutCompletedCount(workout);
+                              const cardCompletedCount = getWorkoutCompletedCount(workout, clientData?.id, formatDate(selectedDate));
                               const totalDays = workout.workout_data?.days?.length || 0;
                               const currentDay = totalDays > 0 ? (workout.day_index || 0) + 1 : 0;
                               const daySpecificName = workout.workout_data?.name && workout.workout_data.name !== workout.name
