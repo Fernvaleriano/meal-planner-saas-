@@ -1125,6 +1125,25 @@
             border-color: #334155;
             color: #94a3b8;
         }
+        /* "Already commented" state — turquoise so the coach can see at a
+           glance they've already replied to this win. */
+        .activity-reply-btn.commented {
+            background: #e6f7f5;
+            border-color: var(--brand-primary);
+            color: var(--brand-primary-dark);
+            font-weight: 600;
+        }
+        [data-theme="dark"] .activity-reply-btn.commented {
+            background: rgba(46, 196, 182, 0.15);
+            border-color: #2EC4B6;
+            color: #5eead4;
+        }
+        /* When a win already has a reaction or comment, keep the action row
+           at full opacity (it's normally dimmed until hover) so the coach
+           can tell they've already responded without hovering. */
+        .activity-item-actions.has-activity {
+            opacity: 1;
+        }
         .activity-tl-empty {
             text-align: center;
             padding: 24px 16px;
@@ -6885,6 +6904,7 @@
         let _activityFeedLoaded = false;
         let _activityClientMap = {}; // client id → client data
         let _activityReactionsMap = {}; // 'itemType:itemId' → emoji
+        let _activityCommentsMap = {}; // 'itemType:itemId' → true (coach already commented)
 
         async function loadActivityFeed(coachId) {
             _activityFeedLoaded = true;
@@ -7066,6 +7086,20 @@
                     }
                 } catch (e) { console.error('Error fetching activity reactions:', e); }
 
+                // Fetch which items the coach has already commented on
+                _activityCommentsMap = {};
+                try {
+                    const { data: existingComments } = await supabaseClient
+                        .from('activity_comments')
+                        .select('item_type, item_id')
+                        .eq('coach_id', coachId);
+                    if (existingComments) {
+                        existingComments.forEach(c => {
+                            _activityCommentsMap[c.item_type + ':' + c.item_id] = true;
+                        });
+                    }
+                } catch (e) { console.error('Error fetching activity comments:', e); }
+
                 // Group by client
                 _activityGrouped = {};
                 events.forEach(ev => {
@@ -7115,10 +7149,16 @@
             const reactionKey = itemType + ':' + itemId;
             const wasReacted = btn.classList.contains('reacted');
 
+            const actionsEl = itemEl?.querySelector('.activity-item-actions');
+
             // Toggle off if same reaction
             if (wasReacted) {
                 btn.classList.remove('reacted');
                 delete _activityReactionsMap[reactionKey];
+                // Only dim the row back down if there's no comment marker left.
+                if (actionsEl && !_activityCommentsMap[reactionKey]) {
+                    actionsEl.classList.remove('has-activity');
+                }
                 try {
                     await fetch('/.netlify/functions/react-to-activity', {
                         method: 'DELETE',
@@ -7132,6 +7172,7 @@
             // Clear other reaction buttons in this item
             itemEl.querySelectorAll('.activity-react-btn').forEach(b => b.classList.remove('reacted'));
             btn.classList.add('reacted');
+            if (actionsEl) actionsEl.classList.add('has-activity');
             _activityReactionsMap[reactionKey] = emoji;
 
             try {
@@ -7149,7 +7190,7 @@
             }
         }
 
-        async function sendItemReply(clientId, context, inputEl) {
+        async function sendItemReply(clientId, itemType, itemId, context, inputEl) {
             if (!inputEl || !inputEl.value.trim()) return;
             const row = inputEl.closest('.activity-item-reply-row');
             const itemEl = inputEl.closest('.activity-detail-item');
@@ -7168,6 +7209,11 @@
                 if (res.ok) {
                     row.style.display = 'none';
                     inputEl.value = '';
+                    // Remember that the coach commented on this win so the
+                    // "Commented ✓" marker survives a page reload.
+                    if (itemType && itemId) {
+                        markActivityCommented(clientId, itemType, itemId, itemEl);
+                    }
                     if (sentEl) {
                         sentEl.style.display = 'inline-flex';
                         setTimeout(() => { sentEl.style.display = 'none'; }, 3000);
@@ -7180,6 +7226,40 @@
                 alert('Failed to send comment. Please try again.');
             } finally {
                 if (sendBtn) { sendBtn.disabled = false; sendBtn.textContent = 'Send'; }
+            }
+        }
+
+        // Marks a win as "already commented" — updates the button immediately
+        // and saves a marker so it persists across reloads (mirrors how emoji
+        // reactions are stored in activity_reactions).
+        async function markActivityCommented(clientId, itemType, itemId, itemEl) {
+            const key = itemType + ':' + itemId;
+            _activityCommentsMap[key] = true;
+
+            if (itemEl) {
+                const actions = itemEl.querySelector('.activity-item-actions');
+                if (actions) actions.classList.add('has-activity');
+                const replyBtn = itemEl.querySelector('.activity-reply-btn');
+                if (replyBtn && !replyBtn.classList.contains('commented')) {
+                    replyBtn.classList.add('commented');
+                    // Preserve the speech-bubble icon, just swap the label text.
+                    const svg = replyBtn.querySelector('svg');
+                    replyBtn.textContent = ' Commented ✓';
+                    if (svg) replyBtn.prepend(svg);
+                }
+            }
+
+            try {
+                await supabaseClient
+                    .from('activity_comments')
+                    .upsert({
+                        coach_id: _currentCoachId,
+                        client_id: clientId,
+                        item_type: itemType,
+                        item_id: String(itemId)
+                    }, { onConflict: 'coach_id,item_type,item_id' });
+            } catch (e) {
+                console.error('Error saving activity comment marker:', e);
             }
         }
 
@@ -7240,6 +7320,7 @@
                 let detailsHtml = group.events.map((ev, idx) => {
                     const evKey = ev.itemType + ':' + ev.itemId;
                     const existingReaction = _activityReactionsMap[evKey] || '';
+                    const hasCommented = !!_activityCommentsMap[evKey];
                     const itemUid = safeClientId + '-' + ev.itemType + '-' + ev.itemId;
                     const escapedDetail = (ev.label + (ev.detail ? ' — ' + ev.detail : '')).replace(/'/g, "\\'");
                     // Badge events get an extra "Share" pill so the
@@ -7257,20 +7338,20 @@
                                 <span class="activity-detail-text">${ev.label}${ev.detail ? ' — ' + ev.detail : ''}</span>
                                 <span class="activity-detail-time">${timeAgo(ev.time)}</span>
                             </div>
-                            <div class="activity-item-actions" onclick="event.stopPropagation()">
+                            <div class="activity-item-actions${existingReaction || hasCommented ? ' has-activity' : ''}" onclick="event.stopPropagation()">
                                 <button class="activity-react-btn ${existingReaction === '👏' ? 'reacted' : ''}" onclick="sendItemReaction('${ev.clientId}','${ev.itemType}','${ev.itemId}','👏',this)" title="Clap">👏</button>
                                 <button class="activity-react-btn ${existingReaction === '💪' ? 'reacted' : ''}" onclick="sendItemReaction('${ev.clientId}','${ev.itemType}','${ev.itemId}','💪',this)" title="Muscle">💪</button>
                                 <button class="activity-react-btn ${existingReaction === '🔥' ? 'reacted' : ''}" onclick="sendItemReaction('${ev.clientId}','${ev.itemType}','${ev.itemId}','🔥',this)" title="Fire">🔥</button>
                                 <span class="activity-item-sent" id="activity-item-sent-${itemUid}">Sent ✓</span>
-                                <button class="activity-reply-btn" onclick="toggleItemReply('${itemUid}','${ev.clientId}')">
+                                <button class="activity-reply-btn ${hasCommented ? 'commented' : ''}" onclick="toggleItemReply('${itemUid}','${ev.clientId}')">
                                     <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-                                    Comment
+                                    ${hasCommented ? 'Commented ✓' : 'Comment'}
                                 </button>
                                 ${shareBtnHtml}
                             </div>
                             <div class="activity-item-reply-row" id="activity-item-reply-${itemUid}" onclick="event.stopPropagation()">
-                                <input type="text" placeholder="Comment on this..." maxlength="500" onkeydown="if(event.key==='Enter'){event.preventDefault();sendItemReply('${ev.clientId}','${escapedDetail}',this)}">
-                                <button onclick="sendItemReply('${ev.clientId}','${escapedDetail}',this.previousElementSibling)">Send</button>
+                                <input type="text" placeholder="Comment on this..." maxlength="500" onkeydown="if(event.key==='Enter'){event.preventDefault();sendItemReply('${ev.clientId}','${ev.itemType}','${ev.itemId}','${escapedDetail}',this)}">
+                                <button onclick="sendItemReply('${ev.clientId}','${ev.itemType}','${ev.itemId}','${escapedDetail}',this.previousElementSibling)">Send</button>
                             </div>
                         </div>
                     </div>`;
