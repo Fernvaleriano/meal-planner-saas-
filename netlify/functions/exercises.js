@@ -49,7 +49,7 @@ exports.handler = async (event) => {
         if (idList.length > 0) {
           const { data, error } = await supabase
             .from('exercises')
-            .select('id, video_url, animation_url, thumbnail_url, is_unilateral')
+            .select('id, name, equipment, video_url, animation_url, thumbnail_url, is_unilateral')
             .in('id', idList);
           if (error) throw error;
           return {

@@ -17099,6 +17099,49 @@
             }
         }
 
+        // Returns true when a restricted-equipment term `r` (already lowercased)
+        // applies to an exercise, judged by its equipment field and/or its name.
+        // Tolerant of plurals and word order so a restriction like "battle ropes"
+        // still flags an exercise named "Battle Rope Double Arm Slams" (whose
+        // equipment column is just "bodyweight").
+        function restrictionMatchesExercise(r, exEquipLower, exNameLower) {
+            if (!r) return false;
+            // Filler words ignored everywhere; GENERIC = category words (e.g.
+            // "machine") that must not cause a broad match on their own.
+            const FILLER = new Set(['the','a','an','with','and','of','for','equipment']);
+            const GENERIC = new Set(['machine']);
+            // Lowercase already done by callers; split to plural-tolerant words.
+            const norm = s => (s || '').split(/[^a-z0-9]+/).filter(Boolean)
+                .map(w => (w.length > 3 ? w.replace(/s$/, '') : w));
+            const rWords = norm(r).filter(w => !FILLER.has(w));
+            if (rWords.length === 0) return false;
+            const rSet = new Set(rWords);
+
+            // 1) Equipment-field match (word level, not raw substring).
+            const eqWords = norm(exEquipLower).filter(w => !FILLER.has(w));
+            if (eqWords.length) {
+                const eqSet = new Set(eqWords);
+                // a) restriction is the same as / broader than the equipment, e.g.
+                //    "cable" flags "cable pulley machine", "machine" flags any machine.
+                if (rWords.every(w => eqSet.has(w))) return true;
+                // b) equipment is broader than the restriction, e.g. "resistance
+                //    band" flags exercises whose equipment is just "band" — but skip
+                //    generic category words so "smith machine" doesn't flag EVERY
+                //    exercise stored as plain "machine".
+                const eqMeaningful = eqWords.filter(w => !GENERIC.has(w));
+                if (eqMeaningful.length && eqMeaningful.every(w => rSet.has(w))) return true;
+            }
+
+            // 2) Name match: every distinctive word of the restriction must appear
+            //    as a word in the exercise name. Generic words (e.g. "machine") are
+            //    dropped so "leg press machine" still flags "Leg Press ..." and
+            //    "battle ropes" flags "Battle Rope Double Arm Slams".
+            let rNameWords = rWords.filter(w => !GENERIC.has(w));
+            if (rNameWords.length === 0) rNameWords = rWords;
+            const nameWords = new Set(norm(exNameLower));
+            return rNameWords.every(w => nameWords.has(w));
+        }
+
         /**
          * Check a workout's exercises against a client's equipment restrictions.
          * Returns an array of { exerciseName, equipment } for each conflicting exercise.
@@ -17116,10 +17159,7 @@
                     const ex = exercises[exIdx];
                     const exEquipLower = (ex.equipment || '').toLowerCase();
                     const exNameLower = (ex.name || '').toLowerCase();
-                    const matched = restrictedLower.find(r =>
-                        (exEquipLower && (exEquipLower.includes(r) || r.includes(exEquipLower))) ||
-                        exNameLower.includes(r)
-                    );
+                    const matched = restrictedLower.find(r => restrictionMatchesExercise(r, exEquipLower, exNameLower));
                     if (matched) {
                         const matchedOriginal = unavailableEquip.find(e => e.toLowerCase() === matched);
                         conflicts.push({
@@ -17202,10 +17242,7 @@
                 const exercises = (data.exercises || []).filter(ex => {
                     const equipLower = (ex.equipment || '').toLowerCase();
                     const nameLower = (ex.name || '').toLowerCase();
-                    return !restrictedLower.some(r =>
-                        (equipLower && (equipLower.includes(r) || r.includes(equipLower))) ||
-                        nameLower.includes(r)
-                    );
+                    return !restrictedLower.some(r => restrictionMatchesExercise(r, equipLower, nameLower));
                 });
                 const container = document.getElementById('cpSwapSuggestionsList');
                 if (exercises.length === 0) {
