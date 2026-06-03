@@ -4127,6 +4127,28 @@ function Workouts() {
           return payload;
         });
 
+      // Durable completion sync — single chokepoint for ALL finish paths
+      // (manual "mark everything as done", normal finish, AND play mode):
+      // mirror every exercise whose sets are all completed into the stable
+      // client+date store and clear its unchecked-override, so the dashboard
+      // card's "X/N activities done" matches what we just saved. Without this,
+      // play-mode / mark-all completions only lived in React state and the card
+      // read 0 once the per-(workout,day) localStorage key is cleared below.
+      try {
+        const completedIds = exerciseData
+          .filter(ex => Array.isArray(ex.sets) && ex.sets.length > 0 && ex.sets.every(s => s?.completed === true))
+          .map(ex => ex.exerciseId)
+          .filter(Boolean);
+        if (completedIds.length > 0) {
+          const completionDate = formatDate(selectedDateRef.current || new Date());
+          updateDateCompletion(clientDataRef.current?.id, completionDate, { add: completedIds });
+          const w = todayWorkoutRef.current;
+          const overrides = getUncheckedOverrides(w?.id, w?.day_index);
+          completedIds.forEach(id => overrides.delete(id));
+          writeUncheckedOverrides(w?.id, w?.day_index, overrides);
+        }
+      } catch (e) { /* ignore */ }
+
       // Calculate duration — prefer actual elapsed time from play mode timer
       const durationMinutes = elapsedSeconds && elapsedSeconds > 0
         ? Math.round(elapsedSeconds / 60)
@@ -4817,12 +4839,44 @@ function Workouts() {
     }
   }, [ensureWorkoutLog, completedExercises.size, exercises.length, handleCompleteWorkout, showError]);
 
-  // Mark all exercises as done and complete
+  // Mark all exercises as done and complete. Mirrors the durable persistence a
+  // manual swipe (toggleExerciseComplete) uses — localStorage + the stable
+  // client+date store + clearing unchecked-overrides — so the dashboard card
+  // ("X/N activities done") reflects it after finishing. Previously this only
+  // set React state, so the saved data showed 0 and the card read 0/N.
   const handleMarkAllDone = useCallback(() => {
-    const allIds = new Set(exercises.map(ex => ex?.id).filter(Boolean));
-    setCompletedExercises(allIds);
+    const allIds = exercises.map(ex => ex?.id).filter(Boolean);
+    const allSet = new Set(allIds);
+    setCompletedExercises(allSet);
+    completedExercisesRef.current = allSet;
+
+    const workout = todayWorkoutRef.current;
+    const dayIdx = workout?.day_index;
+    const dateStr = formatDate(selectedDateRef.current || new Date());
+    // Save to the per-(workout,day) cache (survives app close mid-session)...
+    try {
+      const key = completionStorageKey(workout?.id, dayIdx);
+      if (key && allIds.length > 0) localStorage.setItem(key, JSON.stringify(allIds));
+    } catch (e) { /* ignore */ }
+    // ...and the stable client+date store, which is what the dashboard card
+    // reads and what survives day_index drift / assignment rebuild on reopen.
+    // This covers timed warm-ups/stretches that have no per-set completed flag.
+    updateDateCompletion(clientDataRef.current?.id, dateStr, { add: allIds });
+    // Marking everything done must clear any prior "user unchecked this"
+    // overrides, otherwise getCompletedFromWorkoutData subtracts them back out.
+    try { writeUncheckedOverrides(workout?.id, dayIdx, new Set()); } catch (e) { /* ignore */ }
+
     setShowFinishConfirm(false);
-    setTimeout(() => handleCompleteWorkout(), 100);
+
+    // Stamp every set completed:true so the saved log + workout history match
+    // the "all done" intent (otherwise sets persist as completed:false).
+    const override = exercises
+      .filter(ex => ex && ex.id && ex.name)
+      .map(ex => ({
+        ...ex,
+        sets: Array.isArray(ex.sets) ? ex.sets.map(s => ({ ...(s || {}), completed: true })) : ex.sets
+      }));
+    setTimeout(() => handleCompleteWorkout(override.length > 0 ? override : undefined), 100);
   }, [exercises, handleCompleteWorkout]);
 
   // Handle background image selection for share card
