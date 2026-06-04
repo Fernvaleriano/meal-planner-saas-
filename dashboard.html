@@ -6935,9 +6935,18 @@
                 const isoWeekAgo = weekAgo.toISOString();
 
                 // Fetch all activity types in parallel
-                const [workoutsRes, prsRes, checkinsRes, photosRes, measurementsRes, gymProofsRes, badgesRes] = await Promise.all([
-                    // ANY evidence of effort = win: count non-skipped logs that
-                    // have at least one recorded set (do NOT require 'completed').
+                const [workoutsRes, prsRes, checkinsRes, photosRes, measurementsRes, gymProofsRes, badgesRes, effortRes] = await Promise.all([
+                    // Candidate workouts. We still don't require the client to
+                    // tap 'Finish' (status 'completed' is optional), but merely
+                    // OPENING a workout must NOT count as a win. Opening one
+                    // eagerly creates an in_progress log and persists the coach's
+                    // prescribed sets (weight 0, reps = the planned number) as
+                    // placeholders, so 'total_sets > 0' alone treated a tap as a
+                    // completed workout. We fetch candidates here and then keep
+                    // only those showing real effort — see the effort filter
+                    // below (workout-level total_volume is NOT reliable: it isn't
+                    // re-aggregated on every in_progress save, so it reads 0 even
+                    // when real weights were logged — we read the sets instead).
                     supabaseClient.from('workout_logs')
                         .select('id, client_id, total_volume, total_sets, created_at, status, workout_date')
                         .in('client_id', clientIds)
@@ -6990,14 +6999,48 @@
                         .eq('type', 'badge_earned')
                         .gte('created_at', isoWeekAgo)
                         .order('created_at', { ascending: false })
-                        .limit(30)
+                        .limit(30),
+                    // Logged sets for this week's workouts — used to tell a REAL
+                    // (worked) workout apart from one that was only opened. We
+                    // read the per-set values directly because workout-level
+                    // total_volume is not re-aggregated on every in_progress
+                    // save and reads 0 even when real weights were logged.
+                    supabaseClient.from('exercise_logs')
+                        .select('workout_log_id, sets_data, workout_logs!inner(client_id, created_at)')
+                        .in('workout_logs.client_id', clientIds)
+                        .gte('workout_logs.created_at', isoWeekAgo)
+                        .limit(2000)
                 ]);
+
+                // Build the set of workout logs that show genuine effort: at
+                // least one set with a real load logged, a rep/weight changed
+                // from the coach's prescription, or an RPE/effort value entered.
+                // A freshly-opened workout only carries the untouched prescription
+                // (weight 0, reps = the planned number) and so is excluded.
+                const realEffortLogIds = new Set();
+                (effortRes.data || []).forEach(el => {
+                    if (el.workout_log_id == null) return;
+                    const sets = Array.isArray(el.sets_data) ? el.sets_data : [];
+                    const worked = sets.some(s => {
+                        if ((Number(s?.weight) || 0) > 0) return true;
+                        if (s?.prescribedReps != null && Number(s?.reps) !== Number(s.prescribedReps)) return true;
+                        if (s?.prescribedWeight != null && Number(s?.weight) !== Number(s.prescribedWeight)) return true;
+                        if (s?.rpe != null && s.rpe !== '') return true;
+                        if (s?.effort != null && s.effort !== '') return true;
+                        return false;
+                    });
+                    if (worked) realEffortLogIds.add(String(el.workout_log_id));
+                });
 
                 const events = [];
 
                 (workoutsRes.data || []).forEach(w => {
                     const c = _activityClientMap[w.client_id];
                     if (!c) return;
+                    // Only count workouts the client actually worked: either they
+                    // tapped Finish (status 'completed') or they logged real
+                    // effort. Merely opening a workout must never count.
+                    if (w.status !== 'completed' && !realEffortLogIds.has(String(w.id))) return;
                     const srcUnit = c.unit_preference === 'metric' ? 'kg' : 'lbs';
                     const vol = w.total_volume
                         ? `${Math.round(convertWeight(w.total_volume, srcUnit)).toLocaleString()} ${getCoachDisplayUnit()} volume`
