@@ -6060,6 +6060,11 @@
         // Track if we're already loading to prevent multiple simultaneous loads
         let isLoading = false;
 
+        // Coach id + timestamp of the last stats refresh, so we can re-pull
+        // the top numbers when the coach returns to the page (PWA/tab resume).
+        let _coachUserId = null;
+        let _lastStatsRefresh = 0;
+
         // Unified Feed filter state
         let _activeFilter = 'activity';
         let _mealOffset = 0;
@@ -8870,6 +8875,11 @@
                     if (brandingTile) brandingTile.style.display = 'flex';
                 }
 
+                // Remember who we loaded for so the page can refresh the
+                // top numbers when the coach comes back to it later.
+                _coachUserId = user.id;
+                _lastStatsRefresh = Date.now();
+
                 // Fetch and display quick stats
                 await loadQuickStats(user.id);
 
@@ -10854,6 +10864,23 @@
 
         // Load dashboard on page load
         loadDashboard();
+
+        // --- Refresh the top numbers when the coach returns to the page ---
+        // The PWA/tab often stays alive in the background, so without this the
+        // Clients / Check-Ins / Workouts / PRs numbers stay frozen at whatever
+        // they were when the page was first opened. When the page becomes
+        // visible again we re-pull the lightweight, read-only stats (not a full
+        // bootstrap — that would re-run auth/subscription/realtime setup).
+        // Throttled to once per 30s so quick tab-switching doesn't hammer the DB.
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState !== 'visible') return;
+            if (!_coachUserId || isLoading) return;
+            if (Date.now() - _lastStatsRefresh < 30000) return;
+            _lastStatsRefresh = Date.now();
+            loadQuickStats(_coachUserId);
+            loadClientActivityGrid(_coachUserId);
+            loadActivityFeed(_coachUserId);
+        });
 
         // --- Pull-to-refresh ---
         (function initPullToRefresh() {
