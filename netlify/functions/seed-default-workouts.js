@@ -594,6 +594,59 @@ const DEFAULT_PROGRAMS = [
         ]
       }
     ]}
+  },
+
+  // ─── Prenatal Full Body (2nd Trimester) ──────────────────────────────────────
+  {
+    name: 'Prenatal Full Body - 2nd Trimester (3 Day)',
+    description: 'Prenatal safe | 3 days/week | ~10-15 min | Gentle strength + mobility for 2nd trimester',
+    program_type: 'strength',
+    difficulty: 'beginner',
+    days_per_week: 3,
+    program_data: { days: [
+      {
+        name: 'Day 1 — Legs & Glutes',
+        exercises: [
+          { name: 'Arm circle', sets: 1, trackingType: 'time', duration: 45, setsData: [{ duration: 45, restSeconds: 10 }], notes: 'WARM-UP — Gentle circles, forward then backward. Loosen shoulders.', section: 'warm-up' },
+          { name: 'Bodyweight calf raises', sets: 1, trackingType: 'reps', setsData: [{ reps: 12, restSeconds: 10 }], notes: 'WARM-UP — Slow and controlled, hold a wall for balance.', section: 'warm-up' },
+          { name: 'Bodyweight Squat', sets: 2, trackingType: 'reps', setsData: [{ reps: 10, restSeconds: 30 }, { reps: 10, restSeconds: 30 }], notes: 'Feet shoulder-width or wider. Only go as deep as comfortable — a chair behind you for confidence is fine.' },
+          { name: 'Bodyweight forward lunge', sets: 2, trackingType: 'reps', setsData: [{ reps: 8, restSeconds: 30 }, { reps: 8, restSeconds: 30 }], notes: 'Alternating legs. Hold a wall or chair if balance feels off. Gentle steps, no rushing.' },
+          { name: 'Bodyweight Hip Thrust', sets: 2, trackingType: 'reps', setsData: [{ reps: 12, restSeconds: 30 }, { reps: 12, restSeconds: 30 }], notes: 'Feet flat, knees bent, lift hips. Squeeze glutes at the top. Great for pelvic floor support.' },
+          { name: 'Wall sit bodyweight', sets: 1, trackingType: 'time', duration: 20, setsData: [{ duration: 20, restSeconds: 15 }], notes: 'Back flat against wall, thighs as close to parallel as comfortable. Breathe steadily.' },
+          { name: 'Cat stretch', sets: 1, trackingType: 'time', duration: 30, setsData: [{ duration: 30, restSeconds: 0 }], notes: 'COOL-DOWN — Alternate between arching and rounding the spine. Relieves lower back tension.', section: 'cool-down' },
+          { name: 'Adductor stretch', sets: 1, trackingType: 'time', duration: 30, setsData: [{ duration: 30, restSeconds: 0 }], notes: 'COOL-DOWN — Gentle inner thigh stretch, 15 sec per side. Don\'t force it.', section: 'cool-down' },
+          { name: 'Seated Toe Touch Hamstrings Stretch', sets: 1, trackingType: 'time', duration: 30, setsData: [{ duration: 30, restSeconds: 0 }], notes: 'COOL-DOWN — Reach toward toes gently, keep knees soft. Breathe into the stretch.', section: 'cool-down' }
+        ]
+      },
+      {
+        name: 'Day 2 — Upper Body & Stability',
+        exercises: [
+          { name: 'Arm circle', sets: 1, trackingType: 'time', duration: 45, setsData: [{ duration: 45, restSeconds: 10 }], notes: 'WARM-UP — Small circles, then bigger. Warm up the shoulders gently.', section: 'warm-up' },
+          { name: 'Bodyweight Squat', sets: 1, trackingType: 'reps', setsData: [{ reps: 8, restSeconds: 15 }], notes: 'WARM-UP — Light warm-up squats, just getting blood flowing.', section: 'warm-up' },
+          { name: 'Dumbbell Seated Shoulder Press', sets: 2, trackingType: 'reps', setsData: [{ reps: 10, restSeconds: 30 }, { reps: 10, restSeconds: 30 }], notes: 'Very light weight (3-5 lbs). Seated for stability. Press overhead, controlled pace.' },
+          { name: 'Bird dog', sets: 2, trackingType: 'reps', setsData: [{ reps: 8, restSeconds: 30 }, { reps: 8, restSeconds: 30 }], notes: 'On all fours — extend opposite arm and leg. Hold 2 seconds. Great for core and balance without crunching.' },
+          { name: 'Dead bug', sets: 2, trackingType: 'reps', setsData: [{ reps: 8, restSeconds: 30 }, { reps: 8, restSeconds: 30 }], notes: 'On your back with knees up — lower opposite arm and leg slowly. Skip if lying on your back feels uncomfortable.' },
+          { name: 'Bodyweight calf raises', sets: 2, trackingType: 'reps', setsData: [{ reps: 12, restSeconds: 20 }, { reps: 12, restSeconds: 20 }], notes: 'Helps with swelling and circulation. Hold wall for balance. Slow up, slow down.' },
+          { name: 'Above head chest stretch', sets: 1, trackingType: 'time', duration: 30, setsData: [{ duration: 30, restSeconds: 0 }], notes: 'COOL-DOWN — Open the chest, breathe deeply. Counters the forward-shoulder posture.', section: 'cool-down' },
+          { name: 'Cat stretch', sets: 1, trackingType: 'time', duration: 30, setsData: [{ duration: 30, restSeconds: 0 }], notes: 'COOL-DOWN — Gently mobilise the spine, breathe with each movement.', section: 'cool-down' },
+          { name: 'Child Pose Lower back Stretch', sets: 1, trackingType: 'time', duration: 30, setsData: [{ duration: 30, restSeconds: 0 }], notes: 'COOL-DOWN — Knees wide to make room for belly. Rest and breathe.', section: 'cool-down' }
+        ]
+      },
+      {
+        name: 'Day 3 — Full Body Flow',
+        exercises: [
+          { name: 'Arm circle', sets: 1, trackingType: 'time', duration: 45, setsData: [{ duration: 45, restSeconds: 10 }], notes: 'WARM-UP — Easy circles to wake up the shoulders.', section: 'warm-up' },
+          { name: 'Bodyweight calf raises', sets: 1, trackingType: 'reps', setsData: [{ reps: 10, restSeconds: 10 }], notes: 'WARM-UP — Get the blood moving.', section: 'warm-up' },
+          { name: 'Dumbbell Goblet Squat', sets: 2, trackingType: 'reps', setsData: [{ reps: 10, restSeconds: 30 }, { reps: 10, restSeconds: 30 }], notes: 'Hold a light dumbbell at chest. Wider stance for belly room. Only go as low as comfortable.' },
+          { name: 'Bodyweight Hip Thrust', sets: 2, trackingType: 'reps', setsData: [{ reps: 12, restSeconds: 30 }, { reps: 12, restSeconds: 30 }], notes: 'Squeeze at the top, keep core gently engaged. Supports pelvic floor and glutes.' },
+          { name: 'Bird dog', sets: 2, trackingType: 'reps', setsData: [{ reps: 8, restSeconds: 30 }, { reps: 8, restSeconds: 30 }], notes: 'Slow and controlled — hold each rep for 2 seconds. Builds deep core stability safely.' },
+          { name: 'Bodyweight rear lunge', sets: 2, trackingType: 'reps', setsData: [{ reps: 8, restSeconds: 30 }, { reps: 8, restSeconds: 30 }], notes: 'Step back, not forward — easier on balance. Alternate legs. Hold something if needed.' },
+          { name: 'Pigeon Glutes Stretch', sets: 1, trackingType: 'time', duration: 40, setsData: [{ duration: 40, restSeconds: 0 }], notes: 'COOL-DOWN — 20 sec per side. Releases tight hips — a lifesaver during pregnancy.', section: 'cool-down' },
+          { name: 'Calf stretch with hands against wall', sets: 1, trackingType: 'time', duration: 30, setsData: [{ duration: 30, restSeconds: 0 }], notes: 'COOL-DOWN — 15 sec per leg. Helps with leg cramps.', section: 'cool-down' },
+          { name: 'Cat stretch', sets: 1, trackingType: 'time', duration: 30, setsData: [{ duration: 30, restSeconds: 0 }], notes: 'COOL-DOWN — End with gentle spinal movement. You did great — rest well!', section: 'cool-down' }
+        ]
+      }
+    ]}
   }
 ];
 
