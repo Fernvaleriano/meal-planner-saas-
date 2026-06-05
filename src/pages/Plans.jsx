@@ -1598,11 +1598,35 @@ Keep it practical and brief. Format with clear sections.`;
     const { numDays, calories, goal } = getPlanDetails(selectedPlan);
     const groceryList = generateGroceryList();
 
+    // Resolve translated strings up-front (t() is available here in the React closure)
+    const pdfTitle = t('plansPage.defaultPlanTitle', { numDays });
+    const pdfDurationLabel = t('plansPage.pdfDuration');
+    const pdfDurationDays = t('plansPage.planCardDurationDays');
+    const pdfTargetLabel = t('plansPage.pdfTarget');
+    const pdfCalPerDay = t('plansPage.pdfCalPerDay');
+    const pdfGoalLabel = t('plansPage.pdfGoal');
+    const pdfDailyTargetsLabel = t('plansPage.pdfDailyTargets');
+    const pdfProteinUnit = t('plansPage.pdfProteinUnit');
+    const pdfCarbsUnit = t('plansPage.pdfCarbsUnit');
+    const pdfFatUnit = t('plansPage.pdfFatUnit');
+    const pdfMealFallback = t('plansPage.mealFallbackName');
+    const pdfCalLabel = t('plansPage.pdfCalLabel');
+    const pdfProteinLabel = t('plansPage.pdfProteinLabel');
+    const pdfCarbsLabel = t('plansPage.pdfCarbsLabel');
+    const pdfFatLabel = t('plansPage.pdfFatLabel');
+    const pdfFiberLabel = t('plansPage.pdfFiberLabel');
+    const pdfIngredientsLabel = t('plansPage.legacyIngredients');
+    const pdfInstructionsLabel = t('plansPage.legacyInstructions');
+    const pdfGroceryHeading = t('plansPage.pdfGroceryHeading');
+    const pdfGrocerySubheading = t('plansPage.pdfGrocerySubheading');
+    const pdfMealPrepHeading = t('plansPage.pdfMealPrepHeading');
+    const pdfFooter = t('plansPage.pdfFooter');
+
     // Create printable content
     let content = `
       <html>
       <head>
-        <title>${numDays}-Day Meal Plan</title>
+        <title>${pdfTitle}</title>
         <style>
           body { font-family: Arial, sans-serif; padding: 20px; max-width: 800px; margin: 0 auto; }
           h1 { color: #333; border-bottom: 2px solid #4f46e5; padding-bottom: 10px; }
@@ -1631,36 +1655,36 @@ Keep it practical and brief. Format with clear sections.`;
         </style>
       </head>
       <body>
-        <h1>🍽️ ${numDays}-Day Meal Plan</h1>
+        <h1>🍽️ ${pdfTitle}</h1>
         <div class="summary">
-          <div class="summary-item"><strong>Duration:</strong> ${numDays} Days</div>
-          <div class="summary-item"><strong>Target:</strong> ${calories} cal/day</div>
-          <div class="summary-item"><strong>Goal:</strong> ${goal}</div>
+          <div class="summary-item"><strong>${pdfDurationLabel}:</strong> ${numDays} ${pdfDurationDays}</div>
+          <div class="summary-item"><strong>${pdfTargetLabel}:</strong> ${calories} ${pdfCalPerDay}</div>
+          <div class="summary-item"><strong>${pdfGoalLabel}:</strong> ${goal}</div>
         </div>
     `;
 
     // Add meal days
     days.forEach((day, idx) => {
-      content += `<h2>Day ${idx + 1}</h2>`;
+      content += `<h2>${t('plansPage.dayLabel', { n: idx + 1 })}</h2>`;
 
       if (day.targets) {
-        content += `<p><em>Daily Targets: ${day.targets.calories} cal | ${day.targets.protein}g protein | ${day.targets.carbs}g carbs | ${day.targets.fat}g fat</em></p>`;
+        content += `<p><em>${pdfDailyTargetsLabel}: ${day.targets.calories} ${pdfCalLabel} | ${day.targets.protein}g ${pdfProteinUnit} | ${day.targets.carbs}g ${pdfCarbsUnit} | ${day.targets.fat}g ${pdfFatUnit}</em></p>`;
       }
 
       (day.plan || []).forEach(meal => {
         content += `
           <div class="meal">
-            <div class="meal-name">${meal.type || meal.meal_type || 'Meal'}: ${getMealDisplayName(meal)}</div>
-            <div class="meal-macros">${meal.calories || 0} cal | P: ${meal.protein || 0}g | C: ${meal.carbs || 0}g | F: ${meal.fat || 0}g${meal.fiber > 0 ? ` | Fiber: ${meal.fiber}g` : ''}</div>
+            <div class="meal-name">${meal.type || meal.meal_type || pdfMealFallback}: ${getMealDisplayName(meal)}</div>
+            <div class="meal-macros">${meal.calories || 0} ${pdfCalLabel} | ${pdfProteinLabel}: ${meal.protein || 0}g | ${pdfCarbsLabel}: ${meal.carbs || 0}g | ${pdfFatLabel}: ${meal.fat || 0}g${meal.fiber > 0 ? ` | ${pdfFiberLabel}: ${meal.fiber}g` : ''}</div>
             ${meal.ingredients?.length ? `
               <div class="ingredients">
-                <strong>Ingredients:</strong>
+                <strong>${pdfIngredientsLabel}:</strong>
                 <ul>
                   ${meal.ingredients.map(ing => `<li>${typeof ing === 'string' ? ing : `${ing.amount || ''} ${ing.name || ing}`}</li>`).join('')}
                 </ul>
               </div>
             ` : ''}
-            ${meal.instructions ? `<p><strong>Instructions:</strong> ${meal.instructions}</p>` : ''}
+            ${meal.instructions ? `<p><strong>${pdfInstructionsLabel}:</strong> ${meal.instructions}</p>` : ''}
           </div>
         `;
       });
@@ -1670,8 +1694,8 @@ Keep it practical and brief. Format with clear sections.`;
     if (Object.keys(groceryList).length > 0) {
       content += `
         <div class="grocery-section">
-          <h2>🛒 Grocery List</h2>
-          <p><em>Check off items as you shop</em></p>
+          <h2>🛒 ${pdfGroceryHeading}</h2>
+          <p><em>${pdfGrocerySubheading}</em></p>
       `;
 
       Object.entries(groceryList).forEach(([category, items]) => {
@@ -1693,7 +1717,7 @@ Keep it practical and brief. Format with clear sections.`;
       const cleanedGuide = cleanMealPrepText(mealPrepGuide);
       content += `
         <div class="meal-prep-section">
-          <h2>👨‍🍳 Meal Prep Guide</h2>
+          <h2>👨‍🍳 ${pdfMealPrepHeading}</h2>
           <div class="meal-prep-content">
             ${cleanedGuide.split('\n').filter(line => line.trim()).map(line => `<p>${line}</p>`).join('')}
           </div>
@@ -1702,7 +1726,7 @@ Keep it practical and brief. Format with clear sections.`;
     }
 
     content += `
-        <p style="margin-top: 40px; color: #999; text-align: center;">Generated by FernFit Meal Planner</p>
+        <p style="margin-top: 40px; color: #999; text-align: center;">${pdfFooter}</p>
       </body>
       </html>
     `;

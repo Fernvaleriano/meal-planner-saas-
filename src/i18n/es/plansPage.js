@@ -218,4 +218,23 @@ export default {
 
   // Meal name fallback (when no name/ingredients available)
   mealFallbackName: 'Comida',
+
+  // PDF/print export template strings
+  pdfDuration: 'Duración',
+  pdfTarget: 'Objetivo calórico',
+  pdfCalPerDay: 'cal/día',
+  pdfGoal: 'Objetivo',
+  pdfDailyTargets: 'Objetivos del día',
+  pdfCalLabel: 'cal',
+  pdfProteinLabel: 'P',
+  pdfProteinUnit: 'proteína',
+  pdfCarbsLabel: 'C',
+  pdfCarbsUnit: 'carbos',
+  pdfFatLabel: 'G',
+  pdfFatUnit: 'grasa',
+  pdfFiberLabel: 'Fibra',
+  pdfGroceryHeading: 'Lista de compras',
+  pdfGrocerySubheading: 'Marca cada artículo mientras compras',
+  pdfMealPrepHeading: 'Guía de preparación',
+  pdfFooter: 'Generado por Ziquecoach',
 };
