@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { X, Clock, ChevronDown, Mic, MicOff } from 'lucide-react';
 import Portal from '../Portal';
 import { convertWeight } from '../../utils/workoutProgression';
+import { getSpeechLang } from '../../utils/speechLang';
 import { useLanguage } from '../../context/LanguageContext';
 
 // Parse reps - if it's a range like "8-12", return just the first number
@@ -246,7 +247,7 @@ function SetEditorModal({
     const recognition = new SpeechRecognition();
     recognition.continuous = false;
     recognition.interimResults = false;
-    recognition.lang = 'en-US';
+    recognition.lang = getSpeechLang();
     recognition.maxAlternatives = 1;
 
     recognition.onstart = () => {

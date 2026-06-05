@@ -4,6 +4,7 @@ import { ChevronLeft, ChevronRight, ChevronDown, Plus, Minus, Camera, Search, He
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { apiGet, apiPost, apiPut, apiDelete, fetchWithTimeout } from '../utils/api';
+import { getSpeechLang } from '../utils/speechLang';
 import { FavoritesModal, SnapPhotoModal, ScanLabelModal, SearchFoodsModal } from '../components/FoodModals';
 import { usePullToRefresh, PullToRefreshIndicator } from '../hooks/usePullToRefresh';
 import { onAppResume } from '../hooks/useAppLifecycle';
@@ -1442,7 +1443,7 @@ function Diary() {
     const recognition = new SpeechRecognition();
     recognition.continuous = false;
     recognition.interimResults = true;
-    recognition.lang = 'en-US';
+    recognition.lang = getSpeechLang();
     recognition.maxAlternatives = 1;
 
     recognition.onstart = () => {

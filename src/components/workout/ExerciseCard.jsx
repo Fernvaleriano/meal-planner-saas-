@@ -6,6 +6,7 @@ import Portal from '../Portal';
 import VoiceNotePlayer from '../VoiceNotePlayer';
 import { onAppResume, onAppSuspend } from '../../hooks/useAppLifecycle';
 import { convertWeight } from '../../utils/workoutProgression';
+import { getSpeechLang } from '../../utils/speechLang';
 
 // Parse reps - if it's a range like "8-12", average the range instead of truncating
 // Supports decimals like "1.5" (e.g. 1.5 miles)
@@ -755,7 +756,7 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
     const recognition = new SpeechRecognition();
     recognition.continuous = false;
     recognition.interimResults = false;
-    recognition.lang = 'en-US';
+    recognition.lang = getSpeechLang();
     recognition.maxAlternatives = 1;
 
     recognition.onstart = () => {

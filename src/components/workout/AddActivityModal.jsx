@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useRef, useCallback, startTransition } from 'react';
 import { X, Search, Loader2, Plus, Mic, MicOff, ChevronDown, Check, ChevronRight, Eye } from 'lucide-react';
 import { apiGet } from '../../utils/api';
+import { getSpeechLang } from '../../utils/speechLang';
 import SmartThumbnail from './SmartThumbnail';
 import { useLanguage } from '../../context/LanguageContext';
 
@@ -544,7 +545,7 @@ function AddActivityModal({ onAdd, onClose, existingExerciseIds = [], multiSelec
     const recognition = new SpeechRecognition();
     recognition.continuous = false;
     recognition.interimResults = false;
-    recognition.lang = 'en-US';
+    recognition.lang = getSpeechLang();
 
     recognition.onstart = () => setIsListening(true);
 

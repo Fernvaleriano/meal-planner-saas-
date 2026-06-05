@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { X, Send, Loader2, MessageCircle, Bot, ChevronLeft, Mic } from 'lucide-react';
 import { apiPost } from '../../utils/api';
+import { getSpeechLang } from '../../utils/speechLang';
 
 import { useToast } from '../../components/Toast';
 import { useLanguage } from '../../context/LanguageContext';
@@ -141,7 +142,7 @@ function AskCoachChat({ exercise, onClose }) {
     const recognition = new SpeechRecognition();
     recognition.continuous = false;
     recognition.interimResults = true;
-    recognition.lang = 'en-US';
+    recognition.lang = getSpeechLang();
     recognition.maxAlternatives = 1;
 
     recognition.onstart = () => setIsRecording(true);

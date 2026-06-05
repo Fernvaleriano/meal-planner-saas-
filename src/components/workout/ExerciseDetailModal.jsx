@@ -3,6 +3,7 @@ import { X, Check, Plus, ChevronLeft, Play, Timer, BarChart3, ArrowLeftRight, Tr
 import { apiGet, apiPost, apiPut, apiDelete, getOrCreateWorkoutLogId } from '../../utils/api';
 import { supabase } from '../../utils/supabase';
 import { generateProgression, generateSetNudge, EFFORT_OPTIONS, parseSetsData, getMaxWeight, convertWeight } from '../../utils/workoutProgression';
+import { getSpeechLang } from '../../utils/speechLang';
 import { onAppSuspend, onAppResume } from '../../hooks/useAppLifecycle';
 import Portal from '../Portal';
 import SetEditorModal from './SetEditorModal';
@@ -1591,7 +1592,7 @@ function ExerciseDetailModal({
     const recognition = new SpeechRecognition();
     recognition.continuous = false;
     recognition.interimResults = false;
-    recognition.lang = 'en-US';
+    recognition.lang = getSpeechLang();
     recognition.maxAlternatives = 1;
 
     recognition.onstart = () => {
