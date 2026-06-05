@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { X, Camera, Upload, Search, Heart, Loader, Plus, Minus, Check, Trash2 } from 'lucide-react';
 import { apiGet, apiPost, apiPut, apiDelete, ensureFreshSession } from '../utils/api';
 import { useToast } from './Toast';
+import { useLanguage } from '../context/LanguageContext';
 
 // Get today's date in local timezone (NOT UTC)
 // Using toISOString().split('T')[0] would give UTC date which is wrong for users in different timezones
@@ -46,22 +47,31 @@ const compressImage = (file, maxWidth = 1200, quality = 0.8) => {
 };
 
 // Meal type selector component
-const MealTypeSelector = ({ selected, onChange }) => (
-  <div className="modal-meal-selector">
-    <label>Add to:</label>
-    <div className="meal-type-chips">
-      {['breakfast', 'lunch', 'dinner', 'snack'].map(type => (
-        <button
-          key={type}
-          className={`meal-chip ${selected === type ? 'active' : ''}`}
-          onClick={() => onChange(type)}
-        >
-          {type.charAt(0).toUpperCase() + type.slice(1)}
-        </button>
-      ))}
+const MealTypeSelector = ({ selected, onChange }) => {
+  const { t } = useLanguage();
+  const MEAL_LABELS = {
+    breakfast: t('foodModals.mealBreakfast'),
+    lunch: t('foodModals.mealLunch'),
+    dinner: t('foodModals.mealDinner'),
+    snack: t('foodModals.mealSnack'),
+  };
+  return (
+    <div className="modal-meal-selector">
+      <label>{t('foodModals.addTo')}</label>
+      <div className="meal-type-chips">
+        {['breakfast', 'lunch', 'dinner', 'snack'].map(type => (
+          <button
+            key={type}
+            className={`meal-chip ${selected === type ? 'active' : ''}`}
+            onClick={() => onChange(type)}
+          >
+            {MEAL_LABELS[type]}
+          </button>
+        ))}
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 // ==================== SNAP PHOTO MODAL ====================
 export function SnapPhotoModal({ isOpen, onClose, mealType, clientData, onFoodLogged, selectedDate }) {
@@ -78,6 +88,7 @@ export function SnapPhotoModal({ isOpen, onClose, mealType, clientData, onFoodLo
   const uploadRef = useRef(null);
   const MAX_PHOTOS = 4;
   const { showError, showSuccess } = useToast();
+  const { t } = useLanguage();
 
   // Update selected meal type when prop changes
   useEffect(() => {
@@ -122,20 +133,20 @@ export function SnapPhotoModal({ isOpen, onClose, mealType, clientData, onFoodLo
         });
         setServings(initialServings);
       } else {
-        setError('No food detected in the image. Try adding details or take a clearer photo.');
+        setError(t('foodModals.snapErrNoFood'));
       }
     } catch (err) {
       console.error('Photo analysis error:', err);
       if (err.isTimeout) {
-        setError('Photo analysis timed out. Please check your connection and try again.');
+        setError(t('foodModals.snapErrTimeout'));
       } else if (err.isAuthError) {
-        setError('Session expired. Please close this modal, refresh the page, and try again.');
+        setError(t('foodModals.snapErrSession'));
       } else if (err.status === 429) {
-        setError('Too many requests. Please wait a moment and try again.');
+        setError(t('foodModals.snapErrTooManyReqs'));
       } else if (err.status === 503 || (err.message && err.message.includes('busy'))) {
-        setError('AI service is temporarily busy. Please try again in a moment.');
+        setError(t('foodModals.snapErrBusy'));
       } else {
-        setError(`Failed to analyze photo: ${err.message || 'Unknown error'}`);
+        setError(t('foodModals.snapErrFailed', { message: err.message || 'Unknown error' }));
       }
     } finally {
       setAnalyzing(false);
@@ -226,17 +237,17 @@ export function SnapPhotoModal({ isOpen, onClose, mealType, clientData, onFoodLo
       addedTotals = calculateTotal();
 
       onFoodLogged?.(addedTotals);
-      showSuccess('Food added to diary!');
+      showSuccess(t('foodModals.toastFoodAdded'));
       handleClose();
     } catch (err) {
       console.error('Failed to add foods:', err);
-      setError('Failed to add foods. Please try again.');
+      setError(t('foodModals.snapErrAddFoods'));
       isAddingRef.current = false; // Reset ref on error to allow retry
-      showError('Failed to add food to diary');
+      showError(t('foodModals.toastAddFailed'));
     } finally {
       setIsAdding(false);
     }
-  }, [results, clientData, selectedMealType, servings, onFoodLogged, showError, showSuccess, selectedDate]);
+  }, [results, clientData, selectedMealType, servings, onFoodLogged, showError, showSuccess, selectedDate, t]);
 
   const handleClose = () => {
     setPreviews([]);
@@ -256,23 +267,23 @@ export function SnapPhotoModal({ isOpen, onClose, mealType, clientData, onFoodLo
     <div className="modal-overlay" onClick={handleClose}>
       <div className="modal-content" onClick={e => e.stopPropagation()}>
         <div className="modal-header">
-          <h2>Log by Photo</h2>
+          <h2>{t('foodModals.snapTitle')}</h2>
           <button className="modal-close" onClick={handleClose}><X size={24} /></button>
         </div>
 
         <div className="modal-body">
           {previews.length === 0 ? (
             <div className="photo-capture-options">
-              <p className="photo-instructions">Take photos of your food</p>
-              <p className="photo-hint">Multiple angles help improve accuracy</p>
+              <p className="photo-instructions">{t('foodModals.snapInstructions')}</p>
+              <p className="photo-hint">{t('foodModals.snapHint')}</p>
               <div className="photo-buttons">
                 <button className="photo-option-btn" onClick={() => cameraRef.current?.click()}>
                   <Camera size={24} />
-                  <span>Take Photo</span>
+                  <span>{t('foodModals.takePhoto')}</span>
                 </button>
                 <button className="photo-option-btn" onClick={() => uploadRef.current?.click()}>
                   <Upload size={24} />
-                  <span>Upload</span>
+                  <span>{t('foodModals.upload')}</span>
                 </button>
               </div>
               <input
@@ -306,22 +317,22 @@ export function SnapPhotoModal({ isOpen, onClose, mealType, clientData, onFoodLo
                 {previews.length < MAX_PHOTOS && (
                   <button className="add-photo-btn" onClick={() => cameraRef.current?.click()}>
                     <Plus size={24} />
-                    <span>Add Angle</span>
+                    <span>{t('foodModals.addAngle')}</span>
                   </button>
                 )}
               </div>
 
               <p className="photo-tip">
                 {previews.length === 1
-                  ? "Add another angle for better accuracy"
-                  : `${previews.length} photos added`}
+                  ? t('foodModals.snapTipOnePhoto')
+                  : t('foodModals.snapTipMultiPhoto', { count: previews.length })}
               </p>
 
               <div className="photo-details-input">
-                <label>Add details (optional)</label>
+                <label>{t('foodModals.addDetailsLabel')}</label>
                 <input
                   type="text"
-                  placeholder="e.g., 'black tea unsweetened' or '6oz chicken'"
+                  placeholder={t('foodModals.addDetailsPlaceholder')}
                   value={details}
                   onChange={(e) => setDetails(e.target.value)}
                 />
@@ -329,10 +340,12 @@ export function SnapPhotoModal({ isOpen, onClose, mealType, clientData, onFoodLo
               {error && <div className="modal-error">{error}</div>}
               <div className="photo-actions">
                 <button className="btn-secondary" onClick={() => setPreviews([])}>
-                  Start Over
+                  {t('foodModals.startOver')}
                 </button>
                 <button className="btn-primary" onClick={analyzePhoto} disabled={analyzing}>
-                  {analyzing ? <><Loader size={18} className="spin" /> Analyzing...</> : `Analyze ${previews.length > 1 ? 'Photos' : 'Photo'}`}
+                  {analyzing
+                    ? <><Loader size={18} className="spin" /> {t('foodModals.analyzing')}</>
+                    : previews.length > 1 ? t('foodModals.analyzePhotos') : t('foodModals.analyzePhoto')}
                 </button>
               </div>
 
@@ -355,9 +368,9 @@ export function SnapPhotoModal({ isOpen, onClose, mealType, clientData, onFoodLo
           ) : (
             <div className="photo-results-section">
               <div className="photo-results-header">
-                <h3>Detected Foods</h3>
+                <h3>{t('foodModals.detectedFoods')}</h3>
                 <button className="btn-text-danger" onClick={() => { setResults(null); setServings({}); }}>
-                  Clear All
+                  {t('foodModals.clearAll')}
                 </button>
               </div>
               <div className="detected-foods-list">
@@ -372,23 +385,23 @@ export function SnapPhotoModal({ isOpen, onClose, mealType, clientData, onFoodLo
                     <div key={idx} className="detected-food-item-editable">
                       <div className="detected-food-header">
                         <div className="detected-food-name">{food.name}</div>
-                        <button className="delete-food-btn" onClick={() => deleteFood(idx)} title="Delete this food">
+                        <button className="delete-food-btn" onClick={() => deleteFood(idx)} title={t('foodModals.ariaDeleteFood')}>
                           <Trash2 size={18} />
                         </button>
                       </div>
                       <div className="detected-food-servings">
-                        <label>Servings</label>
+                        <label>{t('foodModals.servingsLabel')}</label>
                         <div className="servings-controls">
-                          <button onClick={() => updateServings(idx, -0.5)} aria-label="Decrease servings"><Minus size={16} /></button>
+                          <button onClick={() => updateServings(idx, -0.5)} aria-label={t('foodModals.ariaDecreaseServings')}><Minus size={16} /></button>
                           <span className="servings-value">{foodServings}</span>
-                          <button onClick={() => updateServings(idx, 0.5)} aria-label="Increase servings"><Plus size={16} /></button>
+                          <button onClick={() => updateServings(idx, 0.5)} aria-label={t('foodModals.ariaIncreaseServings')}><Plus size={16} /></button>
                         </div>
                       </div>
                       <div className="detected-food-macros">
                         <span>{scaledCalories} cal</span>
-                        <span>P: {scaledProtein}g</span>
-                        <span>C: {scaledCarbs}g</span>
-                        <span>F: {scaledFat}g</span>
+                        <span>{t('foodModals.proteinAbbr')} {scaledProtein}g</span>
+                        <span>{t('foodModals.carbsAbbr')} {scaledCarbs}g</span>
+                        <span>{t('foodModals.fatAbbr')} {scaledFat}g</span>
                       </div>
                     </div>
                   );
@@ -397,18 +410,20 @@ export function SnapPhotoModal({ isOpen, onClose, mealType, clientData, onFoodLo
               {results.length > 0 && (
                 <>
                   <div className="photo-results-total">
-                    <strong>Total:</strong>
+                    <strong>{t('foodModals.total')}</strong>
                     <span>{Math.round(calculateTotal().calories)} cal</span>
                   </div>
                   <MealTypeSelector selected={selectedMealType} onChange={setSelectedMealType} />
                   <button className="btn-primary full-width" onClick={addAllTooDiary} disabled={isAdding}>
-                    {isAdding ? <><Loader size={18} className="spin" /> Adding...</> : <><Check size={18} /> Add All to {selectedMealType}</>}
+                    {isAdding
+                      ? <><Loader size={18} className="spin" /> {t('foodModals.adding')}</>
+                      : <><Check size={18} /> {t('foodModals.addAllTo', { mealType: selectedMealType })}</>}
                   </button>
                 </>
               )}
               {results.length === 0 && (
                 <div className="modal-info">
-                  All foods removed. Take a new photo to scan again.
+                  {t('foodModals.snapNoFoodsLeft')}
                 </div>
               )}
             </div>
@@ -431,6 +446,7 @@ export function SearchFoodsModal({ isOpen, onClose, mealType, clientData, onFood
   const isAddingRef = useRef(false); // Ref to prevent duplicate submissions
   const searchTimeout = useRef(null);
   const { showError, showSuccess } = useToast();
+  const { t } = useLanguage();
 
   const searchFood = async (searchQuery) => {
     if (searchQuery.length < 2) {
@@ -524,16 +540,16 @@ export function SearchFoodsModal({ isOpen, onClose, mealType, clientData, onFood
       });
 
       onFoodLogged?.(nutrition);
-      showSuccess('Food added to diary!');
+      showSuccess(t('foodModals.toastFoodAdded'));
       handleClose();
     } catch (err) {
       console.error('Failed to add food:', err);
       isAddingRef.current = false; // Reset ref on error to allow retry
-      showError('Failed to add food to diary');
+      showError(t('foodModals.toastAddFailed'));
     } finally {
       setIsAdding(false);
     }
-  }, [selectedFood, clientData, mealType, servings, selectedMeasure, onFoodLogged, showError, showSuccess, selectedDate]);
+  }, [selectedFood, clientData, mealType, servings, selectedMeasure, onFoodLogged, showError, showSuccess, selectedDate, t]);
 
   const handleClose = () => {
     setQuery('');
@@ -553,7 +569,7 @@ export function SearchFoodsModal({ isOpen, onClose, mealType, clientData, onFood
     <div className="modal-overlay" onClick={handleClose}>
       <div className="modal-content" onClick={e => e.stopPropagation()}>
         <div className="modal-header">
-          <h2>Search Foods</h2>
+          <h2>{t('foodModals.searchTitle')}</h2>
           <button className="modal-close" onClick={handleClose}><X size={24} /></button>
         </div>
 
@@ -565,7 +581,7 @@ export function SearchFoodsModal({ isOpen, onClose, mealType, clientData, onFood
                 <input
                   type="text"
                   className="search-input"
-                  placeholder="Search for food..."
+                  placeholder={t('foodModals.searchPlaceholder')}
                   value={query}
                   onChange={handleQueryChange}
                   autoFocus
@@ -575,7 +591,7 @@ export function SearchFoodsModal({ isOpen, onClose, mealType, clientData, onFood
               {searching ? (
                 <div className="search-loading">
                   <Loader size={24} className="spin" />
-                  <span>Searching...</span>
+                  <span>{t('foodModals.searching')}</span>
                 </div>
               ) : results.length > 0 ? (
                 <div className="search-results">
@@ -593,22 +609,22 @@ export function SearchFoodsModal({ isOpen, onClose, mealType, clientData, onFood
                   ))}
                 </div>
               ) : query.length >= 2 ? (
-                <div className="search-empty">No foods found for "{query}"</div>
+                <div className="search-empty">{t('foodModals.noFoodsFound', { query })}</div>
               ) : (
-                <div className="search-empty">Type to search for foods</div>
+                <div className="search-empty">{t('foodModals.typeToSearch')}</div>
               )}
             </>
           ) : (
             <div className="food-detail-section">
               <button className="back-link" onClick={() => setSelectedFood(null)}>
-                ← Back to search
+                {t('foodModals.backToSearch')}
               </button>
 
               <h3 className="food-detail-name">{selectedFood.name}</h3>
               {selectedFood.brand && <p className="food-detail-brand">{selectedFood.brand}</p>}
 
               <div className="serving-selector">
-                <label>Serving Size</label>
+                <label>{t('foodModals.servingSize')}</label>
                 {selectedFood.measures && selectedFood.measures.length > 0 ? (
                   <select
                     value={selectedMeasure}
@@ -624,7 +640,7 @@ export function SearchFoodsModal({ isOpen, onClose, mealType, clientData, onFood
               </div>
 
               <div className="servings-adjuster">
-                <label>Number of Servings</label>
+                <label>{t('foodModals.numberOfServings')}</label>
                 <div className="servings-controls">
                   <button onClick={() => setServings(Math.max(0.5, servings - 0.5))}><Minus size={18} /></button>
                   <span className="servings-value">{servings}</span>
@@ -635,24 +651,26 @@ export function SearchFoodsModal({ isOpen, onClose, mealType, clientData, onFood
               <div className="nutrition-preview">
                 <div className="nutrition-item calories">
                   <span className="nutrition-value">{nutrition.calories}</span>
-                  <span className="nutrition-label">Calories</span>
+                  <span className="nutrition-label">{t('foodModals.nutritionCalories')}</span>
                 </div>
                 <div className="nutrition-item protein">
                   <span className="nutrition-value">{nutrition.protein}g</span>
-                  <span className="nutrition-label">Protein</span>
+                  <span className="nutrition-label">{t('foodModals.nutritionProtein')}</span>
                 </div>
                 <div className="nutrition-item carbs">
                   <span className="nutrition-value">{nutrition.carbs}g</span>
-                  <span className="nutrition-label">Carbs</span>
+                  <span className="nutrition-label">{t('foodModals.nutritionCarbs')}</span>
                 </div>
                 <div className="nutrition-item fat">
                   <span className="nutrition-value">{nutrition.fat}g</span>
-                  <span className="nutrition-label">Fat</span>
+                  <span className="nutrition-label">{t('foodModals.nutritionFat')}</span>
                 </div>
               </div>
 
               <button className="btn-primary full-width" onClick={addTooDiary} disabled={isAdding}>
-                {isAdding ? <><Loader size={18} className="spin" /> Adding...</> : `Add to ${mealType}`}
+                {isAdding
+                  ? <><Loader size={18} className="spin" /> {t('foodModals.adding')}</>
+                  : t('foodModals.addToMealType', { mealType })}
               </button>
             </div>
           )}
@@ -683,6 +701,7 @@ export function FavoritesModal({ isOpen, onClose, mealType, clientData, onFoodLo
   const [search, setSearch] = useState('');
   const addingRef = useRef(false); // Ref to prevent duplicate submissions
   const { showError, showSuccess } = useToast();
+  const { t } = useLanguage();
 
   useEffect(() => {
     setSelectedMealType(mealType);
@@ -771,21 +790,21 @@ export function FavoritesModal({ isOpen, onClose, mealType, clientData, onFoodLo
         carbs: favorite.carbs,
         fat: favorite.fat
       });
-      showSuccess('Food added to diary!');
+      showSuccess(t('foodModals.toastFoodAdded'));
       addingRef.current = false;
       onClose();
     } catch (err) {
       console.error('Failed to add favorite:', err);
       addingRef.current = false; // Reset ref on error to allow retry
-      showError('Failed to add food to diary');
+      showError(t('foodModals.toastAddFailed'));
     } finally {
       setAddingId(null);
     }
-  }, [clientData, selectedMealType, onFoodLogged, onClose, showError, showSuccess, selectedDate, favorites]);
+  }, [clientData, selectedMealType, onFoodLogged, onClose, showError, showSuccess, selectedDate, favorites, t]);
 
   const deleteFavorite = async (favoriteId, e) => {
     e.stopPropagation();
-    if (!confirm('Delete this favorite?')) return;
+    if (!confirm(t('foodModals.confirmDeleteFavorite'))) return;
 
     // Optimistic update
     const previousFavorites = favorites;
@@ -821,7 +840,7 @@ export function FavoritesModal({ isOpen, onClose, mealType, clientData, onFoodLo
       <div className="modal-content favorites-modal" onClick={e => e.stopPropagation()}>
         <div className="sheet-drag-handle" aria-hidden="true" />
         <div className="modal-header">
-          <h2>Favorites</h2>
+          <h2>{t('foodModals.favoritesTitle')}</h2>
           <button className="modal-close" onClick={onClose}><X size={24} /></button>
         </div>
 
@@ -830,13 +849,13 @@ export function FavoritesModal({ isOpen, onClose, mealType, clientData, onFoodLo
           {loading ? (
             <div className="favorites-loading">
               <Loader size={24} className="spin" />
-              <span>Loading favorites...</span>
+              <span>{t('foodModals.loadingFavorites')}</span>
             </div>
           ) : favorites.length === 0 ? (
             <div className="favorites-empty">
               <Heart size={48} className="empty-icon" />
-              <h3>No favorites yet</h3>
-              <p>Save meals from your diary to quickly add them later</p>
+              <h3>{t('foodModals.noFavoritesYet')}</h3>
+              <p>{t('foodModals.noFavoritesHint')}</p>
             </div>
           ) : (
             <>
@@ -845,7 +864,7 @@ export function FavoritesModal({ isOpen, onClose, mealType, clientData, onFoodLo
                 <input
                   type="text"
                   className="search-input"
-                  placeholder="Search favorites..."
+                  placeholder={t('foodModals.searchFavoritesPlaceholder')}
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                 />
@@ -853,8 +872,8 @@ export function FavoritesModal({ isOpen, onClose, mealType, clientData, onFoodLo
               {filteredFavorites.length === 0 ? (
                 <div className="favorites-empty">
                   <Heart size={48} className="empty-icon" />
-                  <h3>No matches</h3>
-                  <p>No favorites match &ldquo;{search.trim()}&rdquo;</p>
+                  <h3>{t('foodModals.noFavoritesMatch')}</h3>
+                  <p>{t('foodModals.noFavoritesMatchHint', { search: search.trim() })}</p>
                 </div>
               ) : (
                 <div className="favorites-list">
@@ -889,7 +908,7 @@ export function FavoritesModal({ isOpen, onClose, mealType, clientData, onFoodLo
                     <div className="favorite-actions">
                       <button
                         className="favorite-delete-btn"
-                        aria-label="Delete favorite"
+                        aria-label={t('foodModals.ariaDeleteFavorite')}
                         onClick={(e) => deleteFavorite(fav.id, e)}
                       >
                         <Trash2 size={16} />
@@ -913,11 +932,11 @@ export function FavoritesModal({ isOpen, onClose, mealType, clientData, onFoodLo
               <div className="add-confirm-icon">
                 <Plus size={32} />
               </div>
-              <h3>Add to {selectedMealType.charAt(0).toUpperCase() + selectedMealType.slice(1)}?</h3>
-              <p>Add <strong>{confirmFavorite.meal_name}</strong> ({confirmFavorite.calories} cal) to your diary?</p>
+              <h3>{t('foodModals.confirmAddToMeal', { mealType: selectedMealType.charAt(0).toUpperCase() + selectedMealType.slice(1) })}</h3>
+              <p>{t('foodModals.confirmAddBody', { name: confirmFavorite.meal_name, calories: confirmFavorite.calories })}</p>
               <div className="add-confirm-actions">
                 <button className="add-cancel-btn" onClick={() => setConfirmFavorite(null)}>
-                  Cancel
+                  {t('foodModals.cancelBtn')}
                 </button>
                 <button
                   className="add-confirm-btn"
@@ -927,7 +946,7 @@ export function FavoritesModal({ isOpen, onClose, mealType, clientData, onFoodLo
                     setConfirmFavorite(null);
                   }}
                 >
-                  {addingId === confirmFavorite.id ? <Loader size={16} className="spin" /> : 'Add'}
+                  {addingId === confirmFavorite.id ? <Loader size={16} className="spin" /> : t('foodModals.confirmAddBtn')}
                 </button>
               </div>
             </div>
@@ -952,6 +971,7 @@ export function ScanLabelModal({ isOpen, onClose, mealType, clientData, onFoodLo
   const uploadRef = useRef(null);
   const MAX_PHOTOS = 4;
   const { showError, showSuccess } = useToast();
+  const { t } = useLanguage();
 
   useEffect(() => {
     setSelectedMealType(mealType);
@@ -989,20 +1009,20 @@ export function ScanLabelModal({ isOpen, onClose, mealType, clientData, onFoodLo
         setResult(data);
         setServings(1);
       } else {
-        setError('Could not read nutrition label. Please try a clearer photo.');
+        setError(t('foodModals.scanErrNoLabel'));
       }
     } catch (err) {
       console.error('Label analysis error:', err);
       if (err.isTimeout) {
-        setError('Label analysis timed out. Please check your connection and try again.');
+        setError(t('foodModals.scanErrTimeout'));
       } else if (err.isAuthError) {
-        setError('Session expired. Please close this modal, refresh the page, and try again.');
+        setError(t('foodModals.scanErrSession'));
       } else if (err.status === 429) {
-        setError('Too many requests. Please wait a moment and try again.');
+        setError(t('foodModals.scanErrTooManyReqs'));
       } else if (err.status === 503 || (err.message && err.message.includes('busy'))) {
-        setError('AI service is temporarily busy. Please try again in a moment.');
+        setError(t('foodModals.scanErrBusy'));
       } else {
-        setError(`Failed to analyze label: ${err.message || 'Unknown error'}`);
+        setError(t('foodModals.scanErrFailed', { message: err.message || 'Unknown error' }));
       }
     } finally {
       setAnalyzing(false);
@@ -1055,18 +1075,18 @@ export function ScanLabelModal({ isOpen, onClose, mealType, clientData, onFoodLo
       });
 
       onFoodLogged?.(nutrition);
-      showSuccess('Food added to diary!');
+      showSuccess(t('foodModals.toastFoodAdded'));
       handleClose();
     } catch (err) {
       console.error('Food diary error:', err);
-      const errorMessage = err?.response?.data?.error || err?.message || 'Failed to add food. Please try again.';
+      const errorMessage = err?.response?.data?.error || err?.message || t('foodModals.scanErrAddFood');
       setError(errorMessage);
       isAddingRef.current = false; // Reset ref on error to allow retry
-      showError('Failed to add food to diary');
+      showError(t('foodModals.toastAddFailed'));
     } finally {
       setIsAdding(false);
     }
-  }, [result, clientData, selectedMealType, servings, onFoodLogged, showError, showSuccess, selectedDate]);
+  }, [result, clientData, selectedMealType, servings, onFoodLogged, showError, showSuccess, selectedDate, t]);
 
   const handleClose = () => {
     setPreviews([]);
@@ -1087,23 +1107,23 @@ export function ScanLabelModal({ isOpen, onClose, mealType, clientData, onFoodLo
     <div className="modal-overlay" onClick={handleClose}>
       <div className="modal-content" onClick={e => e.stopPropagation()}>
         <div className="modal-header">
-          <h2>Scan Nutrition Label</h2>
+          <h2>{t('foodModals.scanTitle')}</h2>
           <button className="modal-close" onClick={handleClose}><X size={24} /></button>
         </div>
 
         <div className="modal-body">
           {previews.length === 0 ? (
             <div className="photo-capture-options">
-              <p className="photo-instructions">Take photos of the nutrition label and product</p>
-              <p className="photo-hint">Multiple angles help improve accuracy</p>
+              <p className="photo-instructions">{t('foodModals.scanInstructions')}</p>
+              <p className="photo-hint">{t('foodModals.scanHint')}</p>
               <div className="photo-buttons">
                 <button className="photo-option-btn" onClick={() => cameraRef.current?.click()}>
                   <Camera size={24} />
-                  <span>Take Photo</span>
+                  <span>{t('foodModals.takePhoto')}</span>
                 </button>
                 <button className="photo-option-btn" onClick={() => uploadRef.current?.click()}>
                   <Upload size={24} />
-                  <span>Upload</span>
+                  <span>{t('foodModals.upload')}</span>
                 </button>
               </div>
               <input
@@ -1131,18 +1151,18 @@ export function ScanLabelModal({ isOpen, onClose, mealType, clientData, onFoodLo
               </div>
               <div className="analyzing-indicator">
                 <Loader size={24} className="spin" />
-                <span>Reading nutrition label{previews.length > 1 ? 's' : ''}...</span>
+                <span>{previews.length > 1 ? t('foodModals.readingLabels') : t('foodModals.readingLabel')}</span>
               </div>
             </div>
           ) : result ? (
             <div className="scan-results-section">
-              <h3 className="food-detail-name">{result.name || 'Scanned Food'}</h3>
+              <h3 className="food-detail-name">{result.name || t('foodModals.scannedFoodFallback')}</h3>
               {(result.servingSize || result.servingUnit) && (
-                <p className="serving-info">Serving size: {result.servingSize} {result.servingUnit}</p>
+                <p className="serving-info">{t('foodModals.servingInfo', { size: result.servingSize, unit: result.servingUnit })}</p>
               )}
 
               <div className="servings-adjuster">
-                <label>Number of Servings</label>
+                <label>{t('foodModals.numberOfServings')}</label>
                 <div className="servings-controls">
                   <button onClick={() => setServings(Math.max(0.5, servings - 0.5))}><Minus size={18} /></button>
                   <span className="servings-value">{servings}</span>
@@ -1153,19 +1173,19 @@ export function ScanLabelModal({ isOpen, onClose, mealType, clientData, onFoodLo
               <div className="nutrition-preview">
                 <div className="nutrition-item calories">
                   <span className="nutrition-value">{nutrition.calories}</span>
-                  <span className="nutrition-label">Calories</span>
+                  <span className="nutrition-label">{t('foodModals.nutritionCalories')}</span>
                 </div>
                 <div className="nutrition-item protein">
                   <span className="nutrition-value">{nutrition.protein}g</span>
-                  <span className="nutrition-label">Protein</span>
+                  <span className="nutrition-label">{t('foodModals.nutritionProtein')}</span>
                 </div>
                 <div className="nutrition-item carbs">
                   <span className="nutrition-value">{nutrition.carbs}g</span>
-                  <span className="nutrition-label">Carbs</span>
+                  <span className="nutrition-label">{t('foodModals.nutritionCarbs')}</span>
                 </div>
                 <div className="nutrition-item fat">
                   <span className="nutrition-value">{nutrition.fat}g</span>
-                  <span className="nutrition-label">Fat</span>
+                  <span className="nutrition-label">{t('foodModals.nutritionFat')}</span>
                 </div>
               </div>
 
@@ -1175,10 +1195,12 @@ export function ScanLabelModal({ isOpen, onClose, mealType, clientData, onFoodLo
 
               <div className="scan-actions">
                 <button className="btn-secondary" onClick={() => { setPreviews([]); setResult(null); }}>
-                  Scan Again
+                  {t('foodModals.scanAgain')}
                 </button>
                 <button className="btn-primary" onClick={addTooDiary} disabled={isAdding}>
-                  {isAdding ? <><Loader size={18} className="spin" /> Adding...</> : `Add to ${selectedMealType}`}
+                  {isAdding
+                    ? <><Loader size={18} className="spin" /> {t('foodModals.adding')}</>
+                    : t('foodModals.addToMealTypeScan', { mealType: selectedMealType })}
                 </button>
               </div>
             </div>
@@ -1197,25 +1219,25 @@ export function ScanLabelModal({ isOpen, onClose, mealType, clientData, onFoodLo
                 {previews.length < MAX_PHOTOS && (
                   <button className="add-photo-btn" onClick={() => cameraRef.current?.click()}>
                     <Plus size={24} />
-                    <span>Add Photo</span>
+                    <span>{t('foodModals.addPhoto')}</span>
                   </button>
                 )}
               </div>
 
               <p className="photo-tip">
                 {previews.length === 1
-                  ? "Add front of package for better accuracy"
-                  : `${previews.length} photos added`}
+                  ? t('foodModals.scanTipOnePhoto')
+                  : t('foodModals.scanTipMultiPhoto', { count: previews.length })}
               </p>
 
               {error && <div className="modal-error">{error}</div>}
 
               <div className="scan-actions">
                 <button className="btn-secondary" onClick={() => setPreviews([])}>
-                  Start Over
+                  {t('foodModals.startOver')}
                 </button>
                 <button className="btn-primary" onClick={analyzeLabel}>
-                  Analyze {previews.length > 1 ? 'Photos' : 'Photo'}
+                  {previews.length > 1 ? t('foodModals.analyzePhotosScan') : t('foodModals.analyzePhotoScan')}
                 </button>
               </div>
 
