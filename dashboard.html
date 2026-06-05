@@ -5611,7 +5611,7 @@
                         <span class="stats-strip-label">Clients</span>
                     </a>
                     <div class="stats-strip-divider"></div>
-                    <div class="stats-strip-item" style="cursor:pointer" onclick="document.getElementById('overviewCardAlerts').scrollIntoView({behavior:'smooth'})" title="View pending check-ins">
+                    <div class="stats-strip-item" style="cursor:pointer" onclick="document.getElementById('overviewCardAlerts').scrollIntoView({behavior:'smooth'})" title="Check-ins submitted this week">
                         <span class="stats-strip-number stats-strip-number--pending" id="checkInCount">-</span>
                         <span class="stats-strip-label">Check-Ins</span>
                     </div>
@@ -6233,25 +6233,30 @@
                     document.getElementById('clientCount').textContent = clientCount || 0;
                 }
 
-                // Fetch pending check-ins count (unreviewed - no coach_responded_at)
-                let pendingCheckIns = 0;
+                // Fetch check-ins submitted this week (rolling 7-day window, matches
+                // the rest of the dashboard's "this week" stats). Previously this showed
+                // the count of unanswered check-ins, which accumulated into a permanent
+                // backlog that never moved — see check-in stat history.
+                let weeklyCheckIns = 0;
                 try {
+                    const weekAgo = new Date();
+                    weekAgo.setDate(weekAgo.getDate() - 7);
                     const { count: checkInCount, error: checkInError } = await supabaseClient
                         .from('client_checkins')
                         .select('*', { count: 'exact', head: true })
                         .eq('coach_id', coachId)
-                        .is('coach_responded_at', null);
+                        .gte('created_at', weekAgo.toISOString());
 
                     if (!checkInError) {
-                        pendingCheckIns = checkInCount || 0;
+                        weeklyCheckIns = checkInCount || 0;
                     }
                 } catch (e) {
                     console.warn('Could not load check-in count:', e);
                 }
-                document.getElementById('checkInCount').textContent = pendingCheckIns;
+                document.getElementById('checkInCount').textContent = weeklyCheckIns;
 
                 // Populate priority alerts
-                await loadPriorityAlerts(coachId, clientCount || 0, pendingCheckIns);
+                await loadPriorityAlerts(coachId, clientCount || 0, weeklyCheckIns);
             } catch (error) {
                 console.error('Error loading stats:', error);
             }
