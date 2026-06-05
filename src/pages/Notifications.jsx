@@ -5,10 +5,12 @@ import { useAuth } from '../context/AuthContext';
 import { apiGet, apiPost } from '../utils/api';
 import NotificationDetail from '../components/NotificationDetail';
 import { usePullToRefreshEvent } from '../hooks/usePullToRefreshEvent';
+import { useLanguage } from '../context/LanguageContext';
 
 function Notifications() {
   const { clientData } = useAuth();
   const navigate = useNavigate();
+  const { t } = useLanguage();
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -61,10 +63,10 @@ function Notifications() {
     const diffHours = Math.floor(diffMs / 3600000);
     const diffDays = Math.floor(diffMs / 86400000);
 
-    if (diffMins < 1) return 'just now';
-    if (diffMins < 60) return `${diffMins}m ago`;
-    if (diffHours < 24) return `${diffHours}h ago`;
-    if (diffDays < 7) return `${diffDays}d ago`;
+    if (diffMins < 1) return t('notificationsPage.justNow');
+    if (diffMins < 60) return t('notificationsPage.minutesAgo', { mins: diffMins });
+    if (diffHours < 24) return t('notificationsPage.hoursAgo', { hours: diffHours });
+    if (diffDays < 7) return t('notificationsPage.daysAgo', { days: diffDays });
     return date.toLocaleDateString();
   };
 
@@ -155,14 +157,14 @@ function Notifications() {
   return (
     <div className="notifications-page">
       <div className="notifications-page-header">
-        <button className="back-btn" onClick={() => navigate(-1)} aria-label="Go back">
+        <button className="back-btn" onClick={() => navigate(-1)} aria-label={t('notificationsPage.goBack')}>
           <ArrowLeft size={20} />
         </button>
-        <h1>Notifications</h1>
+        <h1>{t('notificationsPage.heading')}</h1>
         {unreadCount > 0 && (
           <button className="mark-all-read-btn" onClick={markAllRead}>
             <Check size={16} />
-            <span>Mark all read</span>
+            <span>{t('notificationsPage.markAllRead')}</span>
           </button>
         )}
       </div>
@@ -170,19 +172,19 @@ function Notifications() {
       {loading ? (
         <div className="notifications-page-loading">
           <div className="spinner" />
-          <p>Loading notifications...</p>
+          <p>{t('notificationsPage.loading')}</p>
         </div>
       ) : notifications.length === 0 ? (
         <div className="notifications-page-empty">
           <Bell size={48} />
-          <h2>No notifications yet</h2>
-          <p>When your coach reacts to your meals or updates your plans, they'll show up here.</p>
+          <h2>{t('notificationsPage.emptyHeading')}</h2>
+          <p>{t('notificationsPage.emptyBody')}</p>
         </div>
       ) : (
         <div className="notifications-page-list">
           {unreadCount > 0 && (
             <div className="notifications-section-label">
-              New ({unreadCount})
+              {t('notificationsPage.sectionNew', { count: unreadCount })}
             </div>
           )}
           {notifications.filter(n => !n.is_read).map(notif => (
@@ -207,7 +209,7 @@ function Notifications() {
 
           {notifications.some(n => n.is_read) && (
             <div className="notifications-section-label">
-              Earlier
+              {t('notificationsPage.sectionEarlier')}
             </div>
           )}
           {notifications.filter(n => n.is_read).map(notif => (
