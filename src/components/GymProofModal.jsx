@@ -2,6 +2,7 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import { X, Camera, RotateCcw, Send, Flame, ChevronDown, Clock } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { apiPost, apiGet } from '../utils/api';
+import { getDateLocale } from '../utils/dateLocale';
 import BadgeCelebrationModal from './BadgeCelebrationModal';
 import {
   getEarnedTiers,
@@ -116,12 +117,12 @@ function GymProofModal({ isOpen, onClose }) {
 
         // Create timestamp text
         const now = new Date();
-        const dateStr = now.toLocaleDateString('en-US', {
+        const dateStr = now.toLocaleDateString(getDateLocale(), {
           month: 'numeric',
           day: 'numeric',
           year: 'numeric'
         });
-        const timeStr = now.toLocaleTimeString('en-US', {
+        const timeStr = now.toLocaleTimeString(getDateLocale(), {
           hour: 'numeric',
           minute: '2-digit',
           second: '2-digit',
@@ -443,7 +444,7 @@ function GymProofModal({ isOpen, onClose }) {
                       <div key={proof.id} className="gym-proof-history-item">
                         <img src={proof.photo_url} alt="Gym proof" />
                         <span className="gym-proof-history-date">
-                          {new Date(proof.proof_date + 'T00:00:00').toLocaleDateString('en-US', {
+                          {new Date(proof.proof_date + 'T00:00:00').toLocaleDateString(getDateLocale(), {
                             weekday: 'short',
                             month: 'short',
                             day: 'numeric'

@@ -2,6 +2,7 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import { X, Camera, RotateCcw, Send, Clock, Scale, Sparkles, ChevronDown } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { apiPost, apiGet } from '../utils/api';
+import { getDateLocale } from '../utils/dateLocale';
 
 const STEPS = {
   INSTRUCTIONS: 'instructions',
@@ -95,8 +96,8 @@ function WeightProofModal({ isOpen, onClose }) {
         ctx.drawImage(img, 0, 0);
 
         const now = new Date();
-        const dateStr = now.toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' });
-        const timeStr = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true });
+        const dateStr = now.toLocaleDateString(getDateLocale(), { month: 'numeric', day: 'numeric', year: 'numeric' });
+        const timeStr = now.toLocaleTimeString(getDateLocale(), { hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true });
         const timestampText = `${dateStr}, ${timeStr}`;
         const nameText = clientData?.client_name || '';
 
@@ -435,7 +436,7 @@ function WeightProofModal({ isOpen, onClose }) {
                           {proof.weight} {proof.weight_unit}
                         </span>
                         <span className="gym-proof-history-date">
-                          {new Date(proof.proof_date + 'T00:00:00').toLocaleDateString('en-US', {
+                          {new Date(proof.proof_date + 'T00:00:00').toLocaleDateString(getDateLocale(), {
                             weekday: 'short',
                             month: 'short',
                             day: 'numeric'

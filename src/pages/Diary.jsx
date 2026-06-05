@@ -9,6 +9,7 @@ import { FavoritesModal, SnapPhotoModal, ScanLabelModal, SearchFoodsModal } from
 import { usePullToRefresh, PullToRefreshIndicator } from '../hooks/usePullToRefresh';
 import { onAppResume } from '../hooks/useAppLifecycle';
 import { useToast } from '../components/Toast';
+import { getDateLocale } from '../utils/dateLocale';
 
 // localStorage cache helpers
 const getCache = (key) => {
@@ -659,14 +660,14 @@ function Diary() {
 
           days.push({
             date: dateStr,
-            dayName: date.toLocaleDateString('en-US', { weekday: 'short' }),
+            dayName: date.toLocaleDateString(getDateLocale(), { weekday: 'short' }),
             ...dayTotals,
             logged: dayEntries.length > 0
           });
         } catch {
           days.push({
             date: dateStr,
-            dayName: date.toLocaleDateString('en-US', { weekday: 'short' }),
+            dayName: date.toLocaleDateString(getDateLocale(), { weekday: 'short' }),
             calories: 0, protein: 0, carbs: 0, fat: 0,
             logged: false
           });
@@ -710,7 +711,7 @@ function Diary() {
     if (diffDays === 0) return t('diaryPage.today');
     if (diffDays === -1) return t('diaryPage.yesterday');
     if (diffDays === 1) return t('diaryPage.tomorrow');
-    return currentDate.toLocaleDateString('en-US', { weekday: 'long' });
+    return currentDate.toLocaleDateString(getDateLocale(), { weekday: 'long' });
   };
 
   const formatDate = (date) => {
@@ -721,7 +722,7 @@ function Diary() {
   };
 
   const formatFullDate = () => {
-    return currentDate.toLocaleDateString('en-US', {
+    return currentDate.toLocaleDateString(getDateLocale(), {
       month: 'long',
       day: 'numeric',
       year: 'numeric'
@@ -4186,7 +4187,7 @@ function Diary() {
                         <span className="interaction-coach-name">{c.authorName || t('diaryPage.coachFallback')}</span>
                         <p className="interaction-comment-text">{c.comment}</p>
                         <span className="interaction-comment-time">
-                          {new Date(c.createdAt).toLocaleDateString()}
+                          {new Date(c.createdAt).toLocaleDateString(getDateLocale())}
                         </span>
                       </div>
                     </div>

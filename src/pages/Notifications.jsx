@@ -6,6 +6,7 @@ import { apiGet, apiPost } from '../utils/api';
 import NotificationDetail from '../components/NotificationDetail';
 import { usePullToRefreshEvent } from '../hooks/usePullToRefreshEvent';
 import { useLanguage } from '../context/LanguageContext';
+import { getDateLocale } from '../utils/dateLocale';
 
 function Notifications() {
   const { clientData } = useAuth();
@@ -67,7 +68,7 @@ function Notifications() {
     if (diffMins < 60) return t('notificationsPage.minutesAgo', { mins: diffMins });
     if (diffHours < 24) return t('notificationsPage.hoursAgo', { hours: diffHours });
     if (diffDays < 7) return t('notificationsPage.daysAgo', { days: diffDays });
-    return date.toLocaleDateString();
+    return date.toLocaleDateString(getDateLocale());
   };
 
   const getNotificationIcon = (type) => {

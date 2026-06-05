@@ -8,6 +8,7 @@ import { useAuth } from '../context/AuthContext';
 import { apiGet, apiPost } from '../utils/api';
 import { useToast } from '../components/Toast';
 import { useLanguage } from '../context/LanguageContext';
+import { getDateLocale } from '../utils/dateLocale';
 
 // ─── Pricing Card ───
 function PricingCard({ plan, currentPlanId, pendingPlanId, onSubscribe, onChangePlan, loading }) {
@@ -135,8 +136,8 @@ function SubscriptionInfo({ subscription, pendingPlan, onCancel, onReactivate, o
             <Calendar size={14} color="var(--gray-400)" />
             <span>
               {status === 'canceling'
-                ? t('clientBillingPage.accessUntil', { date: new Date(subscription.cancel_at || subscription.current_period_end).toLocaleDateString() })
-                : t('clientBillingPage.nextBilling', { date: new Date(subscription.current_period_end).toLocaleDateString() })
+                ? t('clientBillingPage.accessUntil', { date: new Date(subscription.cancel_at || subscription.current_period_end).toLocaleDateString(getDateLocale()) })
+                : t('clientBillingPage.nextBilling', { date: new Date(subscription.current_period_end).toLocaleDateString(getDateLocale()) })
               }
             </span>
           </div>
@@ -144,7 +145,7 @@ function SubscriptionInfo({ subscription, pendingPlan, onCancel, onReactivate, o
         {subscription.trial_ends_at && status === 'trialing' && (
           <div style={styles.detailRow}>
             <AlertTriangle size={14} color="var(--warning)" />
-            <span>{t('clientBillingPage.trialEnds', { date: new Date(subscription.trial_ends_at).toLocaleDateString() })}</span>
+            <span>{t('clientBillingPage.trialEnds', { date: new Date(subscription.trial_ends_at).toLocaleDateString(getDateLocale()) })}</span>
           </div>
         )}
         {pendingPlan && pendingEffectiveAt && (
@@ -153,7 +154,7 @@ function SubscriptionInfo({ subscription, pendingPlan, onCancel, onReactivate, o
             <span>
               {t('clientBillingPage.switchingToPlan', {
                 name: pendingPlan.name,
-                date: new Date(pendingEffectiveAt).toLocaleDateString()
+                date: new Date(pendingEffectiveAt).toLocaleDateString(getDateLocale())
               })}
             </span>
           </div>
@@ -217,7 +218,7 @@ function PaymentHistory({ payments }) {
         <div key={p.id} style={styles.historyRow}>
           <div>
             <div style={styles.historyDesc}>{p.description || t('clientBillingPage.paymentFallbackDesc')}</div>
-            <div style={styles.historyDate}>{new Date(p.created_at).toLocaleDateString()}</div>
+            <div style={styles.historyDate}>{new Date(p.created_at).toLocaleDateString(getDateLocale())}</div>
           </div>
           <div style={{
             ...styles.historyAmount,

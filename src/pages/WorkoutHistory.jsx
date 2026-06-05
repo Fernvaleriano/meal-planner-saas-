@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { apiGet } from '../utils/api';
+import { getDateLocale } from '../utils/dateLocale';
 import { convertWeight } from '../utils/workoutProgression';
 import { logHasEffort } from '../utils/workoutEvidence';
 import { usePullToRefreshEvent } from '../hooks/usePullToRefreshEvent';
@@ -29,7 +30,7 @@ import { useClientReactions } from '../hooks/useClientReactions';
 const formatDate = (dateStr) => {
   try {
     const d = new Date(dateStr + 'T00:00:00');
-    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    return d.toLocaleDateString(getDateLocale(), { month: 'short', day: 'numeric' });
   } catch {
     return dateStr;
   }
@@ -38,7 +39,7 @@ const formatDate = (dateStr) => {
 const formatDateWithDay = (dateStr) => {
   try {
     const d = new Date(dateStr + 'T00:00:00');
-    return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+    return d.toLocaleDateString(getDateLocale(), { weekday: 'short', month: 'short', day: 'numeric' });
   } catch {
     return dateStr;
   }
@@ -64,7 +65,7 @@ const PROGRAM_TYPE_LABELS = {
 const formatFullDate = (dateStr) => {
   try {
     const d = new Date(dateStr + 'T00:00:00');
-    return d.toLocaleDateString('en-US', {
+    return d.toLocaleDateString(getDateLocale(), {
       weekday: 'long',
       month: 'long',
       day: 'numeric',
@@ -662,7 +663,7 @@ export default function WorkoutHistory() {
       if (diffDays >= 0 && diffDays < 7) label = 'This Week';
       else if (diffDays >= 7 && diffDays < 14) label = 'Last Week';
       else {
-        label = weekStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        label = weekStart.toLocaleDateString(getDateLocale(), { month: 'short', day: 'numeric' });
         const weekEnd = new Date(weekStart);
         weekEnd.setDate(weekStart.getDate() + 6);
         label = `Week of ${label}`;

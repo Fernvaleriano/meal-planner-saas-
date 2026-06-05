@@ -9,6 +9,7 @@ import { onAppResume } from '../hooks/useAppLifecycle';
 
 import { useToast } from '../components/Toast';
 import VoiceNotePlayer from '../components/VoiceNotePlayer';
+import { getDateLocale } from '../utils/dateLocale';
 // Build a proxy URL for voice notes that never expires
 // Falls back to extracting the storage path from old signed URLs
 const getVoiceNoteProxyUrl = (meal) => {
@@ -518,7 +519,7 @@ function Plans() {
   // Format date — short weekday helps anchor "when was this assigned"
   const formatDate = (dateStr) => {
     const date = new Date(dateStr);
-    return date.toLocaleDateString('en-US', {
+    return date.toLocaleDateString(getDateLocale(), {
       weekday: 'short',
       month: 'short',
       day: 'numeric',
@@ -528,7 +529,7 @@ function Plans() {
 
   const formatTime = (dateStr) => {
     const date = new Date(dateStr);
-    return date.toLocaleTimeString('en-US', {
+    return date.toLocaleTimeString(getDateLocale(), {
       hour: 'numeric',
       minute: '2-digit',
       hour12: true

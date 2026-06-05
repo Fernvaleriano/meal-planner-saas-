@@ -12,6 +12,7 @@ import AskCoachChat from './AskCoachChat';
 import VoiceNotePlayer from '../VoiceNotePlayer';
 import AskAIChatModal from './AskAIChatModal';
 import { useLanguage } from '../../context/LanguageContext';
+import { getDateLocale } from '../../utils/dateLocale';
 
 // Number words to digits mapping for voice input (expanded)
 const numberWords = {
@@ -194,7 +195,7 @@ function formatPersonalNoteTime(iso, t) {
   if (hr < 24) return t('exerciseDetail.timeHrAgo', { hr });
   const day = Math.floor(hr / 24);
   if (day < 7) return t('exerciseDetail.timeDayAgo', { day });
-  return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+  return d.toLocaleDateString(getDateLocale(), { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
 // Simplified and more stable ExerciseDetailModal
@@ -3109,7 +3110,7 @@ function ExerciseDetailModal({
                 const allTimeMax = historyStats?.allTimeMaxWeight || 0;
                 const prEntry = allTimeMax > 0 ? processedEntries.find(e => e.maxW === allTimeMax) : null;
                 const prDate = prEntry?.dateObj
-                  ? prEntry.dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                  ? prEntry.dateObj.toLocaleDateString(getDateLocale(), { month: 'short', day: 'numeric', year: 'numeric' })
                   : null;
 
                 // Group entries by month
@@ -3117,7 +3118,7 @@ function ExerciseDetailModal({
                 let currentMonth = '';
                 for (const entry of processedEntries) {
                   const monthLabel = entry.dateObj
-                    ? entry.dateObj.toLocaleDateString('en-US', { month: 'short', year: 'numeric' }).toUpperCase()
+                    ? entry.dateObj.toLocaleDateString(getDateLocale(), { month: 'short', year: 'numeric' }).toUpperCase()
                     : 'UNKNOWN';
                   if (monthLabel !== currentMonth) {
                     currentMonth = monthLabel;
@@ -3143,7 +3144,7 @@ function ExerciseDetailModal({
                         {chartEntries.map((entry, i) => {
                           const heightPct = chartMax > 0 ? (entry.maxW / chartMax) * 100 : 0;
                           const dateLabel = entry.dateObj
-                            ? `${entry.dateObj.getDate()} ${entry.dateObj.toLocaleDateString('en-US', { month: 'short' })}`
+                            ? `${entry.dateObj.getDate()} ${entry.dateObj.toLocaleDateString(getDateLocale(), { month: 'short' })}`
                             : '';
                           return (
                             <div key={i} className="history-bar-col">
@@ -3192,7 +3193,7 @@ function ExerciseDetailModal({
                           </div>
                           {group.entries.map((entry, idx) => {
                             const dayOfWeek = entry.dateObj
-                              ? entry.dateObj.toLocaleDateString('en-US', { weekday: 'short' })
+                              ? entry.dateObj.toLocaleDateString(getDateLocale(), { weekday: 'short' })
                               : '';
                             const dayNum = entry.dateObj ? entry.dateObj.getDate() : '';
 

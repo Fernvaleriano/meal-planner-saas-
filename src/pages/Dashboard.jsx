@@ -11,6 +11,7 @@ import { usePullToRefresh, PullToRefreshIndicator } from '../hooks/usePullToRefr
 import { onAppResume } from '../hooks/useAppLifecycle';
 import { useToast } from '../components/Toast';
 import { useLanguage } from '../context/LanguageContext';
+import { getDateLocale } from '../utils/dateLocale';
 
 const WeightProofModal = lazy(() => import('../components/WeightProofModal'));
 
@@ -380,7 +381,7 @@ function Dashboard() {
 
   // Format today's date
   const formatTodayDate = () => {
-    return new Date().toLocaleDateString('en-US', {
+    return new Date().toLocaleDateString(getDateLocale(), {
       weekday: 'short',
       month: 'short',
       day: 'numeric'
