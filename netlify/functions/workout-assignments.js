@@ -121,6 +121,86 @@ async function enrichExercisesWithEquipment(exercises, supabase) {
   });
 }
 
+// Backfill a missing numeric `id` on workout exercises by matching their name
+// against the exercises table.
+//
+// Some workouts get stored with exercises that have a name + media URLs but no
+// `id` — e.g. programs hand-built in the documented "template format" and
+// enriched by name, or AI-variation output. The client app filters out any
+// exercise lacking an `id` (it keys completion tracking off it), so those
+// workouts render as "0/0 activities" / completely empty even though every
+// exercise is real and matchable. This resolves the id from the name so the
+// client can see the workout. It mutates the passed-in workout objects in place
+// and is intentionally best-effort: an unmatched name is simply left as-is
+// (same behaviour as before), so it can never make a workout worse.
+async function backfillExerciseIdsByName(workouts, supabase) {
+  const namesNeeded = new Set();
+  for (const w of workouts) {
+    for (const ex of (w.workout_data?.exercises || [])) {
+      if ((ex.id == null || typeof ex.id !== 'number') && ex.name) {
+        namesNeeded.add(ex.name);
+      }
+    }
+  }
+  if (namesNeeded.size === 0) return;
+
+  let rows = [];
+  try {
+    const { data, error } = await supabase
+      .from('exercises')
+      .select('id, name, coach_id, video_url, animation_url, thumbnail_url, equipment')
+      .in('name', [...namesNeeded]);
+    if (error) {
+      console.error('backfillExerciseIdsByName lookup error:', error);
+      return;
+    }
+    rows = data || [];
+  } catch (e) {
+    console.error('backfillExerciseIdsByName failed:', e);
+    return;
+  }
+  if (rows.length === 0) return;
+
+  // name(lowercased) → candidate rows
+  const byName = new Map();
+  for (const r of rows) {
+    const key = (r.name || '').toLowerCase();
+    if (!byName.has(key)) byName.set(key, []);
+    byName.get(key).push(r);
+  }
+
+  // When a name has duplicate rows, prefer the coach's own custom exercise,
+  // then the row whose stored media matches the snapshot (keeps the same video
+  // the coach picked), then a global library row, then anything.
+  const pickRow = (candidates, ex, coachId) => {
+    if (candidates.length === 1) return candidates[0];
+    const own = candidates.find(c => coachId && c.coach_id === coachId);
+    if (own) return own;
+    const mediaMatch = candidates.find(c =>
+      (ex.thumbnail_url && c.thumbnail_url === ex.thumbnail_url) ||
+      (ex.video_url && c.video_url === ex.video_url) ||
+      (ex.animation_url && c.animation_url === ex.animation_url)
+    );
+    if (mediaMatch) return mediaMatch;
+    return candidates.find(c => c.coach_id == null) || candidates[0];
+  };
+
+  for (const w of workouts) {
+    const coachId = w.coach_id;
+    for (const ex of (w.workout_data?.exercises || [])) {
+      if (ex.id != null && typeof ex.id === 'number') continue;
+      if (!ex.name) continue;
+      const candidates = byName.get(ex.name.toLowerCase());
+      if (!candidates || candidates.length === 0) continue;
+      const row = pickRow(candidates, ex, coachId);
+      if (row) {
+        ex.id = row.id;
+        if (!ex.equipment && row.equipment) ex.equipment = row.equipment;
+      }
+    }
+  }
+}
+
 exports.handler = withTimeout(async (event) => {
   if (event.httpMethod === 'OPTIONS') {
     return { statusCode: 200, headers, body: '' };
@@ -460,6 +540,12 @@ exports.handler = withTimeout(async (event) => {
               todayWorkouts.push(todayWorkout);
             }
           }
+
+          // Backfill any exercises that are missing a numeric `id` by matching
+          // their name. Must run BEFORE the id-based enrichment below — the
+          // client drops id-less exercises entirely, so without this a workout
+          // stored in name-only form shows up as "0/0 activities" / empty.
+          await backfillExerciseIdsByName(todayWorkouts, supabase);
 
           // Batch-enrich all exercises across all workouts with a single DB query each
           // Collect all exercise IDs from all workouts
