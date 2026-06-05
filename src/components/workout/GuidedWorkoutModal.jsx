@@ -9,6 +9,7 @@ import { parseDurationToSeconds } from '../../utils/workoutDuration';
 import { generateProgression, EFFORT_OPTIONS, EFFORT_TO_RIR, estimate1RM, parseSetsData, getMaxWeight, parseReps, isCompoundExercise, getWeightIncrement, convertWeight } from '../../utils/workoutProgression';
 import { playTickSound, playCompleteChime, warmUpTickSound, resumeAudio, startTickKeepAlive, stopTickKeepAlive, setAudioEnabled } from '../../utils/audioTick';
 import { useBranding } from '../../context/BrandingContext';
+import { useLanguage } from '../../context/LanguageContext';
 
 // --- Resume helpers ---
 // Resume state is namespaced per assignment so two workouts scheduled on
@@ -313,6 +314,7 @@ function AskAIChatModal({ messages, loading, onSend, onClose, exerciseName, reco
   const [input, setInput] = useState('');
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
+  const { t } = useLanguage();
 
   // Scroll to bottom when messages change
   useEffect(() => {
@@ -328,9 +330,9 @@ function AskAIChatModal({ messages, loading, onSend, onClose, exerciseName, reco
 
   // Quick suggestion buttons
   const quickSuggestions = [
-    "I'm feeling tired today",
-    "Should I go heavier?",
-    "Keep it the same as last time"
+    t('guidedWorkout.aiQuickSuggestion1'),
+    t('guidedWorkout.aiQuickSuggestion2'),
+    t('guidedWorkout.aiQuickSuggestion3'),
   ];
 
   return (
@@ -339,7 +341,7 @@ function AskAIChatModal({ messages, loading, onSend, onClose, exerciseName, reco
         <div className="ask-ai-header">
           <div className="ask-ai-header-left">
             <Bot size={20} />
-            <span>Coach</span>
+            <span>{t('guidedWorkout.aiChatTitle')}</span>
           </div>
           <button className="ask-ai-close" onClick={onClose}>
             <X size={20} />
@@ -350,7 +352,7 @@ function AskAIChatModal({ messages, loading, onSend, onClose, exerciseName, reco
           <span>{exerciseName}</span>
           {recommendation && (
             <span className="ask-ai-current-rec">
-              Current: {recommendation.sets}x{recommendation.reps} @ {recommendation.weight || '—'}{weightUnit}
+              {t('guidedWorkout.aiCurrentRec', { sets: recommendation.sets, reps: recommendation.reps, weight: recommendation.weight || '—', unit: weightUnit })}
             </span>
           )}
         </div>
@@ -375,7 +377,7 @@ function AskAIChatModal({ messages, loading, onSend, onClose, exerciseName, reco
               </div>
               <div className="ask-ai-bubble loading">
                 <Loader2 size={16} className="spinning" />
-                <span>Thinking...</span>
+                <span>{t('guidedWorkout.aiThinking')}</span>
               </div>
             </div>
           )}
@@ -403,7 +405,7 @@ function AskAIChatModal({ messages, loading, onSend, onClose, exerciseName, reco
             ref={inputRef}
             type="text"
             className="ask-ai-input"
-            placeholder="Ask about reps, weight, form..."
+            placeholder={t('guidedWorkout.aiInputPlaceholder')}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             disabled={loading}
@@ -416,7 +418,7 @@ function AskAIChatModal({ messages, loading, onSend, onClose, exerciseName, reco
         {recommendation && (
           <button className="ask-ai-accept-btn" onClick={onAccept}>
             <Check size={16} />
-            <span>Accept Recommendation ({recommendation.sets}x{recommendation.reps} @ {recommendation.weight || '—'}{weightUnit})</span>
+            <span>{t('guidedWorkout.aiAcceptRec', { sets: recommendation.sets, reps: recommendation.reps, weight: recommendation.weight || '—', unit: weightUnit })}</span>
           </button>
         )}
       </div>
@@ -582,6 +584,7 @@ function GuidedWorkoutModal({
   const [showSoftResetBanner, setShowSoftResetBanner] = useState(false);
   const [showSoftResetSplash, setShowSoftResetSplash] = useState(false);
   const { branding } = useBranding();
+  const { t } = useLanguage();
   // Captured crash info from the prior session (if any). Surfaced in the
   // resume prompt so the founder can read it back to chat without
   // tethering the phone. Cleared on user dismiss.
@@ -3730,7 +3733,7 @@ function GuidedWorkoutModal({
       )
     );
     if (!hasLoggedSet) {
-      const ok = window.confirm("You haven't logged any sets yet. Finish workout anyway?");
+      const ok = window.confirm(t('guidedWorkout.confirmNoSets'));
       if (!ok) return;
     }
 
@@ -3835,12 +3838,12 @@ function GuidedWorkoutModal({
           <div className="guided-complete-icon">
             <Check size={48} />
           </div>
-          <h2>Workout Complete!</h2>
+          <h2>{t('guidedWorkout.workoutComplete')}</h2>
           <p className="guided-complete-stats">
-            {exercises.length} exercises &bull; {formatTime(totalElapsed)} elapsed
+            {t('guidedWorkout.completeStats', { count: exercises.length, elapsed: formatTime(totalElapsed) })}
           </p>
           <button className="guided-finish-btn" onClick={handleFinishWorkout}>
-            Finish
+            {t('guidedWorkout.finishBtn')}
           </button>
         </div>
       </div>
@@ -3878,9 +3881,11 @@ function GuidedWorkoutModal({
             <div className="guided-deferred-icon">
               <Clock size={32} />
             </div>
-            <h2 className="guided-deferred-title">Skipped Exercises</h2>
+            <h2 className="guided-deferred-title">{t('guidedWorkout.skippedExercisesTitle')}</h2>
             <p className="guided-deferred-subtitle">
-              You skipped {activeDeferredQueue.length} exercise{activeDeferredQueue.length !== 1 ? 's' : ''} &mdash; ready to go back?
+              {activeDeferredQueue.length !== 1
+                ? t('guidedWorkout.skippedSubtitlePlural', { count: activeDeferredQueue.length })
+                : t('guidedWorkout.skippedSubtitle', { count: activeDeferredQueue.length })}
             </p>
 
             {activeDeferredQueue.map((exIdx) => {
@@ -3899,7 +3904,7 @@ function GuidedWorkoutModal({
                             Superset {ex.supersetGroup}
                           </h3>
                           <span className="guided-deferred-phase-tag superset">
-                            {group.length} exercises
+                            {t('guidedWorkout.nExercises', { count: group.length })}
                           </span>
                         </>
                       ) : (
@@ -3907,7 +3912,7 @@ function GuidedWorkoutModal({
                           <h3>{ex.name}</h3>
                           {exPhase !== 'main' && (
                             <span className={`guided-deferred-phase-tag ${exPhase}`}>
-                              {exPhase === 'warmup' ? 'Warm-Up' : 'Cool-Down'}
+                              {exPhase === 'warmup' ? t('guidedWorkout.warmUp') : t('guidedWorkout.coolDown')}
                             </span>
                           )}
                         </>
@@ -3918,12 +3923,12 @@ function GuidedWorkoutModal({
                     ) : (
                       <p>
                         {exInfo.isDistance
-                          ? `${exInfo.sets} set${exInfo.sets !== 1 ? 's' : ''} \u00D7 ${exInfo.distance || 1} ${exInfo.distanceUnit === 'miles' ? 'mi' : exInfo.distanceUnit === 'km' ? 'km' : 'm'}`
+                          ? `${exInfo.sets} ${exInfo.sets !== 1 ? t('guidedWorkout.setPlural') : t('guidedWorkout.setSingular')} \u00D7 ${exInfo.distance || 1} ${exInfo.distanceUnit === 'miles' ? 'mi' : exInfo.distanceUnit === 'km' ? 'km' : 'm'}`
                           : exInfo.isTimed
-                          ? `${exInfo.sets} set${exInfo.sets !== 1 ? 's' : ''} \u00D7 ${formatDuration(exInfo.duration)}`
+                          ? `${exInfo.sets} ${exInfo.sets !== 1 ? t('guidedWorkout.setPlural') : t('guidedWorkout.setSingular')} \u00D7 ${formatDuration(exInfo.duration)}`
                           : exInfo.isTillFailure
-                          ? `${exInfo.sets} set${exInfo.sets !== 1 ? 's' : ''} \u00D7 Till Failure`
-                          : `${exInfo.sets} set${exInfo.sets !== 1 ? 's' : ''} \u00D7 ${exInfo.reps} reps`
+                          ? `${exInfo.sets} ${exInfo.sets !== 1 ? t('guidedWorkout.setPlural') : t('guidedWorkout.setSingular')} \u00D7 ${t('guidedWorkout.tillFailure')}`
+                          : `${exInfo.sets} ${exInfo.sets !== 1 ? t('guidedWorkout.setPlural') : t('guidedWorkout.setSingular')} \u00D7 ${exInfo.reps} ${t('guidedWorkout.repsLabel')}`
                         }
                       </p>
                     )}
@@ -3931,11 +3936,11 @@ function GuidedWorkoutModal({
                   <div className="guided-deferred-card-actions">
                     <button className="guided-deferred-do-now-btn" onClick={() => handleDeferredDoNow(exIdx)}>
                       <Play size={16} />
-                      <span>Do It Now</span>
+                      <span>{t('guidedWorkout.doItNow')}</span>
                     </button>
                     <button className="guided-deferred-skip-btn" onClick={() => handleDeferredSkipForGood(exIdx)}>
                       <SkipForward size={14} />
-                      <span>Skip for Good</span>
+                      <span>{t('guidedWorkout.skipForGood')}</span>
                     </button>
                   </div>
                 </div>
@@ -3943,7 +3948,7 @@ function GuidedWorkoutModal({
             })}
 
             <button className="guided-deferred-continue-btn" onClick={handleDeferredSkipAll}>
-              Skip All &amp; Continue
+              {t('guidedWorkout.skipAllContinue')}
             </button>
           </div>
         </div>
@@ -3963,9 +3968,9 @@ function GuidedWorkoutModal({
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flex: 1, color: '#94a3b8', padding: '40px 20px', textAlign: 'center' }}>
           <AlertTriangle size={48} style={{ marginBottom: 16, color: '#f59e0b' }} />
-          <p style={{ marginBottom: 16, fontSize: '16px' }}>Unable to load exercise data.</p>
+          <p style={{ marginBottom: 16, fontSize: '16px' }}>{t('guidedWorkout.unableToLoad')}</p>
           <button onClick={onClose} style={{ padding: '10px 24px', background: '#2cb5a5', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '15px' }}>
-            Close Workout
+            {t('guidedWorkout.closeWorkout')}
           </button>
         </div>
       </div>
@@ -4013,21 +4018,21 @@ function GuidedWorkoutModal({
             className="guided-minimize-btn"
             onClick={handleMinimize}
             type="button"
-            aria-label="Minimize workout"
-            title="Minimize"
+            aria-label={t('guidedWorkout.ariaMinimize')}
+            title={t('guidedWorkout.titleMinimize')}
           >
             <PictureInPicture2 size={18} />
           </button>
           <button
             className={`guided-voice-toggle ${voiceEnabled ? 'on' : 'off'}`}
             onClick={() => setVoiceEnabled(!voiceEnabled)}
-            aria-label={voiceEnabled ? 'Mute voice cues' : 'Unmute voice cues'}
-            title={voiceEnabled ? 'Voice cues on' : 'Voice cues off'}
+            aria-label={voiceEnabled ? t('guidedWorkout.ariaMuteVoice') : t('guidedWorkout.ariaUnmuteVoice')}
+            title={voiceEnabled ? t('guidedWorkout.titleVoiceOn') : t('guidedWorkout.titleVoiceOff')}
           >
             {voiceEnabled ? <Volume2 size={18} /> : <VolumeX size={18} />}
           </button>
-          <div className="guided-elapsed-wrap" aria-label="Total elapsed time">
-            <span className="guided-elapsed-label">Total</span>
+          <div className="guided-elapsed-wrap" aria-label={t('guidedWorkout.ariaElapsed')}>
+            <span className="guided-elapsed-label">{t('guidedWorkout.totalLabel')}</span>
             <span className="guided-elapsed">{formatTime(totalElapsed)}</span>
           </div>
         </div>
@@ -4044,8 +4049,8 @@ function GuidedWorkoutModal({
         {supersetState ? (
           <div className="guided-phase-banner superset">
             <Zap size={16} className="guided-superset-zap" />
-            <span className="guided-phase-label">Superset {supersetState.groupKey}</span>
-            <span className="guided-superset-round-badge">Round {supersetState.round + 1}/{supersetState.totalRounds}</span>
+            <span className="guided-phase-label">{t('guidedWorkout.supersetLabel', { key: supersetState.groupKey })}</span>
+            <span className="guided-superset-round-badge">{t('guidedWorkout.roundOfN', { current: supersetState.round + 1, total: supersetState.totalRounds })}</span>
           </div>
         ) : (() => {
           const exPhase = currentExercise?.phase || (currentExercise?.isWarmup ? 'warmup' : currentExercise?.isStretch ? 'cooldown' : 'main');
@@ -4053,14 +4058,14 @@ function GuidedWorkoutModal({
             return (
               <div className="guided-phase-banner warmup">
                 <span className="guided-phase-icon">&#x1F525;</span>
-                <span className="guided-phase-label">Warm-Up</span>
+                <span className="guided-phase-label">{t('guidedWorkout.warmUp')}</span>
               </div>
             );
           } else if (exPhase === 'cooldown') {
             return (
               <div className="guided-phase-banner cooldown">
                 <span className="guided-phase-icon">&#x1F9CA;</span>
-                <span className="guided-phase-label">Cool-Down</span>
+                <span className="guided-phase-label">{t('guidedWorkout.coolDown')}</span>
               </div>
             );
           }
@@ -4071,40 +4076,40 @@ function GuidedWorkoutModal({
         <div className="guided-exercise-info">
         <div className="guided-exercise-number-row">
           <div className="guided-exercise-number">
-            {isPlayingDeferred && <span className="guided-deferred-badge">Skipped earlier &middot; </span>}
+            {isPlayingDeferred && <span className="guided-deferred-badge">{t('guidedWorkout.skippedEarlier')}</span>}
             {supersetState
-              ? `Exercise ${supersetState.memberPos + 1} of ${supersetState.groupIndices.length}`
-              : `Exercise ${currentExIndex + 1} of ${exercises.length}`
+              ? t('guidedWorkout.supersetExerciseOfN', { current: supersetState.memberPos + 1, total: supersetState.groupIndices.length })
+              : t('guidedWorkout.exerciseOfN', { current: currentExIndex + 1, total: exercises.length })
             }
           </div>
           {onSwapExercise && !supersetState && (
             <button className="guided-swap-btn" onClick={handleOpenSwap} type="button">
               <Repeat size={14} />
-              <span>Swap</span>
+              <span>{t('guidedWorkout.swapBtn')}</span>
             </button>
           )}
         </div>
         <h1 className="guided-exercise-name">{currentExercise.name}</h1>
         <div className="guided-exercise-meta">
           {info.isDistance
-            ? `${info.sets} set${info.sets !== 1 ? 's' : ''} × ${info.distance || 1} ${info.distanceUnit === 'miles' ? 'mi' : info.distanceUnit === 'km' ? 'km' : 'm'}`
+            ? `${info.sets} ${info.sets !== 1 ? t('guidedWorkout.setPlural') : t('guidedWorkout.setSingular')} × ${info.distance || 1} ${info.distanceUnit === 'miles' ? 'mi' : info.distanceUnit === 'km' ? 'km' : 'm'}`
             : info.isTimed
-            ? `${info.sets} set${info.sets !== 1 ? 's' : ''} × ${formatDuration(info.duration)}`
+            ? `${info.sets} ${info.sets !== 1 ? t('guidedWorkout.setPlural') : t('guidedWorkout.setSingular')} × ${formatDuration(info.duration)}`
             : info.isTillFailure
-            ? `${info.sets} set${info.sets !== 1 ? 's' : ''} × Till Failure`
-            : `${info.sets} set${info.sets !== 1 ? 's' : ''} × ${info.reps} reps`
+            ? `${info.sets} ${info.sets !== 1 ? t('guidedWorkout.setPlural') : t('guidedWorkout.setSingular')} × ${t('guidedWorkout.tillFailure')}`
+            : `${info.sets} ${info.sets !== 1 ? t('guidedWorkout.setPlural') : t('guidedWorkout.setSingular')} × ${info.reps} ${t('guidedWorkout.repsLabel')}`
           }
         </div>
         {supersetState ? (
           <div className="guided-set-indicator">
-            Round {supersetState.round + 1} of {supersetState.totalRounds}
+            {t('guidedWorkout.roundOfN', { current: supersetState.round + 1, total: supersetState.totalRounds })}
           </div>
         ) : (
           <div className="guided-set-indicator">
             {(() => {
-              if (info.sets <= 1) return 'Set 1';
+              if (info.sets <= 1) return t('guidedWorkout.setOne');
               const setNum = Math.min(currentSetIndex + 1, info.sets);
-              return setNum === info.sets ? 'Last set' : `Set ${setNum} of ${info.sets}`;
+              return setNum === info.sets ? t('guidedWorkout.lastSet') : t('guidedWorkout.setOfN', { current: setNum, total: info.sets });
             })()}
           </div>
         )}
@@ -4158,19 +4163,19 @@ function GuidedWorkoutModal({
               <div className="ai-rec-header">
                 <div className="ai-rec-badge">
                   <Sparkles size={14} />
-                  <span>Coaching Recommendation</span>
+                  <span>{t('guidedWorkout.coachingRecommendation')}</span>
                 </div>
               </div>
 
               <div className="ai-rec-values">
                 <div className="ai-rec-value-item">
                   <span className="ai-rec-value-number">{prescribedSets}</span>
-                  <span className="ai-rec-value-label">sets</span>
+                  <span className="ai-rec-value-label">{t('guidedWorkout.labelSets')}</span>
                 </div>
                 <span className="ai-rec-value-divider">x</span>
                 <div className="ai-rec-value-item">
                   <span className="ai-rec-value-number">{prescribedReps || '—'}</span>
-                  <span className="ai-rec-value-label">reps</span>
+                  <span className="ai-rec-value-label">{t('guidedWorkout.labelReps')}</span>
                 </div>
                 <span className="ai-rec-value-divider">@</span>
                 <div className="ai-rec-value-item">
@@ -4179,11 +4184,11 @@ function GuidedWorkoutModal({
                 </div>
               </div>
 
-              <p className="ai-rec-reasoning">Recommended targets for this exercise. Push to hit them.</p>
+              <p className="ai-rec-reasoning">{t('guidedWorkout.coachRecReasoning')}</p>
 
               {lastSession && (
                 <div className="ai-rec-last-session">
-                  <span>Last: {lastSession.reps} reps @ {lastSession.weight}{weightUnit}</span>
+                  <span>{t('guidedWorkout.lastSession', { reps: lastSession.reps, weight: lastSession.weight, unit: weightUnit })}</span>
                   <span className="ai-rec-last-date">{lastSession.date}</span>
                 </div>
               )}
@@ -4191,7 +4196,7 @@ function GuidedWorkoutModal({
               <div className="ai-rec-actions">
                 <button className="ai-rec-btn ask" onClick={handleOpenAskAI}>
                   <MessageCircle size={16} />
-                  <span>Adjust</span>
+                  <span>{t('guidedWorkout.adjustBtn')}</span>
                 </button>
               </div>
             </div>
@@ -4203,12 +4208,12 @@ function GuidedWorkoutModal({
             <div className="ai-rec-header">
               <div className="ai-rec-badge">
                 {aiRecommendations[currentExIndex]?.plateau ? <AlertTriangle size={14} /> : <Sparkles size={14} />}
-                <span>{aiRecommendations[currentExIndex]?.plateau ? 'Plateau Detected' : 'Coaching Recommendation'}</span>
+                <span>{aiRecommendations[currentExIndex]?.plateau ? t('guidedWorkout.plateauDetected') : t('guidedWorkout.coachingRecommendation')}</span>
               </div>
               {acceptedRecommendation[currentExIndex] && (
                 <span className="ai-rec-accepted-badge">
                   <Check size={12} />
-                  Applied
+                  {t('guidedWorkout.appliedBadge')}
                 </span>
               )}
             </div>
@@ -4216,7 +4221,7 @@ function GuidedWorkoutModal({
             <div className="ai-rec-values">
               <div className="ai-rec-value-item">
                 <span className="ai-rec-value-number">{aiRecommendations[currentExIndex].sets}</span>
-                <span className="ai-rec-value-label">sets</span>
+                <span className="ai-rec-value-label">{t('guidedWorkout.labelSets')}</span>
               </div>
               <span className="ai-rec-value-divider">x</span>
               <div
@@ -4238,7 +4243,7 @@ function GuidedWorkoutModal({
                 ) : (
                   <span className="ai-rec-value-number">{aiRecommendations[currentExIndex].reps}</span>
                 )}
-                <span className="ai-rec-value-label">reps</span>
+                <span className="ai-rec-value-label">{t('guidedWorkout.labelReps')}</span>
               </div>
               <span className="ai-rec-value-divider">@</span>
               <div
@@ -4264,14 +4269,14 @@ function GuidedWorkoutModal({
               </div>
             </div>
             {acceptedRecommendation[currentExIndex] && (
-              <p className="ai-rec-edit-hint">Tap values to edit</p>
+              <p className="ai-rec-edit-hint">{t('guidedWorkout.tapToEditHint')}</p>
             )}
 
             <p className="ai-rec-reasoning">{aiRecommendations[currentExIndex].reasoning}</p>
 
             {progressTips[currentExIndex]?.lastSession && (
               <div className="ai-rec-last-session">
-                <span>Last: {progressTips[currentExIndex].lastSession.reps} reps @ {progressTips[currentExIndex].lastSession.weight}{weightUnit}</span>
+                <span>{t('guidedWorkout.lastSession', { reps: progressTips[currentExIndex].lastSession.reps, weight: progressTips[currentExIndex].lastSession.weight, unit: weightUnit })}</span>
                 <span className="ai-rec-last-date">{progressTips[currentExIndex].lastSession.date}</span>
               </div>
             )}
@@ -4280,11 +4285,11 @@ function GuidedWorkoutModal({
               <div className="ai-rec-actions">
                 <button className="ai-rec-btn accept" onClick={handleAcceptRecommendation}>
                   <Check size={16} />
-                  <span>Accept</span>
+                  <span>{t('guidedWorkout.acceptBtn')}</span>
                 </button>
                 <button className="ai-rec-btn ask" onClick={handleOpenAskAI}>
                   <MessageCircle size={16} />
-                  <span>Adjust</span>
+                  <span>{t('guidedWorkout.adjustBtn')}</span>
                 </button>
               </div>
             )}
@@ -4303,13 +4308,13 @@ function GuidedWorkoutModal({
                   <button
                     className={`guided-action-icon voice ${playingVoiceNote ? 'playing' : ''}`}
                     onClick={handlePlayVoiceNote}
-                    aria-label={playingVoiceNote ? 'Stop voice note' : "Coach's voice note"}
-                    title={playingVoiceNote ? 'Tap to stop' : "Coach's Voice Note"}
+                    aria-label={playingVoiceNote ? t('guidedWorkout.ariaStopVoiceNote') : t('guidedWorkout.ariaCoachVoiceNote')}
+                    title={playingVoiceNote ? t('guidedWorkout.titleStopVoiceNote') : t('guidedWorkout.titleCoachVoiceNote')}
                     type="button"
                   >
                     <Mic size={18} />
                   </button>
-                  <span className="guided-action-label">Voice</span>
+                  <span className="guided-action-label">{t('guidedWorkout.actionVoice')}</span>
                 </div>
               )}
               {currentExercise.notes && (
@@ -4317,40 +4322,40 @@ function GuidedWorkoutModal({
                   <button
                     className={`guided-action-icon note ${showCoachNote ? 'active' : ''}`}
                     onClick={() => setShowCoachNote(prev => !prev)}
-                    aria-label="Coach note"
-                    title="Coach Note"
+                    aria-label={t('guidedWorkout.ariaCoachNote')}
+                    title={t('guidedWorkout.titleCoachNote')}
                     type="button"
                   >
                     <MessageSquare size={18} />
                   </button>
-                  <span className="guided-action-label">Notes</span>
+                  <span className="guided-action-label">{t('guidedWorkout.actionNotes')}</span>
                 </div>
               )}
               <div className="guided-action-item">
                 <button
                   className={`guided-action-icon client-note ${showClientNoteInput ? 'active' : ''}`}
                   onClick={() => setShowClientNoteInput(!showClientNoteInput)}
-                  aria-label="Leave a note to coach"
-                  title="Leave a Note to Coach"
+                  aria-label={t('guidedWorkout.ariaLeaveNote')}
+                  title={t('guidedWorkout.titleLeaveNote')}
                   type="button"
                 >
                   <MessageCircle size={18} />
                   {clientNoteSaved[currentExIndex] && <span className="guided-action-saved-dot" />}
                 </button>
-                <span className="guided-action-label">Reply</span>
+                <span className="guided-action-label">{t('guidedWorkout.actionReply')}</span>
               </div>
               {otherLinks.length > 0 && (
                 <div className="guided-action-item">
                   <button
                     className={`guided-action-icon refs ${showReferenceLinks ? 'active' : ''}`}
                     onClick={() => setShowReferenceLinks(prev => !prev)}
-                    aria-label="Reference links"
-                    title="Reference Links"
+                    aria-label={t('guidedWorkout.ariaReferenceLinks')}
+                    title={t('guidedWorkout.titleReferenceLinks')}
                     type="button"
                   >
                     <ExternalLink size={18} />
                   </button>
-                  <span className="guided-action-label">Links</span>
+                  <span className="guided-action-label">{t('guidedWorkout.actionLinks')}</span>
                 </div>
               )}
               {youtubeLink && (
@@ -4360,13 +4365,13 @@ function GuidedWorkoutModal({
                     target="_blank"
                     rel="noopener noreferrer"
                     className="guided-action-icon youtube"
-                    aria-label="YouTube video"
-                    title="YouTube Video"
+                    aria-label={t('guidedWorkout.ariaYouTube')}
+                    title={t('guidedWorkout.titleYouTube')}
                     onClick={(e) => e.stopPropagation()}
                   >
                     <Play size={18} />
                   </a>
-                  <span className="guided-action-label">Video</span>
+                  <span className="guided-action-label">{t('guidedWorkout.actionVideo')}</span>
                 </div>
               )}
             </div>
@@ -4386,7 +4391,7 @@ function GuidedWorkoutModal({
             <div className="guided-client-note-input-area">
               <textarea
                 className="guided-client-note-textarea"
-                placeholder="Leave a note for your coach about this exercise..."
+                placeholder={t('guidedWorkout.noteTextareaPlaceholder')}
                 value={clientNotes[currentExIndex] || ''}
                 onChange={(e) => handleClientNoteChange(e.target.value)}
                 rows={3}
@@ -4401,7 +4406,7 @@ function GuidedWorkoutModal({
                       type="button"
                     >
                       <Square size={16} />
-                      <span>Stop</span>
+                      <span>{t('guidedWorkout.stopRecording')}</span>
                     </button>
                   ) : (
                     <button
@@ -4411,7 +4416,7 @@ function GuidedWorkoutModal({
                       type="button"
                     >
                       <Mic size={16} />
-                      <span>{voiceNoteUploading ? 'Sending...' : 'Voice Note'}</span>
+                      <span>{voiceNoteUploading ? t('guidedWorkout.sendingLabel') : t('guidedWorkout.voiceNoteBtn')}</span>
                     </button>
                   )}
                 </div>
@@ -4436,7 +4441,7 @@ function GuidedWorkoutModal({
                       disabled={voiceNoteUploading}
                     >
                       <Trash2 size={14} />
-                      <span>Discard</span>
+                      <span>{t('guidedWorkout.discardBtn')}</span>
                     </button>
                     <button
                       type="button"
@@ -4445,7 +4450,7 @@ function GuidedWorkoutModal({
                       disabled={voiceNoteUploading}
                     >
                       <Mic size={14} />
-                      <span>Re-record</span>
+                      <span>{t('guidedWorkout.reRecordBtn')}</span>
                     </button>
                     <button
                       type="button"
@@ -4454,7 +4459,7 @@ function GuidedWorkoutModal({
                       disabled={voiceNoteUploading}
                     >
                       <Send size={14} />
-                      <span>{voiceNoteUploading ? 'Sending...' : 'Send to Coach'}</span>
+                      <span>{voiceNoteUploading ? t('guidedWorkout.sendingLabel') : t('guidedWorkout.sendToCoach')}</span>
                     </button>
                   </div>
                 </div>
@@ -4469,10 +4474,10 @@ function GuidedWorkoutModal({
                     className="voice-note-action-btn delete-sent"
                     onClick={deleteSentVoiceNote}
                     disabled={deletingVoiceNoteIdx === currentExIndex || voiceNoteUploading}
-                    title="Delete voice note"
+                    title={t('guidedWorkout.ariaDeleteVoiceNote')}
                   >
                     <Trash2 size={14} />
-                    <span>{deletingVoiceNoteIdx === currentExIndex ? 'Deleting...' : 'Delete'}</span>
+                    <span>{deletingVoiceNoteIdx === currentExIndex ? t('guidedWorkout.deletingLabel') : t('guidedWorkout.deleteBtn')}</span>
                   </button>
                 </div>
               )}
@@ -4484,7 +4489,7 @@ function GuidedWorkoutModal({
                   type="button"
                 >
                   <Send size={14} />
-                  <span>Send Note</span>
+                  <span>{t('guidedWorkout.sendNoteBtn')}</span>
                 </button>
               )}
 
@@ -4496,7 +4501,7 @@ function GuidedWorkoutModal({
                   disabled={deletingClientNoteIdx === currentExIndex}
                 >
                   <Trash2 size={14} />
-                  <span>{deletingClientNoteIdx === currentExIndex ? 'Deleting...' : 'Delete note'}</span>
+                  <span>{deletingClientNoteIdx === currentExIndex ? t('guidedWorkout.deletingLabel') : t('guidedWorkout.deleteNoteBtn')}</span>
                 </button>
               )}
             </div>
@@ -4575,11 +4580,11 @@ function GuidedWorkoutModal({
                     />
                   </svg>
                   <div className="guided-timer-text">
-                    <span className="guided-timer-label">Rest</span>
+                    <span className="guided-timer-label">{t('guidedWorkout.restLabel')}</span>
                     <span className="guided-timer-value">{formatTime(timer)}</span>
                     {nextExercise && (
                       <span className="guided-rest-upnext-label">
-                        Up Next: {nextExercise.name || nextExercise.exercise_name}
+                        {t('guidedWorkout.upNext', { name: nextExercise.name || nextExercise.exercise_name })}
                       </span>
                     )}
                   </div>
@@ -4599,11 +4604,11 @@ function GuidedWorkoutModal({
                   />
                 </svg>
                 <div className="guided-timer-text">
-                  <span className="guided-timer-label">Rest</span>
+                  <span className="guided-timer-label">{t('guidedWorkout.restLabel')}</span>
                   <span className="guided-timer-value">{formatTime(timer)}</span>
                   {nextExercise && (
                     <span className="guided-rest-upnext-label">
-                      Up Next: {nextExercise.name || nextExercise.exercise_name}
+                      {t('guidedWorkout.upNext', { name: nextExercise.name || nextExercise.exercise_name })}
                     </span>
                   )}
                 </div>
@@ -4674,8 +4679,8 @@ function GuidedWorkoutModal({
                   }
                   setVideoMuted(next);
                 }}
-                aria-label={videoMuted ? 'Unmute coach voice' : 'Mute coach voice'}
-                title={videoMuted ? 'Unmute (will pause your music)' : 'Mute'}
+                aria-label={videoMuted ? t('guidedWorkout.ariaUnmuteCoach') : t('guidedWorkout.ariaMuteCoach')}
+                title={videoMuted ? t('guidedWorkout.titleUnmutePausesMusic') : t('guidedWorkout.titleMute')}
               >
                 {videoMuted ? <VolumeX size={18} /> : <Volume2 size={18} />}
               </button>
@@ -4700,22 +4705,22 @@ function GuidedWorkoutModal({
                     p.catch(() => setVideoNeedsTap(true));
                   }
                 }}
-                aria-label="Tap to play exercise video"
+                aria-label={t('guidedWorkout.ariaTapToPlay')}
               >
                 <span className="tap-to-play-icon"><Play size={42} fill="currentColor" /></span>
-                <span className="tap-to-play-text">Tap to play</span>
+                <span className="tap-to-play-text">{t('guidedWorkout.tapToPlay')}</span>
               </button>
             )}
             {guidedVideoError && (
               <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.7)', zIndex: 2, gap: '8px', color: 'white' }} onClick={(e) => e.stopPropagation()}>
                 <AlertTriangle size={24} style={{ color: '#f59e0b' }} />
-                <p style={{ margin: 0, fontSize: '13px' }}>Video failed to load</p>
+                <p style={{ margin: 0, fontSize: '13px' }}>{t('guidedWorkout.videoFailedToLoad')}</p>
                 <button
                   onClick={(e) => { e.stopPropagation(); setGuidedVideoError(false); setGuidedVideoLoading(true); if (guidedVideoBlobUrl) { URL.revokeObjectURL(guidedVideoBlobUrl); setGuidedVideoBlobUrl(null); } setGuidedVideoKey(k => k + 1); }}
                   type="button"
                   style={{ padding: '6px 16px', background: '#2cb5a5', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '13px' }}
                 >
-                  Retry
+                  {t('guidedWorkout.retryBtn')}
                 </button>
               </div>
             )}
@@ -4748,7 +4753,7 @@ function GuidedWorkoutModal({
           /* During rest: show logging UI for the just-completed set */
           <div className="guided-input-area">
             <p style={{ margin: '0 0 8px', fontSize: '13px', color: '#94a3b8', textAlign: 'center' }}>
-              Log your set while you rest
+              {t('guidedWorkout.logWhileRest')}
             </p>
             <div className="guided-input-row">
               {!restExInfo?.isTimed && (
@@ -4772,7 +4777,7 @@ function GuidedWorkoutModal({
                     ) : (
                       <span className="guided-input-value">{restSetLog?.reps || '—'}</span>
                     )}
-                    <span className="guided-input-label">reps</span>
+                    <span className="guided-input-label">{t('guidedWorkout.repsLabel')}</span>
                   </div>
 
                   <div className="guided-input-divider">&times;</div>
@@ -4804,13 +4809,13 @@ function GuidedWorkoutModal({
             {aiRecommendations[currentExIndex]?.weight && !currentExercise?.isWarmup && !currentExercise?.isStretch && currentExercise?.phase !== 'warmup' && currentExercise?.phase !== 'cooldown' ? (
               <p className="guided-suggested-weight-hint">
                 <Sparkles size={12} />
-                <span>Suggested: {aiRecommendations[currentExIndex].reps} reps @ {aiRecommendations[currentExIndex].weight}{weightUnit}</span>
+                <span>{t('guidedWorkout.suggestedHint', { reps: aiRecommendations[currentExIndex].reps, weight: aiRecommendations[currentExIndex].weight, unit: weightUnit })}</span>
                 {progressTips[currentExIndex]?.lastSession && (
-                  <span className="guided-suggested-last"> · Last: {progressTips[currentExIndex].lastSession.weight}{weightUnit}</span>
+                  <span className="guided-suggested-last">{t('guidedWorkout.lastHint', { weight: progressTips[currentExIndex].lastSession.weight, unit: weightUnit })}</span>
                 )}
               </p>
             ) : (
-              <p className="guided-input-hint">Tap to edit</p>
+              <p className="guided-input-hint">{t('guidedWorkout.tapToEdit')}</p>
             )}
 
             {/* Effort selector — hidden for warm-up and cool-down/stretch exercises */}
@@ -4818,7 +4823,7 @@ function GuidedWorkoutModal({
             <div className="guided-effort-section">
               <p className="guided-effort-label">
                 <Flame size={14} />
-                How did that feel?
+                {t('guidedWorkout.howDidItFeel')}
               </p>
               <div className="guided-effort-pills">
                 {EFFORT_OPTIONS.map(opt => (
@@ -4850,7 +4855,7 @@ function GuidedWorkoutModal({
             </svg>
             <div className="guided-timer-text">
               <span className="guided-timer-label">
-                {phase === 'get-ready' ? 'Get Ready' : 'Go!'}
+                {phase === 'get-ready' ? t('guidedWorkout.getReady') : t('guidedWorkout.goLabel')}
               </span>
               <span className="guided-timer-value">
                 {isTimedCountdown && timer < 60 ? timer : formatTime(timer)}
@@ -4872,7 +4877,7 @@ function GuidedWorkoutModal({
             </svg>
             <div className="guided-timer-text">
               <span className="guided-timer-value" style={{ fontSize: '4rem', fontVariantNumeric: 'tabular-nums' }}>{currentRep}</span>
-              <span className="guided-timer-label">reps left</span>
+              <span className="guided-timer-label">{t('guidedWorkout.repsLeft')}</span>
             </div>
           </div>
         ) : (
@@ -4899,7 +4904,7 @@ function GuidedWorkoutModal({
                 ) : (
                   <span className="guided-input-value">{currentSetLog.reps || (info.isTillFailure ? '—' : info.reps)}</span>
                 )}
-                <span className="guided-input-label">{info.isTillFailure ? 'reps done' : 'reps'}</span>
+                <span className="guided-input-label">{info.isTillFailure ? t('guidedWorkout.repsDoneLabel') : t('guidedWorkout.repsLabel')}</span>
               </div>
 
               <div className="guided-input-divider">&times;</div>
@@ -4929,13 +4934,13 @@ function GuidedWorkoutModal({
             {aiRecommendations[currentExIndex]?.weight && !currentExercise?.isWarmup && !currentExercise?.isStretch && currentExercise?.phase !== 'warmup' && currentExercise?.phase !== 'cooldown' ? (
               <p className="guided-suggested-weight-hint">
                 <Sparkles size={12} />
-                <span>Suggested: {aiRecommendations[currentExIndex].reps} reps @ {aiRecommendations[currentExIndex].weight}{weightUnit}</span>
+                <span>{t('guidedWorkout.suggestedHint', { reps: aiRecommendations[currentExIndex].reps, weight: aiRecommendations[currentExIndex].weight, unit: weightUnit })}</span>
                 {progressTips[currentExIndex]?.lastSession && (
-                  <span className="guided-suggested-last"> · Last: {progressTips[currentExIndex].lastSession.weight}{weightUnit}</span>
+                  <span className="guided-suggested-last">{t('guidedWorkout.lastHint', { weight: progressTips[currentExIndex].lastSession.weight, unit: weightUnit })}</span>
                 )}
               </p>
             ) : (
-              <p className="guided-input-hint">Tap to edit</p>
+              <p className="guided-input-hint">{t('guidedWorkout.tapToEdit')}</p>
             )}
 
             {/* Effort selector — hidden for warm-up and cool-down/stretch exercises */}
@@ -4943,7 +4948,7 @@ function GuidedWorkoutModal({
             <div className="guided-effort-section">
               <p className="guided-effort-label">
                 <Flame size={14} />
-                How did that feel?
+                {t('guidedWorkout.howDidItFeel')}
               </p>
               <div className="guided-effort-pills">
                 {EFFORT_OPTIONS.map(opt => (
