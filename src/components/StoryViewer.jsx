@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { X, ChevronLeft, ChevronRight, Send, ExternalLink, Trash2, Eye, Loader2 } from 'lucide-react';
 import { apiPost } from '../utils/api';
+import { useLanguage } from '../context/LanguageContext';
 
 const PROGRESS_DURATION = 6000; // 6 seconds per story
 
@@ -29,6 +30,7 @@ function StoryViewer({
   onReactStory = null,
   onLoadViewers = null
 }) {
+  const { t } = useLanguage();
   const [currentIndex, setCurrentIndex] = useState(() => {
     // Start at first unseen story
     const firstUnseen = stories.findIndex(s => !s.viewed);
@@ -228,7 +230,7 @@ function StoryViewer({
   // Delete (author deleting own story, or coach deleting a group story)
   const handleDelete = async () => {
     if (deleting || !onDeleteStory) return;
-    if (!window.confirm('Delete this story? This cannot be undone.')) return;
+    if (!window.confirm(t('storyViewer.confirmDelete'))) return;
     setDeleting(true);
     pauseTimer();
     try {
@@ -280,19 +282,19 @@ function StoryViewer({
           <img src={avatarUrl} alt={coachName} style={styles.avatar} />
           <div style={styles.headerText}>
             <div style={styles.coachName}>{coachName}</div>
-            <div style={styles.timeAgo}>{formatTimeAgo(story.createdAt)}</div>
+            <div style={styles.timeAgo}>{formatTimeAgo(story.createdAt, t)}</div>
           </div>
           {onDeleteStory && story.canDelete !== false && (
             <button
               style={styles.closeBtn}
               onClick={handleDelete}
               disabled={deleting}
-              aria-label="Delete story"
+              aria-label={t('storyViewer.ariaDeleteStory')}
             >
               <Trash2 size={20} />
             </button>
           )}
-          <button style={styles.closeBtn} onClick={onClose} aria-label="Close">
+          <button style={styles.closeBtn} onClick={onClose} aria-label={t('storyViewer.ariaClose')}>
             <X size={22} />
           </button>
         </div>
@@ -301,7 +303,7 @@ function StoryViewer({
         <div style={styles.content} onClick={handleTap}>
           {story.type === 'image' && (
             <div style={styles.imageContainer}>
-              <img src={story.imageUrl} alt={story.caption || 'Story'} style={styles.storyImage} />
+              <img src={story.imageUrl} alt={story.caption || t('storyViewer.storyImageAlt')} style={styles.storyImage} />
               {story.caption && <div style={styles.caption}>{story.caption}</div>}
             </div>
           )}
@@ -316,7 +318,7 @@ function StoryViewer({
               {story.linkPreviewImage && (
                 <img src={story.linkPreviewImage} alt="" style={styles.linkImage} />
               )}
-              <div style={styles.linkTitle}>{story.linkTitle || 'Shared Link'}</div>
+              <div style={styles.linkTitle}>{story.linkTitle || t('storyViewer.sharedLink')}</div>
               {story.caption && <div style={styles.caption}>{story.caption}</div>}
               <a
                 href={story.linkUrl}
@@ -325,7 +327,7 @@ function StoryViewer({
                 style={styles.linkButton}
                 onClick={(e) => e.stopPropagation()}
               >
-                <ExternalLink size={14} /> Open Link
+                <ExternalLink size={14} /> {t('storyViewer.openLink')}
               </a>
             </div>
           )}
@@ -333,12 +335,12 @@ function StoryViewer({
 
         {/* Navigation arrows (desktop) */}
         {currentIndex > 0 && (
-          <button style={{ ...styles.navBtn, left: 8 }} onClick={goPrev} aria-label="Previous">
+          <button style={{ ...styles.navBtn, left: 8 }} onClick={goPrev} aria-label={t('storyViewer.ariaPrevious')}>
             <ChevronLeft size={24} />
           </button>
         )}
         {currentIndex < stories.length - 1 && (
-          <button style={{ ...styles.navBtn, right: 8 }} onClick={goNext} aria-label="Next">
+          <button style={{ ...styles.navBtn, right: 8 }} onClick={goNext} aria-label={t('storyViewer.ariaNext')}>
             <ChevronRight size={24} />
           </button>
         )}
@@ -369,7 +371,7 @@ function StoryViewer({
                   setShowReplyInput(true);
                 }}
               >
-                Reply...
+                {t('storyViewer.replyBtn')}
               </button>
             </>
           ) : (
@@ -379,7 +381,7 @@ function StoryViewer({
                 value={replyText}
                 onChange={(e) => setReplyText(e.target.value)}
                 onKeyDown={handleReplyKeyDown}
-                placeholder="Send a reply..."
+                placeholder={t('storyViewer.replyPlaceholder')}
                 style={styles.replyInput}
                 autoFocus
               />
@@ -403,7 +405,7 @@ function StoryViewer({
             {isOwnStory ? (
               onLoadViewers && (
                 <button style={styles.seenByBtn} onClick={openViewers}>
-                  <Eye size={16} /> Seen by — tap to see who
+                  <Eye size={16} /> {t('storyViewer.seenByBtn')}
                 </button>
               )
             ) : (
@@ -429,18 +431,18 @@ function StoryViewer({
           <div style={styles.viewersPanel} onClick={(e) => e.stopPropagation()}>
             <div style={styles.viewersHeader}>
               <span style={styles.viewersTitle}>
-                <Eye size={16} /> Viewers{Array.isArray(viewers) ? ` · ${viewers.length}` : ''}
+                <Eye size={16} /> {t('storyViewer.viewersTitle')}{Array.isArray(viewers) ? ` · ${viewers.length}` : ''}
               </span>
-              <button style={styles.closeBtn} onClick={closeViewers} aria-label="Close viewers">
+              <button style={styles.closeBtn} onClick={closeViewers} aria-label={t('storyViewer.ariaCloseViewers')}>
                 <X size={20} />
               </button>
             </div>
             <div style={styles.viewersList}>
               {loadingViewers && (
-                <div style={styles.viewersEmpty}><Loader2 size={18} className="spin" /> Loading…</div>
+                <div style={styles.viewersEmpty}><Loader2 size={18} className="spin" /> {t('storyViewer.loadingViewers')}</div>
               )}
               {!loadingViewers && Array.isArray(viewers) && viewers.length === 0 && (
-                <div style={styles.viewersEmpty}>No views yet. Share it around!</div>
+                <div style={styles.viewersEmpty}>{t('storyViewer.noViewsYet')}</div>
               )}
               {!loadingViewers && Array.isArray(viewers) && viewers.map(v => (
                 <div key={v.clientId != null ? `c${v.clientId}` : `k${v.coachId}`} style={styles.viewerRow}>
@@ -451,7 +453,7 @@ function StoryViewer({
                   />
                   <span style={styles.viewerName}>{v.name}</span>
                   {v.reaction && <span style={styles.viewerReaction}>{v.reaction}</span>}
-                  <span style={styles.viewerTime}>{formatTimeAgo(v.viewedAt)}</span>
+                  <span style={styles.viewerTime}>{formatTimeAgo(v.viewedAt, t)}</span>
                 </div>
               ))}
             </div>
@@ -463,12 +465,12 @@ function StoryViewer({
   );
 }
 
-function formatTimeAgo(dateString) {
+function formatTimeAgo(dateString, t) {
   const seconds = Math.floor((Date.now() - new Date(dateString).getTime()) / 1000);
-  if (seconds < 60) return 'Just now';
-  if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
-  if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
-  return `${Math.floor(seconds / 86400)}d ago`;
+  if (seconds < 60) return t('storyViewer.timeJustNow');
+  if (seconds < 3600) return t('storyViewer.timeMinutesAgo', { count: Math.floor(seconds / 60) });
+  if (seconds < 86400) return t('storyViewer.timeHoursAgo', { count: Math.floor(seconds / 3600) });
+  return t('storyViewer.timeDaysAgo', { count: Math.floor(seconds / 86400) });
 }
 
 const styles = {

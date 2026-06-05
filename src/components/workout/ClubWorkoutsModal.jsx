@@ -3,17 +3,19 @@ import { X, Dumbbell, Clock, Flame, ChevronRight, ChevronDown, Search, Filter, U
 import { apiGet } from '../../utils/api';
 import SmartThumbnail from './SmartThumbnail';
 import { estimateWorkoutMinutes, estimateWorkoutCalories } from '../../utils/workoutDuration';
+import { useLanguage } from '../../context/LanguageContext';
 
-const CATEGORY_LABELS = {
-  strength: 'Strength',
-  hypertrophy: 'Hypertrophy',
-  endurance: 'Endurance',
-  weight_loss: 'Weight Loss',
-  cardio: 'Cardio',
-  hiit: 'HIIT',
-  mobility: 'Mobility',
-  full_body: 'Full Body',
-  general: 'General'
+// Maps category keys to translation keys in the clubWorkouts namespace.
+const CATEGORY_LABEL_KEYS = {
+  strength: 'clubWorkouts.categoryStrength',
+  hypertrophy: 'clubWorkouts.categoryHypertrophy',
+  endurance: 'clubWorkouts.categoryEndurance',
+  weight_loss: 'clubWorkouts.categoryWeightLoss',
+  cardio: 'clubWorkouts.categoryCardio',
+  hiit: 'clubWorkouts.categoryHiit',
+  mobility: 'clubWorkouts.categoryMobility',
+  full_body: 'clubWorkouts.categoryFullBody',
+  general: 'clubWorkouts.categoryGeneral'
 };
 
 const CATEGORY_ICONS = {
@@ -50,23 +52,26 @@ function difficultyStyle(difficulty) {
   };
 }
 
-const DIFFICULTY_LABELS = {
-  beginner: 'Beginner',
-  intermediate: 'Intermediate',
-  advanced: 'Advanced'
+// Maps difficulty keys to translation keys in the clubWorkouts namespace.
+const DIFFICULTY_LABEL_KEYS = {
+  beginner: 'clubWorkouts.difficultyBeginner',
+  intermediate: 'clubWorkouts.difficultyIntermediate',
+  advanced: 'clubWorkouts.difficultyAdvanced'
 };
 
+// Duration ranges — labels are resolved via t() at render time using labelKey.
 const DURATION_RANGES = [
-  { key: '', label: 'Any duration' },
-  { key: 'under30', label: 'Under 30 min', max: 30 },
-  { key: '30to60', label: '30-60 min', min: 30, max: 60 },
-  { key: 'over60', label: '60+ min', min: 60 }
+  { key: '', labelKey: 'clubWorkouts.durationAny' },
+  { key: 'under30', labelKey: 'clubWorkouts.durationUnder30', max: 30 },
+  { key: '30to60', labelKey: 'clubWorkouts.duration30to60', min: 30, max: 60 },
+  { key: 'over60', labelKey: 'clubWorkouts.durationOver60', min: 60 }
 ];
 
+// Type filter options — labels are resolved via t() at render time using labelKey.
 const TYPE_OPTIONS = [
-  { key: '', label: 'All workouts' },
-  { key: 'single', label: 'Single workout' },
-  { key: 'program', label: 'Multi-day program' }
+  { key: '', labelKey: 'clubWorkouts.typeAll' },
+  { key: 'single', labelKey: 'clubWorkouts.typeSingle' },
+  { key: 'program', labelKey: 'clubWorkouts.typeProgram' }
 ];
 
 // Parse a duration value to seconds — handles numbers, "5 min", "30s", "45s hold", etc.
@@ -106,17 +111,20 @@ function formatDuration(seconds) {
   return `${num}s`;
 }
 
+// Day labels — 'label' (single letter) stays locale-neutral; 'fullKey' is the
+// translation key for the full day name resolved via t() at render time.
 const DAY_LABELS = [
-  { key: 'sun', label: 'S', full: 'Sunday' },
-  { key: 'mon', label: 'M', full: 'Monday' },
-  { key: 'tue', label: 'T', full: 'Tuesday' },
-  { key: 'wed', label: 'W', full: 'Wednesday' },
-  { key: 'thu', label: 'T', full: 'Thursday' },
-  { key: 'fri', label: 'F', full: 'Friday' },
-  { key: 'sat', label: 'S', full: 'Saturday' }
+  { key: 'sun', label: 'S', fullKey: 'clubWorkouts.daySunday' },
+  { key: 'mon', label: 'M', fullKey: 'clubWorkouts.dayMonday' },
+  { key: 'tue', label: 'T', fullKey: 'clubWorkouts.dayTuesday' },
+  { key: 'wed', label: 'W', fullKey: 'clubWorkouts.dayWednesday' },
+  { key: 'thu', label: 'T', fullKey: 'clubWorkouts.dayThursday' },
+  { key: 'fri', label: 'F', fullKey: 'clubWorkouts.dayFriday' },
+  { key: 'sat', label: 'S', fullKey: 'clubWorkouts.daySaturday' }
 ];
 
 function ClubWorkoutsModal({ onClose, onSelectWorkout, onScheduleProgram, coachId, bodyWeightKg }) {
+  const { t } = useLanguage();
   const calorieOpts = useMemo(() => ({ weightKg: bodyWeightKg }), [bodyWeightKg]);
   const [workouts, setWorkouts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -404,7 +412,7 @@ function ClubWorkoutsModal({ onClose, onSelectWorkout, onScheduleProgram, coachI
               <div className="club-workout-detail-badges">
                 {selectedWorkout.category && (
                   <span className="club-workout-badge category">
-                    {CATEGORY_ICONS[selectedWorkout.category] || '⚡'} {CATEGORY_LABELS[selectedWorkout.category] || selectedWorkout.category}
+                    {CATEGORY_ICONS[selectedWorkout.category] || '⚡'} {t(CATEGORY_LABEL_KEYS[selectedWorkout.category]) || selectedWorkout.category}
                   </span>
                 )}
                 {selectedWorkout.difficulty && (
@@ -412,7 +420,7 @@ function ClubWorkoutsModal({ onClose, onSelectWorkout, onScheduleProgram, coachI
                     className="club-workout-badge difficulty"
                     style={{ color: DIFFICULTY_COLORS[selectedWorkout.difficulty] }}
                   >
-                    {selectedWorkout.difficulty}
+                    {t(DIFFICULTY_LABEL_KEYS[selectedWorkout.difficulty]) || selectedWorkout.difficulty}
                   </span>
                 )}
               </div>
@@ -422,22 +430,22 @@ function ClubWorkoutsModal({ onClose, onSelectWorkout, onScheduleProgram, coachI
               <div className="club-workout-detail-stats">
                 <div className="detail-stat">
                   <Dumbbell size={16} />
-                  <span>{exercises.length} exercises</span>
+                  <span>{exercises.length} {t('clubWorkouts.exercises')}</span>
                 </div>
                 <div className="detail-stat">
                   <Clock size={16} />
-                  <span>~{estimatedMinutes} min</span>
+                  <span>{t('clubWorkouts.statMin', { minutes: estimatedMinutes })}</span>
                 </div>
                 <div className="detail-stat">
                   <Flame size={16} />
-                  <span>~{estimatedCalories} cal</span>
+                  <span>{t('clubWorkouts.statCal', { calories: estimatedCalories })}</span>
                 </div>
               </div>
             </div>
 
             {/* Exercise List */}
             <div className="club-workout-exercises">
-              <h3>Exercises</h3>
+              <h3>{t('clubWorkouts.exercisesHeading')}</h3>
               {exercises.map((exercise, index) => (
                 <div key={`${exercise.id || index}-${index}`} className="club-exercise-item">
                   <div className="club-exercise-number">{index + 1}</div>
@@ -452,10 +460,10 @@ function ClubWorkoutsModal({ onClose, onSelectWorkout, onScheduleProgram, coachI
                     <span className="club-exercise-name">{exercise.name}</span>
                     <span className="club-exercise-meta">
                       {exercise.sets || 3} sets x {exercise.repType === 'failure'
-                        ? 'Till Failure'
+                        ? t('clubWorkouts.tillFailure')
                         : (exercise.trackingType === 'time' || exercise.exercise_type === 'cardio' || !!exercise.duration || (typeof exercise.reps === 'string' && /\d+\s*min/i.test(exercise.reps))
                         ? formatDuration(exercise.duration || (Array.isArray(exercise.sets) && exercise.sets[0]?.duration) || exercise.reps || 30)
-                        : `${exercise.reps || '10'} reps`)}
+                        : `${exercise.reps || '10'} ${t('clubWorkouts.reps')}`)}
                       {exercise.equipment ? ` | ${exercise.equipment}` : ''}
                     </span>
                   </div>
@@ -471,14 +479,14 @@ function ClubWorkoutsModal({ onClose, onSelectWorkout, onScheduleProgram, coachI
               onClick={() => handleUseWorkout(selectedWorkout)}
             >
               <Dumbbell size={20} />
-              <span>Start This Workout</span>
+              <span>{t('clubWorkouts.startThisWorkout')}</span>
             </button>
             <button
               className="club-workout-schedule-btn"
               onClick={() => setShowDatePicker(!showDatePicker)}
             >
               <CalendarPlus size={18} />
-              <span>Schedule for Another Day</span>
+              <span>{t('clubWorkouts.scheduleForAnotherDay')}</span>
             </button>
             {showDatePicker && (
               <div className="club-workout-date-picker">
@@ -494,7 +502,7 @@ function ClubWorkoutsModal({ onClose, onSelectWorkout, onScheduleProgram, coachI
                   onClick={handleSchedule}
                   disabled={!scheduleDate}
                 >
-                  Confirm
+                  {t('clubWorkouts.confirm')}
                 </button>
               </div>
             )}
@@ -516,7 +524,7 @@ function ClubWorkoutsModal({ onClose, onSelectWorkout, onScheduleProgram, coachI
             <button className="club-workouts-back" onClick={() => setShowScheduling(false)}>
               <ChevronRight size={24} style={{ transform: 'rotate(180deg)' }} />
             </button>
-            <h2>Schedule Program</h2>
+            <h2>{t('clubWorkouts.scheduleProgramTitle')}</h2>
             <button className="club-workouts-close" onClick={onClose}>
               <X size={24} />
             </button>
@@ -527,14 +535,14 @@ function ClubWorkoutsModal({ onClose, onSelectWorkout, onScheduleProgram, coachI
             <div className="schedule-program-summary">
               <h3>{normalizeTitle(program.name)}</h3>
               <div className="schedule-program-meta">
-                <span><Layers size={14} /> {program.total_days || program.days?.length} workout days</span>
-                <span><Dumbbell size={14} /> {program.total_exercises} exercises</span>
+                <span><Layers size={14} /> {program.total_days || program.days?.length} {t('clubWorkouts.workoutDays')}</span>
+                <span><Dumbbell size={14} /> {program.total_exercises} {t('clubWorkouts.exercises')}</span>
               </div>
             </div>
 
             {/* Start Date */}
             <div className="schedule-section">
-              <label className="schedule-label">Start Date</label>
+              <label className="schedule-label">{t('clubWorkouts.startDate')}</label>
               <input
                 type="date"
                 value={scheduleStartDate}
@@ -546,8 +554,8 @@ function ClubWorkoutsModal({ onClose, onSelectWorkout, onScheduleProgram, coachI
 
             {/* Number of Weeks */}
             <div className="schedule-section">
-              <label className="schedule-label">Number of Weeks</label>
-              <p className="schedule-hint">How long do you want to run this program?</p>
+              <label className="schedule-label">{t('clubWorkouts.numberOfWeeks')}</label>
+              <p className="schedule-hint">{t('clubWorkouts.howLongHint')}</p>
               <div className="schedule-weeks-selector">
                 {[1, 2, 3, 4, 6, 8, 10, 12].map(w => (
                   <button
@@ -561,26 +569,26 @@ function ClubWorkoutsModal({ onClose, onSelectWorkout, onScheduleProgram, coachI
               </div>
               {scheduleStartDate && (
                 <p className="schedule-hint" style={{ marginTop: 8, marginBottom: 0 }}>
-                  Ends on {(() => {
+                  {t('clubWorkouts.endsOn', { date: (() => {
                     const end = new Date(scheduleStartDate + 'T12:00:00');
                     end.setDate(end.getDate() + (numberOfWeeks * 7) - 1);
                     return end.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
-                  })()}
+                  })() })}
                 </p>
               )}
             </div>
 
             {/* Day of Week Selector */}
             <div className="schedule-section">
-              <label className="schedule-label">Workout Days</label>
-              <p className="schedule-hint">Select which days of the week to train</p>
+              <label className="schedule-label">{t('clubWorkouts.workoutDaysLabel')}</label>
+              <p className="schedule-hint">{t('clubWorkouts.selectDaysHint')}</p>
               <div className="schedule-day-toggles">
-                {DAY_LABELS.map(({ key, label, full }) => (
+                {DAY_LABELS.map(({ key, label, fullKey }) => (
                   <button
                     key={key}
                     className={`schedule-day-btn ${selectedDays.includes(key) ? 'active' : ''}`}
                     onClick={() => toggleDay(key)}
-                    title={full}
+                    title={t(fullKey)}
                   >
                     {label}
                   </button>
@@ -594,16 +602,23 @@ function ClubWorkoutsModal({ onClose, onSelectWorkout, onScheduleProgram, coachI
                 <Calendar size={18} />
                 <div className="schedule-summary-text">
                   <span className="schedule-summary-main">
-                    {scheduleInfo.daysPerWeek} days/week for {numberOfWeeks} {numberOfWeeks === 1 ? 'week' : 'weeks'}
+                    {t('clubWorkouts.daysPerWeekFor', {
+                      daysPerWeek: scheduleInfo.daysPerWeek,
+                      weeks: numberOfWeeks,
+                      weeksLabel: numberOfWeeks === 1 ? t('clubWorkouts.week') : t('clubWorkouts.weeks')
+                    })}
                   </span>
                   <span className="schedule-summary-detail">
-                    {selectedDays.map(d => DAY_LABELS.find(dl => dl.key === d)?.full).filter(Boolean).join(', ')}
+                    {selectedDays.map(d => {
+                      const dl = DAY_LABELS.find(dl => dl.key === d);
+                      return dl ? t(dl.fullKey) : null;
+                    }).filter(Boolean).join(', ')}
                   </span>
                   {scheduleStartDate && (
                     <span className="schedule-summary-detail">
-                      Starting {new Date(scheduleStartDate + 'T12:00:00').toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}
+                      {t('clubWorkouts.starting', { date: new Date(scheduleStartDate + 'T12:00:00').toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' }) })}
                       {scheduleInfo.endDate && (
-                        <> — Ends {scheduleInfo.endDate.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}</>
+                        <>{t('clubWorkouts.ends', { date: scheduleInfo.endDate.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' }) })}</>
                       )}
                     </span>
                   )}
@@ -612,7 +627,7 @@ function ClubWorkoutsModal({ onClose, onSelectWorkout, onScheduleProgram, coachI
             )}
 
             {selectedDays.length === 0 && (
-              <div className="schedule-warning">Select at least one day to continue</div>
+              <div className="schedule-warning">{t('clubWorkouts.selectAtLeastOneDay')}</div>
             )}
           </div>
 
@@ -624,7 +639,7 @@ function ClubWorkoutsModal({ onClose, onSelectWorkout, onScheduleProgram, coachI
               disabled={!scheduleStartDate || selectedDays.length === 0}
             >
               <Check size={20} />
-              <span>Start Program</span>
+              <span>{t('clubWorkouts.startProgram')}</span>
             </button>
           </div>
         </div>
@@ -666,7 +681,7 @@ function ClubWorkoutsModal({ onClose, onSelectWorkout, onScheduleProgram, coachI
               <div className="club-workout-detail-badges">
                 {program.category && (
                   <span className="club-workout-badge category">
-                    {CATEGORY_ICONS[program.category] || '⚡'} {CATEGORY_LABELS[program.category] || program.category}
+                    {CATEGORY_ICONS[program.category] || '⚡'} {t(CATEGORY_LABEL_KEYS[program.category]) || program.category}
                   </span>
                 )}
                 {program.difficulty && (
@@ -674,11 +689,11 @@ function ClubWorkoutsModal({ onClose, onSelectWorkout, onScheduleProgram, coachI
                     className="club-workout-badge difficulty"
                     style={{ color: DIFFICULTY_COLORS[program.difficulty] }}
                   >
-                    {program.difficulty}
+                    {t(DIFFICULTY_LABEL_KEYS[program.difficulty]) || program.difficulty}
                   </span>
                 )}
                 <span className="club-workout-badge category">
-                  <Layers size={14} /> {program.total_days} days
+                  <Layers size={14} /> {program.total_days} {t('clubWorkouts.days')}
                 </span>
               </div>
               {program.description && (
@@ -688,7 +703,7 @@ function ClubWorkoutsModal({ onClose, onSelectWorkout, onScheduleProgram, coachI
 
             {/* Day List */}
             <div className="club-program-days-list">
-              <h3>Workouts</h3>
+              <h3>{t('clubWorkouts.workoutsHeading')}</h3>
               {program.days.map((day) => (
                 <button
                   key={day.day_index}
@@ -701,7 +716,7 @@ function ClubWorkoutsModal({ onClose, onSelectWorkout, onScheduleProgram, coachI
                   <div className="club-program-day-info">
                     <span className="club-program-day-name">{day.name}</span>
                     <span className="club-program-day-meta">
-                      <Dumbbell size={13} /> {day.exercises.length} exercises
+                      <Dumbbell size={13} /> {day.exercises.length} {t('clubWorkouts.exercises')}
                       <span className="club-program-day-sep">·</span>
                       <Clock size={13} /> {day.estimatedMinutes}m
                     </span>
@@ -736,7 +751,7 @@ function ClubWorkoutsModal({ onClose, onSelectWorkout, onScheduleProgram, coachI
               }}
             >
               <Calendar size={20} />
-              <span>Schedule Program</span>
+              <span>{t('clubWorkouts.scheduleProgram')}</span>
             </button>
           </div>
         </div>
@@ -757,13 +772,16 @@ function ClubWorkoutsModal({ onClose, onSelectWorkout, onScheduleProgram, coachI
           <div className="club-workouts-title">
             <h2>
               <Users size={20} />
-              Club Workouts
+              {t('clubWorkouts.clubWorkoutsTitle')}
             </h2>
             {!loading && totalCount > 0 && (
               <span className="club-workouts-subtitle">
                 {hasActiveFilters && resultCount !== totalCount
-                  ? `${resultCount} of ${totalCount}`
-                  : `${totalCount} ${totalCount === 1 ? 'program' : 'programs'}`}
+                  ? t('clubWorkouts.countOfTotal', { result: resultCount, total: totalCount })
+                  : t('clubWorkouts.programCount', {
+                      count: totalCount,
+                      label: totalCount === 1 ? t('clubWorkouts.program') : t('clubWorkouts.programs')
+                    })}
               </span>
             )}
           </div>
@@ -777,7 +795,7 @@ function ClubWorkoutsModal({ onClose, onSelectWorkout, onScheduleProgram, coachI
               <Search size={18} />
               <input
                 type="text"
-                placeholder="Search workouts..."
+                placeholder={t('clubWorkouts.searchPlaceholder')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="club-search-input"
@@ -793,7 +811,7 @@ function ClubWorkoutsModal({ onClose, onSelectWorkout, onScheduleProgram, coachI
                   className={`club-filter-pill ${selectedCategory ? 'active' : ''} ${openFilter === 'category' ? 'open' : ''}`}
                   onClick={() => setOpenFilter(openFilter === 'category' ? null : 'category')}
                 >
-                  <span>{selectedCategory ? (CATEGORY_LABELS[selectedCategory] || selectedCategory) : 'All goals'}</span>
+                  <span>{selectedCategory ? (t(CATEGORY_LABEL_KEYS[selectedCategory]) || selectedCategory) : t('clubWorkouts.allGoals')}</span>
                   <ChevronDown size={14} />
                 </button>
                 {openFilter === 'category' && (
@@ -802,7 +820,7 @@ function ClubWorkoutsModal({ onClose, onSelectWorkout, onScheduleProgram, coachI
                       className={`club-filter-option ${!selectedCategory ? 'selected' : ''}`}
                       onClick={() => { setSelectedCategory(''); setOpenFilter(null); }}
                     >
-                      All goals
+                      {t('clubWorkouts.allGoals')}
                     </button>
                     {availableCategories.map(cat => (
                       <button
@@ -810,7 +828,7 @@ function ClubWorkoutsModal({ onClose, onSelectWorkout, onScheduleProgram, coachI
                         className={`club-filter-option ${selectedCategory === cat ? 'selected' : ''}`}
                         onClick={() => { setSelectedCategory(cat); setOpenFilter(null); }}
                       >
-                        {CATEGORY_ICONS[cat] || '⚡'} {CATEGORY_LABELS[cat] || cat}
+                        {CATEGORY_ICONS[cat] || '⚡'} {t(CATEGORY_LABEL_KEYS[cat]) || cat}
                       </button>
                     ))}
                   </div>
@@ -823,7 +841,7 @@ function ClubWorkoutsModal({ onClose, onSelectWorkout, onScheduleProgram, coachI
                   className={`club-filter-pill ${selectedDifficulty ? 'active' : ''} ${openFilter === 'difficulty' ? 'open' : ''}`}
                   onClick={() => setOpenFilter(openFilter === 'difficulty' ? null : 'difficulty')}
                 >
-                  <span>{selectedDifficulty ? (DIFFICULTY_LABELS[selectedDifficulty] || selectedDifficulty) : 'All levels'}</span>
+                  <span>{selectedDifficulty ? (t(DIFFICULTY_LABEL_KEYS[selectedDifficulty]) || selectedDifficulty) : t('clubWorkouts.allLevels')}</span>
                   <ChevronDown size={14} />
                 </button>
                 {openFilter === 'difficulty' && (
@@ -832,7 +850,7 @@ function ClubWorkoutsModal({ onClose, onSelectWorkout, onScheduleProgram, coachI
                       className={`club-filter-option ${!selectedDifficulty ? 'selected' : ''}`}
                       onClick={() => { setSelectedDifficulty(''); setOpenFilter(null); }}
                     >
-                      All levels
+                      {t('clubWorkouts.allLevels')}
                     </button>
                     {availableDifficulties.map(diff => (
                       <button
@@ -841,7 +859,7 @@ function ClubWorkoutsModal({ onClose, onSelectWorkout, onScheduleProgram, coachI
                         onClick={() => { setSelectedDifficulty(diff); setOpenFilter(null); }}
                       >
                         <span className="club-filter-dot" style={{ background: DIFFICULTY_COLORS[diff] }} />
-                        {DIFFICULTY_LABELS[diff] || diff}
+                        {t(DIFFICULTY_LABEL_KEYS[diff]) || diff}
                       </button>
                     ))}
                   </div>
@@ -854,7 +872,7 @@ function ClubWorkoutsModal({ onClose, onSelectWorkout, onScheduleProgram, coachI
                   className={`club-filter-pill ${selectedDuration ? 'active' : ''} ${openFilter === 'duration' ? 'open' : ''}`}
                   onClick={() => setOpenFilter(openFilter === 'duration' ? null : 'duration')}
                 >
-                  <span>{selectedDuration ? DURATION_RANGES.find(r => r.key === selectedDuration)?.label : 'Any duration'}</span>
+                  <span>{selectedDuration ? t(DURATION_RANGES.find(r => r.key === selectedDuration)?.labelKey) : t('clubWorkouts.anyDuration')}</span>
                   <ChevronDown size={14} />
                 </button>
                 {openFilter === 'duration' && (
@@ -865,7 +883,7 @@ function ClubWorkoutsModal({ onClose, onSelectWorkout, onScheduleProgram, coachI
                         className={`club-filter-option ${selectedDuration === range.key ? 'selected' : ''}`}
                         onClick={() => { setSelectedDuration(range.key); setOpenFilter(null); }}
                       >
-                        {range.label}
+                        {t(range.labelKey)}
                       </button>
                     ))}
                   </div>
@@ -878,7 +896,7 @@ function ClubWorkoutsModal({ onClose, onSelectWorkout, onScheduleProgram, coachI
                   className={`club-filter-pill ${selectedType ? 'active' : ''} ${openFilter === 'type' ? 'open' : ''}`}
                   onClick={() => setOpenFilter(openFilter === 'type' ? null : 'type')}
                 >
-                  <span>{selectedType ? TYPE_OPTIONS.find(t => t.key === selectedType)?.label : 'All workouts'}</span>
+                  <span>{selectedType ? t(TYPE_OPTIONS.find(o => o.key === selectedType)?.labelKey) : t('clubWorkouts.allWorkouts')}</span>
                   <ChevronDown size={14} />
                 </button>
                 {openFilter === 'type' && (
@@ -889,7 +907,7 @@ function ClubWorkoutsModal({ onClose, onSelectWorkout, onScheduleProgram, coachI
                         className={`club-filter-option ${selectedType === opt.key ? 'selected' : ''}`}
                         onClick={() => { setSelectedType(opt.key); setOpenFilter(null); }}
                       >
-                        {opt.label}
+                        {t(opt.labelKey)}
                       </button>
                     ))}
                   </div>
@@ -902,7 +920,7 @@ function ClubWorkoutsModal({ onClose, onSelectWorkout, onScheduleProgram, coachI
             {/* Clear Filters */}
             {hasActiveFilters && (
               <button className="club-clear-filters" onClick={clearAllFilters}>
-                <X size={14} /> Clear filters
+                <X size={14} /> {t('clubWorkouts.clearFilters')}
               </button>
             )}
           </div>
@@ -916,20 +934,20 @@ function ClubWorkoutsModal({ onClose, onSelectWorkout, onScheduleProgram, coachI
           {loading ? (
             <div className="club-loading">
               <Loader2 size={32} className="spinning" />
-              <p>Loading club workouts...</p>
+              <p>{t('clubWorkouts.loading')}</p>
             </div>
           ) : filteredWorkouts.length === 0 ? (
             <div className="club-empty">
               <Users size={48} strokeWidth={1} />
               {workouts.length === 0 ? (
                 <>
-                  <h3>No Club Workouts Yet</h3>
-                  <p>Your coach hasn't created any club workouts yet. Check back later!</p>
+                  <h3>{t('clubWorkouts.emptyNoWorkoutsTitle')}</h3>
+                  <p>{t('clubWorkouts.emptyNoWorkoutsDesc')}</p>
                 </>
               ) : (
                 <>
-                  <h3>No Matches</h3>
-                  <p>Try adjusting your search or filters.</p>
+                  <h3>{t('clubWorkouts.emptyNoMatchTitle')}</h3>
+                  <p>{t('clubWorkouts.emptyNoMatchDesc')}</p>
                 </>
               )}
             </div>
@@ -965,7 +983,7 @@ function ClubWorkoutsModal({ onClose, onSelectWorkout, onScheduleProgram, coachI
                         <div className="club-workout-card-badges">
                           {workout.category && (
                             <span className="club-workout-badge category small">
-                              {CATEGORY_ICONS[workout.category]} {CATEGORY_LABELS[workout.category] || workout.category}
+                              {CATEGORY_ICONS[workout.category]} {t(CATEGORY_LABEL_KEYS[workout.category]) || workout.category}
                             </span>
                           )}
                           {workout.difficulty && (
@@ -973,21 +991,21 @@ function ClubWorkoutsModal({ onClose, onSelectWorkout, onScheduleProgram, coachI
                               className="club-workout-badge difficulty small"
                               style={difficultyStyle(workout.difficulty)}
                             >
-                              {workout.difficulty}
+                              {t(DIFFICULTY_LABEL_KEYS[workout.difficulty]) || workout.difficulty}
                             </span>
                           )}
                           {isMultiDay ? (
                             <span className="club-workout-badge category small">
-                              <Layers size={12} /> {workout.total_days} days
+                              <Layers size={12} /> {workout.total_days} {t('clubWorkouts.days')}
                             </span>
                           ) : (
                             <span className="club-workout-badge category small">
-                              <Dumbbell size={12} /> Single
+                              <Dumbbell size={12} /> {t('clubWorkouts.single')}
                             </span>
                           )}
                         </div>
                         <div className="club-workout-card-stats">
-                          <span title={`${exerciseCount} exercises`}>
+                          <span title={`${exerciseCount} ${t('clubWorkouts.exercises')}`}>
                             <Dumbbell size={13} /> {exerciseCount}
                           </span>
                           <span title={`${estMinutes} minutes`}>
