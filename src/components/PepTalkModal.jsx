@@ -3,6 +3,7 @@ import { X } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { apiPost } from '../utils/api';
 import { useUnviewedPepTalks } from '../hooks/useUnviewedPepTalks';
+import { useLanguage } from '../context/LanguageContext';
 
 // Threshold for "watched" — the video has to play at least this fraction of
 // its duration before the "Got it" button enables. Matches the product rule:
@@ -10,6 +11,7 @@ import { useUnviewedPepTalks } from '../hooks/useUnviewedPepTalks';
 const VIEWED_FRACTION = 0.9;
 
 function PepTalkModal() {
+  const { t } = useLanguage();
   const { clientData } = useAuth();
   const clientId = clientData?.id;
   const isCoach = clientData?.is_coach === true;
@@ -92,7 +94,7 @@ function PepTalkModal() {
     <div style={overlayStyle} onClick={handleDismiss}>
       <div style={dialogStyle} onClick={(e) => e.stopPropagation()}>
         <button
-          aria-label="Dismiss"
+          aria-label={t('pepTalk.dismissAriaLabel')}
           onClick={handleDismiss}
           style={closeBtnStyle}
         >
@@ -127,7 +129,7 @@ function PepTalkModal() {
             cursor: canAcknowledge ? 'pointer' : 'not-allowed'
           }}
         >
-          {current.videoUrl && !videoWatched ? 'Watch the video to continue' : "Got it"}
+          {current.videoUrl && !videoWatched ? t('pepTalk.watchToContinue') : t('pepTalk.gotIt')}
         </button>
       </div>
     </div>
