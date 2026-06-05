@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Palette, Type, ToggleLeft, MessageSquare, Smartphone, Tag, Save, RotateCcw, Loader, Check, Eye, ChevronDown, ChevronUp, Upload, Trash2, Image } from 'lucide-react';
+import { ArrowLeft, Palette, Type, ToggleLeft, MessageSquare, Smartphone, Save, RotateCcw, Loader, Check, Eye, ChevronDown, ChevronUp, Upload, Trash2, Image } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useBranding, AVAILABLE_FONTS, BUTTON_STYLES, DEFAULT_TERMINOLOGY } from '../context/BrandingContext';
 import { apiGet, apiPost, apiDelete } from '../utils/api';
@@ -13,17 +13,6 @@ const MODULE_OPTIONS = [
   { key: 'recipes', label: 'Recipes', description: 'Recipe library' },
   { key: 'check_in', label: 'Check-In', description: 'Weekly progress check-ins' },
   { key: 'progress', label: 'Progress', description: 'Photos, measurements, weight' },
-];
-
-const TERMINOLOGY_OPTIONS = [
-  { key: 'home', default: 'Home' },
-  { key: 'diary', default: 'Diary' },
-  { key: 'plans', default: 'Meals' },
-  { key: 'workouts', default: 'Workouts' },
-  { key: 'messages', default: 'Messages' },
-  { key: 'check_in', default: 'Check-In' },
-  { key: 'progress', default: 'Progress' },
-  { key: 'recipes', default: 'Recipes' },
 ];
 
 const COLOR_PRESETS = [
@@ -168,14 +157,6 @@ function BrandingSettings() {
     setForm(prev => ({
       ...prev,
       client_modules: { ...prev.client_modules, [key]: enabled },
-    }));
-    setSaved(false);
-  }, []);
-
-  const updateTerminology = useCallback((key, value) => {
-    setForm(prev => ({
-      ...prev,
-      custom_terminology: { ...prev.custom_terminology, [key]: value },
     }));
     setSaved(false);
   }, []);
@@ -603,28 +584,6 @@ function BrandingSettings() {
                 maxLength={12}
               />
               <span className="bs-hint">Shown below the app icon on homescreen ({form.brand_short_name?.length || 0}/12)</span>
-            </div>
-          </Section>
-
-          {/* Section 7: Custom Terminology */}
-          <Section title="Custom Labels" icon={Tag} defaultOpen={false}>
-            <span className="bs-hint" style={{ display: 'block', marginBottom: '12px' }}>
-              Rename navigation labels to match your coaching style. Leave blank for defaults.
-            </span>
-            <div className="bs-terminology-grid">
-              {TERMINOLOGY_OPTIONS.map(term => (
-                <div key={term.key} className="bs-term-row">
-                  <span className="bs-term-default">{term.default}</span>
-                  <input
-                    type="text"
-                    value={form.custom_terminology[term.key] || ''}
-                    onChange={(e) => updateTerminology(term.key, e.target.value)}
-                    placeholder={term.default}
-                    className="bs-text-input bs-term-input"
-                    maxLength={30}
-                  />
-                </div>
-              ))}
             </div>
           </Section>
 
