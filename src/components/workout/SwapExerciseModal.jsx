@@ -19,7 +19,7 @@ const EQUIPMENT_OPTIONS = [
 ];
 
 function SwapExerciseModal({ exercise, workoutExercises = [], onSwap, onClose, genderPreference = 'all', coachId = null }) {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const [suggestions, setSuggestions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -144,7 +144,8 @@ function SwapExerciseModal({ exercise, workoutExercises = [], onSwap, onClose, g
         })).filter(ex => ex.id),
         equipment: equipmentFilter,
         coachId: coachId || null,
-        previousSuggestionIds: excludeIds
+        previousSuggestionIds: excludeIds,
+        language
       }, { signal: controller.signal });
 
       // Discard if component unmounted or a newer fetch was started
@@ -173,7 +174,7 @@ function SwapExerciseModal({ exercise, workoutExercises = [], onSwap, onClose, g
     if (isMountedRef.current && fetchIdRef.current === myFetchId) {
       setLoading(false);
     }
-  }, [exerciseId, exercise?.name, muscleGroup, exercise?.equipment, exercise?.secondary_muscles, exercise?.difficulty, exercise?.exercise_type, coachId]);
+  }, [exerciseId, exercise?.name, muscleGroup, exercise?.equipment, exercise?.secondary_muscles, exercise?.difficulty, exercise?.exercise_type, coachId, language]);
 
   // Fetch exercises for browse mode
   // Uses AbortController to cancel in-flight requests on re-fetch or unmount

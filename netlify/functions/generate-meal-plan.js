@@ -2,6 +2,10 @@
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
 
+const languageInstruction = (lang) => lang === 'es'
+  ? '\n\nIMPORTANT: Respond entirely in Spanish (Latin-American neutral). Write all meal names, food names, titles, descriptions, and cooking instructions in natural Spanish. Do NOT translate JSON field names/keys — keep the JSON structure and its keys exactly in English as specified.'
+  : '';
+
 // Import Anthropic SDK for meal generation (primary)
 const AnthropicModule = require('@anthropic-ai/sdk');
 const Anthropic = AnthropicModule.default || AnthropicModule;
@@ -5213,7 +5217,7 @@ async function optimizeMealMacros(geminiMeal, mealTargets, skipAutoScale = false
  * Generate meal plan using Claude API
  * Claude provides more consistent, well-formatted output compared to Gemini
  */
-async function generateWithClaude(prompt, isJson = true) {
+async function generateWithClaude(prompt, isJson = true, lang = 'en') {
   if (!ANTHROPIC_API_KEY) {
     throw new Error('ANTHROPIC_API_KEY not configured');
   }
@@ -5240,7 +5244,7 @@ MEAL TITLE RULES:
 9. BAD: "Greek Yogurt (250g) with Strawberries (150g)"
 10. The ingredients array has all the accurate amounts - titles should be clean and readable
 
-Your JSON response must be parseable - no trailing commas, proper quotes, valid structure.`
+Your JSON response must be parseable - no trailing commas, proper quotes, valid structure.${languageInstruction(lang)}`
   : `You are a professional nutritionist and meal planning assistant.
 
 IMPORTANT FORMATTING RULES:
@@ -5250,7 +5254,7 @@ IMPORTANT FORMATTING RULES:
 - Keep formatting clean and simple for PDF generation
 - Do not use decorative characters or special fonts
 
-Provide helpful, detailed meal prep guidance.`;
+Provide helpful, detailed meal prep guidance.${languageInstruction(lang)}`;
 
   try {
     const message = await anthropic.messages.create({
@@ -5408,7 +5412,8 @@ exports.handler = async (event, context) => {
   }
 
   try {
-    const { prompt, targets, mealsPerDay, previousAttempt, isJson, skipAutoScale, useGemini } = JSON.parse(event.body);
+    const { prompt, targets, mealsPerDay, previousAttempt, isJson, skipAutoScale, useGemini, language } = JSON.parse(event.body);
+    const lang = (language || 'en').toString().toLowerCase();
 
     if (!prompt) {
       return {
@@ -5428,7 +5433,7 @@ exports.handler = async (event, context) => {
 
     if (useClaude) {
       try {
-        responseText = await generateWithClaude(prompt, isJson !== false);
+        responseText = await generateWithClaude(prompt, isJson !== false, lang);
         generatorUsed = 'claude';
       } catch (claudeError) {
         console.error('❌ Claude failed, falling back to Gemini:', claudeError.message);

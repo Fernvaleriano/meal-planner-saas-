@@ -2,6 +2,10 @@
 const Anthropic = require('@anthropic-ai/sdk');
 const { handleCors, authenticateRequest, checkRateLimit, rateLimitResponse, corsHeaders } = require('./utils/auth');
 
+const languageInstruction = (lang) => lang === 'es'
+    ? '\n\nIMPORTANT: Respond entirely in Spanish (Latin-American neutral). Write all meal names, food names, titles, descriptions, and cooking instructions in natural Spanish. Do NOT translate JSON field names/keys — keep the JSON structure and its keys exactly in English as specified.'
+    : '';
+
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 
 // USDA-based reference data for countable foods (per piece)
@@ -149,7 +153,8 @@ exports.handler = async (event, context) => {
             };
         }
 
-        const { text } = body;
+        const { text, language } = body;
+        const lang = (language || 'en').toString().toLowerCase();
 
         if (!text || !text.trim()) {
             return {
@@ -237,7 +242,7 @@ Guidelines:
   - vitaminC (mg): Citrus ~70mg, peppers ~80mg, broccoli ~100mg. 0 for meat/grains is correct.
   - cholesterol (mg): Eggs ~186mg, meat ~70-90mg per serving. 0 for plants is correct.
 
-Return ONLY the JSON array, nothing else.`;
+Return ONLY the JSON array, nothing else.${languageInstruction(lang)}`;
 
         let content;
         try {

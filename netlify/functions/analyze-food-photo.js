@@ -2,6 +2,10 @@
 const Anthropic = require('@anthropic-ai/sdk');
 const { handleCors, authenticateRequest, checkRateLimit, rateLimitResponse, corsHeaders } = require('./utils/auth');
 
+const languageInstruction = (lang) => lang === 'es'
+    ? '\n\nIMPORTANT: Respond entirely in Spanish (Latin-American neutral). Write all meal names, food names, titles, descriptions, and cooking instructions in natural Spanish. Do NOT translate JSON field names/keys — keep the JSON structure and its keys exactly in English as specified.'
+    : '';
+
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 
 // Helper function to strip markdown formatting from text
@@ -75,7 +79,8 @@ exports.handler = async (event, context) => {
         }
 
         // Support both single image and multiple images
-        const { image, images, details } = body;
+        const { image, images, details, language } = body;
+        const lang = (language || 'en').toString().toLowerCase();
         const imageArray = images || (image ? [image] : []);
 
         if (imageArray.length === 0) {
@@ -147,7 +152,7 @@ Guidelines for ACCURATE estimation:
 - For micronutrients: fiber (g), sugar (g), sodium (mg), potassium (mg), calcium (mg), iron (mg with 1 decimal), vitaminC (mg), cholesterol (mg). Use USDA values. If unsure, use 0
 ${processedImages.length > 1 ? '- Use multiple angles to better estimate portion sizes' : ''}
 
-Return ONLY the JSON array.`;
+Return ONLY the JSON array.${languageInstruction(lang)}`;
 
         // Build content array with images for Claude
         const contentParts = [

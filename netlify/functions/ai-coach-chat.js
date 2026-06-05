@@ -2,6 +2,10 @@ const OpenAI = require('openai');
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
+const languageInstruction = (lang) => lang === 'es'
+  ? '\n\nIMPORTANT: Respond entirely in Spanish (Latin-American neutral). Write all names, titles, descriptions, instructions, reasons, and any prose text in natural Spanish. Do NOT translate JSON field names/keys — keep the JSON structure and its keys exactly in English as specified.'
+  : '';
+
 const headers = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'Content-Type, Authorization',
@@ -23,7 +27,9 @@ exports.handler = async (event) => {
   }
 
   try {
-    const { message, context } = JSON.parse(event.body || '{}');
+    const body = JSON.parse(event.body || '{}');
+    const { message, context } = body;
+    const language = (body.language || 'en').toString().toLowerCase();
 
     if (!message) {
       return {
@@ -90,7 +96,7 @@ Respond in this exact JSON format:
   "suggestedReps": number (required when giving advice),
   "suggestedWeight": number (required when giving advice),
   "reasoning": "brief reason for the suggestion"
-}`;
+}${languageInstruction(language)}`;
 
     const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
 

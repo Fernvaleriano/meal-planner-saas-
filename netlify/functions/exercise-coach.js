@@ -2,6 +2,10 @@ const OpenAI = require('openai');
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
+const languageInstruction = (lang) => lang === 'es'
+  ? '\n\nIMPORTANT: Respond entirely in Spanish (Latin-American neutral). Write all names, titles, descriptions, instructions, reasons, and any prose text in natural Spanish. Do NOT translate JSON field names/keys — keep the JSON structure and its keys exactly in English as specified.'
+  : '';
+
 const headers = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'Content-Type, Authorization',
@@ -352,7 +356,9 @@ exports.handler = async (event) => {
   }
 
   try {
-    const { mode, exercise, question, conversationHistory } = JSON.parse(event.body || '{}');
+    const parsedBody = JSON.parse(event.body || '{}');
+    const { mode, exercise, question, conversationHistory } = parsedBody;
+    const language = (parsedBody.language || 'en').toString().toLowerCase();
 
     if (!exercise || !exercise.name) {
       return {
@@ -420,7 +426,7 @@ GOOD examples:
 - "Squeeze shoulder blades together before initiating the pull"
 
 RESPOND IN THIS EXACT JSON FORMAT (no markdown, no explanation):
-{"tips":["Specific tip 1","Specific tip 2","Specific tip 3"]}`;
+{"tips":["Specific tip 1","Specific tip 2","Specific tip 3"]}${languageInstruction(language)}`;
 
       maxTokens = 200;
     } else if (mode === 'ask') {
@@ -611,7 +617,7 @@ PAD/MACHINE SETUP (if asked):
 - Ignore the specific question and give general form tips
 - Use filler phrases like "Great question!"
 
-NOW ANSWER THE CLIENT'S QUESTION: "${question}"`;
+NOW ANSWER THE CLIENT'S QUESTION: "${question}"${languageInstruction(language)}`;
 
       maxTokens = 600;
     } else {

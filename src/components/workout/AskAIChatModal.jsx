@@ -29,7 +29,7 @@ export default function AskAIChatModal({
   onClose,
   onAcceptRecommendation
 }) {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [currentRec, setCurrentRec] = useState(recommendation);
@@ -122,6 +122,7 @@ export default function AskAIChatModal({
     try {
       const response = await apiPost('/.netlify/functions/ai-coach-chat', {
         message: userMessage,
+        language,
         context: {
           exerciseName,
           lastSession: lastSession || null,
