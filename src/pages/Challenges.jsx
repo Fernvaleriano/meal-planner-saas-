@@ -5,14 +5,17 @@ import { useAuth } from '../context/AuthContext';
 import { apiGet, apiPost, apiPut, apiDelete } from '../utils/api';
 import { useToast } from '../components/Toast';
 import { usePullToRefreshEvent } from '../hooks/usePullToRefreshEvent';
+import { useLanguage } from '../context/LanguageContext';
 
+// Module-level: store i18n keys instead of hard-coded English so that t()
+// can resolve them at render time inside each component.
 const CHALLENGE_TYPES = [
-  { key: 'gym_checkin', label: 'Gym Check-in', icon: Dumbbell, color: '#f97316', description: 'Clients prove they went to the gym daily' },
-  { key: 'weight_loss', label: 'Weight Loss', icon: TrendingUp, color: '#ef4444', description: 'Track weight loss toward a goal' },
-  { key: 'consistency', label: 'Consistency Streak', icon: Flame, color: '#f59e0b', description: 'Log meals/workouts X days in a row' },
-  { key: 'water_intake', label: 'Water Intake', icon: Droplets, color: '#2cb5a5', description: 'Hit daily water intake targets' },
-  { key: 'steps', label: 'Daily Steps', icon: Footprints, color: '#10b981', description: 'Hit a daily step count goal' },
-  { key: 'custom', label: 'Custom', icon: Target, color: '#8b5cf6', description: 'Define your own challenge rules' }
+  { key: 'gym_checkin', labelKey: 'typeGymCheckinLabel', icon: Dumbbell, color: '#f97316', descKey: 'typeGymCheckinDesc' },
+  { key: 'weight_loss', labelKey: 'typeWeightLossLabel', icon: TrendingUp, color: '#ef4444', descKey: 'typeWeightLossDesc' },
+  { key: 'consistency', labelKey: 'typeConsistencyLabel', icon: Flame, color: '#f59e0b', descKey: 'typeConsistencyDesc' },
+  { key: 'water_intake', labelKey: 'typeWaterIntakeLabel', icon: Droplets, color: '#2cb5a5', descKey: 'typeWaterIntakeDesc' },
+  { key: 'steps', labelKey: 'typeStepsLabel', icon: Footprints, color: '#10b981', descKey: 'typeStepsDesc' },
+  { key: 'custom', labelKey: 'typeCustomLabel', icon: Target, color: '#8b5cf6', descKey: 'typeCustomDesc' }
 ];
 
 const TYPE_DEFAULTS = {
@@ -44,6 +47,7 @@ function daysUntil(dateStr) {
 function CoachChallenges() {
   const { user } = useAuth();
   const { showError, showSuccess } = useToast();
+  const { t } = useLanguage();
   const [challenges, setChallenges] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
@@ -57,7 +61,7 @@ function CoachChallenges() {
       const data = await apiGet(`/.netlify/functions/coach-challenges?coachId=${user.id}`);
       setChallenges(data?.challenges || []);
     } catch (err) {
-      showError('Failed to load challenges');
+      showError(t('challengesPage.errorLoadChallenges'));
     } finally {
       setLoading(false);
     }
@@ -72,7 +76,7 @@ function CoachChallenges() {
       const data = await apiGet(`/.netlify/functions/coach-challenges?coachId=${user.id}&challengeId=${challengeId}`);
       setDetailData(data);
     } catch (err) {
-      showError('Failed to load challenge details');
+      showError(t('challengesPage.errorLoadDetail'));
     } finally {
       setLoadingDetail(false);
     }
@@ -86,24 +90,24 @@ function CoachChallenges() {
   const handleEndChallenge = async (challengeId) => {
     try {
       await apiPut('/.netlify/functions/coach-challenges', { challengeId, coachId: user.id, status: 'completed' });
-      showSuccess('Challenge ended');
+      showSuccess(t('challengesPage.successChallengeEnded'));
       setSelectedChallenge(null);
       setDetailData(null);
       fetchChallenges();
     } catch (err) {
-      showError('Failed to end challenge');
+      showError(t('challengesPage.errorEndChallenge'));
     }
   };
 
   const handleDeleteChallenge = async (challengeId) => {
     try {
       await apiDelete('/.netlify/functions/coach-challenges', { challengeId, coachId: user.id });
-      showSuccess('Challenge deleted');
+      showSuccess(t('challengesPage.successChallengeDeleted'));
       setSelectedChallenge(null);
       setDetailData(null);
       fetchChallenges();
     } catch (err) {
-      showError('Failed to delete challenge');
+      showError(t('challengesPage.errorDeleteChallenge'));
     }
   };
 
@@ -117,7 +121,7 @@ function CoachChallenges() {
     return (
       <div style={{ padding: '16px', maxWidth: 600, margin: '0 auto' }}>
         <button onClick={() => { setSelectedChallenge(null); setDetailData(null); }} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'none', border: 'none', color: 'var(--text-secondary)', fontSize: 14, cursor: 'pointer', padding: 0, marginBottom: 16 }}>
-          <ChevronLeft size={18} /> Back to Challenges
+          <ChevronLeft size={18} /> {t('challengesPage.backToChallenges')}
         </button>
 
         <div style={{ background: 'var(--card-bg)', borderRadius: 16, padding: 20, marginBottom: 16 }}>
@@ -127,14 +131,14 @@ function CoachChallenges() {
             </div>
             <div style={{ flex: 1 }}>
               <h2 style={{ margin: 0, fontSize: 18, color: 'var(--text-primary)' }}>{selectedChallenge.title}</h2>
-              <span style={{ fontSize: 12, color: config.color, fontWeight: 600, textTransform: 'uppercase' }}>{config.label}</span>
+              <span style={{ fontSize: 12, color: config.color, fontWeight: 600, textTransform: 'uppercase' }}>{t(`challengesPage.${config.labelKey}`)}</span>
             </div>
             <span style={{
               padding: '4px 10px', borderRadius: 20, fontSize: 11, fontWeight: 600,
               background: isActive ? '#10b98120' : '#64748b20',
               color: isActive ? '#10b981' : '#64748b'
             }}>
-              {isActive ? 'Active' : selectedChallenge.status}
+              {isActive ? t('challengesPage.statusActive') : selectedChallenge.status}
             </span>
           </div>
 
@@ -148,14 +152,14 @@ function CoachChallenges() {
             </span>
             {isActive && remaining > 0 && (
               <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                <Clock size={14} /> {remaining} days left
+                <Clock size={14} /> {t('challengesPage.daysLeftFull', { count: remaining })}
               </span>
             )}
           </div>
 
           {selectedChallenge.target_value && (
             <div style={{ marginTop: 12, padding: '8px 12px', background: 'var(--bg-primary)', borderRadius: 8, fontSize: 13 }}>
-              <strong>Target:</strong> {selectedChallenge.target_value} {selectedChallenge.target_unit} ({selectedChallenge.frequency})
+              <strong>{t('challengesPage.targetLabel')}</strong> {selectedChallenge.target_value} {selectedChallenge.target_unit} ({selectedChallenge.frequency})
             </div>
           )}
         </div>
@@ -163,7 +167,7 @@ function CoachChallenges() {
         {/* Leaderboard */}
         <div style={{ background: 'var(--card-bg)', borderRadius: 16, padding: 20, marginBottom: 16 }}>
           <h3 style={{ margin: '0 0 16px', fontSize: 16, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Trophy size={18} color="#f59e0b" /> Leaderboard
+            <Trophy size={18} color="#f59e0b" /> {t('challengesPage.leaderboardHeading')}
           </h3>
 
           {loadingDetail ? (
@@ -197,7 +201,7 @@ function CoachChallenges() {
                     <div style={{ fontSize: 14, fontWeight: 700, color: config.color }}>{entry.totalDays} days</div>
                     {entry.currentStreak > 0 && (
                       <div style={{ fontSize: 11, color: '#f59e0b', display: 'flex', alignItems: 'center', gap: 2, justifyContent: 'flex-end' }}>
-                        <Flame size={12} /> {entry.currentStreak} streak
+                        <Flame size={12} /> {t('challengesPage.streakLabel', { count: entry.currentStreak })}
                       </div>
                     )}
                   </div>
@@ -205,7 +209,7 @@ function CoachChallenges() {
               ))}
             </div>
           ) : (
-            <p style={{ textAlign: 'center', color: 'var(--text-secondary)', fontSize: 14 }}>No progress logged yet</p>
+            <p style={{ textAlign: 'center', color: 'var(--text-secondary)', fontSize: 14 }}>{t('challengesPage.leaderboardEmpty')}</p>
           )}
         </div>
 
@@ -216,13 +220,13 @@ function CoachChallenges() {
               flex: 1, padding: '12px', borderRadius: 10, border: '1px solid #f59e0b40',
               background: 'transparent', color: '#f59e0b', fontSize: 14, fontWeight: 600, cursor: 'pointer'
             }}>
-              End Challenge
+              {t('challengesPage.endChallengeButton')}
             </button>
             <button onClick={() => handleDeleteChallenge(selectedChallenge.id)} style={{
               padding: '12px 16px', borderRadius: 10, border: '1px solid #ef444440',
               background: 'transparent', color: '#ef4444', fontSize: 14, fontWeight: 600, cursor: 'pointer'
             }}>
-              Delete
+              {t('challengesPage.deleteButton')}
             </button>
           </div>
         )}
@@ -242,12 +246,12 @@ function CoachChallenges() {
   return (
     <div style={{ padding: '16px', maxWidth: 600, margin: '0 auto' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-        <h1 style={{ margin: 0, fontSize: 22, color: 'var(--text-primary)' }}>Challenges</h1>
+        <h1 style={{ margin: 0, fontSize: 22, color: 'var(--text-primary)' }}>{t('challengesPage.pageTitle')}</h1>
         <button onClick={() => setShowCreate(true)} style={{
           display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 10,
           background: 'var(--accent-color, #f97316)', color: '#fff', border: 'none', fontSize: 14, fontWeight: 600, cursor: 'pointer'
         }}>
-          <Plus size={16} /> New
+          <Plus size={16} /> {t('challengesPage.newButton')}
         </button>
       </div>
 
@@ -256,14 +260,14 @@ function CoachChallenges() {
       ) : challenges.length === 0 ? (
         <div style={{ textAlign: 'center', padding: 40, color: 'var(--text-secondary)' }}>
           <Trophy size={48} style={{ opacity: 0.3, marginBottom: 12 }} />
-          <p style={{ fontSize: 16, fontWeight: 500 }}>No challenges yet</p>
-          <p style={{ fontSize: 14 }}>Create a challenge to motivate your clients!</p>
+          <p style={{ fontSize: 16, fontWeight: 500 }}>{t('challengesPage.noChallengesTitle')}</p>
+          <p style={{ fontSize: 14 }}>{t('challengesPage.noChallengesDesc')}</p>
         </div>
       ) : (
         <>
           {active.length > 0 && (
             <div style={{ marginBottom: 24 }}>
-              <h3 style={{ fontSize: 14, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 12 }}>Active</h3>
+              <h3 style={{ fontSize: 14, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 12 }}>{t('challengesPage.sectionActive')}</h3>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {active.map(c => <ChallengeCard key={c.id} challenge={c} onClick={() => handleSelectChallenge(c)} />)}
               </div>
@@ -271,7 +275,7 @@ function CoachChallenges() {
           )}
           {past.length > 0 && (
             <div>
-              <h3 style={{ fontSize: 14, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 12 }}>Past</h3>
+              <h3 style={{ fontSize: 14, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 12 }}>{t('challengesPage.sectionPast')}</h3>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {past.map(c => <ChallengeCard key={c.id} challenge={c} onClick={() => handleSelectChallenge(c)} />)}
               </div>
@@ -284,6 +288,7 @@ function CoachChallenges() {
 }
 
 function ChallengeCard({ challenge, onClick }) {
+  const { t } = useLanguage();
   const config = getTypeConfig(challenge.challenge_type);
   const Icon = config.icon;
   const isActive = challenge.status === 'active';
@@ -302,7 +307,7 @@ function ChallengeCard({ challenge, onClick }) {
         <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{challenge.title}</div>
         <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>
           {formatDate(challenge.start_date)} - {formatDate(challenge.end_date)}
-          {isActive && remaining > 0 && ` · ${remaining}d left`}
+          {isActive && remaining > 0 && ` · ${t('challengesPage.daysLeft', { count: remaining })}`}
         </div>
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -318,6 +323,7 @@ function ChallengeCard({ challenge, onClick }) {
 // ─── Create Challenge Form ────────────────────────────────────────────
 function CreateChallengeForm({ coachId, onClose, onCreated }) {
   const { showError, showSuccess } = useToast();
+  const { t } = useLanguage();
   const [step, setStep] = useState(1); // 1=type, 2=details
   const [selectedType, setSelectedType] = useState(null);
   const [title, setTitle] = useState('');
@@ -357,15 +363,15 @@ function CreateChallengeForm({ coachId, onClose, onCreated }) {
     const config = CHALLENGE_TYPES.find(t => t.key === type);
     if (config && !title) {
       const month = new Date().toLocaleDateString('en-US', { month: 'long' });
-      setTitle(`${month} ${config.label} Challenge`);
+      setTitle(`${month} ${t(`challengesPage.${config.labelKey}`)} Challenge`);
     }
     setStep(2);
   };
 
   const handleSubmit = async () => {
-    if (!title.trim()) { showError('Please enter a title'); return; }
-    if (!startDate || !endDate) { showError('Please set start and end dates'); return; }
-    if (new Date(endDate) <= new Date(startDate)) { showError('End date must be after start date'); return; }
+    if (!title.trim()) { showError(t('challengesPage.errorTitleRequired')); return; }
+    if (!startDate || !endDate) { showError(t('challengesPage.errorDatesRequired')); return; }
+    if (new Date(endDate) <= new Date(startDate)) { showError(t('challengesPage.errorEndDateInvalid')); return; }
 
     setSubmitting(true);
     try {
@@ -382,10 +388,10 @@ function CreateChallengeForm({ coachId, onClose, onCreated }) {
         assignTo,
         clientIds: assignTo === 'selected' ? selectedClients : null
       });
-      showSuccess('Challenge created!');
+      showSuccess(t('challengesPage.successChallengeCreated'));
       onCreated();
     } catch (err) {
-      showError('Failed to create challenge');
+      showError(t('challengesPage.errorCreateChallenge'));
     } finally {
       setSubmitting(false);
     }
@@ -396,10 +402,10 @@ function CreateChallengeForm({ coachId, onClose, onCreated }) {
     return (
       <div style={{ padding: '16px', maxWidth: 600, margin: '0 auto' }}>
         <button onClick={onClose} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'none', border: 'none', color: 'var(--text-secondary)', fontSize: 14, cursor: 'pointer', padding: 0, marginBottom: 16 }}>
-          <ChevronLeft size={18} /> Back
+          <ChevronLeft size={18} /> {t('challengesPage.backButton')}
         </button>
-        <h2 style={{ margin: '0 0 4px', fontSize: 20, color: 'var(--text-primary)' }}>New Challenge</h2>
-        <p style={{ margin: '0 0 20px', fontSize: 14, color: 'var(--text-secondary)' }}>Choose a challenge type</p>
+        <h2 style={{ margin: '0 0 4px', fontSize: 20, color: 'var(--text-primary)' }}>{t('challengesPage.newChallengeHeading')}</h2>
+        <p style={{ margin: '0 0 20px', fontSize: 14, color: 'var(--text-secondary)' }}>{t('challengesPage.chooseTypeSubhead')}</p>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {CHALLENGE_TYPES.map(type => {
@@ -414,8 +420,8 @@ function CreateChallengeForm({ coachId, onClose, onCreated }) {
                   <Icon size={22} color={type.color} />
                 </div>
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-primary)' }}>{type.label}</div>
-                  <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 2 }}>{type.description}</div>
+                  <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-primary)' }}>{t(`challengesPage.${type.labelKey}`)}</div>
+                  <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 2 }}>{t(`challengesPage.${type.descKey}`)}</div>
                 </div>
                 <ChevronRight size={18} color="var(--text-secondary)" />
               </button>
@@ -437,53 +443,53 @@ function CreateChallengeForm({ coachId, onClose, onCreated }) {
   return (
     <div style={{ padding: '16px', maxWidth: 600, margin: '0 auto' }}>
       <button onClick={() => setStep(1)} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'none', border: 'none', color: 'var(--text-secondary)', fontSize: 14, cursor: 'pointer', padding: 0, marginBottom: 16 }}>
-        <ChevronLeft size={18} /> Change Type
+        <ChevronLeft size={18} /> {t('challengesPage.changeTypeButton')}
       </button>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
         <div style={{ width: 36, height: 36, borderRadius: 10, background: `${typeConfig.color}15`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <typeConfig.icon size={18} color={typeConfig.color} />
         </div>
-        <h2 style={{ margin: 0, fontSize: 20, color: 'var(--text-primary)' }}>Challenge Details</h2>
+        <h2 style={{ margin: 0, fontSize: 20, color: 'var(--text-primary)' }}>{t('challengesPage.challengeDetailsHeading')}</h2>
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
         <div>
-          <label style={labelStyle}>Title</label>
-          <input value={title} onChange={e => setTitle(e.target.value)} placeholder="e.g. March Gym Challenge" style={inputStyle} />
+          <label style={labelStyle}>{t('challengesPage.labelTitle')}</label>
+          <input value={title} onChange={e => setTitle(e.target.value)} placeholder={t('challengesPage.placeholderTitle')} style={inputStyle} />
         </div>
 
         <div>
-          <label style={labelStyle}>Description (optional)</label>
-          <textarea value={description} onChange={e => setDescription(e.target.value)} placeholder="Describe the challenge rules and rewards..." rows={3} style={{ ...inputStyle, resize: 'vertical' }} />
+          <label style={labelStyle}>{t('challengesPage.labelDescription')}</label>
+          <textarea value={description} onChange={e => setDescription(e.target.value)} placeholder={t('challengesPage.placeholderDescription')} rows={3} style={{ ...inputStyle, resize: 'vertical' }} />
         </div>
 
         {selectedType !== 'custom' && (
           <div style={{ display: 'flex', gap: 12 }}>
             <div style={{ flex: 1 }}>
-              <label style={labelStyle}>Target</label>
-              <input type="number" value={targetValue} onChange={e => setTargetValue(e.target.value)} placeholder="e.g. 10000" style={inputStyle} />
+              <label style={labelStyle}>{t('challengesPage.labelTarget')}</label>
+              <input type="number" value={targetValue} onChange={e => setTargetValue(e.target.value)} placeholder={t('challengesPage.placeholderTarget')} style={inputStyle} />
             </div>
             <div style={{ flex: 1 }}>
-              <label style={labelStyle}>Unit</label>
-              <input value={targetUnit} onChange={e => setTargetUnit(e.target.value)} placeholder="e.g. steps" style={inputStyle} />
+              <label style={labelStyle}>{t('challengesPage.labelUnit')}</label>
+              <input value={targetUnit} onChange={e => setTargetUnit(e.target.value)} placeholder={t('challengesPage.placeholderUnit')} style={inputStyle} />
             </div>
           </div>
         )}
 
         <div style={{ display: 'flex', gap: 12 }}>
           <div style={{ flex: 1 }}>
-            <label style={labelStyle}>Start Date</label>
+            <label style={labelStyle}>{t('challengesPage.labelStartDate')}</label>
             <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} style={inputStyle} />
           </div>
           <div style={{ flex: 1 }}>
-            <label style={labelStyle}>End Date</label>
+            <label style={labelStyle}>{t('challengesPage.labelEndDate')}</label>
             <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} style={inputStyle} />
           </div>
         </div>
 
         <div>
-          <label style={labelStyle}>Frequency</label>
+          <label style={labelStyle}>{t('challengesPage.labelFrequency')}</label>
           <div style={{ display: 'flex', gap: 8 }}>
             {['daily', 'weekly', 'one_time'].map(f => (
               <button key={f} onClick={() => setFrequency(f)} style={{
@@ -499,7 +505,7 @@ function CreateChallengeForm({ coachId, onClose, onCreated }) {
         </div>
 
         <div>
-          <label style={labelStyle}>Assign To</label>
+          <label style={labelStyle}>{t('challengesPage.labelAssignTo')}</label>
           <div style={{ display: 'flex', gap: 8 }}>
             <button onClick={() => setAssignTo('all')} style={{
               flex: 1, padding: '10px', borderRadius: 10, border: `1px solid ${assignTo === 'all' ? 'var(--accent-color, #f97316)' : 'var(--border-color, #333)'}`,
@@ -507,7 +513,7 @@ function CreateChallengeForm({ coachId, onClose, onCreated }) {
               color: assignTo === 'all' ? 'var(--accent-color, #f97316)' : 'var(--text-secondary)',
               fontSize: 13, fontWeight: 600, cursor: 'pointer'
             }}>
-              All Clients
+              {t('challengesPage.assignAllClients')}
             </button>
             <button onClick={() => setAssignTo('selected')} style={{
               flex: 1, padding: '10px', borderRadius: 10, border: `1px solid ${assignTo === 'selected' ? 'var(--accent-color, #f97316)' : 'var(--border-color, #333)'}`,
@@ -515,7 +521,7 @@ function CreateChallengeForm({ coachId, onClose, onCreated }) {
               color: assignTo === 'selected' ? 'var(--accent-color, #f97316)' : 'var(--text-secondary)',
               fontSize: 13, fontWeight: 600, cursor: 'pointer'
             }}>
-              Select Clients
+              {t('challengesPage.assignSelectClients')}
             </button>
           </div>
         </div>
@@ -525,7 +531,7 @@ function CreateChallengeForm({ coachId, onClose, onCreated }) {
             {loadingClients ? (
               <div style={{ textAlign: 'center', padding: 20 }}><Loader2 size={20} className="spin" /></div>
             ) : clients.length === 0 ? (
-              <div style={{ padding: 16, textAlign: 'center', color: 'var(--text-secondary)', fontSize: 13 }}>No active clients</div>
+              <div style={{ padding: 16, textAlign: 'center', color: 'var(--text-secondary)', fontSize: 13 }}>{t('challengesPage.noActiveClients')}</div>
             ) : (
               clients.map(c => (
                 <label key={c.id} style={{
@@ -554,7 +560,7 @@ function CreateChallengeForm({ coachId, onClose, onCreated }) {
           background: 'var(--accent-color, #f97316)', color: '#fff', fontSize: 16, fontWeight: 700,
           cursor: submitting ? 'not-allowed' : 'pointer', opacity: submitting ? 0.6 : 1, marginTop: 8
         }}>
-          {submitting ? 'Creating...' : 'Create Challenge'}
+          {submitting ? t('challengesPage.submitCreating') : t('challengesPage.submitCreate')}
         </button>
       </div>
     </div>
@@ -565,6 +571,7 @@ function CreateChallengeForm({ coachId, onClose, onCreated }) {
 function ClientChallenges() {
   const { clientData } = useAuth();
   const { showError, showSuccess } = useToast();
+  const { t } = useLanguage();
   const [challenges, setChallenges] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedChallenge, setSelectedChallenge] = useState(null);
@@ -579,7 +586,7 @@ function ClientChallenges() {
       const data = await apiGet(`/.netlify/functions/client-challenges?clientId=${clientData.id}`);
       setChallenges(data?.challenges || []);
     } catch (err) {
-      showError('Failed to load challenges');
+      showError(t('challengesPage.errorLoadChallenges'));
     } finally {
       setLoading(false);
     }
@@ -594,7 +601,7 @@ function ClientChallenges() {
       const data = await apiGet(`/.netlify/functions/client-challenges?clientId=${clientData.id}&challengeId=${challengeId}`);
       setDetailData(data);
     } catch (err) {
-      showError('Failed to load challenge');
+      showError(t('challengesPage.errorLoadClientChallenge'));
     } finally {
       setLoadingDetail(false);
     }
@@ -610,13 +617,13 @@ function ClientChallenges() {
         value: isValueType && logValue ? parseFloat(logValue) : null,
         completed: true
       });
-      showSuccess('Progress logged!');
+      showSuccess(t('challengesPage.successProgressLogged'));
       setLogValue('');
       // Refresh detail
       fetchDetail(challengeId);
       fetchChallenges();
     } catch (err) {
-      showError('Failed to log progress');
+      showError(t('challengesPage.errorLogProgress'));
     } finally {
       setLogging(false);
     }
@@ -631,7 +638,7 @@ function ClientChallenges() {
     return (
       <div style={{ padding: '16px', maxWidth: 600, margin: '0 auto' }}>
         <button onClick={() => { setSelectedChallenge(null); setDetailData(null); }} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'none', border: 'none', color: 'var(--text-secondary)', fontSize: 14, cursor: 'pointer', padding: 0, marginBottom: 16 }}>
-          <ChevronLeft size={18} /> Back
+          <ChevronLeft size={18} /> {t('challengesPage.backButtonClient')}
         </button>
 
         {/* Challenge Header */}
@@ -642,7 +649,7 @@ function ClientChallenges() {
             </div>
             <div>
               <h2 style={{ margin: 0, fontSize: 18, color: 'var(--text-primary)' }}>{selectedChallenge.title}</h2>
-              <span style={{ fontSize: 12, color: config.color, fontWeight: 600 }}>{config.label}</span>
+              <span style={{ fontSize: 12, color: config.color, fontWeight: 600 }}>{t(`challengesPage.${config.labelKey}`)}</span>
             </div>
           </div>
 
@@ -655,15 +662,15 @@ function ClientChallenges() {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginTop: 12 }}>
               <div style={{ background: 'var(--bg-primary)', borderRadius: 10, padding: '10px', textAlign: 'center' }}>
                 <div style={{ fontSize: 20, fontWeight: 700, color: '#f59e0b' }}>{detailData.streak}</div>
-                <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>Streak</div>
+                <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>{t('challengesPage.statStreak')}</div>
               </div>
               <div style={{ background: 'var(--bg-primary)', borderRadius: 10, padding: '10px', textAlign: 'center' }}>
                 <div style={{ fontSize: 20, fontWeight: 700, color: '#10b981' }}>{detailData.daysCompleted}</div>
-                <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>Days Done</div>
+                <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>{t('challengesPage.statDaysDone')}</div>
               </div>
               <div style={{ background: 'var(--bg-primary)', borderRadius: 10, padding: '10px', textAlign: 'center' }}>
                 <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-primary)' }}>{detailData.daysRemaining}</div>
-                <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>Days Left</div>
+                <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>{t('challengesPage.statDaysLeft')}</div>
               </div>
             </div>
           )}
@@ -672,7 +679,7 @@ function ClientChallenges() {
           {detailData && detailData.totalDays > 0 && (
             <div style={{ marginTop: 14 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--text-secondary)', marginBottom: 4 }}>
-                <span>Progress</span>
+                <span>{t('challengesPage.progressLabel')}</span>
                 <span>{Math.round((detailData.daysCompleted / detailData.totalDays) * 100)}%</span>
               </div>
               <div style={{ height: 8, background: 'var(--bg-primary)', borderRadius: 4, overflow: 'hidden' }}>
@@ -690,7 +697,7 @@ function ClientChallenges() {
         {/* Log Today */}
         {detailData && !detailData.todayLog && selectedChallenge.status === 'active' && (
           <div style={{ background: 'var(--card-bg)', borderRadius: 16, padding: 20, marginBottom: 16 }}>
-            <h3 style={{ margin: '0 0 12px', fontSize: 16, color: 'var(--text-primary)' }}>Log Today</h3>
+            <h3 style={{ margin: '0 0 12px', fontSize: 16, color: 'var(--text-primary)' }}>{t('challengesPage.logTodayHeading')}</h3>
             {isValueType ? (
               <div style={{ display: 'flex', gap: 10 }}>
                 <input
@@ -708,7 +715,7 @@ function ClientChallenges() {
                   background: 'var(--accent-color, #f97316)', color: '#fff', fontSize: 14, fontWeight: 600,
                   cursor: logging || !logValue ? 'not-allowed' : 'pointer', opacity: logging || !logValue ? 0.5 : 1
                 }}>
-                  {logging ? '...' : 'Log'}
+                  {logging ? t('challengesPage.logLoading') : t('challengesPage.logButton')}
                 </button>
               </div>
             ) : (
@@ -718,7 +725,7 @@ function ClientChallenges() {
                 cursor: logging ? 'not-allowed' : 'pointer', opacity: logging ? 0.6 : 1,
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8
               }}>
-                <CheckCircle size={20} /> {logging ? 'Logging...' : 'Mark Complete for Today'}
+                <CheckCircle size={20} /> {logging ? t('challengesPage.loggingButton') : t('challengesPage.markCompleteButton')}
               </button>
             )}
           </div>
@@ -731,7 +738,7 @@ function ClientChallenges() {
             border: '1px solid #10b98130'
           }}>
             <CheckCircle size={24} color="#10b981" />
-            <div style={{ fontSize: 14, fontWeight: 600, color: '#10b981', marginTop: 6 }}>Done for today!</div>
+            <div style={{ fontSize: 14, fontWeight: 600, color: '#10b981', marginTop: 6 }}>{t('challengesPage.doneForToday')}</div>
           </div>
         )}
 
@@ -739,7 +746,7 @@ function ClientChallenges() {
         {detailData?.leaderboard?.length > 1 && (
           <div style={{ background: 'var(--card-bg)', borderRadius: 16, padding: 20 }}>
             <h3 style={{ margin: '0 0 12px', fontSize: 16, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 8 }}>
-              <Trophy size={18} color="#f59e0b" /> Leaderboard
+              <Trophy size={18} color="#f59e0b" /> {t('challengesPage.leaderboardHeading')}
             </h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               {detailData.leaderboard.map(entry => (
@@ -774,7 +781,7 @@ function ClientChallenges() {
   return (
     <div style={{ padding: '16px', maxWidth: 600, margin: '0 auto' }}>
       <h1 style={{ margin: '0 0 20px', fontSize: 22, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 10 }}>
-        <Trophy size={24} color="#f59e0b" /> Challenges
+        <Trophy size={24} color="#f59e0b" /> {t('challengesPage.pageTitle')}
       </h1>
 
       {loading ? (
@@ -782,8 +789,8 @@ function ClientChallenges() {
       ) : challenges.length === 0 ? (
         <div style={{ textAlign: 'center', padding: 40, color: 'var(--text-secondary)' }}>
           <Trophy size={48} style={{ opacity: 0.3, marginBottom: 12 }} />
-          <p style={{ fontSize: 16, fontWeight: 500 }}>No active challenges</p>
-          <p style={{ fontSize: 14 }}>Your coach hasn't created any challenges yet.</p>
+          <p style={{ fontSize: 16, fontWeight: 500 }}>{t('challengesPage.noActiveChallengesTitle')}</p>
+          <p style={{ fontSize: 14 }}>{t('challengesPage.noActiveChallengesDesc')}</p>
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -804,7 +811,7 @@ function ClientChallenges() {
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-primary)' }}>{c.title}</div>
                     <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>
-                      {c.days_remaining}d left · {c.participant_count} participants
+                      {t('challengesPage.cardDaysLeftParticipants', { days: c.days_remaining, count: c.participant_count })}
                     </div>
                   </div>
                   {c.logged_today ? (
@@ -824,10 +831,10 @@ function ClientChallenges() {
                 </div>
 
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6, fontSize: 12, color: 'var(--text-secondary)' }}>
-                  <span>{c.days_completed}/{c.total_days} days</span>
+                  <span>{t('challengesPage.cardDaysProgress', { done: c.days_completed, total: c.total_days })}</span>
                   {c.streak > 0 && (
                     <span style={{ color: '#f59e0b', display: 'flex', alignItems: 'center', gap: 2 }}>
-                      <Flame size={12} /> {c.streak} day streak
+                      <Flame size={12} /> {t('challengesPage.cardDayStreak', { count: c.streak })}
                     </span>
                   )}
                 </div>
@@ -843,6 +850,7 @@ function ClientChallenges() {
 // ─── Main Export: Show coach or client view based on role ─────────────
 function Challenges() {
   const { clientData } = useAuth();
+  const { t } = useLanguage();
   const navigate = useNavigate();
   const isCoach = clientData?.is_coach === true;
 
@@ -854,7 +862,7 @@ function Challenges() {
             display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none',
             color: 'var(--text-secondary)', fontSize: 14, cursor: 'pointer', padding: 0
           }}>
-            <ChevronLeft size={18} /> Back
+            <ChevronLeft size={18} /> {t('challengesPage.backButton')}
           </button>
         </div>
       )}

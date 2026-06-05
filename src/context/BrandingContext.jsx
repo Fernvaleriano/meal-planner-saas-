@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { useAuth } from './AuthContext';
+import { useLanguage } from './LanguageContext';
 import { supabase } from '../utils/supabase';
 import { apiGet } from '../utils/api';
 
@@ -366,6 +367,7 @@ function clearBrandingCSS() {
 
 export function BrandingProvider({ children }) {
   const { clientData } = useAuth();
+  const { t } = useLanguage();
   const coachId = clientData?.coach_id || (clientData?.is_coach ? clientData?.id : null);
 
   // Initialize from cache for instant display
@@ -581,10 +583,16 @@ export function BrandingProvider({ children }) {
     return { ...DEFAULT_TERMINOLOGY, ...custom };
   }, [branding?.custom_terminology]);
 
-  // Helper: get label for a given key
+  // Helper: get label for a given key.
+  // Priority: a coach's explicit custom label (in any language) > the
+  // translated default for the active language > the English default.
   const getLabel = useCallback((key) => {
-    return terminology[key] || DEFAULT_TERMINOLOGY[key] || key;
-  }, [terminology]);
+    const custom = branding?.custom_terminology;
+    if (custom && custom[key]) return custom[key];
+    const translated = t(`nav.${key}`);
+    if (translated && translated !== `nav.${key}`) return translated;
+    return DEFAULT_TERMINOLOGY[key] || key;
+  }, [branding?.custom_terminology, t]);
 
   // Helper: check if a module is visible for clients
   const isModuleVisible = useCallback((moduleKey) => {

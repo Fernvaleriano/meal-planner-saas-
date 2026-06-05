@@ -6,6 +6,8 @@ import Portal from '../Portal';
 import VoiceNotePlayer from '../VoiceNotePlayer';
 import { onAppResume, onAppSuspend } from '../../hooks/useAppLifecycle';
 import { convertWeight } from '../../utils/workoutProgression';
+import { getSpeechLang } from '../../utils/speechLang';
+import { useLanguage } from '../../context/LanguageContext';
 
 // Parse reps - if it's a range like "8-12", average the range instead of truncating
 // Supports decimals like "1.5" (e.g. 1.5 miles)
@@ -146,6 +148,8 @@ const parseVoiceInputForSets = (transcript) => {
 };
 
 function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick, workoutStarted, onSwapExercise, onDeleteExercise, onMoveUp, onMoveDown, isFirst, isLast, isSectionEnd, onUpdateExercise, onOpenSetEditor, weightUnit = 'lbs', clientId, onDragStart, onDragMove, onDragEnd, isDragging = false, dropAbove = false, dropBelow = false }) {
+  const { t } = useLanguage();
+
   // Early return if exercise is invalid
   if (!exercise || typeof exercise !== 'object') {
     return null;
@@ -748,14 +752,14 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
 
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
-      setVoiceError('Voice not supported');
+      setVoiceError(t('exerciseCard.voiceNotSupported'));
       return;
     }
 
     const recognition = new SpeechRecognition();
     recognition.continuous = false;
     recognition.interimResults = false;
-    recognition.lang = 'en-US';
+    recognition.lang = getSpeechLang();
     recognition.maxAlternatives = 1;
 
     recognition.onstart = () => {
@@ -767,7 +771,7 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
     recognition.onresult = (event) => {
       // Guard: Check array bounds before accessing
       if (!event.results || !event.results[0] || !event.results[0][0]) {
-        setVoiceError('No speech detected');
+        setVoiceError(t('exerciseCard.voiceNoSpeechDetected'));
         return;
       }
       const transcript = event.results[0][0].transcript;
@@ -821,11 +825,11 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
     recognition.onerror = (event) => {
       console.error('Speech recognition error:', event.error);
       if (event.error === 'not-allowed') {
-        setVoiceError('Mic denied');
+        setVoiceError(t('exerciseCard.voiceMicDenied'));
       } else if (event.error === 'no-speech') {
-        setVoiceError('No speech');
+        setVoiceError(t('exerciseCard.voiceNoSpeech'));
       } else {
-        setVoiceError('Error');
+        setVoiceError(t('exerciseCard.voiceError'));
       }
       setIsListening(false);
       setTimeout(() => setVoiceError(null), 2000);
@@ -885,7 +889,7 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
                 onClick={(e) => { e.stopPropagation(); if (onToggleComplete) onToggleComplete(); setCompleteSwipeOffset(0); }}
               >
                 <Check size={20} />
-                <span>{isCompleted ? 'Undo' : 'Done'}</span>
+                <span>{isCompleted ? t('exerciseCard.undo') : t('exerciseCard.done')}</span>
               </button>
             </div>
           )}
@@ -912,13 +916,13 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
             {onSwapExercise && (
               <button className="swipe-action-btn swap-action" onClick={handleSwapClick}>
                 <ArrowLeftRight size={20} />
-                <span>Swap</span>
+                <span>{t('exerciseCard.swap')}</span>
               </button>
             )}
             {onDeleteExercise && (
               <button className="swipe-action-btn delete-action" onClick={handleDeleteClick}>
                 <Trash2 size={20} />
-                <span>Delete</span>
+                <span>{t('exerciseCard.delete')}</span>
               </button>
             )}
           </div>
@@ -944,12 +948,12 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
                     className={`voice-mic-btn-card ${isListening ? 'listening' : ''}`}
                     onClick={toggleVoiceInput}
                     type="button"
-                    title="Voice input"
+                    title={t('exerciseCard.voiceInputTitle')}
                   >
                     {isListening ? <MicOff size={16} /> : <Mic size={16} />}
                   </button>
                 )}
-                <h3 className="exercise-title">{exercise.name || 'Exercise'}</h3>
+                <h3 className="exercise-title">{exercise.name || t('exerciseCard.exerciseFallback')}</h3>
               </div>
 
               {/* Equipment subtitle - hide when missing or literal "none" */}
@@ -961,7 +965,7 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
               {(isListening || lastTranscript || voiceError) && (
                 <div className={`voice-feedback-inline ${isListening ? 'listening' : ''} ${voiceError ? 'error' : ''}`}>
                   {isListening && <span className="voice-pulse-small"></span>}
-                  {isListening && <span>Listening...</span>}
+                  {isListening && <span>{t('exerciseCard.voiceListening')}</span>}
                   {lastTranscript && !isListening && <span>"{lastTranscript}"</span>}
                   {voiceError && <span>{voiceError}</span>}
                 </div>
@@ -981,7 +985,7 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
                 <div className="exercise-badges">
                   <span className="exercise-badge superset-badge">
                     <Zap size={10} />
-                    Superset {exercise.supersetGroup}
+                    {t('exerciseCard.supersetBadge', { group: exercise.supersetGroup })}
                   </span>
                 </div>
               )}
@@ -1117,7 +1121,7 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
       {restTimerActive !== null && (
         <div className="rest-timer-overlay" onClick={(e) => e.stopPropagation()}>
           <div className="rest-timer-content">
-            <span className="rest-timer-label">Rest</span>
+            <span className="rest-timer-label">{t('exerciseCard.restLabel')}</span>
             <span className="rest-timer-time">{formatRestTime(restTimeLeft)}</span>
             <button
               className="skip-rest-btn"
@@ -1127,7 +1131,7 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
                 setRestTimerActive(null);
               }}
             >
-              Skip
+              {t('exerciseCard.skipRest')}
             </button>
           </div>
         </div>
@@ -1149,7 +1153,7 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
           <div className="coach-voice-note">
             <span className="note-label">
               <Mic size={12} />
-              Voice note from your coach
+              {t('exerciseCard.voiceNoteFromCoach')}
             </span>
             <VoiceNotePlayer
               src={exercise.voiceNotePath
@@ -1179,7 +1183,7 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
                 >
                   <ExternalLink size={12} className="link-type-icon" />
                   <span className="link-title">
-                    {link.title || (link.type === 'youtube' ? 'Watch demo' : link.type === 'instagram' ? 'View post' : 'Open link')}
+                    {link.title || (link.type === 'youtube' ? t('exerciseCard.linkWatchDemo') : link.type === 'instagram' ? t('exerciseCard.linkViewPost') : t('exerciseCard.linkOpenLink'))}
                   </span>
                 </a>
               ))}

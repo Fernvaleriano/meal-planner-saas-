@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import { Lock, LogOut } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useBranding } from '../context/BrandingContext';
+import { useLanguage } from '../context/LanguageContext';
 
 /**
  * Soft lock screen shown when the coach has set the client's
@@ -32,6 +33,7 @@ function hexToRgba(hex, alpha) {
 export default function SubscriptionEnded() {
   const navigate = useNavigate();
   const { logout } = useAuth();
+  const { t } = useLanguage();
   const { branding } = useBranding();
   const brandColor = branding?.brand_primary_color || '#2cb5a5';
   const iconBg = hexToRgba(brandColor, 0.15);
@@ -42,20 +44,16 @@ export default function SubscriptionEnded() {
         <div style={{ ...styles.iconWrap, background: iconBg }}>
           <Lock size={28} color={brandColor} />
         </div>
-        <h2 style={styles.title}>Your account is on hold</h2>
-        <p style={styles.body}>
-          We weren't able to confirm your latest payment, so access to
-          your workouts, meals, messages, and check-ins is paused.
-          Please reach out to your coach to get reconnected.
-        </p>
+        <h2 style={styles.title}>{t('subscriptionEnded.title')}</h2>
+        <p style={styles.body}>{t('subscriptionEnded.body')}</p>
         <button
           style={{ ...styles.primaryBtn, background: brandColor }}
           onClick={() => navigate('/my-billing')}
         >
-          View Billing
+          {t('subscriptionEnded.viewBilling')}
         </button>
         <button style={styles.secondaryBtn} onClick={logout}>
-          <LogOut size={14} /> Sign out
+          <LogOut size={14} /> {t('subscriptionEnded.signOut')}
         </button>
       </div>
     </div>

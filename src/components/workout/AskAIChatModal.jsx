@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { X, Bot, Send, Check, Loader2 } from 'lucide-react';
 import { apiPost, apiGet } from '../../utils/api';
+import { useLanguage } from '../../context/LanguageContext';
 
 /**
  * Reusable AI Coach Chat Modal.
@@ -28,6 +29,7 @@ export default function AskAIChatModal({
   onClose,
   onAcceptRecommendation
 }) {
+  const { t } = useLanguage();
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [currentRec, setCurrentRec] = useState(recommendation);
@@ -102,11 +104,11 @@ export default function AskAIChatModal({
   }, []);
 
   const quickSuggestions = [
-    "I feel strong, push me",
-    "I'm feeling tired today",
-    "Something feels off",
-    "I want to hit a PR",
-    "What's my progress?"
+    { key: 'askAiModal.suggestionFeelStrong',  text: t('askAiModal.suggestionFeelStrong') },
+    { key: 'askAiModal.suggestionFeelingTired', text: t('askAiModal.suggestionFeelingTired') },
+    { key: 'askAiModal.suggestionFeelsOff',    text: t('askAiModal.suggestionFeelsOff') },
+    { key: 'askAiModal.suggestionHitPR',       text: t('askAiModal.suggestionHitPR') },
+    { key: 'askAiModal.suggestionProgress',    text: t('askAiModal.suggestionProgress') },
   ];
 
   const handleSend = async (text) => {
@@ -145,7 +147,7 @@ export default function AskAIChatModal({
       console.error('AI chat error:', err);
       setMessages(prev => [...prev, {
         role: 'assistant',
-        content: "I'm having trouble connecting. Let me give you a quick tip: if you're feeling good, try adding 1 rep. If you're tired, it's okay to match your last session."
+        content: t('askAiModal.connectionError')
       }]);
     } finally {
       setLoading(false);
@@ -170,7 +172,7 @@ export default function AskAIChatModal({
         <div className="ask-ai-header">
           <div className="ask-ai-header-left">
             <Bot size={20} />
-            <span>Coach</span>
+            <span>{t('askAiModal.headerTitle')}</span>
           </div>
           <button className="ask-ai-close" onClick={onClose}>
             <X size={20} />
@@ -181,7 +183,7 @@ export default function AskAIChatModal({
           <span>{exerciseName}</span>
           {currentRec && (
             <span className="ask-ai-current-rec">
-              Current: {currentRec.sets}x{currentRec.reps} @ {currentRec.weight || '—'}{weightUnit}
+              {t('askAiModal.currentRec', { sets: currentRec.sets, reps: currentRec.reps, weight: currentRec.weight || '—', unit: weightUnit })}
             </span>
           )}
         </div>
@@ -194,7 +196,7 @@ export default function AskAIChatModal({
               </div>
               <div className="ask-ai-bubble loading">
                 <Loader2 size={16} className="spinning" />
-                <span>Loading your history...</span>
+                <span>{t('askAiModal.loadingHistory')}</span>
               </div>
             </div>
           )}
@@ -217,7 +219,7 @@ export default function AskAIChatModal({
               </div>
               <div className="ask-ai-bubble loading">
                 <Loader2 size={16} className="spinning" />
-                <span>Thinking...</span>
+                <span>{t('askAiModal.thinking')}</span>
               </div>
             </div>
           )}
@@ -229,12 +231,12 @@ export default function AskAIChatModal({
           <div className="ask-ai-suggestions">
             {quickSuggestions.map((suggestion, i) => (
               <button
-                key={i}
+                key={suggestion.key}
                 className="ask-ai-suggestion-btn"
-                onClick={() => handleSend(suggestion)}
+                onClick={() => handleSend(suggestion.text)}
                 disabled={loading}
               >
-                {suggestion}
+                {suggestion.text}
               </button>
             ))}
           </div>
@@ -245,7 +247,7 @@ export default function AskAIChatModal({
             ref={inputRef}
             type="text"
             className="ask-ai-input"
-            placeholder="Ask about reps, weight, form..."
+            placeholder={t('askAiModal.inputPlaceholder')}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             disabled={loading || fetchingHistory}
@@ -258,7 +260,7 @@ export default function AskAIChatModal({
         {currentRec && onAcceptRecommendation && (
           <button className="ask-ai-accept-btn" onClick={handleAccept}>
             <Check size={16} />
-            <span>Accept Recommendation ({currentRec.sets}x{currentRec.reps} @ {currentRec.weight || '—'}{weightUnit})</span>
+            <span>{t('askAiModal.acceptRecommendation', { sets: currentRec.sets, reps: currentRec.reps, weight: currentRec.weight || '—', unit: weightUnit })}</span>
           </button>
         )}
       </div>

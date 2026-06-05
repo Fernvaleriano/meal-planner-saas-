@@ -3,6 +3,7 @@ import { ChevronLeft, ChevronRight, Play, Clock, Flame, Check, CheckCircle, Dumb
 import { useNavigate, useLocation } from 'react-router-dom';
 import { warmUpTickSound } from '../utils/audioTick';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 import { apiGet, apiPost, apiPut, apiDelete, enableSwCacheBypass, getCachedAccessToken } from '../utils/api';
 import { onAppResume } from '../hooks/useAppLifecycle';
 import ExerciseCard from '../components/workout/ExerciseCard';
@@ -279,6 +280,7 @@ const getMonthName = (date) => {
 
 // Readiness Check Modal — 2-tap pre-workout check-in
 function ReadinessCheckModal({ onComplete, onSkip }) {
+  const { t } = useLanguage();
   const [step, setStep] = useState(0); // 0=energy, 1=soreness, 2=sleep
   const [energy, setEnergy] = useState(null);
   const [soreness, setSoreness] = useState(null);
@@ -300,27 +302,27 @@ function ReadinessCheckModal({ onComplete, onSkip }) {
 
   const steps = [
     {
-      question: "How's your energy today?",
+      question: t('workoutsPage.readinessEnergyQuestion'),
       options: [
-        { value: 1, emoji: '\u{1F634}', label: 'Low' },
-        { value: 2, emoji: '\u{1F610}', label: 'Normal' },
-        { value: 3, emoji: '\u{1F4AA}', label: 'Great' }
+        { value: 1, emoji: '\u{1F634}', label: t('workoutsPage.readinessEnergyLow') },
+        { value: 2, emoji: '\u{1F610}', label: t('workoutsPage.readinessEnergyNormal') },
+        { value: 3, emoji: '\u{1F4AA}', label: t('workoutsPage.readinessEnergyGreat') }
       ]
     },
     {
-      question: 'How sore are you?',
+      question: t('workoutsPage.readinessSorenessQuestion'),
       options: [
-        { value: 3, emoji: '\u{1F7E2}', label: 'Fresh' },
-        { value: 2, emoji: '\u{1F7E1}', label: 'A little' },
-        { value: 1, emoji: '\u{1F534}', label: 'Very sore' }
+        { value: 3, emoji: '\u{1F7E2}', label: t('workoutsPage.readinessFresh') },
+        { value: 2, emoji: '\u{1F7E1}', label: t('workoutsPage.readinessAlittleSore') },
+        { value: 1, emoji: '\u{1F534}', label: t('workoutsPage.readinessVerySore') }
       ]
     },
     {
-      question: 'How did you sleep?',
+      question: t('workoutsPage.readinessSleepQuestion'),
       options: [
-        { value: 1, emoji: '\u{1F62B}', label: 'Poorly' },
-        { value: 2, emoji: '\u{1F634}', label: 'Okay' },
-        { value: 3, emoji: '\u{1F31F}', label: 'Great' }
+        { value: 1, emoji: '\u{1F62B}', label: t('workoutsPage.readinessPoorly') },
+        { value: 2, emoji: '\u{1F634}', label: t('workoutsPage.readinessOkay') },
+        { value: 3, emoji: '\u{1F31F}', label: t('workoutsPage.readinessSleepGreat') }
       ]
     }
   ];
@@ -350,7 +352,7 @@ function ReadinessCheckModal({ onComplete, onSkip }) {
           ))}
         </div>
         <button className="readiness-skip" onClick={onSkip} type="button">
-          Skip
+          {t('workoutsPage.readinessSkip')}
         </button>
       </div>
     </div>
@@ -359,25 +361,26 @@ function ReadinessCheckModal({ onComplete, onSkip }) {
 
 // Confirmation modal after readiness check — user decides when to start guided workout
 function WorkoutReadyConfirmation({ readinessData, workoutName, exerciseCount, onStart, onCancel }) {
+  const { t } = useLanguage();
   // Get readiness labels based on values
   const getEnergyLabel = (val) => {
-    if (val === 1) return { emoji: '\u{1F634}', label: 'Low' };
-    if (val === 2) return { emoji: '\u{1F610}', label: 'Normal' };
-    if (val === 3) return { emoji: '\u{1F4AA}', label: 'Great' };
+    if (val === 1) return { emoji: '\u{1F634}', label: t('workoutsPage.readinessEnergyLow') };
+    if (val === 2) return { emoji: '\u{1F610}', label: t('workoutsPage.readinessEnergyNormal') };
+    if (val === 3) return { emoji: '\u{1F4AA}', label: t('workoutsPage.readinessEnergyGreat') };
     return null;
   };
 
   const getSorenessLabel = (val) => {
-    if (val === 3) return { emoji: '\u{1F7E2}', label: 'Fresh' };
-    if (val === 2) return { emoji: '\u{1F7E1}', label: 'A little sore' };
-    if (val === 1) return { emoji: '\u{1F534}', label: 'Very sore' };
+    if (val === 3) return { emoji: '\u{1F7E2}', label: t('workoutsPage.readinessFresh') };
+    if (val === 2) return { emoji: '\u{1F7E1}', label: t('workoutsPage.alittleSore') };
+    if (val === 1) return { emoji: '\u{1F534}', label: t('workoutsPage.readinessVerySore') };
     return null;
   };
 
   const getSleepLabel = (val) => {
-    if (val === 1) return { emoji: '\u{1F62B}', label: 'Poorly' };
-    if (val === 2) return { emoji: '\u{1F634}', label: 'Okay' };
-    if (val === 3) return { emoji: '\u{1F31F}', label: 'Great' };
+    if (val === 1) return { emoji: '\u{1F62B}', label: t('workoutsPage.readinessPoorly') };
+    if (val === 2) return { emoji: '\u{1F634}', label: t('workoutsPage.readinessOkay') };
+    if (val === 3) return { emoji: '\u{1F31F}', label: t('workoutsPage.readinessSleepGreat') };
     return null;
   };
 
@@ -391,30 +394,30 @@ function WorkoutReadyConfirmation({ readinessData, workoutName, exerciseCount, o
         <div className="workout-ready-icon">
           <Play size={48} fill="white" />
         </div>
-        <h2 className="workout-ready-title">Ready to Start?</h2>
+        <h2 className="workout-ready-title">{t('workoutsPage.readyToStart')}</h2>
         <p className="workout-ready-subtitle">{workoutName || 'Workout'}</p>
         <p className="workout-ready-info">{exerciseCount} exercise{exerciseCount !== 1 ? 's' : ''}</p>
 
         {readinessData && (
           <div className="workout-ready-summary">
-            <div className="workout-ready-summary-title">Your Check-in</div>
+            <div className="workout-ready-summary-title">{t('workoutsPage.yourCheckIn')}</div>
             <div className="workout-ready-summary-items">
               {energy && (
                 <div className="workout-ready-item">
                   <span className="workout-ready-emoji">{energy.emoji}</span>
-                  <span className="workout-ready-label">Energy: {energy.label}</span>
+                  <span className="workout-ready-label">{t('workoutsPage.energyLabel', { label: energy.label })}</span>
                 </div>
               )}
               {soreness && (
                 <div className="workout-ready-item">
                   <span className="workout-ready-emoji">{soreness.emoji}</span>
-                  <span className="workout-ready-label">Soreness: {soreness.label}</span>
+                  <span className="workout-ready-label">{t('workoutsPage.sorenessLabel', { label: soreness.label })}</span>
                 </div>
               )}
               {sleep && (
                 <div className="workout-ready-item">
                   <span className="workout-ready-emoji">{sleep.emoji}</span>
-                  <span className="workout-ready-label">Sleep: {sleep.label}</span>
+                  <span className="workout-ready-label">{t('workoutsPage.sleepLabel', { label: sleep.label })}</span>
                 </div>
               )}
             </div>
@@ -423,11 +426,11 @@ function WorkoutReadyConfirmation({ readinessData, workoutName, exerciseCount, o
 
         <button className="workout-ready-start-btn" onClick={onStart}>
           <Play size={20} fill="white" />
-          <span>Begin Workout</span>
+          <span>{t('workoutsPage.beginWorkout')}</span>
         </button>
 
         <button className="workout-ready-cancel-btn" onClick={onCancel}>
-          Not yet
+          {t('workoutsPage.notYet')}
         </button>
       </div>
     </div>
@@ -709,6 +712,7 @@ function Workouts() {
   const { clientData, user } = useAuth();
   const navigate = useNavigate();
   const { showError, showSuccess } = useToast();
+  const { t } = useLanguage();
 
   // User's preferred weight unit (default to lbs for imperial)
   const weightUnit = clientData?.unit_preference === 'metric' ? 'kg' : 'lbs';
@@ -1353,7 +1357,7 @@ function Workouts() {
         // All three calls failed (likely transient auth/network on resume).
         // Don't clear state, don't write the cache — preserve last-good UI
         // and surface an inline error.
-        setError('Could not refresh workouts. Check your connection.');
+        setError(t('workoutsPage.couldNotRefresh'));
         return;
       }
 
@@ -1404,7 +1408,7 @@ function Workouts() {
         if (historical) allWorkouts.push(historical);
       }
       if (allWorkouts.length === 0 && assignmentFailed) {
-        setError('Could not refresh workouts. Check your connection.');
+        setError(t('workoutsPage.couldNotRefresh'));
         return;
       }
 
@@ -1504,7 +1508,7 @@ function Workouts() {
       refreshWeekSchedule();
     } catch (err) {
       console.error('Error refreshing workout:', err);
-      setError('Failed to load workout');
+      setError(t('workoutsPage.failedToLoad'));
     } finally {
       isRefreshingRef.current = false;
     }
@@ -1670,7 +1674,7 @@ function Workouts() {
           // The stale-while-revalidate display from the cache check above (if
           // any) stays visible; otherwise loading flips off and the inline
           // error banner shows.
-          if (mounted) setError('Could not load workouts. Check your connection.');
+          if (mounted) setError(t('workoutsPage.couldNotLoad'));
           return;
         }
 
@@ -1714,7 +1718,7 @@ function Workouts() {
           if (historical) allWorkouts.push(historical);
         }
         if (allWorkouts.length === 0 && assignmentFailed) {
-          if (mounted) setError('Could not load workouts. Check your connection.');
+          if (mounted) setError(t('workoutsPage.couldNotLoad'));
           return;
         }
 
@@ -1821,7 +1825,7 @@ function Workouts() {
       } catch (err) {
         console.error('Error fetching workout:', err);
         if (mounted) {
-          setError('Failed to load workout');
+          setError(t('workoutsPage.failedToLoad'));
         }
       } finally {
         if (mounted) {
@@ -2749,11 +2753,11 @@ function Workouts() {
           ));
         } else {
           console.error('No workout returned from POST:', res);
-          showError('Failed to save workout');
+          showError(t('workoutsPage.failedSaveWorkout'));
         }
       } catch (err) {
         console.error('Error creating ad-hoc workout:', err);
-        showError('Failed to save workout: ' + (err.message || 'Unknown error'));
+        showError(t('workoutsPage.failedSaveWorkoutError', { error: err.message || 'Unknown error' }));
       }
       return;
     }
@@ -2787,7 +2791,7 @@ function Workouts() {
         name: workout.name
       }).catch(err => {
         console.error('Error updating ad-hoc workout:', err);
-        showError('Failed to save changes: ' + (err.message || 'Unknown error'));
+        showError(t('workoutsPage.failedSaveChanges', { error: err.message || 'Unknown error' }));
       });
       return;
     }
@@ -2870,11 +2874,11 @@ function Workouts() {
         refreshWeekSchedule();
       } else {
         console.error('No workout returned from POST:', res);
-        showError('Failed to save workout');
+        showError(t('workoutsPage.failedSaveWorkout'));
       }
     } catch (err) {
       console.error('Error saving workout:', err);
-      showError('Failed to save workout: ' + (err.message || 'Unknown error'));
+      showError(t('workoutsPage.failedSaveWorkoutError', { error: err.message || 'Unknown error' }));
     }
   }, [clientData?.id, selectedDate, showError, refreshWeekSchedule]);
 
@@ -2982,7 +2986,7 @@ function Workouts() {
       refreshWeekSchedule();
     } catch (err) {
       console.error('Error saving club workout:', err);
-      showError('Failed to save workout: ' + (err.message || 'Unknown error'));
+      showError(t('workoutsPage.failedSaveWorkoutError', { error: err.message || 'Unknown error' }));
     }
   }, [clientData?.id, selectedDate, showError, showSuccess, refreshWeekSchedule]);
 
@@ -3034,7 +3038,7 @@ function Workouts() {
       }
     } catch (err) {
       console.error('Error scheduling program:', err);
-      showError('Failed to schedule program: ' + (err.message || 'Unknown error'));
+      showError(t('workoutsPage.failedScheduleProgram', { error: err.message || 'Unknown error' }));
     }
   }, [clientData?.id, clientData?.coach_id, selectedDate, showError, showSuccess, refreshWorkoutData, refreshWeekSchedule]);
 
@@ -3508,7 +3512,7 @@ function Workouts() {
           } else {
             // All retries exhausted — notify the user
             if (typeof showErrorRef.current === 'function') {
-              showErrorRef.current('Failed to save workout changes. Please try again.');
+              showErrorRef.current(t('workoutsPage.failedSaveExercises'));
             }
           }
         }
@@ -4279,9 +4283,9 @@ function Workouts() {
       console.error('Error rescheduling workout:', err);
       // If assignment not found (404), show specific error
       if (err.status === 404 || err.message?.includes('not found')) {
-        showError('Could not find this workout. It may have been removed or updated. Please refresh and try again.');
+        showError(t('workoutsPage.couldNotFindWorkout'));
       } else {
-        showError('Failed to update workout schedule');
+        showError(t('workoutsPage.failedUpdateSchedule'));
       }
       setShowRescheduleModal(false);
       setRescheduleAction(null);
@@ -4304,13 +4308,13 @@ function Workouts() {
       refreshWeekSchedule();
 
       // Show success feedback
-      showSuccess(`Workout ${action === 'duplicate' ? 'duplicated' : action === 'skip' ? 'skipped' : 'rescheduled'} successfully!`);
+      showSuccess(`Workout ${action === 'duplicate' ? 'duplicated' : action === 'skip' ? 'skipped' : 'rescheduled'} successfully!`); // eslint-disable-line -- success message left in English; reschedule action words are app internals
     } else {
       // Unexpected state — close modal and inform user
       setShowRescheduleModal(false);
       setRescheduleAction(null);
       rescheduleWorkoutRef.current = null;
-      showError('Something went wrong. Please try again.');
+      showError(t('workoutsPage.somethingWentWrong'));
     }
   }, [todayWorkout, rescheduleAction, rescheduleTargetDate, selectedDate, refreshWorkoutData, refreshWeekSchedule, clientData?.id]);
 
@@ -4332,7 +4336,7 @@ function Workouts() {
   const handleDeleteWorkout = useCallback(async () => {
     if (!todayWorkout?.id) return;
 
-    const confirmed = window.confirm('Are you sure you want to delete this workout? This will make today a rest day.');
+    const confirmed = window.confirm(t('workoutsPage.deleteWorkoutPrompt'));
     if (!confirmed) return;
 
     const dateStr = formatDate(selectedDate);
@@ -4375,7 +4379,7 @@ function Workouts() {
       if (err.status === 404 || err.message?.includes('not found')) {
         deleteSucceeded = true;
       } else {
-        showError('Failed to delete workout');
+        showError(t('workoutsPage.failedDeleteWorkout'));
         return;
       }
     }
@@ -4461,7 +4465,7 @@ function Workouts() {
       if (err.status === 404 || err.message?.includes('not found')) {
         deleteSucceeded = true;
       } else {
-        showError('Failed to delete workout');
+        showError(t('workoutsPage.failedDeleteWorkout'));
         return;
       }
     }
@@ -4559,7 +4563,7 @@ function Workouts() {
         setCardMenuWorkoutId(null);
         refreshWeekSchedule();
       } else {
-        showError('Failed to delete program: ' + (err.message || 'Unknown error'));
+        showError(t('workoutsPage.failedDeleteProgram', { error: err.message || 'Unknown error' }));
       }
     }
   }, [clientData?.id, todayWorkout, todayWorkouts, showError, showSuccess, refreshWeekSchedule]);
@@ -4821,7 +4825,7 @@ function Workouts() {
     // nothing at all — the "doesn't always work" bug.
     const log = await ensureWorkoutLog();
     if (!log?.id) {
-      showError('Could not save your workout — check your connection and try again.');
+      showError(t('workoutsPage.couldNotSaveWorkout'));
       return;
     }
 
@@ -4953,11 +4957,11 @@ function Workouts() {
         // Stats
         const dur = formatDurationCompact(workoutDuration || estimateWorkoutMinutes(exercises) || todayWorkout?.workout_data?.estimatedMinutes || 45);
         const activeToggles = [];
-        if (shareToggles.duration) activeToggles.push({ label: 'Duration', value: dur });
-        if (shareToggles.calories) activeToggles.push({ label: 'Calories', value: String(estimatedCalories) });
-        if (shareToggles.activities) activeToggles.push({ label: 'Activities', value: String(exercises.length) });
-        if (shareToggles.lifted && totalLifted > 0) activeToggles.push({ label: `Lifted (${weightUnit})`, value: totalLifted.toLocaleString() });
-        if (shareToggles.sets) activeToggles.push({ label: 'Sets', value: String(totalSets) });
+        if (shareToggles.duration) activeToggles.push({ label: t('workoutsPage.shareStatDuration'), value: dur });
+        if (shareToggles.calories) activeToggles.push({ label: t('workoutsPage.shareStatCalories'), value: String(estimatedCalories) });
+        if (shareToggles.activities) activeToggles.push({ label: t('workoutsPage.shareStatActivities'), value: String(exercises.length) });
+        if (shareToggles.lifted && totalLifted > 0) activeToggles.push({ label: t('workoutsPage.statLifted', { unit: weightUnit }), value: totalLifted.toLocaleString() });
+        if (shareToggles.sets) activeToggles.push({ label: t('workoutsPage.shareStatSets'), value: String(totalSets) });
 
         if (activeToggles.length > 0) {
           // Anchor stats near the bottom (above the footer), leaving the upper
@@ -5013,7 +5017,7 @@ function Workouts() {
         ctx.fillStyle = '#cbd5e1';
         ctx.font = '18px -apple-system, BlinkMacSystemFont, sans-serif';
         ctx.textAlign = 'center';
-        ctx.fillText('Powered by Ziquecoach', width / 2, height - 30);
+        ctx.fillText(t('workoutsPage.poweredBy'), width / 2, height - 30);
         ctx.restore();
 
         // Convert and share
@@ -5206,7 +5210,7 @@ function Workouts() {
             >
               <ChevronLeft size={24} />
             </button>
-            <span className="nav-title">{isToday ? 'Today' : formatDisplayDate(selectedDate)}</span>
+            <span className="nav-title">{isToday ? t('workoutsPage.navTitleToday') : formatDisplayDate(selectedDate)}</span>
             {clientData?.is_coach && (
               <button
                 className="nav-plans-btn"
@@ -5268,13 +5272,13 @@ function Workouts() {
             {loading && todayWorkouts.length === 0 ? (
               <div className="loading-state-v2">
                 <div className="loading-spinner"></div>
-                <span>Loading workout...</span>
+                <span>{t('workoutsPage.loadingWorkout')}</span>
               </div>
             ) : error ? (
               <div className="error-state">
                 <p>{error}</p>
                 <button onClick={refreshWorkoutData} className="retry-btn">
-                  Try Again
+                  {t('workoutsPage.errorTryAgain')}
                 </button>
               </div>
             ) : todayWorkouts.length > 0 ? (
@@ -5333,22 +5337,22 @@ function Workouts() {
                               <div className="workout-card-info">
                                 <h3 className="workout-card-title">{cardDayName}</h3>
                                 <p className="workout-card-progress">
-                                  {cardCompletedCount}/{cardExercises.length} activities done
+                                  {t('workoutsPage.activitiesDone', { completed: cardCompletedCount, total: cardExercises.length })}
                                 </p>
                                 {totalDays > 0 && (
-                                  <p className="workout-card-day">{daySpecificName ? `${daySpecificName} · ` : ''}Day {currentDay}/{totalDays}</p>
+                                  <p className="workout-card-day">{daySpecificName ? `${daySpecificName} · ` : ''}{t('workoutsPage.dayLabel', { current: currentDay, total: totalDays })}</p>
                                 )}
                                 <div className="workout-card-stats">
                                   {estMinutes && (
                                     <span className="workout-card-stat">
                                       <Clock size={13} />
-                                      {estMinutes} min
+                                      {estMinutes} {t('workoutsPage.minUnit')}
                                     </span>
                                   )}
                                   {estCalories && (
                                     <span className="workout-card-stat">
                                       <Flame size={13} />
-                                      {estCalories} kcal
+                                      {estCalories} {t('workoutsPage.kcalUnit')}
                                     </span>
                                   )}
                                   <span className="workout-card-stat">
@@ -5413,19 +5417,19 @@ function Workouts() {
                                         <p className="workout-card-day">{daySpecificName}</p>
                                       )}
                                       <p className="workout-card-progress">
-                                        {cardCompletedCount}/{cardExercises.length} activities done
+                                        {t('workoutsPage.activitiesDone', { completed: cardCompletedCount, total: cardExercises.length })}
                                       </p>
                                       <div className="workout-card-stats">
                                         {estMinutes && (
                                           <span className="workout-card-stat">
                                             <Clock size={13} />
-                                            {estMinutes} min
+                                            {estMinutes} {t('workoutsPage.minUnit')}
                                           </span>
                                         )}
                                         {estCalories && (
                                           <span className="workout-card-stat">
                                             <Flame size={13} />
-                                            {estCalories} kcal
+                                            {estCalories} {t('workoutsPage.kcalUnit')}
                                           </span>
                                         )}
                                         <span className="workout-card-stat">
@@ -5452,14 +5456,14 @@ function Workouts() {
                     onClick={() => setShowClubWorkouts(true)}
                   >
                     <Users size={16} />
-                    <span>Club Workouts</span>
+                    <span>{t('workoutsPage.clubWorkouts')}</span>
                   </button>
                   <button
                     className="card-action-btn"
                     onClick={() => setShowCreateWorkout(true)}
                   >
                     <Plus size={16} />
-                    <span>Create Workout</span>
+                    <span>{t('workoutsPage.createWorkout')}</span>
                   </button>
                 </div>
 
@@ -5473,8 +5477,8 @@ function Workouts() {
                       <Target size={20} />
                     </div>
                     <div className="gym-proof-banner-text">
-                      <span className="gym-proof-banner-title">Gym Check-In</span>
-                      <span className="gym-proof-banner-sub">Snap a photo to prove you were at the gym</span>
+                      <span className="gym-proof-banner-title">{t('workoutsPage.gymCheckIn')}</span>
+                      <span className="gym-proof-banner-sub">{t('workoutsPage.gymCheckInSub')}</span>
                     </div>
                     <ChevronRight size={18} className="gym-proof-banner-arrow" />
                   </button>
@@ -5486,10 +5490,10 @@ function Workouts() {
                     <div className="week-progress-header">
                       <h4 className="week-progress-title">
                         <Calendar size={16} />
-                        This Week
+                        {t('workoutsPage.thisWeek')}
                       </h4>
                       <span className="week-progress-count">
-                        {weeklyStats.completedWorkouts}/{weeklyStats.totalWorkouts} workouts
+                        {t('workoutsPage.weeklyWorkouts', { completed: weeklyStats.completedWorkouts, total: weeklyStats.totalWorkouts })}
                       </span>
                     </div>
                     <div className="week-progress-dots">
@@ -5497,7 +5501,7 @@ function Workouts() {
                         <div
                           key={day.dateStr}
                           className={`week-dot ${day.hasWorkout ? 'has-workout' : 'rest'} ${day.isToday ? 'today' : ''} ${day.workedOut ? 'worked-out' : ''} ${day.isPast && day.hasWorkout && !day.workedOut ? 'missed' : ''}`}
-                          title={`${day.dayLabel}${day.workedOut ? ' - Worked out' : day.isPast && day.hasWorkout ? ' - Missed' : day.hasWorkout ? ' - Workout' : ' - Rest'}`}
+                          title={`${day.dayLabel}${day.workedOut ? ` - ${t('workoutsPage.dotWorkedOut')}` : day.isPast && day.hasWorkout ? ` - ${t('workoutsPage.dotMissed')}` : day.hasWorkout ? ` - ${t('workoutsPage.dotWorkout')}` : ` - ${t('workoutsPage.dotRest')}`}`}
                         >
                           <span className="week-dot-label">{day.dayLabel}</span>
                           <div className="week-dot-indicator">
@@ -5531,7 +5535,7 @@ function Workouts() {
                   <div className="upcoming-schedule-section">
                     <h4 className="upcoming-title">
                       <TrendingUp size={16} />
-                      Coming Up
+                      {t('workoutsPage.comingUp')}
                     </h4>
                     <div className="upcoming-list">
                       {upcomingWorkouts.map((item) => (
@@ -5548,7 +5552,7 @@ function Workouts() {
                             <span className="upcoming-workout-name">{item.workoutName}</span>
                             <span className="upcoming-meta">
                               <Dumbbell size={12} />
-                              {item.exerciseCount} exercises
+                              {t('workoutsPage.exercisesCount', { count: item.exerciseCount })}
                             </span>
                           </div>
                           <ChevronRight size={16} className="upcoming-chevron" />
@@ -5562,7 +5566,7 @@ function Workouts() {
                 <div className="workout-quick-links">
                   <button className="quick-link-btn" onClick={() => navigate('/workout-history')}>
                     <History size={18} />
-                    <span>Workout History</span>
+                    <span>{t('workoutsPage.workoutHistory')}</span>
                     <ChevronRight size={16} className="quick-link-chevron" />
                   </button>
                 </div>
@@ -5572,15 +5576,15 @@ function Workouts() {
                 <div className="empty-illustration">
                   <Dumbbell size={48} strokeWidth={1.5} />
                 </div>
-                <h3>Rest Day</h3>
-                <p>No workout scheduled. Recovery is part of the process!</p>
+                <h3>{t('workoutsPage.restDayTitle')}</h3>
+                <p>{t('workoutsPage.restDayDesc')}</p>
                 <div className="rest-day-actions">
                   <button
                     className="rest-day-create-btn"
                     onClick={() => setShowCreateWorkout(true)}
                   >
                     <PenSquare size={18} />
-                    <span>Create Workout</span>
+                    <span>{t('workoutsPage.createWorkout')}</span>
                   </button>
                   <div className="rest-day-secondary-row">
                     <button
@@ -5588,14 +5592,14 @@ function Workouts() {
                       onClick={() => setShowClubWorkouts(true)}
                     >
                       <Users size={16} />
-                      <span>Club Workouts</span>
+                      <span>{t('workoutsPage.clubWorkouts')}</span>
                     </button>
                     <button
                       className="rest-day-add-btn"
                       onClick={() => setShowAddActivity(true)}
                     >
                       <Plus size={16} />
-                      <span>Add Activity</span>
+                      <span>{t('workoutsPage.addActivity')}</span>
                     </button>
                   </div>
                 </div>
@@ -5610,8 +5614,8 @@ function Workouts() {
                       <Target size={20} />
                     </div>
                     <div className="gym-proof-banner-text">
-                      <span className="gym-proof-banner-title">Gym Check-In</span>
-                      <span className="gym-proof-banner-sub">Snap a photo to prove you were at the gym</span>
+                      <span className="gym-proof-banner-title">{t('workoutsPage.gymCheckIn')}</span>
+                      <span className="gym-proof-banner-sub">{t('workoutsPage.gymCheckInSub')}</span>
                     </div>
                     <ChevronRight size={18} className="gym-proof-banner-arrow" />
                   </button>
@@ -5622,7 +5626,7 @@ function Workouts() {
                   <div className="upcoming-schedule-section rest-day-upcoming">
                     <h4 className="upcoming-title">
                       <TrendingUp size={16} />
-                      Coming Up This Week
+                      {t('workoutsPage.comingUpThisWeek')}
                     </h4>
                     <div className="upcoming-list">
                       {upcomingWorkouts.map((item) => (
@@ -5639,7 +5643,7 @@ function Workouts() {
                             <span className="upcoming-workout-name">{item.workoutName}</span>
                             <span className="upcoming-meta">
                               <Dumbbell size={12} />
-                              {item.exerciseCount} exercises
+                              {t('workoutsPage.exercisesCount', { count: item.exerciseCount })}
                             </span>
                           </div>
                           <ChevronRight size={16} className="upcoming-chevron" />
@@ -5653,7 +5657,7 @@ function Workouts() {
                 <div className="workout-quick-links rest-day-links">
                   <button className="quick-link-btn" onClick={() => navigate('/workout-history')}>
                     <History size={18} />
-                    <span>Workout History</span>
+                    <span>{t('workoutsPage.workoutHistory')}</span>
                     <ChevronRight size={16} className="quick-link-chevron" />
                   </button>
                 </div>
@@ -5678,7 +5682,7 @@ function Workouts() {
             >
               <ChevronLeft size={24} />
             </button>
-            <span className="nav-title">{isToday ? 'Today' : formatDisplayDate(selectedDate)}</span>
+            <span className="nav-title">{isToday ? t('workoutsPage.navTitleToday') : formatDisplayDate(selectedDate)}</span>
             <div className="nav-right-actions" ref={heroMenuRef}>
               <button
                 className="nav-menu-btn"
@@ -5694,35 +5698,35 @@ function Workouts() {
                     onClick={() => { setShowHeroMenu(false); setShowClubWorkouts(true); }}
                   >
                     <Users size={18} />
-                    <span>Club Workouts</span>
+                    <span>{t('workoutsPage.menuClubWorkouts')}</span>
                   </button>
                   <button
                     className="menu-item"
                     onClick={() => { setShowHeroMenu(false); navigate('/workout-history'); }}
                   >
                     <History size={18} />
-                    <span>Workout History</span>
+                    <span>{t('workoutsPage.menuWorkoutHistory')}</span>
                   </button>
                   <button
                     className="menu-item"
                     onClick={() => openRescheduleModal('reschedule')}
                   >
                     <MoveRight size={18} />
-                    <span>Move Day</span>
+                    <span>{t('workoutsPage.menuMoveDay')}</span>
                   </button>
                   <button
                     className="menu-item"
                     onClick={() => openRescheduleModal('duplicate')}
                   >
                     <Copy size={18} />
-                    <span>Duplicate Day</span>
+                    <span>{t('workoutsPage.menuDuplicateDay')}</span>
                   </button>
                   <button
                     className="menu-item delete"
                     onClick={() => { handleDeleteWorkout(); setExpandedWorkout(false); }}
                   >
                     <Trash2 size={18} />
-                    <span>Delete</span>
+                    <span>{t('workoutsPage.menuDelete')}</span>
                   </button>
                   {workoutStarted && (
                     <button
@@ -5740,7 +5744,7 @@ function Workouts() {
                       }}
                     >
                       <LogOut size={18} />
-                      <span>Exit Workout</span>
+                      <span>{t('workoutsPage.menuExitWorkout')}</span>
                     </button>
                   )}
                 </div>
@@ -5767,12 +5771,12 @@ function Workouts() {
             <div className="hero-overlay"></div>
             <div className="hero-content-v3">
               <h1 className="hero-title-v3">
-                {workoutDayName || todayWorkout.name || 'Today\'s Workout'}
+                {workoutDayName || todayWorkout.name || t('workoutsPage.todaysWorkoutFallback')}
               </h1>
               <div className="hero-stats">
                 <span className="stat-item">
                   <Clock size={16} />
-                  {estimateWorkoutMinutes(exercises) || todayWorkout.workout_data?.estimatedMinutes || 45} minutes
+                  {estimateWorkoutMinutes(exercises) || todayWorkout.workout_data?.estimatedMinutes || 45} {t('workoutsPage.minutesUnit')}
                 </span>
                 <span className="stat-item">
                   <Flame size={16} />
@@ -5801,7 +5805,7 @@ function Workouts() {
               <div className="uncheck-all-section">
                 <button className="uncheck-all-btn" onClick={handleUncheckAll}>
                   <RotateCcw size={14} />
-                  <span>Reset all ({completedExercises.size})</span>
+                  <span>{t('workoutsPage.resetAll', { count: completedExercises.size })}</span>
                 </button>
               </div>
             )}
@@ -5830,19 +5834,19 @@ function Workouts() {
                     {showPhaseHeader && phase === 'warmup' && (
                       <div className="workout-phase-divider warmup">
                         <span className="phase-divider-icon">&#x1F525;</span>
-                        <span className="phase-divider-label">Warm-Up</span>
+                        <span className="phase-divider-label">{t('workoutsPage.phaseWarmUp')}</span>
                       </div>
                     )}
                     {showPhaseHeader && phase === 'main' && index > 0 && (
                       <div className="workout-phase-divider main">
                         <span className="phase-divider-icon">&#x1F4AA;</span>
-                        <span className="phase-divider-label">Main Workout</span>
+                        <span className="phase-divider-label">{t('workoutsPage.phaseMainWorkout')}</span>
                       </div>
                     )}
                     {showPhaseHeader && phase === 'cooldown' && (
                       <div className="workout-phase-divider cooldown">
                         <span className="phase-divider-icon">&#x1F9CA;</span>
-                        <span className="phase-divider-label">Cool-Down</span>
+                        <span className="phase-divider-label">{t('workoutsPage.phaseCoolDown')}</span>
                       </div>
                     )}
                     <ExerciseCard
@@ -5880,7 +5884,7 @@ function Workouts() {
               <div className="add-activity-section">
                 <button className="add-activity-btn" onClick={() => setShowAddActivity(true)}>
                   <Plus size={16} />
-                  <span>Add another activity</span>
+                  <span>{t('workoutsPage.addAnotherActivity')}</span>
                 </button>
               </div>
             </div>
@@ -5890,7 +5894,7 @@ function Workouts() {
           <div className="finish-training-section">
             {totalExercises > 0 && (
               <div className="finish-progress-caption">
-                {completedCount} of {totalExercises} activities complete
+                {t('workoutsPage.activitiesComplete', { completed: completedCount, total: totalExercises })}
               </div>
             )}
             <button
@@ -5898,7 +5902,7 @@ function Workouts() {
               onClick={handleFinishClick}
             >
               {completedCount === totalExercises && totalExercises > 0 && <Check size={18} />}
-              <span className="btn-text">Finish training</span>
+              <span className="btn-text">{t('workoutsPage.finishTraining')}</span>
             </button>
           </div>
         </div>
@@ -6008,7 +6012,7 @@ function Workouts() {
         <div className="workout-summary-overlay completing-overlay">
           <div className="completing-spinner-container">
             <div className="completing-spinner" />
-            <p>Saving your workout...</p>
+            <p>{t('workoutsPage.savingWorkout')}</p>
           </div>
         </div>
       )}
@@ -6018,17 +6022,17 @@ function Workouts() {
         <div className="workout-summary-overlay" onClick={() => setShowFinishConfirm(false)}>
           <div className="finish-confirm-sheet" onClick={e => e.stopPropagation()}>
             <div className="sheet-handle" />
-            <h2>Are you done?</h2>
+            <h2>{t('workoutsPage.areYouDone')}</h2>
             <p className="confirm-subtitle">
               {completedExercises.size === 0
-                ? 'None of the activities have been marked as done.'
-                : `${completedExercises.size} of ${exercises.length} activities have been marked as done.`}
+                ? t('workoutsPage.noneMarkedDone')
+                : t('workoutsPage.someMarkedDone', { completed: completedExercises.size, total: exercises.length })}
             </p>
             <button className="confirm-mark-all-btn" onClick={handleMarkAllDone}>
-              Mark everything as done
+              {t('workoutsPage.markEverythingDone')}
             </button>
             <button className="confirm-manual-btn" onClick={handleCompleteWorkout}>
-              Manually mark as done
+              {t('workoutsPage.manuallyMarkDone')}
             </button>
           </div>
         </div>
@@ -6048,34 +6052,34 @@ function Workouts() {
                   <Award size={36} strokeWidth={2.2} />
                 </div>
               </div>
-              <h2>Great job!</h2>
-              <p className="summary-subtitle">Training finished</p>
+              <h2>{t('workoutsPage.greatJob')}</h2>
+              <p className="summary-subtitle">{t('workoutsPage.trainingFinished')}</p>
             </div>
             <div className="summary-hero-card">
               <span className="hero-stat-value">{formatDuration(workoutDuration || estimateWorkoutMinutes(exercises) || todayWorkout?.workout_data?.estimatedMinutes || 45)}</span>
-              <span className="hero-stat-label">Duration</span>
+              <span className="hero-stat-label">{t('workoutsPage.statDuration')}</span>
             </div>
             <div className="summary-stats-grid">
               <div className="summary-stat-card">
                 <Flame size={16} className="stat-icon" />
                 <span className="stat-value">{estimatedCalories}</span>
-                <span className="stat-label">Calories</span>
+                <span className="stat-label">{t('workoutsPage.statCalories')}</span>
               </div>
               <div className="summary-stat-card">
                 <CheckCircle size={16} className="stat-icon" />
                 <span className="stat-value">{completedExercises.size}</span>
-                <span className="stat-label">Activities</span>
+                <span className="stat-label">{t('workoutsPage.statActivities')}</span>
               </div>
               <div className="summary-stat-card">
                 <RotateCcw size={16} className="stat-icon" />
                 <span className="stat-value">{totalSets}</span>
-                <span className="stat-label">Sets</span>
+                <span className="stat-label">{t('workoutsPage.statSets')}</span>
               </div>
               {totalLifted > 0 && (
                 <div className="summary-stat-card">
                   <Weight size={16} className="stat-icon" />
                   <span className="stat-value">{totalLifted.toLocaleString()}</span>
-                  <span className="stat-label">Lifted ({weightUnit})</span>
+                  <span className="stat-label">{t('workoutsPage.statLifted', { unit: weightUnit })}</span>
                 </div>
               )}
             </div>
@@ -6083,7 +6087,7 @@ function Workouts() {
               <div className="summary-prs-section">
                 <div className="prs-header">
                   <Award size={20} />
-                  <span>{workoutPRs.length} New PR{workoutPRs.length !== 1 ? 's' : ''}!</span>
+                  <span>{t('workoutsPage.newPrs', { count: workoutPRs.length, plural: workoutPRs.length !== 1 ? 's' : '' })}</span>
                 </div>
                 <div className="prs-list">
                   {workoutPRs.map((pr, idx) => (
@@ -6102,7 +6106,7 @@ function Workouts() {
             )}
             <button className="share-results-btn" onClick={() => { setShareBgImage(workoutImage); setShowShareResults(true); }}>
               <Share2 size={18} />
-              Share results
+              {t('workoutsPage.shareResults')}
             </button>
           </div>
         </div>
@@ -6116,7 +6120,7 @@ function Workouts() {
               <button className="summary-close-btn" onClick={() => setShowShareResults(false)}>
                 <X size={24} />
               </button>
-              <h2>Share your results!</h2>
+              <h2>{t('workoutsPage.shareYourResults')}</h2>
             </div>
 
             {/* Preview Card */}
@@ -6133,31 +6137,31 @@ function Workouts() {
                     {shareToggles.duration && (
                       <div className="share-stat">
                         <span className="share-stat-value">{formatDurationCompact(workoutDuration || estimateWorkoutMinutes(exercises) || todayWorkout?.workout_data?.estimatedMinutes || 45)}</span>
-                        <span className="share-stat-label">Duration</span>
+                        <span className="share-stat-label">{t('workoutsPage.shareStatDuration')}</span>
                       </div>
                     )}
                     {shareToggles.calories && (
                       <div className="share-stat">
                         <span className="share-stat-value">{estimatedCalories}</span>
-                        <span className="share-stat-label">Calories</span>
+                        <span className="share-stat-label">{t('workoutsPage.shareStatCalories')}</span>
                       </div>
                     )}
                     {shareToggles.activities && (
                       <div className="share-stat">
                         <span className="share-stat-value">{completedExercises.size}</span>
-                        <span className="share-stat-label">Activities</span>
+                        <span className="share-stat-label">{t('workoutsPage.shareStatActivities')}</span>
                       </div>
                     )}
                     {shareToggles.lifted && totalLifted > 0 && (
                       <div className="share-stat">
                         <span className="share-stat-value">{totalLifted.toLocaleString()}</span>
-                        <span className="share-stat-label">Lifted ({weightUnit})</span>
+                        <span className="share-stat-label">{t('workoutsPage.statLifted', { unit: weightUnit })}</span>
                       </div>
                     )}
                     {shareToggles.sets && (
                       <div className="share-stat">
                         <span className="share-stat-value">{totalSets}</span>
-                        <span className="share-stat-label">Sets</span>
+                        <span className="share-stat-label">{t('workoutsPage.shareStatSets')}</span>
                       </div>
                     )}
                   </div>
@@ -6165,7 +6169,7 @@ function Workouts() {
                     <div className="share-card-prs">
                       <div className="share-prs-badge">
                         <Award size={14} />
-                        <span>{workoutPRs.length} New PR{workoutPRs.length !== 1 ? 's' : ''}!</span>
+                        <span>{t('workoutsPage.newPrs', { count: workoutPRs.length, plural: workoutPRs.length !== 1 ? 's' : '' })}</span>
                       </div>
                       {workoutPRs.map((pr, idx) => (
                         <div key={idx} className="share-pr-item">
@@ -6188,31 +6192,31 @@ function Workouts() {
             />
             <button className="change-image-btn" onClick={() => shareBgInputRef.current?.click()}>
               <PenSquare size={14} />
-              Change background
+              {t('workoutsPage.changeBackground')}
             </button>
 
             {/* Toggle Controls */}
             <div className="share-toggles">
               {[
                 {
-                  title: 'Performance',
+                  title: t('workoutsPage.togglePerformance'),
                   items: [
-                    { key: 'duration', label: 'Duration', value: formatDuration(workoutDuration || estimateWorkoutMinutes(exercises) || todayWorkout?.workout_data?.estimatedMinutes || 45) },
-                    { key: 'calories', label: 'Calories', value: estimatedCalories }
+                    { key: 'duration', label: t('workoutsPage.toggleDuration'), value: formatDuration(workoutDuration || estimateWorkoutMinutes(exercises) || todayWorkout?.workout_data?.estimatedMinutes || 45) },
+                    { key: 'calories', label: t('workoutsPage.toggleCalories'), value: estimatedCalories }
                   ]
                 },
                 {
-                  title: 'Volume',
+                  title: t('workoutsPage.toggleVolume'),
                   items: [
-                    { key: 'sets', label: 'Sets', value: totalSets },
-                    { key: 'lifted', label: 'Lifted', value: `${totalLifted > 0 ? totalLifted.toLocaleString() : 0} ${weightUnit}` }
+                    { key: 'sets', label: t('workoutsPage.toggleSets'), value: totalSets },
+                    { key: 'lifted', label: t('workoutsPage.toggleLifted'), value: `${totalLifted > 0 ? totalLifted.toLocaleString() : 0} ${weightUnit}` }
                   ]
                 },
                 {
-                  title: 'Activity',
+                  title: t('workoutsPage.toggleActivity'),
                   items: [
-                    { key: 'activities', label: 'Activities', value: completedExercises.size },
-                    ...(workoutPRs.length > 0 ? [{ key: 'prs', label: 'New PRs', value: `${workoutPRs.length} PR${workoutPRs.length !== 1 ? 's' : ''}` }] : [])
+                    { key: 'activities', label: t('workoutsPage.toggleActivities'), value: completedExercises.size },
+                    ...(workoutPRs.length > 0 ? [{ key: 'prs', label: t('workoutsPage.toggleNewPrs'), value: `${workoutPRs.length} PR${workoutPRs.length !== 1 ? 's' : ''}` }] : [])
                   ]
                 }
               ].map(({ title, items }) => (
@@ -6238,7 +6242,7 @@ function Workouts() {
 
             <button className="share-results-btn" onClick={handleShareResults}>
               <Share2 size={18} />
-              Share results
+              {t('workoutsPage.shareResults')}
             </button>
           </div>
         </div>
@@ -6249,7 +6253,7 @@ function Workouts() {
         <div className="workout-history-overlay" onClick={() => setShowHistory(false)}>
           <div className="workout-history-modal" onClick={e => e.stopPropagation()}>
             <div className="history-header">
-              <h2>Workout History</h2>
+              <h2>{t('workoutsPage.historyTitle')}</h2>
               <button className="history-close-btn" onClick={() => setShowHistory(false)}>
                 <X size={24} />
               </button>
@@ -6258,7 +6262,7 @@ function Workouts() {
               {workoutHistory.length === 0 ? (
                 <div className="history-empty">
                   <Calendar size={48} />
-                  <p>No workout history yet</p>
+                  <p>{t('workoutsPage.historyEmpty')}</p>
                 </div>
               ) : (
                 workoutHistory.map((log, idx) => (
@@ -6273,7 +6277,7 @@ function Workouts() {
                     <div className="history-details">
                       <span className="history-name">{log.workout_name || 'Workout'}</span>
                       <span className={`history-status ${log.status}`}>
-                        {log.status === 'completed' ? '✓ Completed' : 'In Progress'}
+                        {log.status === 'completed' ? t('workoutsPage.historyCompleted') : t('workoutsPage.historyInProgress')}
                       </span>
                     </div>
                   </div>
@@ -6327,7 +6331,7 @@ function Workouts() {
                 }}
               >
                 <MoveRight size={20} />
-                <span>Move</span>
+                <span>{t('workoutsPage.cardMenuMove')}</span>
               </button>
               <button
                 className="card-sheet-btn"
@@ -6339,14 +6343,14 @@ function Workouts() {
                 }}
               >
                 <Copy size={20} />
-                <span>Duplicate</span>
+                <span>{t('workoutsPage.cardMenuDuplicate')}</span>
               </button>
               <button
                 className="card-sheet-btn delete"
                 onClick={() => setShowDeleteConfirm(true)}
               >
                 <Trash2 size={20} />
-                <span>Delete</span>
+                <span>{t('workoutsPage.cardMenuDelete')}</span>
               </button>
             </div>
           </div>
@@ -6360,8 +6364,8 @@ function Workouts() {
             <div className="workout-delete-icon">
               <Trash2 size={26} strokeWidth={2.2} />
             </div>
-            <h3>Delete workout?</h3>
-            <p>Choose how much you want to remove from your calendar.</p>
+            <h3>{t('workoutsPage.deleteWorkoutTitle')}</h3>
+            <p>{t('workoutsPage.deleteWorkoutPrompt')}</p>
             <div className="workout-delete-options">
               <button
                 className="workout-delete-option"
@@ -6373,8 +6377,8 @@ function Workouts() {
                   handleDeleteCardWorkout(w);
                 }}
               >
-                <span className="workout-delete-option-title">Delete this day</span>
-                <span className="workout-delete-option-sub">Removes only the session on this date</span>
+                <span className="workout-delete-option-title">{t('workoutsPage.deleteThisDay')}</span>
+                <span className="workout-delete-option-sub">{t('workoutsPage.deleteThisDaySub')}</span>
               </button>
               <button
                 className="workout-delete-option danger"
@@ -6386,15 +6390,15 @@ function Workouts() {
                   handleDeleteEntireProgram(w);
                 }}
               >
-                <span className="workout-delete-option-title">Delete all days</span>
-                <span className="workout-delete-option-sub">Removes every occurrence of this plan</span>
+                <span className="workout-delete-option-title">{t('workoutsPage.deleteAllDays')}</span>
+                <span className="workout-delete-option-sub">{t('workoutsPage.deleteAllDaysSub')}</span>
               </button>
             </div>
             <button
               className="workout-delete-cancel"
               onClick={() => { setShowDeleteConfirm(false); setCardMenuWorkout(null); setCardMenuWorkoutId(null); }}
             >
-              Cancel
+              {t('workoutsPage.deleteCancel')}
             </button>
           </div>
         </div>
@@ -6417,9 +6421,9 @@ function Workouts() {
           <div className="workout-history-modal reschedule-modal" onClick={e => e.stopPropagation()}>
             <div className="history-header">
               <h2>
-                {rescheduleAction === 'reschedule' ? 'Reschedule Workout' :
-                 rescheduleAction === 'duplicate' ? 'Duplicate Workout' :
-                 'Skip Workout'}
+                {rescheduleAction === 'reschedule' ? t('workoutsPage.rescheduleTitle') :
+                 rescheduleAction === 'duplicate' ? t('workoutsPage.duplicateTitle') :
+                 t('workoutsPage.skipTitle')}
               </h2>
               <button className="history-close-btn" onClick={() => setShowRescheduleModal(false)}>
                 <X size={24} />
@@ -6428,14 +6432,14 @@ function Workouts() {
             <div className="reschedule-content">
               <p className="reschedule-description">
                 {rescheduleAction === 'reschedule' ?
-                  `Move "${rescheduleWorkoutRef.current?.workout_data?.name || rescheduleWorkoutRef.current?.name || 'Workout'}" to another date:` :
+                  t('workoutsPage.rescheduleDesc', { name: rescheduleWorkoutRef.current?.workout_data?.name || rescheduleWorkoutRef.current?.name || 'Workout' }) :
                  rescheduleAction === 'duplicate' ?
-                  `Copy "${rescheduleWorkoutRef.current?.workout_data?.name || rescheduleWorkoutRef.current?.name || 'Workout'}" to another date:` :
-                  `Skip today's workout and rest instead?`}
+                  t('workoutsPage.duplicateDesc', { name: rescheduleWorkoutRef.current?.workout_data?.name || rescheduleWorkoutRef.current?.name || 'Workout' }) :
+                  t('workoutsPage.skipDesc')}
               </p>
               {rescheduleAction !== 'skip' && (
                 <div className="reschedule-date-picker">
-                  <label htmlFor="targetDate">Select Date:</label>
+                  <label htmlFor="targetDate">{t('workoutsPage.selectDate')}</label>
                   <input
                     type="date"
                     id="targetDate"
@@ -6449,15 +6453,15 @@ function Workouts() {
                   className="reschedule-cancel-btn"
                   onClick={() => setShowRescheduleModal(false)}
                 >
-                  Cancel
+                  {t('workoutsPage.cancelBtn')}
                 </button>
                 <button
                   className="reschedule-confirm-btn"
                   onClick={handleRescheduleWorkout}
                 >
-                  {rescheduleAction === 'reschedule' ? 'Reschedule' :
-                   rescheduleAction === 'duplicate' ? 'Duplicate' :
-                   'Skip Today'}
+                  {rescheduleAction === 'reschedule' ? t('workoutsPage.rescheduleConfirm') :
+                   rescheduleAction === 'duplicate' ? t('workoutsPage.duplicateConfirm') :
+                   t('workoutsPage.skipConfirm')}
                 </button>
               </div>
             </div>
@@ -6484,20 +6488,20 @@ function Workouts() {
             <div className="delete-confirm-icon">
               <X size={32} />
             </div>
-            <h3>Delete Exercise?</h3>
-            <p>Remove "{swipeDeleteExercise.name}" from this workout?</p>
+            <h3>{t('workoutsPage.deleteExerciseTitle')}</h3>
+            <p>{t('workoutsPage.deleteExercisePrompt', { name: swipeDeleteExercise.name })}</p>
             <div className="delete-confirm-actions">
               <button
                 className="delete-cancel-btn"
                 onClick={() => setSwipeDeleteExercise(null)}
               >
-                Cancel
+                {t('workoutsPage.deleteExerciseCancel')}
               </button>
               <button
                 className="delete-confirm-btn"
                 onClick={handleConfirmSwipeDelete}
               >
-                Delete
+                {t('workoutsPage.deleteExerciseConfirm')}
               </button>
             </div>
           </div>

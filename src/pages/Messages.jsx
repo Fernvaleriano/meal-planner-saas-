@@ -8,6 +8,7 @@ import { usePullToRefreshEvent } from '../hooks/usePullToRefreshEvent';
 import { onAppResume } from '../hooks/useAppLifecycle';
 
 import { useToast } from '../components/Toast';
+import { useLanguage } from '../context/LanguageContext';
 // localStorage cache helper for instant display on resume
 const getCache = (key) => {
   try {
@@ -63,6 +64,7 @@ function Messages() {
   const { user, clientData } = useAuth();
   const location = useLocation();
   const { showError, showSuccess } = useToast();
+  const { t } = useLanguage();
   const isCoach = clientData?.is_coach === true;
   const coachId = isCoach ? user?.id : null;
   const clientId = clientData?.id;
@@ -224,13 +226,13 @@ function Messages() {
 
     // Validate file type
     if (!file.type.startsWith('image/') && !file.type.startsWith('video/')) {
-      showError('Please select an image or video file.');
+      showError(t('messagesPage.errorFileType'));
       return;
     }
 
     // Validate file size (250MB)
     if (file.size > 250 * 1024 * 1024) {
-      showError('File too large. Maximum size is 250MB.');
+      showError(t('messagesPage.errorFileTooLarge'));
       return;
     }
 
@@ -274,7 +276,7 @@ function Messages() {
     });
 
     if (!urlResult.success || !urlResult.uploadUrl) {
-      throw new Error(urlResult.error || 'Failed to get upload URL');
+      throw new Error(urlResult.error || t('messagesPage.errorGetUploadUrl'));
     }
 
     // Step 2: Upload the file directly to Supabase Storage
@@ -285,7 +287,7 @@ function Messages() {
     });
 
     if (!uploadRes.ok) {
-      throw new Error('Failed to upload file to storage');
+      throw new Error(t('messagesPage.errorUploadStorage'));
     }
 
     return {
@@ -355,7 +357,7 @@ function Messages() {
       }
 
       // Update conversation list with new last message
-      const previewText = msgText || (mediaType === 'video' ? 'Sent a video' : 'Sent a photo');
+      const previewText = msgText || (mediaType === 'video' ? t('messagesPage.sentVideo') : t('messagesPage.sentPhoto'));
       setConversations(prev => prev.map(c => {
         const matchId = isCoach ? c.clientId : c.coachId;
         const activeId = isCoach ? activeConvo.clientId : activeConvo.coachId;
@@ -373,8 +375,8 @@ function Messages() {
     } catch (err) {
       console.error('Error sending message:', err);
       showError(err.message?.includes('upload') || err.message?.includes('storage')
-        ? 'Failed to upload media. Please try again or use a smaller file.'
-        : 'Failed to send message. Please try again.');
+        ? t('messagesPage.errorUploadMedia')
+        : t('messagesPage.errorSendMessage'));
       setUploading(false);
     } finally {
       setSending(false);
@@ -770,7 +772,7 @@ function Messages() {
               const matchId = isCoach ? c.clientId : c.coachId;
               const msgMatchId = isCoach ? newMsg.client_id : newMsg.coach_id;
               if (matchId === msgMatchId) {
-                const previewText = newMsg.message || (newMsg.media_type === 'video' ? 'Sent a video' : newMsg.media_type === 'gif' ? 'Sent a GIF' : 'Sent a photo');
+                const previewText = newMsg.message || (newMsg.media_type === 'video' ? t('messagesPage.sentVideo') : newMsg.media_type === 'gif' ? t('messagesPage.sentGif') : t('messagesPage.sentPhoto'));
                 return {
                   ...c,
                   lastMessage: previewText,
@@ -830,7 +832,7 @@ function Messages() {
     if (diffDays === 0) {
       return date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
     } else if (diffDays === 1) {
-      return 'Yesterday';
+      return t('messagesPage.yesterday');
     } else if (diffDays < 7) {
       return date.toLocaleDateString([], { weekday: 'short' });
     }
@@ -911,10 +913,10 @@ function Messages() {
       setBulkMessage('');
       setSelectedClientIds([]);
       setBulkMode(false);
-      showSuccess('Message sent to selected clients.');
+      showSuccess(t('messagesPage.successBulkSent'));
     } catch (err) {
       console.error('Error sending bulk message:', err);
-      showError('Failed to send bulk message. Please try again.');
+      showError(t('messagesPage.errorBulkSend'));
     } finally {
       setBulkSending(false);
     }
@@ -971,7 +973,7 @@ function Messages() {
       <div className="chat-msg-media" onClick={(e) => { e.stopPropagation(); setLightboxUrl(msg.media_url); }}>
         <img
           src={msg.media_url}
-          alt={msg.media_type === 'gif' ? 'GIF' : 'Photo'}
+          alt={msg.media_type === 'gif' ? t('messagesPage.gifAlt') : t('messagesPage.photoAlt')}
           className="chat-media-image"
           onLoad={() => scrollToBottom(true)}
         />
@@ -981,7 +983,7 @@ function Messages() {
 
   // Conversation thread view
   if (activeConvo) {
-    const convoName = isCoach ? activeConvo.clientName : (activeConvo.coachName || 'Your Coach');
+    const convoName = isCoach ? activeConvo.clientName : (activeConvo.coachName || t('messagesPage.yourCoach'));
     const canSend = newMessage.trim() || mediaPreview;
 
     return (
@@ -1010,8 +1012,8 @@ function Messages() {
             ) : (
               <div className="chat-empty-thread">
                 <MessageCircle size={40} />
-                <p>No messages yet</p>
-                <p className="chat-empty-sub">Send a message to start the conversation</p>
+                <p>{t('messagesPage.noMessagesThread')}</p>
+                <p className="chat-empty-sub">{t('messagesPage.startConversation')}</p>
               </div>
             )
           )}
@@ -1065,7 +1067,7 @@ function Messages() {
                         setReactionPickerMsgId(reactionPickerMsgId === msg.id ? null : msg.id);
                         setSelectedMsgId(null);
                       }}
-                      title="React"
+                      title={t('messagesPage.reactTitle')}
                     >
                       <SmilePlus size={16} />
                     </button>
@@ -1117,7 +1119,7 @@ function Messages() {
                         }}
                       >
                         <Trash2 size={13} />
-                        Unsend
+                        {t('messagesPage.unsend')}
                       </button>
                     )}
                   </div>
@@ -1131,7 +1133,7 @@ function Messages() {
                         setReactionPickerMsgId(reactionPickerMsgId === msg.id ? null : msg.id);
                         setSelectedMsgId(null);
                       }}
-                      title="React"
+                      title={t('messagesPage.reactTitle')}
                     >
                       <SmilePlus size={16} />
                     </button>
@@ -1190,7 +1192,7 @@ function Messages() {
             {mediaPreview.type === 'video' ? (
               <video src={mediaPreview.previewUrl} className="chat-media-preview-content" controls />
             ) : (
-              <img src={mediaPreview.previewUrl} alt="Preview" className="chat-media-preview-content" />
+              <img src={mediaPreview.previewUrl} alt={t('messagesPage.previewAlt')} className="chat-media-preview-content" />
             )}
           </div>
         )}
@@ -1208,7 +1210,7 @@ function Messages() {
             className="chat-attach-btn"
             onClick={() => fileInputRef.current?.click()}
             disabled={sending}
-            title="Send photo or video"
+            title={t('messagesPage.attachTitle')}
           >
             <Paperclip size={20} />
           </button>
@@ -1217,7 +1219,7 @@ function Messages() {
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Send a message..."
+            placeholder={t('messagesPage.inputPlaceholder')}
             rows={1}
             className="chat-input"
             enterKeyHint="send"
@@ -1241,7 +1243,7 @@ function Messages() {
             <button className="chat-lightbox-close" onClick={() => setLightboxUrl(null)}>
               <X size={24} />
             </button>
-            <img src={lightboxUrl} alt="Full size" onClick={(e) => e.stopPropagation()} />
+            <img src={lightboxUrl} alt={t('messagesPage.fullSizeAlt')} onClick={(e) => e.stopPropagation()} />
           </div>
         )}
       </div>
@@ -1252,7 +1254,7 @@ function Messages() {
   return (
     <div className="chat-page">
       <div className="chat-list-header">
-        <h1>Messages</h1>
+        <h1>{t('messagesPage.heading')}</h1>
         <div className="chat-list-header-actions">
           {totalUnread > 0 && <span className="chat-total-badge">{totalUnread}</span>}
           {isCoach && (
@@ -1263,7 +1265,7 @@ function Messages() {
                 setSelectedClientIds([]);
               }}
             >
-              {bulkMode ? 'Cancel' : 'Mass message'}
+              {bulkMode ? t('messagesPage.cancelBulk') : t('messagesPage.massMessage')}
             </button>
           )}
         </div>
@@ -1272,16 +1274,16 @@ function Messages() {
       {isCoach && bulkMode && (
         <div className="chat-bulk-panel">
           <div className="chat-bulk-row">
-            <span>{selectedClientIds.length} selected</span>
+            <span>{t('messagesPage.selectedCount', { count: selectedClientIds.length })}</span>
             <div>
-              <button className="chat-bulk-link" onClick={selectAllBulkClients}>Select all</button>
-              <button className="chat-bulk-link" onClick={clearBulkSelection}>Clear</button>
+              <button className="chat-bulk-link" onClick={selectAllBulkClients}>{t('messagesPage.selectAll')}</button>
+              <button className="chat-bulk-link" onClick={clearBulkSelection}>{t('messagesPage.clearSelection')}</button>
             </div>
           </div>
           <textarea
             className="chat-bulk-input"
             rows={3}
-            placeholder="Write a message to selected clients..."
+            placeholder={t('messagesPage.bulkPlaceholder')}
             value={bulkMessage}
             onChange={(e) => setBulkMessage(e.target.value)}
           />
@@ -1290,7 +1292,7 @@ function Messages() {
             disabled={!bulkMessage.trim() || selectedClientIds.length === 0 || bulkSending}
             onClick={handleBulkSend}
           >
-            {bulkSending ? 'Sending...' : `Send to ${selectedClientIds.length || 0} client${selectedClientIds.length === 1 ? '' : 's'}`}
+            {bulkSending ? t('messagesPage.bulkSending') : (selectedClientIds.length === 1 ? t('messagesPage.bulkSendOne', { count: selectedClientIds.length || 0 }) : t('messagesPage.bulkSendMany', { count: selectedClientIds.length || 0 }))}
           </button>
         </div>
       )}
@@ -1300,7 +1302,7 @@ function Messages() {
           <Search size={16} />
           <input
             type="text"
-            placeholder="Search clients..."
+            placeholder={t('messagesPage.searchPlaceholder')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
@@ -1309,18 +1311,18 @@ function Messages() {
 
       <div className="chat-conversations-list">
         {loading ? (
-          <div className="chat-loading">Loading conversations...</div>
+          <div className="chat-loading">{t('messagesPage.loadingConversations')}</div>
         ) : filteredConversations.length === 0 ? (
           <div className="chat-empty">
             <MessageCircle size={48} />
-            <p>No conversations yet</p>
+            <p>{t('messagesPage.noConversations')}</p>
           </div>
         ) : (
           filteredConversations.map(convo => {
-            const name = isCoach ? convo.clientName : (convo.coachName || 'Your Coach');
+            const name = isCoach ? convo.clientName : (convo.coachName || t('messagesPage.yourCoach'));
             const preview = convo.lastMessage
-              ? (convo.lastMessageSender === myType ? 'You: ' : '') + convo.lastMessage
-              : 'No messages yet';
+              ? (convo.lastMessageSender === myType ? t('messagesPage.youPrefix') : '') + convo.lastMessage
+              : t('messagesPage.noMessagesYet');
             const isSelected = selectedClientIds.includes(convo.clientId);
 
             return (

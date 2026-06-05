@@ -7,13 +7,19 @@ import {
 import { useAuth } from '../context/AuthContext';
 import { apiGet, apiPost } from '../utils/api';
 import { useToast } from '../components/Toast';
+import { useLanguage } from '../context/LanguageContext';
 
 // ─── Pricing Card ───
 function PricingCard({ plan, currentPlanId, pendingPlanId, onSubscribe, onChangePlan, loading }) {
+  const { t } = useLanguage();
   const isCurrent = currentPlanId === plan.id;
   const isPending = pendingPlanId === plan.id;
   const price = (plan.price_cents / 100).toFixed(2);
-  const interval = plan.billing_interval === 'week' ? '/week' : plan.billing_interval === 'month' ? '/mo' : '';
+  const interval = plan.billing_interval === 'week'
+    ? t('clientBillingPage.intervalWeek')
+    : plan.billing_interval === 'month'
+      ? t('clientBillingPage.intervalMonth')
+      : '';
   const isSubscription = plan.type === 'subscription' || plan.type === 'tier';
 
   return (
@@ -24,7 +30,7 @@ function PricingCard({ plan, currentPlanId, pendingPlanId, onSubscribe, onChange
     }}>
       {isCurrent && (
         <div style={styles.currentBadge}>
-          <Crown size={12} /> Current Plan
+          <Crown size={12} /> {t('clientBillingPage.currentPlanBadge')}
         </div>
       )}
 
@@ -37,11 +43,11 @@ function PricingCard({ plan, currentPlanId, pendingPlanId, onSubscribe, onChange
       </div>
 
       {plan.trial_days > 0 && !isCurrent && (
-        <div style={styles.trialBadge}>{plan.trial_days}-day free trial</div>
+        <div style={styles.trialBadge}>{t('clientBillingPage.trialDaysBadge', { trialDays: plan.trial_days })}</div>
       )}
 
       {plan.setup_fee_cents > 0 && (
-        <div style={styles.setupFeeText}>+ ${(plan.setup_fee_cents / 100).toFixed(2)} one-time setup fee</div>
+        <div style={styles.setupFeeText}>{t('clientBillingPage.setupFeeText', { amount: (plan.setup_fee_cents / 100).toFixed(2) })}</div>
       )}
 
       {plan.features?.length > 0 && (
@@ -57,16 +63,16 @@ function PricingCard({ plan, currentPlanId, pendingPlanId, onSubscribe, onChange
 
       <div style={styles.cardFooter}>
         {isCurrent ? (
-          <div style={styles.currentText}>Your active plan</div>
+          <div style={styles.currentText}>{t('clientBillingPage.yourActivePlan')}</div>
         ) : isPending ? (
-          <div style={styles.currentText}>Scheduled — switches at period end</div>
+          <div style={styles.currentText}>{t('clientBillingPage.scheduledSwitchPending')}</div>
         ) : currentPlanId && isSubscription ? (
           <button
             style={styles.secondaryBtn}
             onClick={() => onChangePlan(plan.id)}
             disabled={loading}
           >
-            {loading ? <Loader size={14} className="spin" /> : 'Switch to this plan'}
+            {loading ? <Loader size={14} className="spin" /> : t('clientBillingPage.switchToPlan')}
           </button>
         ) : (
           <button
@@ -74,7 +80,7 @@ function PricingCard({ plan, currentPlanId, pendingPlanId, onSubscribe, onChange
             onClick={() => onSubscribe(plan.id)}
             disabled={loading}
           >
-            {loading ? <Loader size={14} className="spin" /> : (isSubscription ? 'Subscribe' : 'Buy Now')}
+            {loading ? <Loader size={14} className="spin" /> : (isSubscription ? t('clientBillingPage.btnSubscribe') : t('clientBillingPage.btnBuyNow'))}
           </button>
         )}
       </div>
@@ -84,6 +90,7 @@ function PricingCard({ plan, currentPlanId, pendingPlanId, onSubscribe, onChange
 
 // ─── Current Subscription Info ───
 function SubscriptionInfo({ subscription, pendingPlan, onCancel, onReactivate, onPause, onResume, onPortal, loading }) {
+  const { t } = useLanguage();
   if (!subscription) return null;
 
   const plan = subscription.coach_payment_plans;
@@ -103,15 +110,21 @@ function SubscriptionInfo({ subscription, pendingPlan, onCancel, onReactivate, o
     <div style={styles.subCard}>
       <div style={styles.subHeader}>
         <div>
-          <h3 style={styles.subTitle}>{plan?.name || 'Your Plan'}</h3>
+          <h3 style={styles.subTitle}>{plan?.name || t('clientBillingPage.yourPlanFallback')}</h3>
           <span style={{ ...styles.statusBadge, background: sColor.bg, color: sColor.color }}>
-            {status === 'trialing' ? 'Free Trial' : status.charAt(0).toUpperCase() + status.slice(1)}
+            {status === 'trialing' ? t('clientBillingPage.statusTrialing')
+              : status === 'active' ? t('clientBillingPage.statusActive')
+              : status === 'past_due' ? t('clientBillingPage.statusPastDue')
+              : status === 'canceling' ? t('clientBillingPage.statusCanceling')
+              : status === 'canceled' ? t('clientBillingPage.statusCanceled')
+              : status === 'paused' ? t('clientBillingPage.statusPaused')
+              : status.charAt(0).toUpperCase() + status.slice(1)}
           </span>
         </div>
         <div style={styles.subPrice}>
           ${plan ? (plan.price_cents / 100).toFixed(2) : '0.00'}
           <span style={styles.subInterval}>
-            {plan?.billing_interval === 'week' ? '/week' : '/mo'}
+            {plan?.billing_interval === 'week' ? t('clientBillingPage.intervalWeek') : t('clientBillingPage.intervalMonth')}
           </span>
         </div>
       </div>
@@ -122,8 +135,8 @@ function SubscriptionInfo({ subscription, pendingPlan, onCancel, onReactivate, o
             <Calendar size={14} color="var(--gray-400)" />
             <span>
               {status === 'canceling'
-                ? `Access until ${new Date(subscription.cancel_at || subscription.current_period_end).toLocaleDateString()}`
-                : `Next billing: ${new Date(subscription.current_period_end).toLocaleDateString()}`
+                ? t('clientBillingPage.accessUntil', { date: new Date(subscription.cancel_at || subscription.current_period_end).toLocaleDateString() })
+                : t('clientBillingPage.nextBilling', { date: new Date(subscription.current_period_end).toLocaleDateString() })
               }
             </span>
           </div>
@@ -131,15 +144,17 @@ function SubscriptionInfo({ subscription, pendingPlan, onCancel, onReactivate, o
         {subscription.trial_ends_at && status === 'trialing' && (
           <div style={styles.detailRow}>
             <AlertTriangle size={14} color="var(--warning)" />
-            <span>Trial ends {new Date(subscription.trial_ends_at).toLocaleDateString()}</span>
+            <span>{t('clientBillingPage.trialEnds', { date: new Date(subscription.trial_ends_at).toLocaleDateString() })}</span>
           </div>
         )}
         {pendingPlan && pendingEffectiveAt && (
           <div style={styles.pendingBanner}>
             <Calendar size={14} color="#1d4ed8" style={{ flexShrink: 0 }} />
             <span>
-              Switching to <strong>{pendingPlan.name}</strong> on{' '}
-              {new Date(pendingEffectiveAt).toLocaleDateString()}
+              {t('clientBillingPage.switchingToPlan', {
+                name: pendingPlan.name,
+                date: new Date(pendingEffectiveAt).toLocaleDateString()
+              })}
             </span>
           </div>
         )}
@@ -147,7 +162,7 @@ function SubscriptionInfo({ subscription, pendingPlan, onCancel, onReactivate, o
 
       <div style={styles.subActions}>
         <button style={styles.linkBtn} onClick={onPortal} disabled={loading}>
-          <CreditCard size={14} /> Manage Payment Method
+          <CreditCard size={14} /> {t('clientBillingPage.managePaymentMethod')}
         </button>
         {status === 'canceling' && (
           <button
@@ -155,7 +170,7 @@ function SubscriptionInfo({ subscription, pendingPlan, onCancel, onReactivate, o
             onClick={onReactivate}
             disabled={loading}
           >
-            Reactivate Subscription
+            {t('clientBillingPage.reactivateSubscription')}
           </button>
         )}
         {status === 'paused' && (
@@ -164,7 +179,7 @@ function SubscriptionInfo({ subscription, pendingPlan, onCancel, onReactivate, o
             onClick={onResume}
             disabled={loading}
           >
-            Resume Subscription
+            {t('clientBillingPage.resumeSubscription')}
           </button>
         )}
         {(status === 'active' || status === 'trialing') && (
@@ -174,14 +189,14 @@ function SubscriptionInfo({ subscription, pendingPlan, onCancel, onReactivate, o
               onClick={onPause}
               disabled={loading}
             >
-              Pause
+              {t('clientBillingPage.btnPause')}
             </button>
             <button
               style={{ ...styles.linkBtn, color: 'var(--error)' }}
               onClick={onCancel}
               disabled={loading}
             >
-              Cancel
+              {t('clientBillingPage.btnCancel')}
             </button>
           </>
         )}
@@ -192,15 +207,16 @@ function SubscriptionInfo({ subscription, pendingPlan, onCancel, onReactivate, o
 
 // ─── Payment History ───
 function PaymentHistory({ payments }) {
+  const { t } = useLanguage();
   if (!payments?.length) return null;
 
   return (
     <div style={styles.section}>
-      <h3 style={styles.sectionTitle}><DollarSign size={16} /> Payment History</h3>
+      <h3 style={styles.sectionTitle}><DollarSign size={16} /> {t('clientBillingPage.paymentHistoryTitle')}</h3>
       {payments.map(p => (
         <div key={p.id} style={styles.historyRow}>
           <div>
-            <div style={styles.historyDesc}>{p.description || 'Payment'}</div>
+            <div style={styles.historyDesc}>{p.description || t('clientBillingPage.paymentFallbackDesc')}</div>
             <div style={styles.historyDate}>{new Date(p.created_at).toLocaleDateString()}</div>
           </div>
           <div style={{
@@ -208,7 +224,7 @@ function PaymentHistory({ payments }) {
             color: p.status === 'succeeded' ? 'var(--gray-900)' : 'var(--error)'
           }}>
             ${(p.amount_cents / 100).toFixed(2)}
-            {p.status === 'failed' && <span style={styles.failedText}>Failed</span>}
+            {p.status === 'failed' && <span style={styles.failedText}>{t('clientBillingPage.paymentFailed')}</span>}
           </div>
         </div>
       ))}
@@ -221,6 +237,7 @@ export default function ClientBilling() {
   const navigate = useNavigate();
   const { clientData } = useAuth();
   const { showError, showSuccess } = useToast();
+  const { t } = useLanguage();
 
   const [subscription, setSubscription] = useState(null);
   const [payments, setPayments] = useState([]);
@@ -276,7 +293,7 @@ export default function ClientBilling() {
       if (res.url) {
         window.location.href = res.url;
       } else if (res.success) {
-        showSuccess(res.message || 'Plan changed successfully!');
+        showSuccess(res.message || t('clientBillingPage.successPlanChanged'));
         fetchData();
       }
     } catch (err) {
@@ -287,7 +304,7 @@ export default function ClientBilling() {
   };
 
   const handleCancel = async () => {
-    if (!window.confirm('Are you sure you want to cancel? You\'ll keep access until the end of your billing period.')) return;
+    if (!window.confirm(t('clientBillingPage.confirmCancel'))) return;
 
     setActionLoading(true);
     try {
@@ -295,7 +312,7 @@ export default function ClientBilling() {
         action: 'cancel',
         coachId
       });
-      showSuccess(res.message || 'Subscription canceled');
+      showSuccess(res.message || t('clientBillingPage.successCanceled'));
       fetchData();
     } catch (err) {
       showError(err.message);
@@ -311,7 +328,7 @@ export default function ClientBilling() {
         action: 'reactivate',
         coachId
       });
-      showSuccess(res.message || 'Subscription reactivated');
+      showSuccess(res.message || t('clientBillingPage.successReactivated'));
       fetchData();
     } catch (err) {
       showError(err.message);
@@ -321,14 +338,14 @@ export default function ClientBilling() {
   };
 
   const handlePause = async () => {
-    if (!window.confirm('Pause your subscription? You won\'t be billed until you resume.')) return;
+    if (!window.confirm(t('clientBillingPage.confirmPause'))) return;
     setActionLoading(true);
     try {
       const res = await apiPost('/.netlify/functions/client-subscription-manage', {
         action: 'pause',
         coachId
       });
-      showSuccess(res.message || 'Subscription paused');
+      showSuccess(res.message || t('clientBillingPage.successPaused'));
       fetchData();
     } catch (err) {
       showError(err.message);
@@ -344,7 +361,7 @@ export default function ClientBilling() {
         action: 'resume',
         coachId
       });
-      showSuccess(res.message || 'Subscription resumed');
+      showSuccess(res.message || t('clientBillingPage.successResumed'));
       fetchData();
     } catch (err) {
       showError(err.message);
@@ -373,7 +390,7 @@ export default function ClientBilling() {
       <div style={styles.page}>
         <div style={styles.header}>
           <button style={styles.backBtn} onClick={() => navigate(-1)}><ArrowLeft size={20} /></button>
-          <h2 style={styles.headerTitle}>Billing</h2>
+          <h2 style={styles.headerTitle}>{t('clientBillingPage.pageTitle')}</h2>
         </div>
         <div style={styles.loadingContainer}><Loader size={24} className="spin" /></div>
       </div>
@@ -388,7 +405,7 @@ export default function ClientBilling() {
     <div style={styles.page}>
       <div style={styles.header}>
         <button style={styles.backBtn} onClick={() => navigate(-1)}><ArrowLeft size={20} /></button>
-        <h2 style={styles.headerTitle}>Billing</h2>
+        <h2 style={styles.headerTitle}>{t('clientBillingPage.pageTitle')}</h2>
       </div>
 
       <div style={styles.content}>
@@ -410,7 +427,7 @@ export default function ClientBilling() {
         {plans.length > 0 && (
           <div style={styles.section}>
             <h3 style={styles.sectionTitle}>
-              {subscription ? 'Available Plans' : 'Choose a Plan'}
+              {subscription ? t('clientBillingPage.availablePlans') : t('clientBillingPage.chooseAPlan')}
             </h3>
 
             {!subscription && (
@@ -418,7 +435,7 @@ export default function ClientBilling() {
                 <div style={styles.promoInputRow}>
                   <input
                     style={styles.promoInputField}
-                    placeholder="Promo code"
+                    placeholder={t('clientBillingPage.promoCodePlaceholder')}
                     value={promoCode}
                     onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
                     maxLength={20}
@@ -427,7 +444,7 @@ export default function ClientBilling() {
                     style={styles.promoCancelBtn}
                     onClick={() => { setShowPromoInput(false); setPromoCode(''); }}
                   >
-                    Remove
+                    {t('clientBillingPage.promoRemove')}
                   </button>
                 </div>
               ) : (
@@ -435,7 +452,7 @@ export default function ClientBilling() {
                   style={styles.promoToggleBtn}
                   onClick={() => setShowPromoInput(true)}
                 >
-                  Have a promo code?
+                  {t('clientBillingPage.promoToggle')}
                 </button>
               )
             )}
@@ -459,7 +476,7 @@ export default function ClientBilling() {
         {plans.length === 0 && !subscription && (
           <div style={styles.emptyState}>
             <CreditCard size={40} color="var(--gray-300)" />
-            <p style={styles.emptyText}>No billing plans available from your coach yet.</p>
+            <p style={styles.emptyText}>{t('clientBillingPage.noPlansAvailable')}</p>
           </div>
         )}
 

@@ -4,31 +4,34 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { apiGet, apiPost, apiPut, apiDelete } from '../utils/api';
 import { usePullToRefreshEvent } from '../hooks/usePullToRefreshEvent';
+import { useLanguage } from '../context/LanguageContext';
 
 import { useToast } from '../components/Toast';
+// Category id keys — labels are resolved via t() at render time
 const CATEGORIES = [
-  { id: 'all', icon: BookOpen, label: 'All' },
-  { id: 'grab_go', icon: Zap, label: 'Grab & Go' },
-  { id: 'quick', icon: Clock, label: 'Quick' },
-  { id: 'meal_prep', icon: Package, label: 'Meal Prep' },
-  { id: 'family', icon: Users, label: 'Family' }
+  { id: 'all', icon: BookOpen, labelKey: 'categoryAll' },
+  { id: 'grab_go', icon: Zap, labelKey: 'categoryGrabGo' },
+  { id: 'quick', icon: Clock, labelKey: 'categoryQuick' },
+  { id: 'meal_prep', icon: Package, labelKey: 'categoryMealPrep' },
+  { id: 'family', icon: Users, labelKey: 'categoryFamily' }
 ];
 
-const CATEGORY_LABELS = {
-  'grab_go': 'Grab & Go',
-  'quick': '15 min or less',
-  'meal_prep': 'Meal Prep',
-  'family': 'Family Dinner'
+// CATEGORY_LABELS keys — resolved via t() at render time
+const CATEGORY_LABEL_KEYS = {
+  'grab_go': 'categoryLabelGrabGo',
+  'quick': 'categoryLabelQuick',
+  'meal_prep': 'categoryLabelMealPrep',
+  'family': 'categoryLabelFamily'
 };
 
-// Diet options for Spoonacular search
+// Diet options for Spoonacular search — labels resolved via t() at render time
 const DIET_OPTIONS = [
-  { value: '', label: 'Any Diet' },
-  { value: 'vegetarian', label: 'Vegetarian' },
-  { value: 'vegan', label: 'Vegan' },
-  { value: 'gluten free', label: 'Gluten Free' },
-  { value: 'ketogenic', label: 'Keto' },
-  { value: 'paleo', label: 'Paleo' }
+  { value: '', labelKey: 'dietAny' },
+  { value: 'vegetarian', labelKey: 'dietVegetarian' },
+  { value: 'vegan', labelKey: 'dietVegan' },
+  { value: 'gluten free', labelKey: 'dietGlutenFree' },
+  { value: 'ketogenic', labelKey: 'dietKeto' },
+  { value: 'paleo', labelKey: 'dietPaleo' }
 ];
 
 const EMPTY_FORM = {
@@ -53,6 +56,7 @@ function Recipes() {
   const navigate = useNavigate();
   const { user, clientData } = useAuth();
   const { showError, showSuccess } = useToast();
+  const { t } = useLanguage();
   const isCoach = clientData?.is_coach === true;
   const coachId = isCoach ? user?.id : clientData?.coach_id;
 
@@ -99,12 +103,12 @@ function Recipes() {
     if (!file) return;
 
     if (!file.type.startsWith('image/')) {
-      showError('Please select an image file.');
+      showError(t('recipesPage.toastImageNotFile'));
       return;
     }
 
     if (file.size > 5 * 1024 * 1024) {
-      showError('Image must be under 5MB.');
+      showError(t('recipesPage.toastImageTooLarge'));
       return;
     }
 
@@ -125,12 +129,12 @@ function Recipes() {
         if (result?.imageUrl) {
           handleFormChange('image_url', result.imageUrl);
         } else {
-          showError('Failed to upload image. Please try again.');
+          showError(t('recipesPage.toastImageUploadFailed'));
           setImagePreview(null);
         }
       } catch (err) {
         console.error('Error uploading image:', err);
-        showError('Failed to upload image. Please try again.');
+        showError(t('recipesPage.toastImageUploadFailed'));
         setImagePreview(null);
       } finally {
         setUploadingImage(false);
@@ -156,7 +160,7 @@ function Recipes() {
       // exactly like a deletion. Surface a toast and let the existing
       // list persist; pull-to-refresh retries when the user is ready.
       console.error('Error loading recipes:', err);
-      showError('Failed to load recipes. Pull to refresh to try again.');
+      showError(t('recipesPage.toastLoadFailed'));
     } finally {
       setLoading(false);
     }
@@ -275,11 +279,11 @@ function Recipes() {
       console.error('YouTube import error:', err);
       const errorMsg = err?.message || err?.error || '';
       if (errorMsg.includes('NO_CAPTIONS') || errorMsg.includes('captions')) {
-        setYoutubeError('This video doesn\'t have captions available. Try a different video or enter the recipe manually.');
+        setYoutubeError(t('recipesPage.youtubeErrorNoCaptions'));
       } else if (errorMsg.includes('Invalid YouTube')) {
-        setYoutubeError('Invalid YouTube URL. Please paste a valid YouTube or Shorts link.');
+        setYoutubeError(t('recipesPage.youtubeErrorInvalidUrl'));
       } else {
-        setYoutubeError('Could not extract recipe from this video. Try a different video or enter manually.');
+        setYoutubeError(t('recipesPage.youtubeErrorGeneric'));
       }
     } finally {
       setYoutubeLoading(false);
@@ -323,7 +327,7 @@ function Recipes() {
 
   const handleSaveRecipe = async () => {
     if (!formData.name.trim()) {
-      showError('Recipe name is required.');
+      showError(t('recipesPage.toastNameRequired'));
       return;
     }
 
@@ -362,14 +366,14 @@ function Recipes() {
       await loadRecipes();
     } catch (err) {
       console.error('Error saving recipe:', err);
-      showError('Failed to save recipe. Please try again.');
+      showError(t('recipesPage.toastSaveFailed'));
     } finally {
       setSaving(false);
     }
   };
 
   const handleDeleteRecipe = async (recipe) => {
-    if (!confirm(`Delete "${recipe.name}"? This cannot be undone.`)) return;
+    if (!confirm(t('recipesPage.confirmDelete', { name: recipe.name }))) return;
 
     try {
       await apiDelete(`/.netlify/functions/manage-recipes?coachId=${coachId}&recipeId=${recipe.id}`);
@@ -377,7 +381,7 @@ function Recipes() {
       await loadRecipes();
     } catch (err) {
       console.error('Error deleting recipe:', err);
-      showError('Failed to delete recipe. Please try again.');
+      showError(t('recipesPage.toastDeleteFailed'));
     }
   };
 
@@ -385,7 +389,7 @@ function Recipes() {
 
   const handleFavorite = async () => {
     if (!selectedRecipe || !clientData?.id) {
-      showError('Unable to save. Please try again.');
+      showError(t('recipesPage.toastFavoriteSaveError'));
       return;
     }
 
@@ -405,10 +409,10 @@ function Recipes() {
       if (clientData?.id) {
         sessionStorage.removeItem(`favorites_${clientData.id}`);
       }
-      showSuccess('Recipe saved to favorites!');
+      showSuccess(t('recipesPage.toastFavoriteSuccess'));
     } catch (err) {
       console.error('Error saving favorite:', err);
-      showError('Could not save to favorites. Please try again.');
+      showError(t('recipesPage.toastFavoriteFailed'));
     }
   };
 
@@ -436,7 +440,7 @@ function Recipes() {
       <!DOCTYPE html>
       <html>
       <head>
-        <title>${selectedRecipe.name} - Recipe</title>
+        <title>${selectedRecipe.name} - ${t('recipesPage.pdfTitleSuffix')}</title>
         <style>
           body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; padding: 40px; max-width: 800px; margin: 0 auto; }
           h1 { color: #2cb5a5; margin-bottom: 8px; }
@@ -459,33 +463,33 @@ function Recipes() {
       </head>
       <body>
         <div class="back-bar">
-          <a href="#" onclick="window.close(); if(!window.closed) history.back(); return false;">← Back to App</a>
+          <a href="#" onclick="window.close(); if(!window.closed) history.back(); return false;">${t('recipesPage.pdfBackToApp')}</a>
         </div>
         <h1>${selectedRecipe.name}</h1>
-        ${selectedRecipe.prep_time_minutes ? `<p class="subtitle">Prep time: ${selectedRecipe.prep_time_minutes} minutes</p>` : ''}
-        ${selectedRecipe.cook_time_minutes ? `<p class="subtitle">Cook time: ${selectedRecipe.cook_time_minutes} minutes</p>` : ''}
+        ${selectedRecipe.prep_time_minutes ? `<p class="subtitle">${t('recipesPage.pdfPrepTime', { min: selectedRecipe.prep_time_minutes })}</p>` : ''}
+        ${selectedRecipe.cook_time_minutes ? `<p class="subtitle">${t('recipesPage.pdfCookTime', { min: selectedRecipe.cook_time_minutes })}</p>` : ''}
 
         <div class="nutrition">
           <div class="nutrition-item">
             <div class="nutrition-value">${selectedRecipe.calories || '-'}</div>
-            <div class="nutrition-label">Calories</div>
+            <div class="nutrition-label">${t('recipesPage.pdfCalories')}</div>
           </div>
           <div class="nutrition-item">
             <div class="nutrition-value">${selectedRecipe.protein || '-'}g</div>
-            <div class="nutrition-label">Protein</div>
+            <div class="nutrition-label">${t('recipesPage.pdfProtein')}</div>
           </div>
           <div class="nutrition-item">
             <div class="nutrition-value">${selectedRecipe.carbs || '-'}g</div>
-            <div class="nutrition-label">Carbs</div>
+            <div class="nutrition-label">${t('recipesPage.pdfCarbs')}</div>
           </div>
           <div class="nutrition-item">
             <div class="nutrition-value">${selectedRecipe.fat || '-'}g</div>
-            <div class="nutrition-label">Fat</div>
+            <div class="nutrition-label">${t('recipesPage.pdfFat')}</div>
           </div>
         </div>
 
         ${selectedRecipe.ingredients ? `
-          <h2>Ingredients</h2>
+          <h2>${t('recipesPage.pdfIngredients')}</h2>
           <ul>
             ${(selectedRecipe.ingredients.includes('\n')
               ? selectedRecipe.ingredients.split('\n')
@@ -495,7 +499,7 @@ function Recipes() {
         ` : ''}
 
         ${selectedRecipe.instructions ? `
-          <h2>Instructions</h2>
+          <h2>${t('recipesPage.pdfInstructions')}</h2>
           <div class="instructions">
             ${(selectedRecipe.instructions.includes('\n')
               ? selectedRecipe.instructions.split('\n').filter(i => i.trim()).map(step => `<p>${step}</p>`).join('')
@@ -505,8 +509,8 @@ function Recipes() {
         ` : ''}
 
         <div class="footer">
-          ${selectedRecipe.source_url ? `Source: ${selectedRecipe.source_url}<br>` : ''}
-          Downloaded from Ziquecoach
+          ${selectedRecipe.source_url ? `${t('recipesPage.pdfSource', { url: selectedRecipe.source_url })}<br>` : ''}
+          ${t('recipesPage.pdfFooter')}
         </div>
       </body>
       </html>
@@ -575,24 +579,24 @@ function Recipes() {
   const dietTags = useMemo(() => {
     if (!selectedRecipe) return [];
     const tags = [];
-    if (selectedRecipe.time_category && CATEGORY_LABELS[selectedRecipe.time_category]) {
-      tags.push({ label: CATEGORY_LABELS[selectedRecipe.time_category], variant: 'category' });
+    if (selectedRecipe.time_category && CATEGORY_LABEL_KEYS[selectedRecipe.time_category]) {
+      tags.push({ label: t(`recipesPage.${CATEGORY_LABEL_KEYS[selectedRecipe.time_category]}`), variant: 'category' });
     }
     const perServingProtein = selectedRecipe.protein || 0;
     const perServingCal = selectedRecipe.calories || 0;
     const perServingCarbs = selectedRecipe.carbs || 0;
-    if (perServingProtein >= 25) tags.push({ label: 'High protein', variant: 'protein' });
-    if (perServingCal > 0 && perServingCal < 350) tags.push({ label: 'Low calorie', variant: 'calorie' });
-    if (perServingCarbs > 0 && perServingCarbs < 15) tags.push({ label: 'Low carb', variant: 'carb' });
-    if (totalTime > 0 && totalTime <= 15) tags.push({ label: `${totalTime} min`, variant: 'time' });
+    if (perServingProtein >= 25) tags.push({ label: t('recipesPage.tagHighProtein'), variant: 'protein' });
+    if (perServingCal > 0 && perServingCal < 350) tags.push({ label: t('recipesPage.tagLowCalorie'), variant: 'calorie' });
+    if (perServingCarbs > 0 && perServingCarbs < 15) tags.push({ label: t('recipesPage.tagLowCarb'), variant: 'carb' });
+    if (totalTime > 0 && totalTime <= 15) tags.push({ label: t('recipesPage.tagMinutes', { min: totalTime }), variant: 'time' });
     return tags;
   }, [selectedRecipe?.id, selectedRecipe?.protein, selectedRecipe?.calories, selectedRecipe?.carbs, selectedRecipe?.time_category, totalTime]);
 
   const difficulty = useMemo(() => {
-    if (!selectedRecipe) return 'Easy';
-    if (totalTime >= 45) return 'Advanced';
-    if (totalTime >= 25) return 'Medium';
-    return 'Easy';
+    if (!selectedRecipe) return t('recipesPage.difficultyEasy');
+    if (totalTime >= 45) return t('recipesPage.difficultyAdvanced');
+    if (totalTime >= 25) return t('recipesPage.difficultyMedium');
+    return t('recipesPage.difficultyEasy');
   }, [totalTime, selectedRecipe?.id]);
 
   const toggleIngredient = (idx) => {
@@ -619,8 +623,8 @@ function Recipes() {
           <ChevronLeft size={24} />
         </button>
         <div className="header-text">
-          <h1>Recipes</h1>
-          <p>{isCoach ? 'Manage recipes for your clients' : 'Find healthy meal ideas for any time'}</p>
+          <h1>{t('recipesPage.pageTitle')}</h1>
+          <p>{isCoach ? t('recipesPage.headerSubtitleCoach') : t('recipesPage.headerSubtitleClient')}</p>
         </div>
       </div>
 
@@ -631,14 +635,14 @@ function Recipes() {
           onClick={() => setActiveTab('my-recipes')}
         >
           <BookOpen size={18} />
-          <span>{isCoach ? 'My Recipes' : 'Recipes'}</span>
+          <span>{isCoach ? t('recipesPage.tabMyRecipesCoach') : t('recipesPage.tabMyRecipesClient')}</span>
         </button>
         <button
           className={`recipes-main-tab ${activeTab === 'discover' ? 'active' : ''}`}
           onClick={() => setActiveTab('discover')}
         >
           <Globe size={18} />
-          <span>Discover</span>
+          <span>{t('recipesPage.tabDiscover')}</span>
         </button>
       </div>
 
@@ -659,7 +663,7 @@ function Recipes() {
                 }}
               >
                 <Plus size={18} />
-                Add New Recipe
+                {t('recipesPage.addNewRecipe')}
               </button>
               <button
                 onClick={() => { setShowYoutubeImport(true); setYoutubeUrl(''); setYoutubeError(''); }}
@@ -687,7 +691,7 @@ function Recipes() {
                   onClick={() => setActiveCategory(cat.id)}
                 >
                   <Icon size={20} className="category-icon" strokeWidth={2} />
-                  <span className="category-label">{cat.label}</span>
+                  <span className="category-label">{t(`recipesPage.${cat.labelKey}`)}</span>
                 </button>
               );
             })}
@@ -698,16 +702,16 @@ function Recipes() {
             {loading ? (
               <div className="loading-state">
                 <div className="spinner"></div>
-                <p>Loading recipes...</p>
+                <p>{t('recipesPage.loadingRecipes')}</p>
               </div>
             ) : filteredRecipes.length === 0 ? (
               <div className="empty-state">
                 <div className="empty-state-icon">📖</div>
-                <h3 className="empty-state-title">No recipes yet</h3>
+                <h3 className="empty-state-title">{t('recipesPage.emptyRecipesTitle')}</h3>
                 <p className="empty-state-text">
                   {isCoach
-                    ? 'Tap "Add New Recipe" to create recipes your clients can see!'
-                    : 'Your coach will add recipes here soon!'}
+                    ? t('recipesPage.emptyRecipesCoach')
+                    : t('recipesPage.emptyRecipesClient')}
                 </p>
               </div>
             ) : (
@@ -728,33 +732,35 @@ function Recipes() {
                         {recipe.prep_time_minutes ? (
                           <div className="recipe-time-badge">
                             <Clock size={12} />
-                            Prep {recipe.prep_time_minutes} min
+                            {t('recipesPage.prepMin', { min: recipe.prep_time_minutes })}
                           </div>
                         ) : null}
                         {recipe.cook_time_minutes ? (
                           <div className="recipe-time-badge">
                             <Clock size={12} />
-                            Cook {recipe.cook_time_minutes} min
+                            {t('recipesPage.cookMin', { min: recipe.cook_time_minutes })}
                           </div>
                         ) : null}
                         {!recipe.prep_time_minutes && !recipe.cook_time_minutes && (
                           <div className="recipe-time-badge">
                             <Clock size={12} />
-                            {CATEGORY_LABELS[recipe.time_category] || recipe.time_category}
+                            {CATEGORY_LABEL_KEYS[recipe.time_category]
+                              ? t(`recipesPage.${CATEGORY_LABEL_KEYS[recipe.time_category]}`)
+                              : recipe.time_category}
                           </div>
                         )}
                       </div>
                       <h3 className="recipe-name">{recipe.name}</h3>
                       {(recipe.calories || recipe.protein || recipe.carbs) ? (
                         <div className="recipe-macros">
-                          {recipe.calories ? <span><strong>{recipe.calories}</strong> cal</span> : null}
-                          {recipe.protein ? <span><strong>{recipe.protein}g</strong> protein</span> : null}
-                          {recipe.carbs ? <span><strong>{recipe.carbs}g</strong> carbs</span> : null}
+                          {recipe.calories ? <span><strong>{recipe.calories}</strong> {t('recipesPage.macroCalAbbr')}</span> : null}
+                          {recipe.protein ? <span><strong>{recipe.protein}g</strong> {t('recipesPage.macroProteinAbbr')}</span> : null}
+                          {recipe.carbs ? <span><strong>{recipe.carbs}g</strong> {t('recipesPage.macroCarbsAbbr')}</span> : null}
                         </div>
                       ) : null}
                       {isCoach && !recipe.is_public && (
                         <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                          <EyeOff size={11} /> Hidden from clients
+                          <EyeOff size={11} /> {t('recipesPage.hiddenFromClients')}
                         </div>
                       )}
                     </div>
@@ -773,7 +779,7 @@ function Recipes() {
                 <Search size={18} className="search-icon" />
                 <input
                   type="text"
-                  placeholder="Search recipes... (e.g., chicken, pasta, salad)"
+                  placeholder={t('recipesPage.discoverSearchPlaceholder')}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="discover-search-input"
@@ -785,7 +791,7 @@ function Recipes() {
                 className="discover-diet-select"
               >
                 {DIET_OPTIONS.map(diet => (
-                  <option key={diet.value} value={diet.value}>{diet.label}</option>
+                  <option key={diet.value} value={diet.value}>{t(`recipesPage.${diet.labelKey}`)}</option>
                 ))}
               </select>
               <button type="submit" className="discover-search-btn">
@@ -799,21 +805,21 @@ function Recipes() {
             {discoverLoading ? (
               <div className="loading-state">
                 <div className="spinner"></div>
-                <p>Finding delicious recipes...</p>
+                <p>{t('recipesPage.loadingDiscover')}</p>
               </div>
             ) : discoverRecipes.length === 0 ? (
               <div className="empty-state">
                 <div className="empty-state-icon"><Sparkles size={48} /></div>
-                <h3 className="empty-state-title">Discover New Recipes</h3>
-                <p className="empty-state-text">Search thousands of recipes from around the world!</p>
+                <h3 className="empty-state-title">{t('recipesPage.discoverEmptyTitle')}</h3>
+                <p className="empty-state-text">{t('recipesPage.discoverEmptyText')}</p>
               </div>
             ) : (
               <>
                 <div className="discover-results-header">
-                  <span>{discoverRecipes.length} recipes found</span>
+                  <span>{t('recipesPage.discoverResultsCount', { count: discoverRecipes.length })}</span>
                   {hasSearched && (
                     <button className="discover-refresh-btn" onClick={loadRandomRecipes}>
-                      <Sparkles size={14} /> Surprise me
+                      <Sparkles size={14} /> {t('recipesPage.discoverSurpriseMe')}
                     </button>
                   )}
                 </div>
@@ -834,28 +840,28 @@ function Recipes() {
                           {recipe.prep_time_minutes ? (
                             <div className="recipe-time-badge spoonacular">
                               <Globe size={12} />
-                              Prep {recipe.prep_time_minutes} min
+                              {t('recipesPage.prepMin', { min: recipe.prep_time_minutes })}
                             </div>
                           ) : null}
                           {recipe.cook_time_minutes ? (
                             <div className="recipe-time-badge spoonacular">
                               <Globe size={12} />
-                              Cook {recipe.cook_time_minutes} min
+                              {t('recipesPage.cookMin', { min: recipe.cook_time_minutes })}
                             </div>
                           ) : null}
                           {!recipe.prep_time_minutes && !recipe.cook_time_minutes && (
                             <div className="recipe-time-badge spoonacular">
                               <Globe size={12} />
-                              Recipe
+                              {t('recipesPage.discoverBadgeRecipe')}
                             </div>
                           )}
                         </div>
                         <h3 className="recipe-name">{recipe.name}</h3>
                         {(recipe.calories || recipe.protein || recipe.carbs) ? (
                           <div className="recipe-macros">
-                            {recipe.calories ? <span><strong>{recipe.calories}</strong> cal</span> : null}
-                            {recipe.protein ? <span><strong>{recipe.protein}g</strong> P</span> : null}
-                            {recipe.carbs ? <span><strong>{recipe.carbs}g</strong> C</span> : null}
+                            {recipe.calories ? <span><strong>{recipe.calories}</strong> {t('recipesPage.macroCalAbbr')}</span> : null}
+                            {recipe.protein ? <span><strong>{recipe.protein}g</strong> {t('recipesPage.discoverProteinAbbr')}</span> : null}
+                            {recipe.carbs ? <span><strong>{recipe.carbs}g</strong> {t('recipesPage.discoverCarbsAbbr')}</span> : null}
                           </div>
                         ) : null}
                       </div>
@@ -885,8 +891,8 @@ function Recipes() {
                   <img src={selectedRecipe.image_url} alt={selectedRecipe.name} className="recipe-hero-image" />
                   {dietTags.length > 0 && (
                     <div className="recipe-hero-tags">
-                      {dietTags.slice(0, 3).map((t, i) => (
-                        <span key={i} className={`recipe-tag-chip variant-${t.variant}`}>{t.label}</span>
+                      {dietTags.slice(0, 3).map((tag, i) => (
+                        <span key={i} className={`recipe-tag-chip variant-${tag.variant}`}>{tag.label}</span>
                       ))}
                     </div>
                   )}
@@ -899,7 +905,7 @@ function Recipes() {
                   <span className="recipe-meta-item"><Clock size={14} />{totalTime} min</span>
                 )}
                 <span className="recipe-meta-item"><ChefHat size={14} />{difficulty}</span>
-                <span className="recipe-meta-item"><Users size={14} />{recipeServings} {recipeServings === 1 ? 'serving' : 'servings'}</span>
+                <span className="recipe-meta-item"><Users size={14} />{recipeServings} {recipeServings === 1 ? t('recipesPage.metaServing') : t('recipesPage.metaServings')}</span>
               </div>
 
               {/* Source link */}
@@ -912,12 +918,12 @@ function Recipes() {
                 >
                   <Link size={16} /> {
                     selectedRecipe.source_url.includes('youtube.com') || selectedRecipe.source_url.includes('youtu.be')
-                      ? 'Watch on YouTube'
+                      ? t('recipesPage.sourceLinkYoutube')
                       : selectedRecipe.source_url.includes('instagram.com')
-                      ? 'View on Instagram'
+                      ? t('recipesPage.sourceLinkInstagram')
                       : selectedRecipe.source_url.includes('tiktok.com')
-                      ? 'View on TikTok'
-                      : 'View Recipe Link'
+                      ? t('recipesPage.sourceLinkTikTok')
+                      : t('recipesPage.sourceLinkDefault')
                   }
                 </a>
               )}
@@ -925,24 +931,24 @@ function Recipes() {
               {/* Nutrition card: macro bar + % of daily goal (display only) */}
               {(selectedRecipe.calories || selectedRecipe.protein || selectedRecipe.carbs || selectedRecipe.fat) ? (
                 <div className="recipe-section recipe-nutrition-section">
-                  <h4 className="recipe-section-title">Nutrition Per Serving</h4>
+                  <h4 className="recipe-section-title">{t('recipesPage.nutritionTitle')}</h4>
 
                   <div className="recipe-macro-card">
                     <div className="recipe-macro-headline">
                       <div className="macro-headline-main">
                         <Flame size={18} className="macro-headline-icon" />
                         <span className="macro-headline-value">{selectedRecipe.calories ?? '—'}</span>
-                        <span className="macro-headline-unit">kcal</span>
+                        <span className="macro-headline-unit">{t('recipesPage.nutritionKcal')}</span>
                       </div>
                       {!isCoach && dailyGoals && selectedRecipe.calories ? (
                         <span className="macro-headline-goal">
-                          {Math.round((selectedRecipe.calories / dailyGoals.calories) * 100)}% of daily goal
+                          {t('recipesPage.dailyGoalPct', { pct: Math.round((selectedRecipe.calories / dailyGoals.calories) * 100) })}
                         </span>
                       ) : null}
                     </div>
 
                     {macroBreakdown && (
-                      <div className="macro-stacked-bar" role="img" aria-label="Macro distribution">
+                      <div className="macro-stacked-bar" role="img" aria-label={t('recipesPage.macroAriaLabel')}>
                         <div className="macro-bar-segment seg-protein" style={{ width: `${macroBreakdown.proteinPct}%` }} />
                         <div className="macro-bar-segment seg-carbs" style={{ width: `${macroBreakdown.carbsPct}%` }} />
                         <div className="macro-bar-segment seg-fat" style={{ width: `${macroBreakdown.fatPct}%` }} />
@@ -951,16 +957,16 @@ function Recipes() {
 
                     <div className="macro-rows">
                       {[
-                        { key: 'protein', label: 'Protein', val: selectedRecipe.protein, color: 'protein', goal: dailyGoals?.protein },
-                        { key: 'carbs', label: 'Carbs', val: selectedRecipe.carbs, color: 'carbs', goal: dailyGoals?.carbs },
-                        { key: 'fat', label: 'Fat', val: selectedRecipe.fat, color: 'fat', goal: dailyGoals?.fat },
+                        { key: 'protein', label: t('recipesPage.macroProtein'), val: selectedRecipe.protein, color: 'protein', goal: dailyGoals?.protein },
+                        { key: 'carbs', label: t('recipesPage.macroCarbs'), val: selectedRecipe.carbs, color: 'carbs', goal: dailyGoals?.carbs },
+                        { key: 'fat', label: t('recipesPage.macroFat'), val: selectedRecipe.fat, color: 'fat', goal: dailyGoals?.fat },
                       ].map(m => (
                         <div key={m.key} className={`macro-row macro-${m.color}`}>
                           <span className="macro-row-dot" />
                           <span className="macro-row-label">{m.label}</span>
                           <span className="macro-row-value">{m.val ?? 0}g</span>
                           {!isCoach && m.goal && m.val ? (
-                            <span className="macro-row-pct">{Math.round((m.val / m.goal) * 100)}%</span>
+                            <span className="macro-row-pct">{t('recipesPage.macroPct', { pct: Math.round((m.val / m.goal) * 100) })}</span>
                           ) : <span className="macro-row-pct" />}
                         </div>
                       ))}
@@ -981,7 +987,7 @@ function Recipes() {
                   <div className="recipe-section">
                     <div className="recipe-section-header">
                       <h4 className="recipe-section-title">
-                        Ingredients <span className="recipe-section-count">· {items.length}</span>
+                        {t('recipesPage.ingredientsTitle')} <span className="recipe-section-count">· {items.length}</span>
                       </h4>
                       {checkedIngredients.size > 0 && (
                         <button
@@ -989,7 +995,7 @@ function Recipes() {
                           className="recipe-section-action"
                           onClick={() => setCheckedIngredients(new Set())}
                         >
-                          Reset
+                          {t('recipesPage.ingredientsReset')}
                         </button>
                       )}
                     </div>
@@ -1025,7 +1031,7 @@ function Recipes() {
                   <div className="recipe-section">
                     <div className="recipe-section-header">
                       <h4 className="recipe-section-title">
-                        Instructions <span className="recipe-section-count">· {steps.length} {steps.length === 1 ? 'step' : 'steps'}</span>
+                        {t('recipesPage.instructionsTitle')} <span className="recipe-section-count">· {steps.length} {steps.length === 1 ? t('recipesPage.instructionsStep') : t('recipesPage.instructionsSteps')}</span>
                       </h4>
                       {completedSteps.size > 0 && (
                         <button
@@ -1033,7 +1039,7 @@ function Recipes() {
                           className="recipe-section-action"
                           onClick={() => setCompletedSteps(new Set())}
                         >
-                          Reset
+                          {t('recipesPage.instructionsReset')}
                         </button>
                       )}
                     </div>
@@ -1069,7 +1075,7 @@ function Recipes() {
                     <button
                       className="cta-secondary cta-danger"
                       onClick={() => handleDeleteRecipe(selectedRecipe)}
-                      aria-label="Delete recipe"
+                      aria-label={t('recipesPage.ariaDeleteRecipe')}
                     >
                       <Trash2 size={18} />
                     </button>
@@ -1077,19 +1083,19 @@ function Recipes() {
                   <button
                     className="cta-secondary"
                     onClick={handleDownloadPDF}
-                    aria-label="Download PDF"
+                    aria-label={t('recipesPage.ariaDownloadPDF')}
                   >
                     <Download size={18} />
                   </button>
                   {selectedRecipe.source !== 'spoonacular' ? (
                     <button className="cta-primary" onClick={() => openEditForm(selectedRecipe)}>
                       <Edit3 size={18} />
-                      <span>Edit Recipe</span>
+                      <span>{t('recipesPage.ctaEditRecipe')}</span>
                     </button>
                   ) : (
                     <button className="cta-primary" onClick={handleDownloadPDF}>
                       <Download size={18} />
-                      <span>Download</span>
+                      <span>{t('recipesPage.ctaDownload')}</span>
                     </button>
                   )}
                 </>
@@ -1098,20 +1104,20 @@ function Recipes() {
                   <button
                     className="cta-secondary"
                     onClick={handleFavorite}
-                    aria-label="Save to favorites"
+                    aria-label={t('recipesPage.ariaSaveToFavorites')}
                   >
                     <Heart size={18} />
                   </button>
                   <button
                     className="cta-secondary"
                     onClick={handleDownloadPDF}
-                    aria-label="Download PDF"
+                    aria-label={t('recipesPage.ariaDownloadPDF')}
                   >
                     <Download size={18} />
                   </button>
                   <button className="cta-primary" onClick={handleLogToDiary}>
                     <Plus size={18} />
-                    <span>Log to Diary</span>
+                    <span>{t('recipesPage.ctaLogToDiary')}</span>
                   </button>
                 </>
               )}
@@ -1125,7 +1131,7 @@ function Recipes() {
         <div className="modal-overlay" onClick={() => setShowRecipeForm(false)}>
           <div className="modal-content modal-bottom-sheet" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
-              <h2>{editingRecipe ? 'Edit Recipe' : 'New Recipe'}</h2>
+              <h2>{editingRecipe ? t('recipesPage.formEditTitle') : t('recipesPage.formNewTitle')}</h2>
               <button className="modal-close" onClick={() => setShowRecipeForm(false)}>
                 <X size={24} />
               </button>
@@ -1134,47 +1140,47 @@ function Recipes() {
               <div className="recipe-form">
                 {/* Name */}
                 <div className="form-group">
-                  <label className="form-label">Recipe Name *</label>
+                  <label className="form-label">{t('recipesPage.formLabelName')}</label>
                   <input
                     type="text"
                     value={formData.name}
                     onChange={(e) => handleFormChange('name', e.target.value)}
-                    placeholder="e.g., Protein Smoothie Bowl"
+                    placeholder={t('recipesPage.formPlaceholderName')}
                     className="form-input"
                   />
                 </div>
 
                 {/* Description */}
                 <div className="form-group">
-                  <label className="form-label">Description</label>
+                  <label className="form-label">{t('recipesPage.formLabelDescription')}</label>
                   <input
                     type="text"
                     value={formData.description}
                     onChange={(e) => handleFormChange('description', e.target.value)}
-                    placeholder="Short description..."
+                    placeholder={t('recipesPage.formPlaceholderDescription')}
                     className="form-input"
                   />
                 </div>
 
                 {/* Category */}
                 <div className="form-group">
-                  <label className="form-label">Category *</label>
+                  <label className="form-label">{t('recipesPage.formLabelCategory')}</label>
                   <select
                     value={formData.time_category}
                     onChange={(e) => handleFormChange('time_category', e.target.value)}
                     className="form-input"
                   >
-                    <option value="grab_go">Grab & Go (5 min)</option>
-                    <option value="quick">Quick (15 min or less)</option>
-                    <option value="meal_prep">Meal Prep</option>
-                    <option value="family">Family Dinner (30+ min)</option>
+                    <option value="grab_go">{t('recipesPage.formCategoryGrabGo')}</option>
+                    <option value="quick">{t('recipesPage.formCategoryQuick')}</option>
+                    <option value="meal_prep">{t('recipesPage.formCategoryMealPrep')}</option>
+                    <option value="family">{t('recipesPage.formCategoryFamily')}</option>
                   </select>
                 </div>
 
                 {/* Time & Servings Row */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
                   <div className="form-group">
-                    <label className="form-label">Prep (min)</label>
+                    <label className="form-label">{t('recipesPage.formLabelPrep')}</label>
                     <input
                       type="number"
                       value={formData.prep_time_minutes}
@@ -1185,7 +1191,7 @@ function Recipes() {
                     />
                   </div>
                   <div className="form-group">
-                    <label className="form-label">Cook (min)</label>
+                    <label className="form-label">{t('recipesPage.formLabelCook')}</label>
                     <input
                       type="number"
                       value={formData.cook_time_minutes}
@@ -1196,7 +1202,7 @@ function Recipes() {
                     />
                   </div>
                   <div className="form-group">
-                    <label className="form-label">Servings</label>
+                    <label className="form-label">{t('recipesPage.formLabelServings')}</label>
                     <input
                       type="number"
                       value={formData.servings}
@@ -1209,7 +1215,7 @@ function Recipes() {
                 </div>
 
                 {/* Macros Row */}
-                <label className="form-label" style={{ marginBottom: '4px' }}>Nutrition (per serving)</label>
+                <label className="form-label" style={{ marginBottom: '4px' }}>{t('recipesPage.formLabelNutrition')}</label>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '8px' }}>
                   <div className="form-group">
                     <input
@@ -1258,11 +1264,11 @@ function Recipes() {
 
                 {/* Ingredients */}
                 <div className="form-group">
-                  <label className="form-label">Ingredients</label>
+                  <label className="form-label">{t('recipesPage.formLabelIngredients')}</label>
                   <textarea
                     value={formData.ingredients}
                     onChange={(e) => handleFormChange('ingredients', e.target.value)}
-                    placeholder={"One ingredient per line:\nChicken breast, 6oz\nBroccoli, 1 cup\nOlive oil, 1 tbsp"}
+                    placeholder={t('recipesPage.formPlaceholderIngredients')}
                     className="form-input form-textarea"
                     rows={4}
                   />
@@ -1270,11 +1276,11 @@ function Recipes() {
 
                 {/* Instructions */}
                 <div className="form-group">
-                  <label className="form-label">Instructions</label>
+                  <label className="form-label">{t('recipesPage.formLabelInstructions')}</label>
                   <textarea
                     value={formData.instructions}
                     onChange={(e) => handleFormChange('instructions', e.target.value)}
-                    placeholder={"One step per line:\n1. Preheat oven to 400F\n2. Season chicken\n3. Bake for 25 minutes"}
+                    placeholder={t('recipesPage.formPlaceholderInstructions')}
                     className="form-input form-textarea"
                     rows={4}
                   />
@@ -1282,7 +1288,7 @@ function Recipes() {
 
                 {/* Image Upload */}
                 <div className="form-group">
-                  <label className="form-label">Recipe Photo (optional)</label>
+                  <label className="form-label">{t('recipesPage.formLabelPhoto')}</label>
                   {(imagePreview || formData.image_url) ? (
                     <div style={{
                       position: 'relative',
@@ -1307,7 +1313,7 @@ function Recipes() {
                           display: 'flex', alignItems: 'center', justifyContent: 'center',
                           color: 'white', fontSize: '14px', fontWeight: '600'
                         }}>
-                          Uploading...
+                          {t('recipesPage.formUploading')}
                         </div>
                       )}
                       <button
@@ -1341,10 +1347,10 @@ function Recipes() {
                     >
                       <Camera size={32} color="#94a3b8" />
                       <span style={{ fontSize: '14px', color: '#64748b', fontWeight: '500' }}>
-                        Tap to upload a photo
+                        {t('recipesPage.formUploadPhotoTap')}
                       </span>
                       <span style={{ fontSize: '12px', color: '#94a3b8' }}>
-                        JPG, PNG up to 5MB
+                        {t('recipesPage.formUploadPhotoTypes')}
                       </span>
                       <input
                         type="file"
@@ -1359,18 +1365,18 @@ function Recipes() {
                 {/* Source URL for links */}
                 <div className="form-group">
                   <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <Link size={14} /> Recipe Link (optional)
+                    <Link size={14} /> {t('recipesPage.formLabelSourceUrl')}
                   </label>
                   <input
                     type="url"
                     value={formData.source_url}
                     onChange={(e) => handleFormChange('source_url', e.target.value)}
-                    placeholder="YouTube, Instagram, website URL..."
+                    placeholder={t('recipesPage.formPlaceholderSourceUrl')}
                     className="form-input"
                   />
                   {formData.source_url && (
                     <span style={{ fontSize: '12px', color: '#94a3b8', marginTop: '4px', display: 'block' }}>
-                      This link will be shown on the recipe for clients to view
+                      {t('recipesPage.formSourceUrlHint')}
                     </span>
                   )}
                 </div>
@@ -1383,7 +1389,7 @@ function Recipes() {
                 >
                   {formData.is_public ? <Eye size={18} color="#2cb5a5" /> : <EyeOff size={18} color="#6b7280" />}
                   <span style={{ fontSize: '14px', color: formData.is_public ? '#2cb5a5' : '#6b7280' }}>
-                    {formData.is_public ? 'Visible to clients' : 'Hidden from clients'}
+                    {formData.is_public ? t('recipesPage.formVisibleToClients') : t('recipesPage.formHiddenFromClients')}
                   </span>
                 </div>
 
@@ -1401,7 +1407,7 @@ function Recipes() {
                     opacity: !formData.name.trim() ? 0.5 : 1
                   }}
                 >
-                  {saving ? 'Saving...' : (editingRecipe ? 'Update Recipe' : 'Create Recipe')}
+                  {saving ? t('recipesPage.formBtnSaving') : (editingRecipe ? t('recipesPage.formBtnUpdate') : t('recipesPage.formBtnCreate'))}
                 </button>
               </div>
             </div>
@@ -1415,7 +1421,7 @@ function Recipes() {
             <div className="modal-header">
               <h2 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <Youtube size={22} color="#dc2626" />
-                Import from YouTube
+                {t('recipesPage.youtubeModalTitle')}
               </h2>
               <button className="modal-close" onClick={() => !youtubeLoading && setShowYoutubeImport(false)}>
                 <X size={24} />
@@ -1423,16 +1429,16 @@ function Recipes() {
             </div>
             <div className="modal-body">
               <p style={{ color: '#9ca3af', fontSize: '14px', marginBottom: '16px', lineHeight: '1.5' }}>
-                Paste a YouTube or YouTube Shorts URL. We'll extract the recipe from the video's captions using AI and pre-fill the recipe form for you.
+                {t('recipesPage.youtubeDescription')}
               </p>
 
               <div className="form-group">
-                <label className="form-label">YouTube URL</label>
+                <label className="form-label">{t('recipesPage.youtubeLabelUrl')}</label>
                 <input
                   type="url"
                   value={youtubeUrl}
                   onChange={(e) => { setYoutubeUrl(e.target.value); setYoutubeError(''); }}
-                  placeholder="https://www.youtube.com/shorts/..."
+                  placeholder={t('recipesPage.youtubePlaceholderUrl')}
                   className="form-input"
                   disabled={youtubeLoading}
                   onKeyDown={(e) => { if (e.key === 'Enter') handleYoutubeImport(); }}
@@ -1465,10 +1471,10 @@ function Recipes() {
                 }}>
                   <Loader size={24} color="#2cb5a5" style={{ animation: 'spin 1s linear infinite' }} />
                   <p style={{ color: '#2cb5a5', fontSize: '14px', fontWeight: '500', marginTop: '8px' }}>
-                    Extracting recipe from video...
+                    {t('recipesPage.youtubeExtractingDetail')}
                   </p>
                   <p style={{ color: '#64748b', fontSize: '12px', marginTop: '4px' }}>
-                    Reading captions and organizing ingredients with AI
+                    {t('recipesPage.youtubeExtractingCaption')}
                   </p>
                 </div>
               )}
@@ -1486,17 +1492,17 @@ function Recipes() {
                 }}
               >
                 {youtubeLoading ? (
-                  <>Extracting Recipe...</>
+                  <>{t('recipesPage.youtubeExtracting')}</>
                 ) : (
                   <>
                     <Sparkles size={18} />
-                    Extract Recipe with AI
+                    {t('recipesPage.youtubeBtnExtract')}
                   </>
                 )}
               </button>
 
               <p style={{ color: '#64748b', fontSize: '12px', textAlign: 'center', marginTop: '12px' }}>
-                Works with YouTube Shorts, regular videos, and youtu.be links
+                {t('recipesPage.youtubeFootnote')}
               </p>
             </div>
           </div>

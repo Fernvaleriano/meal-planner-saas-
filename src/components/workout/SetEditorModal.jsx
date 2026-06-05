@@ -2,6 +2,8 @@ import { useState, useRef, useEffect } from 'react';
 import { X, Clock, ChevronDown, Mic, MicOff } from 'lucide-react';
 import Portal from '../Portal';
 import { convertWeight } from '../../utils/workoutProgression';
+import { getSpeechLang } from '../../utils/speechLang';
+import { useLanguage } from '../../context/LanguageContext';
 
 // Parse reps - if it's a range like "8-12", return just the first number
 // Supports decimals like "1.5" (e.g. 1.5 miles)
@@ -25,14 +27,14 @@ const parseTimeFromReps = (reps) => {
   return null;
 };
 
-// RPE scale with descriptions
+// RPE scale with translation keys for descriptions (resolved via t() at render time)
 const RPE_OPTIONS = [
-  { value: null, label: '-', description: 'Not set' },
-  { value: 6, label: '6', description: 'Could do 4+ more reps' },
-  { value: 7, label: '7', description: 'Could do 3 more reps' },
-  { value: 8, label: '8', description: 'Could do 2 more reps' },
-  { value: 9, label: '9', description: 'Could do 1 more rep' },
-  { value: 10, label: '10', description: 'Max effort, no more reps' },
+  { value: null, label: '-', descKey: 'setEditor.rpeDescNotSet' },
+  { value: 6, label: '6', descKey: 'setEditor.rpeDesc6' },
+  { value: 7, label: '7', descKey: 'setEditor.rpeDesc7' },
+  { value: 8, label: '8', descKey: 'setEditor.rpeDesc8' },
+  { value: 9, label: '9', descKey: 'setEditor.rpeDesc9' },
+  { value: 10, label: '10', descKey: 'setEditor.rpeDesc10' },
 ];
 
 // Number words to digits mapping
@@ -202,6 +204,7 @@ function SetEditorModal({
   isTimedExercise,
   weightUnit = 'lbs'
 }) {
+  const { t } = useLanguage();
   const isTillFailure = exercise.repType === 'failure';
   const isDistanceExercise = exercise.trackingType === 'distance';
   const distanceUnit = exercise.distanceUnit || 'miles';
@@ -237,14 +240,14 @@ function SetEditorModal({
   const startVoiceInput = () => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
-      setVoiceError('Voice input not supported in this browser');
+      setVoiceError(t('setEditor.voiceErrNotSupported'));
       return;
     }
 
     const recognition = new SpeechRecognition();
     recognition.continuous = false;
     recognition.interimResults = false;
-    recognition.lang = 'en-US';
+    recognition.lang = getSpeechLang();
     recognition.maxAlternatives = 1;
 
     recognition.onstart = () => {
@@ -256,7 +259,7 @@ function SetEditorModal({
     recognition.onresult = (event) => {
       // Guard: Check array bounds before accessing
       if (!event.results || !event.results[0] || !event.results[0][0]) {
-        setVoiceError('No speech detected');
+        setVoiceError(t('setEditor.voiceErrNoSpeechDetected'));
         return;
       }
       const transcript = event.results[0][0].transcript;
@@ -326,11 +329,11 @@ function SetEditorModal({
     recognition.onerror = (event) => {
       console.error('Speech recognition error:', event.error);
       if (event.error === 'not-allowed') {
-        setVoiceError('Microphone access denied. Please allow microphone access.');
+        setVoiceError(t('setEditor.voiceErrMicDenied'));
       } else if (event.error === 'no-speech') {
-        setVoiceError('No speech detected. Try again.');
+        setVoiceError(t('setEditor.voiceErrNoSpeechRetry'));
       } else {
-        setVoiceError(`Error: ${event.error}`);
+        setVoiceError(t('setEditor.voiceErrGeneric', { error: event.error }));
       }
       setIsListening(false);
     };
@@ -587,19 +590,19 @@ function SetEditorModal({
           <button className="editor-close-btn" onClick={handleCloseWithAutoSave}>
             <X size={24} />
           </button>
-          <span className="editor-title">Editor</span>
+          <span className="editor-title">{t('setEditor.title')}</span>
           <div className="editor-header-actions">
             {voiceSupported && (
               <button
                 className={`voice-input-btn ${isListening ? 'listening' : ''}`}
                 onClick={toggleVoiceInput}
-                title="Voice input"
+                title={t('setEditor.voiceInputTitle')}
               >
                 {isListening ? <MicOff size={20} /> : <Mic size={20} />}
               </button>
             )}
             <button className="editor-save-btn" onClick={handleSave}>
-              Save
+              {t('setEditor.saveBtn')}
             </button>
           </div>
         </div>
@@ -610,12 +613,12 @@ function SetEditorModal({
             {isListening && (
               <div className="voice-listening">
                 <div className="voice-pulse"></div>
-                <span>Listening... Say something like "12 reps at {weightUnit === 'kg' ? '50 kilos' : '135 pounds'}"</span>
+                <span>{t('setEditor.listeningHint', { unit: weightUnit === 'kg' ? '50 kilos' : '135 pounds' })}</span>
               </div>
             )}
             {lastTranscript && !isListening && (
               <div className="voice-transcript">
-                <span className="transcript-label">Heard:</span> "{lastTranscript}"
+                <span className="transcript-label">{t('setEditor.heardLabel')}</span> "{lastTranscript}"
               </div>
             )}
             {voiceError && (
@@ -643,7 +646,7 @@ function SetEditorModal({
           </div>
           <div className="editor-exercise-details">
             <h3>{exercise.name}</h3>
-            <span className="editor-difficulty">{exercise.difficulty || 'Novice'}</span>
+            <span className="editor-difficulty">{exercise.difficulty || t('setEditor.difficultyFallback')}</span>
           </div>
         </div>
 
@@ -653,19 +656,19 @@ function SetEditorModal({
             className={`mode-btn ${editMode === 'reps' ? 'active' : ''}`}
             onClick={() => setEditMode('reps')}
           >
-            {isTillFailure ? 'Till Failure' : 'Reps'}
+            {isTillFailure ? t('setEditor.modeTillFailure') : t('setEditor.modeReps')}
           </button>
           <button
             className={`mode-btn ${editMode === 'time' ? 'active' : ''}`}
             onClick={() => setEditMode('time')}
           >
-            Time
+            {t('setEditor.modeTime')}
           </button>
           <button
             className={`mode-btn ${editMode === 'distance' ? 'active' : ''}`}
             onClick={() => setEditMode('distance')}
           >
-            Distance
+            {t('setEditor.modeDistance')}
           </button>
         </div>
 
@@ -674,19 +677,19 @@ function SetEditorModal({
           {editMode === 'time' ? (
             <>
               <span className="header-spacer"></span>
-              <span className="header-label time-header-label">HRS</span>
+              <span className="header-label time-header-label">{t('setEditor.colHrs')}</span>
               <span className="time-header-gap" />
-              <span className="header-label time-header-label">MIN</span>
+              <span className="header-label time-header-label">{t('setEditor.colMin')}</span>
               <span className="time-header-gap" />
-              <span className="header-label time-header-label">SEC</span>
+              <span className="header-label time-header-label">{t('setEditor.colSec')}</span>
               <span className="header-spacer"></span>
             </>
           ) : (
             <>
               <span className="header-spacer"></span>
-              <span className="header-label">{editMode === 'distance' ? distanceUnitLabel.toUpperCase() : (isTillFailure ? 'REPS DONE' : 'REPS')}</span>
+              <span className="header-label">{editMode === 'distance' ? distanceUnitLabel.toUpperCase() : (isTillFailure ? t('setEditor.colRepsDone') : t('setEditor.colReps'))}</span>
               <span className="header-spacer-x"></span>
-              <span className="header-label">WEIGHT</span>
+              <span className="header-label">{t('setEditor.colWeight')}</span>
               <span className="header-spacer"></span>
             </>
           )}
@@ -759,7 +762,7 @@ function SetEditorModal({
                   onClick={() => selectField(index, 'rest')}
                 >
                   <Clock size={12} />
-                  <span>{(set.restSeconds ?? exercise.restSeconds ?? 60)}s rest</span>
+                  <span>{t('setEditor.restLabel', { seconds: set.restSeconds ?? exercise.restSeconds ?? 60 })}</span>
                 </button>
                 {/* RPE Selector */}
                 <div className="rpe-selector-wrapper">
@@ -767,7 +770,7 @@ function SetEditorModal({
                     className={`rpe-btn ${set.rpe ? 'has-value' : ''}`}
                     onClick={() => toggleRpePicker(index)}
                   >
-                    <span className="rpe-label">RPE</span>
+                    <span className="rpe-label">{t('setEditor.rpeLabel')}</span>
                     <span className={`rpe-value ${set.rpe ? `rpe-${set.rpe}` : ''}`}>
                       {set.rpe || '-'}
                     </span>
@@ -778,7 +781,7 @@ function SetEditorModal({
                     <Portal>
                       <div className="rpe-backdrop" onClick={() => setRpePickerIndex(null)} />
                       <div className="rpe-dropdown">
-                        <div className="rpe-dropdown-header">How hard was this set? (RPE)</div>
+                        <div className="rpe-dropdown-header">{t('setEditor.rpeDropdownHeader')}</div>
                         {RPE_OPTIONS.slice(1).map(option => (
                           <button
                             key={option.value}
@@ -786,7 +789,7 @@ function SetEditorModal({
                             onClick={() => updateRpe(index, option.value)}
                           >
                             <span className={`rpe-option-value rpe-${option.value}`}>{option.value}</span>
-                            <span className="rpe-option-desc">{option.description}</span>
+                            <span className="rpe-option-desc">{t(option.descKey)}</span>
                           </button>
                         ))}
                         <button
@@ -794,7 +797,7 @@ function SetEditorModal({
                           onClick={() => updateRpe(index, null)}
                         >
                           <span className="rpe-option-value">-</span>
-                          <span className="rpe-option-desc">Clear</span>
+                          <span className="rpe-option-desc">{t('setEditor.rpeClear')}</span>
                         </button>
                       </div>
                     </Portal>
@@ -809,10 +812,10 @@ function SetEditorModal({
         {/* Actions */}
         <div className="editor-actions">
           <button className="apply-all-btn" onClick={applyToAllSets}>
-            Apply to all sets
+            {t('setEditor.applyToAllSets')}
           </button>
           <button className="next-btn" onClick={handleSave}>
-            Next
+            {t('setEditor.nextBtn')}
           </button>
         </div>
 
@@ -821,17 +824,17 @@ function SetEditorModal({
           <div className="editor-numpad">
             <div className="numpad-header">
               <span className="numpad-label">
-                {activeField === 'rest' ? 'Enter rest (seconds)'
-                  : activeField === 'weight' ? 'Enter weight'
-                  : activeField === 'time-hours' ? 'Enter hours'
-                  : activeField === 'time-minutes' ? 'Enter minutes'
-                  : activeField === 'time-seconds' ? 'Enter seconds'
-                  : editMode === 'distance' ? `Enter ${distanceUnit}`
-                  : isTillFailure ? 'Reps completed'
-                  : 'Enter reps'}
+                {activeField === 'rest' ? t('setEditor.numpadEnterRest')
+                  : activeField === 'weight' ? t('setEditor.numpadEnterWeight')
+                  : activeField === 'time-hours' ? t('setEditor.numpadEnterHours')
+                  : activeField === 'time-minutes' ? t('setEditor.numpadEnterMinutes')
+                  : activeField === 'time-seconds' ? t('setEditor.numpadEnterSeconds')
+                  : editMode === 'distance' ? t('setEditor.numpadEnterDistance', { unit: distanceUnit })
+                  : isTillFailure ? t('setEditor.numpadRepsCompleted')
+                  : t('setEditor.numpadEnterReps')}
               </span>
               <button className="numpad-done-btn" onClick={hideKeyboard}>
-                Done
+                {t('setEditor.numpadDoneBtn')}
               </button>
             </div>
             <div className="numpad-grid">

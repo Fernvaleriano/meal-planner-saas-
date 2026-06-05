@@ -2,6 +2,7 @@ import { useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Image as ImageIcon, Loader2, Users, Lock } from 'lucide-react';
 import { apiPost } from '../utils/api';
+import { useLanguage } from '../context/LanguageContext';
 
 // Downscale a selected image to a max dimension and re-encode as JPEG so the
 // upload payload stays small (Netlify function bodies are size-limited).
@@ -35,6 +36,7 @@ function fileToDownscaledDataUrl(file, maxDim = 1080, quality = 0.82) {
 }
 
 function CreateStoryModal({ clientId, onClose, onCreated }) {
+  const { t } = useLanguage();
   const [imageData, setImageData] = useState(null); // data URL preview + payload
   const [text, setText] = useState(''); // caption when a photo is attached, else the message
   const [visibility, setVisibility] = useState('group'); // 'group' | 'coach'
@@ -50,7 +52,7 @@ function CreateStoryModal({ clientId, onClose, onCreated }) {
       const dataUrl = await fileToDownscaledDataUrl(file);
       setImageData(dataUrl);
     } catch (err) {
-      setError('Could not load that image. Try another.');
+      setError(t('createStory.errorLoadImage'));
     }
   };
 
@@ -75,7 +77,7 @@ function CreateStoryModal({ clientId, onClose, onCreated }) {
       onCreated?.();
       onClose();
     } catch (err) {
-      setError(err?.message || 'Could not post your story. Please try again.');
+      setError(err?.message || t('createStory.errorPostStory'));
       setSubmitting(false);
     }
   };
@@ -84,15 +86,15 @@ function CreateStoryModal({ clientId, onClose, onCreated }) {
     <div style={styles.overlay} onClick={onClose}>
       <div style={styles.sheet} onClick={(e) => e.stopPropagation()}>
         <div style={styles.header}>
-          <span style={styles.title}>New story</span>
-          <button style={styles.iconBtn} onClick={onClose} aria-label="Close"><X size={20} /></button>
+          <span style={styles.title}>{t('createStory.title')}</span>
+          <button style={styles.iconBtn} onClick={onClose} aria-label={t('createStory.ariaClose')}><X size={20} /></button>
         </div>
 
         <div style={styles.body}>
           <textarea
             value={text}
             onChange={(e) => setText(e.target.value)}
-            placeholder="What's on your mind?"
+            placeholder={t('createStory.textPlaceholder')}
             maxLength={500}
             rows={4}
             style={styles.textarea}
@@ -106,13 +108,13 @@ function CreateStoryModal({ clientId, onClose, onCreated }) {
           />
           {imageData ? (
             <div style={styles.thumbRow}>
-              <img src={imageData} alt="Preview" style={styles.thumb} />
-              <button style={styles.changeBtn} onClick={() => fileRef.current?.click()}>Change</button>
-              <button style={styles.removeBtn} onClick={() => setImageData(null)}>Remove</button>
+              <img src={imageData} alt={t('createStory.previewAlt')} style={styles.thumb} />
+              <button style={styles.changeBtn} onClick={() => fileRef.current?.click()}>{t('createStory.changePhoto')}</button>
+              <button style={styles.removeBtn} onClick={() => setImageData(null)}>{t('createStory.removePhoto')}</button>
             </div>
           ) : (
             <button style={styles.addPhotoBtn} onClick={() => fileRef.current?.click()}>
-              <ImageIcon size={18} /> Add a photo
+              <ImageIcon size={18} /> {t('createStory.addPhoto')}
             </button>
           )}
         </div>
@@ -123,19 +125,19 @@ function CreateStoryModal({ clientId, onClose, onCreated }) {
             style={{ ...styles.visBtn, ...(visibility === 'group' ? styles.visBtnActive : {}) }}
             onClick={() => setVisibility('group')}
           >
-            <Users size={15} /> Share with members
+            <Users size={15} /> {t('createStory.visibilityGroup')}
           </button>
           <button
             style={{ ...styles.visBtn, ...(visibility === 'coach' ? styles.visBtnActive : {}) }}
             onClick={() => setVisibility('coach')}
           >
-            <Lock size={15} /> Only my coach
+            <Lock size={15} /> {t('createStory.visibilityCoach')}
           </button>
         </div>
         <div style={styles.visHint}>
           {visibility === 'group'
-            ? 'Your coach and the other people they coach will see this for 24 hours.'
-            : 'Only your coach will see this. It still disappears after 24 hours.'}
+            ? t('createStory.visHintGroup')
+            : t('createStory.visHintCoach')}
         </div>
 
         {error && <div style={styles.error}>{error}</div>}
@@ -145,7 +147,7 @@ function CreateStoryModal({ clientId, onClose, onCreated }) {
           onClick={handleSubmit}
           disabled={!canSubmit}
         >
-          {submitting ? <Loader2 size={18} className="spin" /> : 'Share story'}
+          {submitting ? <Loader2 size={18} className="spin" /> : t('createStory.shareStory')}
         </button>
       </div>
     </div>,

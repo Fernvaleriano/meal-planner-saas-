@@ -4,6 +4,7 @@ import { BrowserRouter } from 'react-router-dom';
 import App from './App';
 import { AuthProvider } from './context/AuthContext';
 import { BrandingProvider } from './context/BrandingContext';
+import { LanguageProvider } from './context/LanguageContext';
 import { ToastProvider } from './components/Toast';
 import ErrorBoundary from './components/ErrorBoundary';
 import { initSentry } from './utils/sentry';
@@ -30,13 +31,15 @@ ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <BrowserRouter basename="/app">
       <ErrorBoundary>
-        <AuthProvider>
-          <BrandingProvider>
-            <ToastProvider>
-              <App />
-            </ToastProvider>
-          </BrandingProvider>
-        </AuthProvider>
+        <LanguageProvider>
+          <AuthProvider>
+            <BrandingProvider>
+              <ToastProvider>
+                <App />
+              </ToastProvider>
+            </BrandingProvider>
+          </AuthProvider>
+        </LanguageProvider>
       </ErrorBoundary>
     </BrowserRouter>
   </React.StrictMode>

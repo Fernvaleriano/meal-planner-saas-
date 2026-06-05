@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { ChevronLeft, ChevronRight, Calendar, Flame, Target, Clock, Utensils, Coffee, Sun, Moon, Apple, Heart, ClipboardList, RefreshCw, Pencil, Crosshair, BookOpen, X, Plus, Minus, Trash2, Search, Undo2, RotateCcw, ShoppingCart, ChefHat, FileDown, Check, MessageSquare, Mic, MoreHorizontal } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 import { apiGet, apiPost } from '../utils/api';
 import { usePullToRefresh, PullToRefreshIndicator } from '../hooks/usePullToRefresh';
 import { onAppResume } from '../hooks/useAppLifecycle';
@@ -53,7 +54,8 @@ const stripMealPrefix = (str) => {
 // Returns ingredient list as the display name for a meal card.
 // If ingredients exist, joins them as a comma-separated string.
 // Falls back to meal.name if no ingredients are available.
-const getMealDisplayName = (meal) => {
+// Pass a translated fallback string (e.g. t('plansPage.mealFallbackName')) as the second arg.
+const getMealDisplayName = (meal, fallback = 'Meal') => {
   if (meal.ingredients && Array.isArray(meal.ingredients) && meal.ingredients.length > 0) {
     const joined = meal.ingredients.map(ing => {
       if (typeof ing === 'string') return ing;
@@ -61,9 +63,9 @@ const getMealDisplayName = (meal) => {
       const name = ing.name || ing.food || '';
       return amount ? `${name} (${amount})` : name;
     }).join(', ');
-    return stripMealPrefix(joined) || 'Meal';
+    return stripMealPrefix(joined) || fallback;
   }
-  return stripMealPrefix(meal.name || meal.title || '') || 'Meal';
+  return stripMealPrefix(meal.name || meal.title || '') || fallback;
 };
 
 // Get today's date in local timezone (NOT UTC)
@@ -77,6 +79,7 @@ const getLocalDateString = () => {
 
 function Plans() {
   const { clientData } = useAuth();
+  const { t } = useLanguage();
   const location = useLocation();
   const navigate = useNavigate();
   const { showError, showSuccess } = useToast();
@@ -475,9 +478,9 @@ function Plans() {
     }
 
     const goalLabels = {
-      'lose weight': 'Lose Weight',
-      'maintain': 'Maintain',
-      'gain muscle': 'Gain Muscle'
+      'lose weight': t('plansPage.goalLoseWeight'),
+      'maintain': t('plansPage.goalMaintain'),
+      'gain muscle': t('plansPage.goalGainMuscle')
     };
     const goal = planData.goal ? (goalLabels[planData.goal.toLowerCase()] || planData.goal) : '-';
     const summary = planData.summary || null;
@@ -546,27 +549,27 @@ function Plans() {
     const diffMonth = Math.round(diffDay / 30);
     const diffYear = Math.round(diffDay / 365);
 
-    if (diffSec < 60) return 'Just now';
-    if (diffMin < 60) return `${diffMin}m ago`;
-    if (diffHr < 24) return `${diffHr}h ago`;
-    if (diffDay < 7) return diffDay === 1 ? 'Yesterday' : `${diffDay}d ago`;
-    if (diffWeek < 5) return diffWeek === 1 ? '1 week ago' : `${diffWeek} weeks ago`;
-    if (diffMonth < 12) return diffMonth === 1 ? '1 month ago' : `${diffMonth} months ago`;
-    return diffYear === 1 ? '1 year ago' : `${diffYear} years ago`;
+    if (diffSec < 60) return t('plansPage.relativeJustNow');
+    if (diffMin < 60) return t('plansPage.relativeMinAgo', { n: diffMin });
+    if (diffHr < 24) return t('plansPage.relativeHrAgo', { n: diffHr });
+    if (diffDay < 7) return diffDay === 1 ? t('plansPage.relativeYesterday') : t('plansPage.relativeDaysAgo', { n: diffDay });
+    if (diffWeek < 5) return diffWeek === 1 ? t('plansPage.relativeOneWeekAgo') : t('plansPage.relativeWeeksAgo', { n: diffWeek });
+    if (diffMonth < 12) return diffMonth === 1 ? t('plansPage.relativeOneMonthAgo') : t('plansPage.relativeMonthsAgo', { n: diffMonth });
+    return diffYear === 1 ? t('plansPage.relativeOneYearAgo') : t('plansPage.relativeYearsAgo', { n: diffYear });
   };
 
   // Infer descriptive tags from plan name + summary keywords.
   const getPlanTags = (plan, details) => {
     const haystack = `${details.planName || ''} ${details.summary || ''}`.toLowerCase();
     const tags = [];
-    if (/no[\s-]?cook/.test(haystack)) tags.push('No-Cook');
-    if (/high[\s-]?protein|protein[\s-]?focused/.test(haystack)) tags.push('High-Protein');
-    if (/vegan/.test(haystack)) tags.push('Vegan');
-    else if (/vegetarian/.test(haystack)) tags.push('Vegetarian');
-    if (/keto|low[\s-]?carb/.test(haystack)) tags.push('Low-Carb');
-    if (/mediterranean/.test(haystack)) tags.push('Mediterranean');
-    if (/gluten[\s-]?free/.test(haystack)) tags.push('Gluten-Free');
-    if (/dairy[\s-]?free/.test(haystack)) tags.push('Dairy-Free');
+    if (/no[\s-]?cook/.test(haystack)) tags.push(t('plansPage.tagNoCook'));
+    if (/high[\s-]?protein|protein[\s-]?focused/.test(haystack)) tags.push(t('plansPage.tagHighProtein'));
+    if (/vegan/.test(haystack)) tags.push(t('plansPage.tagVegan'));
+    else if (/vegetarian/.test(haystack)) tags.push(t('plansPage.tagVegetarian'));
+    if (/keto|low[\s-]?carb/.test(haystack)) tags.push(t('plansPage.tagLowCarb'));
+    if (/mediterranean/.test(haystack)) tags.push(t('plansPage.tagMediterranean'));
+    if (/gluten[\s-]?free/.test(haystack)) tags.push(t('plansPage.tagGlutenFree'));
+    if (/dairy[\s-]?free/.test(haystack)) tags.push(t('plansPage.tagDairyFree'));
     return tags;
   };
 
@@ -662,7 +665,7 @@ function Plans() {
           return newSet;
         });
       }
-      showError('Failed to update favorite');
+      showError(t('plansPage.errorToggleFavorite'));
     }
   };
 
@@ -707,10 +710,10 @@ function Plans() {
       setShowLogConfirm(false);
       setMealToLog(null);
       closeMealModal();
-      showSuccess('✅ Meal logged to diary!');
+      showSuccess(t('plansPage.successLogMeal'));
     } catch (err) {
       console.error('Error logging meal:', err);
-      showError('Failed to log meal');
+      showError(t('plansPage.errorLogMeal'));
     } finally {
       setActionLoading(null);
     }
@@ -848,7 +851,7 @@ Return ONLY valid JSON:
 
     } catch (err) {
       console.error('Change meal error:', err);
-      showError('Failed to change meal. Please try again.');
+      showError(t('plansPage.errorChangeMeal'));
     } finally {
       setProcessingMeal(null);
     }
@@ -986,7 +989,7 @@ Return ONLY valid JSON:
 
     } catch (err) {
       console.error('Revise meal error:', err);
-      showError('Failed to revise meal. Please try again.');
+      showError(t('plansPage.errorReviseMeal'));
     } finally {
       setProcessingMeal(null);
     }
@@ -1272,7 +1275,7 @@ Return ONLY valid JSON:
   // Submit calculated meal (from Calculate tab)
   const handleSubmitCalculatedMeal = async () => {
     if (selectedIngredients.length === 0) {
-      showError('Please add some ingredients first');
+      showError(t('plansPage.errorNoIngredients'));
       return;
     }
 
@@ -1332,7 +1335,7 @@ Return ONLY valid JSON:
   // Submit manual meal (from Manual tab)
   const handleSubmitManualMeal = async () => {
     if (!customMealData.name || !customMealData.calories) {
-      showError('Please enter at least a name and calories');
+      showError(t('plansPage.errorNoNameOrCalories'));
       return;
     }
 
@@ -1426,7 +1429,7 @@ Return ONLY valid JSON:
       setUndoData(null);
     } catch (err) {
       console.error('Undo error:', err);
-      showError('Failed to undo. Please try again.');
+      showError(t('plansPage.errorUndoMeal'));
     }
   };
 
@@ -1454,10 +1457,10 @@ Return ONLY valid JSON:
       // Reload images for the reverted plan
       loadMealImagesForPlan(updatedPlan);
 
-      showSuccess('✅ Plan reverted to original!');
+      showSuccess(t('plansPage.successRevertPlan'));
     } catch (err) {
       console.error('Revert error:', err);
-      showError('Failed to revert. Please try again.');
+      showError(t('plansPage.errorRevertPlan'));
     }
   };
 
@@ -1471,15 +1474,15 @@ Return ONLY valid JSON:
     // Categories for common ingredients
     const categorize = (ingredient) => {
       const ing = ingredient.toLowerCase();
-      if (ing.includes('chicken') || ing.includes('beef') || ing.includes('pork') || ing.includes('fish') || ing.includes('salmon') || ing.includes('shrimp') || ing.includes('turkey') || ing.includes('lamb') || ing.includes('steak')) return 'Proteins';
-      if (ing.includes('milk') || ing.includes('cheese') || ing.includes('yogurt') || ing.includes('butter') || ing.includes('cream') || ing.includes('egg')) return 'Dairy & Eggs';
-      if (ing.includes('rice') || ing.includes('pasta') || ing.includes('bread') || ing.includes('oat') || ing.includes('flour') || ing.includes('quinoa') || ing.includes('cereal')) return 'Grains & Pasta';
-      if (ing.includes('apple') || ing.includes('banana') || ing.includes('orange') || ing.includes('berry') || ing.includes('fruit') || ing.includes('lemon') || ing.includes('lime') || ing.includes('avocado')) return 'Fruits';
-      if (ing.includes('vegetable') || ing.includes('broccoli') || ing.includes('spinach') || ing.includes('carrot') || ing.includes('onion') || ing.includes('garlic') || ing.includes('tomato') || ing.includes('pepper') || ing.includes('lettuce') || ing.includes('cucumber') || ing.includes('zucchini') || ing.includes('celery') || ing.includes('potato') || ing.includes('sweet potato')) return 'Vegetables';
-      if (ing.includes('oil') || ing.includes('vinegar') || ing.includes('sauce') || ing.includes('dressing') || ing.includes('ketchup') || ing.includes('mustard') || ing.includes('mayo')) return 'Condiments & Oils';
-      if (ing.includes('salt') || ing.includes('pepper') || ing.includes('spice') || ing.includes('herb') || ing.includes('basil') || ing.includes('oregano') || ing.includes('cinnamon') || ing.includes('paprika')) return 'Spices & Seasonings';
-      if (ing.includes('almond') || ing.includes('peanut') || ing.includes('walnut') || ing.includes('nut') || ing.includes('seed')) return 'Nuts & Seeds';
-      return 'Other';
+      if (ing.includes('chicken') || ing.includes('beef') || ing.includes('pork') || ing.includes('fish') || ing.includes('salmon') || ing.includes('shrimp') || ing.includes('turkey') || ing.includes('lamb') || ing.includes('steak')) return t('plansPage.groceryCategoryProteins');
+      if (ing.includes('milk') || ing.includes('cheese') || ing.includes('yogurt') || ing.includes('butter') || ing.includes('cream') || ing.includes('egg')) return t('plansPage.groceryCategoryDairyEggs');
+      if (ing.includes('rice') || ing.includes('pasta') || ing.includes('bread') || ing.includes('oat') || ing.includes('flour') || ing.includes('quinoa') || ing.includes('cereal')) return t('plansPage.groceryCategoryGrainsPasta');
+      if (ing.includes('apple') || ing.includes('banana') || ing.includes('orange') || ing.includes('berry') || ing.includes('fruit') || ing.includes('lemon') || ing.includes('lime') || ing.includes('avocado')) return t('plansPage.groceryCategoryFruits');
+      if (ing.includes('vegetable') || ing.includes('broccoli') || ing.includes('spinach') || ing.includes('carrot') || ing.includes('onion') || ing.includes('garlic') || ing.includes('tomato') || ing.includes('pepper') || ing.includes('lettuce') || ing.includes('cucumber') || ing.includes('zucchini') || ing.includes('celery') || ing.includes('potato') || ing.includes('sweet potato')) return t('plansPage.groceryCategoryVegetables');
+      if (ing.includes('oil') || ing.includes('vinegar') || ing.includes('sauce') || ing.includes('dressing') || ing.includes('ketchup') || ing.includes('mustard') || ing.includes('mayo')) return t('plansPage.groceryCategoryCondimentsOils');
+      if (ing.includes('salt') || ing.includes('pepper') || ing.includes('spice') || ing.includes('herb') || ing.includes('basil') || ing.includes('oregano') || ing.includes('cinnamon') || ing.includes('paprika')) return t('plansPage.groceryCategorySpicesSeasonings');
+      if (ing.includes('almond') || ing.includes('peanut') || ing.includes('walnut') || ing.includes('nut') || ing.includes('seed')) return t('plansPage.groceryCategoryNutsSeeds');
+      return t('plansPage.groceryCategoryOther');
     };
 
     days.forEach(day => {
@@ -1595,11 +1598,35 @@ Keep it practical and brief. Format with clear sections.`;
     const { numDays, calories, goal } = getPlanDetails(selectedPlan);
     const groceryList = generateGroceryList();
 
+    // Resolve translated strings up-front (t() is available here in the React closure)
+    const pdfTitle = t('plansPage.defaultPlanTitle', { numDays });
+    const pdfDurationLabel = t('plansPage.pdfDuration');
+    const pdfDurationDays = t('plansPage.planCardDurationDays');
+    const pdfTargetLabel = t('plansPage.pdfTarget');
+    const pdfCalPerDay = t('plansPage.pdfCalPerDay');
+    const pdfGoalLabel = t('plansPage.pdfGoal');
+    const pdfDailyTargetsLabel = t('plansPage.pdfDailyTargets');
+    const pdfProteinUnit = t('plansPage.pdfProteinUnit');
+    const pdfCarbsUnit = t('plansPage.pdfCarbsUnit');
+    const pdfFatUnit = t('plansPage.pdfFatUnit');
+    const pdfMealFallback = t('plansPage.mealFallbackName');
+    const pdfCalLabel = t('plansPage.pdfCalLabel');
+    const pdfProteinLabel = t('plansPage.pdfProteinLabel');
+    const pdfCarbsLabel = t('plansPage.pdfCarbsLabel');
+    const pdfFatLabel = t('plansPage.pdfFatLabel');
+    const pdfFiberLabel = t('plansPage.pdfFiberLabel');
+    const pdfIngredientsLabel = t('plansPage.legacyIngredients');
+    const pdfInstructionsLabel = t('plansPage.legacyInstructions');
+    const pdfGroceryHeading = t('plansPage.pdfGroceryHeading');
+    const pdfGrocerySubheading = t('plansPage.pdfGrocerySubheading');
+    const pdfMealPrepHeading = t('plansPage.pdfMealPrepHeading');
+    const pdfFooter = t('plansPage.pdfFooter');
+
     // Create printable content
     let content = `
       <html>
       <head>
-        <title>${numDays}-Day Meal Plan</title>
+        <title>${pdfTitle}</title>
         <style>
           body { font-family: Arial, sans-serif; padding: 20px; max-width: 800px; margin: 0 auto; }
           h1 { color: #333; border-bottom: 2px solid #4f46e5; padding-bottom: 10px; }
@@ -1628,36 +1655,36 @@ Keep it practical and brief. Format with clear sections.`;
         </style>
       </head>
       <body>
-        <h1>🍽️ ${numDays}-Day Meal Plan</h1>
+        <h1>🍽️ ${pdfTitle}</h1>
         <div class="summary">
-          <div class="summary-item"><strong>Duration:</strong> ${numDays} Days</div>
-          <div class="summary-item"><strong>Target:</strong> ${calories} cal/day</div>
-          <div class="summary-item"><strong>Goal:</strong> ${goal}</div>
+          <div class="summary-item"><strong>${pdfDurationLabel}:</strong> ${numDays} ${pdfDurationDays}</div>
+          <div class="summary-item"><strong>${pdfTargetLabel}:</strong> ${calories} ${pdfCalPerDay}</div>
+          <div class="summary-item"><strong>${pdfGoalLabel}:</strong> ${goal}</div>
         </div>
     `;
 
     // Add meal days
     days.forEach((day, idx) => {
-      content += `<h2>Day ${idx + 1}</h2>`;
+      content += `<h2>${t('plansPage.dayLabel', { n: idx + 1 })}</h2>`;
 
       if (day.targets) {
-        content += `<p><em>Daily Targets: ${day.targets.calories} cal | ${day.targets.protein}g protein | ${day.targets.carbs}g carbs | ${day.targets.fat}g fat</em></p>`;
+        content += `<p><em>${pdfDailyTargetsLabel}: ${day.targets.calories} ${pdfCalLabel} | ${day.targets.protein}g ${pdfProteinUnit} | ${day.targets.carbs}g ${pdfCarbsUnit} | ${day.targets.fat}g ${pdfFatUnit}</em></p>`;
       }
 
       (day.plan || []).forEach(meal => {
         content += `
           <div class="meal">
-            <div class="meal-name">${meal.type || meal.meal_type || 'Meal'}: ${getMealDisplayName(meal)}</div>
-            <div class="meal-macros">${meal.calories || 0} cal | P: ${meal.protein || 0}g | C: ${meal.carbs || 0}g | F: ${meal.fat || 0}g${meal.fiber > 0 ? ` | Fiber: ${meal.fiber}g` : ''}</div>
+            <div class="meal-name">${meal.type || meal.meal_type || pdfMealFallback}: ${getMealDisplayName(meal)}</div>
+            <div class="meal-macros">${meal.calories || 0} ${pdfCalLabel} | ${pdfProteinLabel}: ${meal.protein || 0}g | ${pdfCarbsLabel}: ${meal.carbs || 0}g | ${pdfFatLabel}: ${meal.fat || 0}g${meal.fiber > 0 ? ` | ${pdfFiberLabel}: ${meal.fiber}g` : ''}</div>
             ${meal.ingredients?.length ? `
               <div class="ingredients">
-                <strong>Ingredients:</strong>
+                <strong>${pdfIngredientsLabel}:</strong>
                 <ul>
                   ${meal.ingredients.map(ing => `<li>${typeof ing === 'string' ? ing : `${ing.amount || ''} ${ing.name || ing}`}</li>`).join('')}
                 </ul>
               </div>
             ` : ''}
-            ${meal.instructions ? `<p><strong>Instructions:</strong> ${meal.instructions}</p>` : ''}
+            ${meal.instructions ? `<p><strong>${pdfInstructionsLabel}:</strong> ${meal.instructions}</p>` : ''}
           </div>
         `;
       });
@@ -1667,8 +1694,8 @@ Keep it practical and brief. Format with clear sections.`;
     if (Object.keys(groceryList).length > 0) {
       content += `
         <div class="grocery-section">
-          <h2>🛒 Grocery List</h2>
-          <p><em>Check off items as you shop</em></p>
+          <h2>🛒 ${pdfGroceryHeading}</h2>
+          <p><em>${pdfGrocerySubheading}</em></p>
       `;
 
       Object.entries(groceryList).forEach(([category, items]) => {
@@ -1690,7 +1717,7 @@ Keep it practical and brief. Format with clear sections.`;
       const cleanedGuide = cleanMealPrepText(mealPrepGuide);
       content += `
         <div class="meal-prep-section">
-          <h2>👨‍🍳 Meal Prep Guide</h2>
+          <h2>👨‍🍳 ${pdfMealPrepHeading}</h2>
           <div class="meal-prep-content">
             ${cleanedGuide.split('\n').filter(line => line.trim()).map(line => `<p>${line}</p>`).join('')}
           </div>
@@ -1699,7 +1726,7 @@ Keep it practical and brief. Format with clear sections.`;
     }
 
     content += `
-        <p style="margin-top: 40px; color: #999; text-align: center;">Generated by FernFit Meal Planner</p>
+        <p style="margin-top: 40px; color: #999; text-align: center;">${pdfFooter}</p>
       </body>
       </html>
     `;
@@ -1731,7 +1758,7 @@ Keep it practical and brief. Format with clear sections.`;
   if (loading) {
     return (
       <div className="plans-page">
-        <h1 className="page-title">Meal Plans</h1>
+        <h1 className="page-title">{t('plansPage.pageTitle')}</h1>
         <div className="plans-loading">
           {[1, 2].map(i => (
             <div key={i} className="skeleton plan-skeleton" />
@@ -1757,23 +1784,23 @@ Keep it practical and brief. Format with clear sections.`;
 
         {/* Header */}
         <div className="plan-detail-header">
-          <button className="back-btn" onClick={handleBackToPlans} aria-label="Back to plans">
+          <button className="back-btn" onClick={handleBackToPlans} aria-label={t('plansPage.backAriaLabel')}>
             <ChevronLeft size={22} />
           </button>
           <div className="plan-detail-title">
-            <h1 title={planName || `${numDays}-Day Meal Plan`}>
-              {planName || `${numDays}-Day Meal Plan`}
+            <h1 title={planName || t('plansPage.defaultPlanTitle', { numDays })}>
+              {planName || t('plansPage.defaultPlanTitle', { numDays })}
             </h1>
             <div className="plan-detail-meta">
               <span>{formatDate(selectedPlan.created_at)}</span>
               {numDays > 1 && (
                 <>
                   <span className="plan-meta-dot">·</span>
-                  <span>{numDays} days</span>
+                  <span>{t('plansPage.dayCountLabel', { n: numDays })}</span>
                 </>
               )}
               <span className="plan-meta-dot">·</span>
-              <span>{calories === '-' ? '— cal' : `${Number(calories).toLocaleString()} cal`}</span>
+              <span>{calories === '-' ? t('plansPage.calDash') : `${Number(calories).toLocaleString()} ${t('plansPage.calSuffix')}`}</span>
               {goal && goal !== '-' && (
                 <>
                   <span className="plan-meta-dot">·</span>
@@ -1789,7 +1816,7 @@ Keep it practical and brief. Format with clear sections.`;
           <div className="coach-notes-section">
             <div className="coach-notes-header">
               <MessageSquare size={20} />
-              <h3>Message from Your Coach</h3>
+              <h3>{t('plansPage.coachMessageHeading')}</h3>
             </div>
             <p className="coach-notes-content">{selectedPlan.coach_notes}</p>
           </div>
@@ -1812,7 +1839,7 @@ Keep it practical and brief. Format with clear sections.`;
                   className={`day-tab ${selectedDay === idx ? 'active' : ''}`}
                   onClick={() => setSelectedDay(idx)}
                 >
-                  Day {idx + 1}
+                  {t('plansPage.dayLabel', { n: idx + 1 })}
                 </button>
               ))}
             </div>
@@ -1828,7 +1855,7 @@ Keep it practical and brief. Format with clear sections.`;
 
         {/* Day Content */}
         <div className="day-content">
-          <h2 className="day-title">Day {selectedDay + 1}</h2>
+          <h2 className="day-title">{t('plansPage.dayLabel', { n: selectedDay + 1 })}</h2>
 
           {/* Daily Totals - calculated from actual meals, with progress vs target if available */}
           {currentDay.plan && Array.isArray(currentDay.plan) && (() => {
@@ -1870,14 +1897,14 @@ Keep it practical and brief. Format with clear sections.`;
             return (
               <div className="daily-targets-card">
                 <div className="daily-targets-header">
-                  <h3 className="daily-targets-title">Daily Totals</h3>
+                  <h3 className="daily-targets-title">{t('plansPage.dailyTotalsHeading')}</h3>
                   <span className="daily-targets-cal">
                     <Flame size={14} />
                     {Number(totals.calories).toLocaleString()}
                     {targets.calories > 0 && (
                       <span className="daily-targets-cal-target"> / {Number(targets.calories).toLocaleString()}</span>
                     )}
-                    {' cal'}
+                    {' '}{t('plansPage.calSuffix')}
                   </span>
                 </div>
                 {calPct !== null && (
@@ -1886,9 +1913,9 @@ Keep it practical and brief. Format with clear sections.`;
                   </div>
                 )}
                 <div className="daily-targets-grid">
-                  {renderBox('protein', totals.protein, targets.protein || 0, 'Protein')}
-                  {renderBox('carbs', totals.carbs, targets.carbs || 0, 'Carbs')}
-                  {renderBox('fat', totals.fat, targets.fat || 0, 'Fat')}
+                  {renderBox('protein', totals.protein, targets.protein || 0, t('plansPage.macroProtein'))}
+                  {renderBox('carbs', totals.carbs, targets.carbs || 0, t('plansPage.macroCarbs'))}
+                  {renderBox('fat', totals.fat, targets.fat || 0, t('plansPage.macroFat'))}
                 </div>
               </div>
             );
@@ -1910,7 +1937,7 @@ Keep it practical and brief. Format with clear sections.`;
                     {isProcessing && (
                       <div className="meal-processing-overlay">
                         <div className="meal-processing-spinner" />
-                        <span>{processingMeal.action === 'change' ? 'Generating new meal...' : 'Revising meal...'}</span>
+                        <span>{processingMeal.action === 'change' ? t('plansPage.processingChange') : t('plansPage.processingRevise')}</span>
                       </div>
                     )}
 
@@ -1926,17 +1953,17 @@ Keep it practical and brief. Format with clear sections.`;
                     <div className="meal-card-content">
                       <div className="meal-card-header">
                         {getMealIcon(meal.meal_type || meal.type)}
-                        <span className="meal-card-type">{meal.meal_type || meal.type || `Meal ${idx + 1}`}</span>
+                        <span className="meal-card-type">{meal.meal_type || meal.type || t('plansPage.mealFallbackType', { n: idx + 1 })}</span>
                       </div>
-                      <h3 className="meal-card-name">{getMealDisplayName(meal)}</h3>
+                      <h3 className="meal-card-name">{getMealDisplayName(meal, t('plansPage.mealFallbackName'))}</h3>
 
                       {/* Macros inline */}
                       <div className="meal-macros-inline">
-                        {meal.calories && <span className="macro-item">{meal.calories} cal</span>}
+                        {meal.calories && <span className="macro-item">{meal.calories} {t('plansPage.calSuffix')}</span>}
                         {meal.protein && <span className="macro-item">P: {meal.protein}g</span>}
                         {meal.carbs && <span className="macro-item">C: {meal.carbs}g</span>}
                         {meal.fat && <span className="macro-item">F: {meal.fat}g</span>}
-                        {meal.fiber > 0 && <span className="macro-item">Fiber: {meal.fiber}g</span>}
+                        {meal.fiber > 0 && <span className="macro-item">{t('plansPage.fiberInline')} {meal.fiber}g</span>}
                       </div>
 
                       {/* Coach Note */}
@@ -1944,7 +1971,7 @@ Keep it practical and brief. Format with clear sections.`;
                         <div className="meal-coach-note">
                           <span className="meal-coach-note-label">
                             <Pencil size={12} />
-                            Coach note
+                            {t('plansPage.coachNoteLabel')}
                           </span>
                           <span className="meal-coach-note-text">{meal.coach_note}</span>
                         </div>
@@ -1958,7 +1985,7 @@ Keep it practical and brief. Format with clear sections.`;
                         >
                           <span className="meal-voice-note-label">
                             <Mic size={12} />
-                            Voice note from your coach
+                            {t('plansPage.voiceNoteLabel')}
                           </span>
                           <VoiceNotePlayer
                             src={getVoiceNoteProxyUrl(meal)}
@@ -1977,9 +2004,9 @@ Keep it practical and brief. Format with clear sections.`;
                           if (!isProcessing) openMealModal(meal, selectedDay, idx);
                         }}
                         tabIndex={-1}
-                        aria-label="Open meal options"
+                        aria-label={t('plansPage.mealCardDetailsAriaLabel')}
                       >
-                        <span>Details</span>
+                        <span>{t('plansPage.mealCardDetails')}</span>
                         <ChevronRight size={16} />
                       </button>
                     </div>
@@ -1999,13 +2026,13 @@ Keep it practical and brief. Format with clear sections.`;
                         <span className="meal-card-calories">{meal.calories} cal</span>
                       )}
                     </div>
-                    <h3 className="meal-card-name">{getMealDisplayName(meal)}</h3>
+                    <h3 className="meal-card-name">{getMealDisplayName(meal, t('plansPage.mealFallbackName'))}</h3>
                     {meal.description && (
                       <p className="meal-card-description">{meal.description}</p>
                     )}
                     {meal.ingredients && meal.ingredients.length > 0 && (
                       <div className="meal-ingredients">
-                        <h4>Ingredients</h4>
+                        <h4>{t('plansPage.legacyIngredients')}</h4>
                         <ul>
                           {meal.ingredients.map((ing, idx) => (
                             <li key={idx}>{typeof ing === 'string' ? ing : `${ing.amount || ''} ${ing.name || ing}`}</li>
@@ -2015,7 +2042,7 @@ Keep it practical and brief. Format with clear sections.`;
                     )}
                     {meal.instructions && (
                       <div className="meal-instructions">
-                        <h4>Instructions</h4>
+                        <h4>{t('plansPage.legacyInstructions')}</h4>
                         <p>{meal.instructions}</p>
                       </div>
                     )}
@@ -2037,9 +2064,9 @@ Keep it practical and brief. Format with clear sections.`;
                   <div className="meal-card-content">
                     <div className="meal-card-header">
                       <Coffee size={18} className="meal-type-icon breakfast" />
-                      <span className="meal-card-type">Breakfast</span>
+                      <span className="meal-card-type">{t('plansPage.legacyBreakfast')}</span>
                     </div>
-                    <h3 className="meal-card-name">{typeof currentDay.breakfast === 'object' ? getMealDisplayName(currentDay.breakfast) : currentDay.breakfast}</h3>
+                    <h3 className="meal-card-name">{typeof currentDay.breakfast === 'object' ? getMealDisplayName(currentDay.breakfast, t('plansPage.mealFallbackName')) : currentDay.breakfast}</h3>
                     {currentDay.breakfast.description && <p className="meal-card-description">{currentDay.breakfast.description}</p>}
                   </div>
                 </div>
@@ -2049,9 +2076,9 @@ Keep it practical and brief. Format with clear sections.`;
                   <div className="meal-card-content">
                     <div className="meal-card-header">
                       <Sun size={18} className="meal-type-icon lunch" />
-                      <span className="meal-card-type">Lunch</span>
+                      <span className="meal-card-type">{t('plansPage.legacyLunch')}</span>
                     </div>
-                    <h3 className="meal-card-name">{typeof currentDay.lunch === 'object' ? getMealDisplayName(currentDay.lunch) : currentDay.lunch}</h3>
+                    <h3 className="meal-card-name">{typeof currentDay.lunch === 'object' ? getMealDisplayName(currentDay.lunch, t('plansPage.mealFallbackName')) : currentDay.lunch}</h3>
                     {currentDay.lunch.description && <p className="meal-card-description">{currentDay.lunch.description}</p>}
                   </div>
                 </div>
@@ -2061,9 +2088,9 @@ Keep it practical and brief. Format with clear sections.`;
                   <div className="meal-card-content">
                     <div className="meal-card-header">
                       <Moon size={18} className="meal-type-icon dinner" />
-                      <span className="meal-card-type">Dinner</span>
+                      <span className="meal-card-type">{t('plansPage.legacyDinner')}</span>
                     </div>
-                    <h3 className="meal-card-name">{typeof currentDay.dinner === 'object' ? getMealDisplayName(currentDay.dinner) : currentDay.dinner}</h3>
+                    <h3 className="meal-card-name">{typeof currentDay.dinner === 'object' ? getMealDisplayName(currentDay.dinner, t('plansPage.mealFallbackName')) : currentDay.dinner}</h3>
                     {currentDay.dinner.description && <p className="meal-card-description">{currentDay.dinner.description}</p>}
                   </div>
                 </div>
@@ -2073,12 +2100,12 @@ Keep it practical and brief. Format with clear sections.`;
                   <div className="meal-card-content">
                     <div className="meal-card-header">
                       <Apple size={18} className="meal-type-icon snack" />
-                      <span className="meal-card-type">Snacks</span>
+                      <span className="meal-card-type">{t('plansPage.legacySnacks')}</span>
                     </div>
                     <h3 className="meal-card-name">
                       {Array.isArray(currentDay.snacks)
-                        ? currentDay.snacks.map(s => typeof s === 'object' ? getMealDisplayName(s) : s).join(', ')
-                        : typeof currentDay.snacks === 'object' ? getMealDisplayName(currentDay.snacks) : currentDay.snacks
+                        ? currentDay.snacks.map(s => typeof s === 'object' ? getMealDisplayName(s, t('plansPage.mealFallbackName')) : s).join(', ')
+                        : typeof currentDay.snacks === 'object' ? getMealDisplayName(currentDay.snacks, t('plansPage.mealFallbackName')) : currentDay.snacks
                       }
                     </h3>
                   </div>
@@ -2087,7 +2114,7 @@ Keep it practical and brief. Format with clear sections.`;
             </div>
           ) : (
             <div className="empty-day">
-              <p>No meals found for this day</p>
+              <p>{t('plansPage.noMealsForDay')}</p>
             </div>
           )}
         </div>
@@ -2097,21 +2124,21 @@ Keep it practical and brief. Format with clear sections.`;
           <div className="plan-action-primary">
             <button className="plan-action-btn primary" onClick={() => setShowGroceryModal(true)}>
               <ShoppingCart size={18} />
-              <span>Grocery List</span>
+              <span>{t('plansPage.groceryListBtn')}</span>
             </button>
             <button className="plan-action-btn primary" onClick={handleMealPrep}>
               <ChefHat size={18} />
-              <span>Meal Prep</span>
+              <span>{t('plansPage.mealPrepBtn')}</span>
             </button>
           </div>
           <div className="plan-action-secondary">
             <button className="plan-action-btn secondary" onClick={handleDownloadPDF}>
               <FileDown size={16} />
-              <span>Download PDF</span>
+              <span>{t('plansPage.downloadPdfBtn')}</span>
             </button>
             <button className="plan-action-btn secondary revert" onClick={handleRevertToOriginal}>
               <RotateCcw size={16} />
-              <span>Revert to original</span>
+              <span>{t('plansPage.revertBtn')}</span>
             </button>
           </div>
         </div>
@@ -2120,7 +2147,7 @@ Keep it practical and brief. Format with clear sections.`;
         {undoData && (
           <button className="floating-undo-btn" onClick={handleUndoMeal}>
             <Undo2 size={20} />
-            <span>Undo {undoData.action === 'change' ? 'Change' : 'Revision'}</span>
+            <span>{undoData.action === 'change' ? t('plansPage.undoChange') : t('plansPage.undoRevision')}</span>
           </button>
         )}
 
@@ -2128,8 +2155,8 @@ Keep it practical and brief. Format with clear sections.`;
         {showLogConfirm && mealToLog && (
           <div className="log-confirm-overlay" onClick={cancelLogMeal}>
             <div className="confirm-modal" onClick={e => e.stopPropagation()}>
-              <h3>Log to Diary?</h3>
-              <p>Add <strong>{mealToLog.name}</strong> to your food diary for today?</p>
+              <h3>{t('plansPage.logToDiaryHeading')}</h3>
+              <p>{t('plansPage.logToDiaryBody', { name: mealToLog.name })}</p>
               <div className="confirm-macros">
                 <span>{mealToLog.calories || 0} cal</span>
                 <span>P: {mealToLog.protein || 0}g</span>
@@ -2137,13 +2164,13 @@ Keep it practical and brief. Format with clear sections.`;
                 <span>F: {mealToLog.fat || 0}g</span>
               </div>
               <div className="confirm-buttons">
-                <button className="confirm-btn cancel" onClick={cancelLogMeal}>Cancel</button>
+                <button className="confirm-btn cancel" onClick={cancelLogMeal}>{t('plansPage.logCancel')}</button>
                 <button
                   className="confirm-btn confirm"
                   onClick={confirmLogMeal}
                   disabled={actionLoading === 'log'}
                 >
-                  {actionLoading === 'log' ? 'Logging...' : 'Yes, Log It'}
+                  {actionLoading === 'log' ? t('plansPage.logConfirmLoading') : t('plansPage.logConfirm')}
                 </button>
               </div>
             </div>
@@ -2155,14 +2182,14 @@ Keep it practical and brief. Format with clear sections.`;
           <div className="meal-modal-overlay" onClick={() => setShowGroceryModal(false)}>
             <div className="grocery-modal" onClick={e => e.stopPropagation()}>
               <div className="grocery-header">
-                <h2><ShoppingCart size={24} /> Grocery List</h2>
+                <h2><ShoppingCart size={24} /> {t('plansPage.groceryModalHeading')}</h2>
                 <button className="meal-modal-close" onClick={() => setShowGroceryModal(false)}>
                   <X size={24} />
                 </button>
               </div>
               <div className="grocery-content">
                 {Object.entries(generateGroceryList()).length === 0 ? (
-                  <p className="empty-grocery">No ingredients found in this meal plan.</p>
+                  <p className="empty-grocery">{t('plansPage.groceryEmpty')}</p>
                 ) : (
                   Object.entries(generateGroceryList()).map(([category, items]) => (
                     <div key={category} className="grocery-category">
@@ -2198,7 +2225,7 @@ Keep it practical and brief. Format with clear sections.`;
           <div className="meal-modal-overlay" onClick={() => setShowMealPrepModal(false)}>
             <div className="meal-prep-modal" onClick={e => e.stopPropagation()}>
               <div className="meal-prep-header">
-                <h2><ChefHat size={24} /> Meal Prep Guide</h2>
+                <h2><ChefHat size={24} /> {t('plansPage.mealPrepModalHeading')}</h2>
                 <button className="meal-modal-close" onClick={() => setShowMealPrepModal(false)}>
                   <X size={24} />
                 </button>
@@ -2207,7 +2234,7 @@ Keep it practical and brief. Format with clear sections.`;
                 {mealPrepLoading ? (
                   <div className="meal-prep-loading">
                     <div className="meal-image-spinner"></div>
-                    <p>Generating meal prep guide...</p>
+                    <p>{t('plansPage.mealPrepLoading')}</p>
                   </div>
                 ) : mealPrepGuide ? (
                   <div className="meal-prep-guide">
@@ -2216,7 +2243,7 @@ Keep it practical and brief. Format with clear sections.`;
                     ))}
                   </div>
                 ) : (
-                  <p>Click to generate a meal prep guide for this plan.</p>
+                  <p>{t('plansPage.mealPrepEmpty')}</p>
                 )}
               </div>
             </div>
@@ -2232,7 +2259,7 @@ Keep it practical and brief. Format with clear sections.`;
                 <div className="meal-modal-image">
                   <div className="meal-image-loading">
                     <div className="meal-image-spinner"></div>
-                    <span>Loading image...</span>
+                    <span>{t('plansPage.imageLoading')}</span>
                   </div>
                 </div>
               ) : mealImageUrl ? (
@@ -2252,24 +2279,24 @@ Keep it practical and brief. Format with clear sections.`;
               <div className="meal-modal-macros">
                 <div className="meal-modal-macro">
                   <span className="macro-value">{selectedMeal.calories || 0}</span>
-                  <span className="macro-label">Cal</span>
+                  <span className="macro-label">{t('plansPage.macroLabelCal')}</span>
                 </div>
                 <div className="meal-modal-macro protein">
                   <span className="macro-value">{selectedMeal.protein || 0}g</span>
-                  <span className="macro-label">Protein</span>
+                  <span className="macro-label">{t('plansPage.macroLabelProtein')}</span>
                 </div>
                 <div className="meal-modal-macro carbs">
                   <span className="macro-value">{selectedMeal.carbs || 0}g</span>
-                  <span className="macro-label">Carbs</span>
+                  <span className="macro-label">{t('plansPage.macroLabelCarbs')}</span>
                 </div>
                 <div className="meal-modal-macro fat">
                   <span className="macro-value">{selectedMeal.fat || 0}g</span>
-                  <span className="macro-label">Fat</span>
+                  <span className="macro-label">{t('plansPage.macroLabelFat')}</span>
                 </div>
                 {selectedMeal.fiber > 0 && (
                   <div className="meal-modal-macro fiber">
                     <span className="macro-value">{selectedMeal.fiber}g</span>
-                    <span className="macro-label">Fiber</span>
+                    <span className="macro-label">{t('plansPage.macroLabelFiber')}</span>
                   </div>
                 )}
               </div>
@@ -2277,12 +2304,12 @@ Keep it practical and brief. Format with clear sections.`;
               {/* Micronutrients */}
               {(selectedMeal.sodium > 0 || selectedMeal.potassium > 0 || selectedMeal.calcium > 0 || selectedMeal.iron > 0 || selectedMeal.vitaminC > 0) && (
                 <div className="meal-modal-micros">
-                  {selectedMeal.sodium > 0 && <span className="micro-item">Sodium: {selectedMeal.sodium}mg</span>}
-                  {selectedMeal.potassium > 0 && <span className="micro-item">Potassium: {selectedMeal.potassium}mg</span>}
-                  {selectedMeal.calcium > 0 && <span className="micro-item">Calcium: {selectedMeal.calcium}mg</span>}
-                  {selectedMeal.iron > 0 && <span className="micro-item">Iron: {selectedMeal.iron}mg</span>}
-                  {selectedMeal.vitaminC > 0 && <span className="micro-item">Vit C: {selectedMeal.vitaminC}mg</span>}
-                  {selectedMeal.cholesterol > 0 && <span className="micro-item">Cholesterol: {selectedMeal.cholesterol}mg</span>}
+                  {selectedMeal.sodium > 0 && <span className="micro-item">{t('plansPage.microSodium')} {selectedMeal.sodium}mg</span>}
+                  {selectedMeal.potassium > 0 && <span className="micro-item">{t('plansPage.microPotassium')} {selectedMeal.potassium}mg</span>}
+                  {selectedMeal.calcium > 0 && <span className="micro-item">{t('plansPage.microCalcium')} {selectedMeal.calcium}mg</span>}
+                  {selectedMeal.iron > 0 && <span className="micro-item">{t('plansPage.microIron')} {selectedMeal.iron}mg</span>}
+                  {selectedMeal.vitaminC > 0 && <span className="micro-item">{t('plansPage.microVitC')} {selectedMeal.vitaminC}mg</span>}
+                  {selectedMeal.cholesterol > 0 && <span className="micro-item">{t('plansPage.microCholesterol')} {selectedMeal.cholesterol}mg</span>}
                 </div>
               )}
 
@@ -2302,7 +2329,7 @@ Keep it practical and brief. Format with clear sections.`;
                   disabled={actionLoading === 'log'}
                 >
                   <ClipboardList size={18} />
-                  <span>Log</span>
+                  <span>{t('plansPage.actionLog')}</span>
                 </button>
 
                 <button
@@ -2310,7 +2337,7 @@ Keep it practical and brief. Format with clear sections.`;
                   onClick={() => handleChangeMeal(selectedMeal)}
                 >
                   <RefreshCw size={18} />
-                  <span>Change</span>
+                  <span>{t('plansPage.actionChange')}</span>
                 </button>
 
                 <button
@@ -2318,7 +2345,7 @@ Keep it practical and brief. Format with clear sections.`;
                   onClick={() => handleReviseMeal(selectedMeal)}
                 >
                   <Pencil size={18} />
-                  <span>Revise</span>
+                  <span>{t('plansPage.actionRevise')}</span>
                 </button>
 
                 <button
@@ -2326,7 +2353,7 @@ Keep it practical and brief. Format with clear sections.`;
                   onClick={() => handleCustomMeal(selectedMeal)}
                 >
                   <Crosshair size={18} />
-                  <span>Custom</span>
+                  <span>{t('plansPage.actionCustom')}</span>
                 </button>
 
                 <button
@@ -2334,7 +2361,7 @@ Keep it practical and brief. Format with clear sections.`;
                   onClick={() => handleViewRecipe(selectedMeal)}
                 >
                   <BookOpen size={18} />
-                  <span>Recipe</span>
+                  <span>{t('plansPage.actionRecipe')}</span>
                 </button>
               </div>
 
@@ -2351,8 +2378,8 @@ Keep it practical and brief. Format with clear sections.`;
           <div className="meal-modal-overlay" onClick={closeCustomModal}>
             <div className="custom-meal-modal-full" onClick={e => e.stopPropagation()}>
               <div className="custom-meal-header">
-                <h2>🎯 Custom Meal</h2>
-                <p>Create your own meal</p>
+                <h2>🎯 {t('plansPage.customMealHeading')}</h2>
+                <p>{t('plansPage.customMealSubheading')}</p>
               </div>
 
               {/* Tabs */}
@@ -2362,28 +2389,28 @@ Keep it practical and brief. Format with clear sections.`;
                   onClick={() => setCustomMealTab('calculate')}
                 >
                   <span className="tab-icon">🧮</span>
-                  <span className="tab-label">Calculate</span>
+                  <span className="tab-label">{t('plansPage.tabCalculate')}</span>
                 </button>
                 <button
                   className={`custom-meal-tab ${customMealTab === 'manual' ? 'active' : ''}`}
                   onClick={() => setCustomMealTab('manual')}
                 >
                   <span className="tab-icon">✏️</span>
-                  <span className="tab-label">Manual</span>
+                  <span className="tab-label">{t('plansPage.tabManual')}</span>
                 </button>
                 <button
                   className={`custom-meal-tab ${customMealTab === 'saved' ? 'active' : ''}`}
                   onClick={() => { setCustomMealTab('saved'); loadSavedMeals(); }}
                 >
                   <span className="tab-icon">📚</span>
-                  <span className="tab-label">My Saved</span>
+                  <span className="tab-label">{t('plansPage.tabSaved')}</span>
                 </button>
               </div>
 
               {/* Calculate Tab */}
               {customMealTab === 'calculate' && (
                 <div className="custom-meal-panel">
-                  <p className="panel-hint">💡 Search our food database for ingredients. Add them with quantities to calculate macros.</p>
+                  <p className="panel-hint">💡 {t('plansPage.calculateHint')}</p>
 
                   {/* Food Search */}
                   <div className="food-search-container">
@@ -2392,7 +2419,7 @@ Keep it practical and brief. Format with clear sections.`;
                       <input
                         type="text"
                         className="food-search-input"
-                        placeholder="Search foods (e.g., chicken breast, rice...)"
+                        placeholder={t('plansPage.foodSearchPlaceholder')}
                         value={foodSearchQuery}
                         onChange={e => handleFoodSearch(e.target.value)}
                       />
@@ -2402,13 +2429,13 @@ Keep it practical and brief. Format with clear sections.`;
                     {(foodSearchResults.length > 0 || foodSearchLoading) && (
                       <div className="food-search-results">
                         {foodSearchLoading ? (
-                          <div className="search-loading">Searching foods...</div>
+                          <div className="search-loading">{t('plansPage.searchingFoods')}</div>
                         ) : (
                           foodSearchResults.map((food, idx) => (
                             <div key={idx} className="food-search-item" onClick={() => addIngredient(food)}>
                               <div className="food-name">{food.name}</div>
                               <div className="food-macros">
-                                Per 100g: {food.caloriesPer100g} cal | {food.proteinPer100g}g P | {food.carbsPer100g}g C | {food.fatPer100g}g F
+                                {t('plansPage.foodPer100g', { cal: food.caloriesPer100g, protein: food.proteinPer100g, carbs: food.carbsPer100g, fat: food.fatPer100g })}
                               </div>
                             </div>
                           ))
@@ -2419,9 +2446,9 @@ Keep it practical and brief. Format with clear sections.`;
 
                   {/* Selected Ingredients */}
                   <div className="ingredients-section">
-                    <h4>Selected Ingredients ({selectedIngredients.length})</h4>
+                    <h4>{t('plansPage.selectedIngredientsHeading', { count: selectedIngredients.length })}</h4>
                     {selectedIngredients.length === 0 ? (
-                      <p className="no-ingredients">No ingredients added yet</p>
+                      <p className="no-ingredients">{t('plansPage.noIngredientsYet')}</p>
                     ) : (
                       <div className="ingredients-list">
                         {selectedIngredients.map((ing, idx) => (
@@ -2466,23 +2493,23 @@ Keep it practical and brief. Format with clear sections.`;
 
                   {/* Calculated Totals */}
                   <div className="calculated-totals">
-                    <h4>📊 Calculated Totals</h4>
+                    <h4>📊 {t('plansPage.calculatedTotalsHeading')}</h4>
                     <div className="totals-grid">
                       <div className="total-item">
                         <span className="total-value">{getCalculatedTotals().calories}</span>
-                        <span className="total-label">Calories</span>
+                        <span className="total-label">{t('plansPage.totalLabelCalories')}</span>
                       </div>
                       <div className="total-item">
                         <span className="total-value">{getCalculatedTotals().protein}g</span>
-                        <span className="total-label">Protein</span>
+                        <span className="total-label">{t('plansPage.totalLabelProtein')}</span>
                       </div>
                       <div className="total-item">
                         <span className="total-value">{getCalculatedTotals().carbs}g</span>
-                        <span className="total-label">Carbs</span>
+                        <span className="total-label">{t('plansPage.totalLabelCarbs')}</span>
                       </div>
                       <div className="total-item">
                         <span className="total-value">{getCalculatedTotals().fat}g</span>
-                        <span className="total-label">Fat</span>
+                        <span className="total-label">{t('plansPage.totalLabelFat')}</span>
                       </div>
                     </div>
                   </div>
@@ -2492,7 +2519,7 @@ Keep it practical and brief. Format with clear sections.`;
                     <input
                       type="text"
                       className="custom-meal-input"
-                      placeholder={getAutoMealName() || 'Meal name (optional - auto-generated if blank)'}
+                      placeholder={getAutoMealName() || t('plansPage.mealNamePlaceholder')}
                       value={calculatedMealName}
                       onChange={e => setCalculatedMealName(e.target.value)}
                     />
@@ -2500,7 +2527,7 @@ Keep it practical and brief. Format with clear sections.`;
                   <div className="form-group">
                     <textarea
                       className="custom-meal-input"
-                      placeholder="Cooking instructions (optional)"
+                      placeholder={t('plansPage.cookingInstructionsPlaceholder')}
                       value={calculatedInstructions}
                       onChange={e => setCalculatedInstructions(e.target.value)}
                       rows={2}
@@ -2514,7 +2541,7 @@ Keep it practical and brief. Format with clear sections.`;
                       checked={saveForLater}
                       onChange={e => setSaveForLater(e.target.checked)}
                     />
-                    <span>💾 Save this meal for future use</span>
+                    <span>💾 {t('plansPage.saveForLaterLabel')}</span>
                   </label>
 
                   {/* Submit Button */}
@@ -2523,7 +2550,7 @@ Keep it practical and brief. Format with clear sections.`;
                     onClick={handleSubmitCalculatedMeal}
                     disabled={selectedIngredients.length === 0}
                   >
-                    ✅ Create Meal
+                    ✅ {t('plansPage.createMealBtn')}
                   </button>
                 </div>
               )}
@@ -2531,13 +2558,13 @@ Keep it practical and brief. Format with clear sections.`;
               {/* Manual Tab */}
               {customMealTab === 'manual' && (
                 <div className="custom-meal-panel">
-                  <p className="panel-hint">💡 Enter the meal name and macros directly. Use nutrition labels or apps like MyFitnessPal.</p>
+                  <p className="panel-hint">💡 {t('plansPage.manualHint')}</p>
 
                   <div className="form-group">
                     <input
                       type="text"
                       className="custom-meal-input"
-                      placeholder="Meal name (e.g., Protein Shake, Chicken Salad...)"
+                      placeholder={t('plansPage.manualMealNamePlaceholder')}
                       value={customMealData.name}
                       onChange={e => setCustomMealData(prev => ({ ...prev, name: e.target.value }))}
                     />
@@ -2545,7 +2572,7 @@ Keep it practical and brief. Format with clear sections.`;
 
                   <div className="macros-grid">
                     <div className="macro-input-group">
-                      <label>Calories</label>
+                      <label>{t('plansPage.manualLabelCalories')}</label>
                       <input
                         type="number"
                         inputMode="numeric"
@@ -2555,7 +2582,7 @@ Keep it practical and brief. Format with clear sections.`;
                       />
                     </div>
                     <div className="macro-input-group">
-                      <label>Protein (g)</label>
+                      <label>{t('plansPage.manualLabelProtein')}</label>
                       <input
                         type="number"
                         inputMode="numeric"
@@ -2565,7 +2592,7 @@ Keep it practical and brief. Format with clear sections.`;
                       />
                     </div>
                     <div className="macro-input-group">
-                      <label>Carbs (g)</label>
+                      <label>{t('plansPage.manualLabelCarbs')}</label>
                       <input
                         type="number"
                         inputMode="numeric"
@@ -2575,7 +2602,7 @@ Keep it practical and brief. Format with clear sections.`;
                       />
                     </div>
                     <div className="macro-input-group">
-                      <label>Fat (g)</label>
+                      <label>{t('plansPage.manualLabelFat')}</label>
                       <input
                         type="number"
                         inputMode="numeric"
@@ -2589,7 +2616,7 @@ Keep it practical and brief. Format with clear sections.`;
                   <div className="form-group">
                     <textarea
                       className="custom-meal-input"
-                      placeholder="Cooking instructions (optional)"
+                      placeholder={t('plansPage.cookingInstructionsPlaceholder')}
                       value={customMealData.instructions}
                       onChange={e => setCustomMealData(prev => ({ ...prev, instructions: e.target.value }))}
                       rows={3}
@@ -2603,7 +2630,7 @@ Keep it practical and brief. Format with clear sections.`;
                       checked={saveForLater}
                       onChange={e => setSaveForLater(e.target.checked)}
                     />
-                    <span>💾 Save this meal for future use</span>
+                    <span>💾 {t('plansPage.saveForLaterLabel')}</span>
                   </label>
 
                   {/* Submit Button */}
@@ -2612,7 +2639,7 @@ Keep it practical and brief. Format with clear sections.`;
                     onClick={handleSubmitManualMeal}
                     disabled={!customMealData.name}
                   >
-                    ✅ Create Meal
+                    ✅ {t('plansPage.createMealBtn')}
                   </button>
                 </div>
               )}
@@ -2620,26 +2647,26 @@ Keep it practical and brief. Format with clear sections.`;
               {/* Saved Tab */}
               {customMealTab === 'saved' && (
                 <div className="custom-meal-panel">
-                  <p className="panel-hint">📚 Your saved custom meals. Click "Use" to add to your plan.</p>
+                  <p className="panel-hint">📚 {t('plansPage.savedHint')}</p>
 
                   {savedMealsLoading ? (
-                    <div className="loading-state">Loading saved meals...</div>
+                    <div className="loading-state">{t('plansPage.loadingSavedMeals')}</div>
                   ) : savedMeals.length === 0 ? (
                     <div className="empty-saved">
-                      No saved meals yet. Create a meal and check "Save for future use" to add it here.
+                      {t('plansPage.noSavedMeals')}
                     </div>
                   ) : (
                     <div className="saved-meals-list">
                       {savedMeals.map(meal => (
                         <div key={meal.id} className="saved-meal-item">
                           <div className="saved-meal-info">
-                            <div className="saved-meal-name">{getMealDisplayName(meal)}</div>
+                            <div className="saved-meal-name">{getMealDisplayName(meal, t('plansPage.mealFallbackName'))}</div>
                             <div className="saved-meal-macros">
                               {meal.calories} cal | {meal.protein}g P | {meal.carbs}g C | {meal.fat}g F{meal.fiber > 0 ? ` | ${meal.fiber}g Fiber` : ''}
                             </div>
                           </div>
                           <div className="saved-meal-actions">
-                            <button className="use-btn" onClick={() => useSavedMeal(meal.id)}>Use</button>
+                            <button className="use-btn" onClick={() => useSavedMeal(meal.id)}>{t('plansPage.useSavedMealBtn')}</button>
                             <button className="delete-btn" onClick={() => deleteSavedMeal(meal.id)}>
                               <Trash2 size={14} />
                             </button>
@@ -2650,7 +2677,7 @@ Keep it practical and brief. Format with clear sections.`;
                   )}
 
                   <button className="cancel-btn-full" onClick={closeCustomModal}>
-                    Cancel
+                    {t('plansPage.cancelBtn')}
                   </button>
                 </div>
               )}
@@ -2703,7 +2730,7 @@ Keep it practical and brief. Format with clear sections.`;
       />
 
       <div className="plans-page-header">
-        <h1 className="page-title">Meal Plans</h1>
+        <h1 className="page-title">{t('plansPage.pageTitle')}</h1>
         {plans.length > 0 && (
           <span className="plans-count-badge">{plans.length}</span>
         )}
@@ -2712,9 +2739,9 @@ Keep it practical and brief. Format with clear sections.`;
       {plans.length === 0 ? (
         <div className="empty-state-card">
           <div className="empty-state-icon">📋</div>
-          <h3 className="empty-state-title">No meal plans yet</h3>
+          <h3 className="empty-state-title">{t('plansPage.emptyTitle')}</h3>
           <p className="empty-state-text">
-            Your coach will assign meal plans to you here.
+            {t('plansPage.emptyText')}
           </p>
         </div>
       ) : (
@@ -2724,7 +2751,7 @@ Keep it practical and brief. Format with clear sections.`;
               <Search size={16} className="plans-search-icon" />
               <input
                 type="text"
-                placeholder="Search plans…"
+                placeholder={t('plansPage.searchPlaceholder')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="plans-search-input"
@@ -2733,7 +2760,7 @@ Keep it practical and brief. Format with clear sections.`;
                 <button
                   className="plans-search-clear"
                   onClick={() => setSearchQuery('')}
-                  aria-label="Clear search"
+                  aria-label={t('plansPage.searchClearAriaLabel')}
                 >
                   <X size={14} />
                 </button>
@@ -2743,22 +2770,22 @@ Keep it practical and brief. Format with clear sections.`;
               className="plans-sort"
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
-              aria-label="Sort plans"
+              aria-label={t('plansPage.sortAriaLabel')}
             >
-              <option value="recent">Newest</option>
-              <option value="oldest">Oldest</option>
-              <option value="calories">Calories</option>
+              <option value="recent">{t('plansPage.sortNewest')}</option>
+              <option value="oldest">{t('plansPage.sortOldest')}</option>
+              <option value="calories">{t('plansPage.sortCalories')}</option>
             </select>
           </div>
 
           {visiblePlans.length === 0 ? (
             <div className="plans-no-results">
-              <p>No plans match "{searchQuery}"</p>
+              <p>{t('plansPage.noResultsText', { query: searchQuery })}</p>
               <button
                 className="plans-clear-link"
                 onClick={() => setSearchQuery('')}
               >
-                Clear search
+                {t('plansPage.clearSearchBtn')}
               </button>
             </div>
           ) : (
@@ -2788,10 +2815,10 @@ Keep it practical and brief. Format with clear sections.`;
                     <div className="plan-card-header">
                       <div className="plan-card-title-row">
                         <div className="plan-card-title">
-                          {planName || `${numDays}-Day Meal Plan`}
+                          {planName || t('plansPage.defaultPlanTitle', { numDays })}
                         </div>
                         {isLatest && (
-                          <span className="plan-card-badge plan-card-badge-latest">Latest</span>
+                          <span className="plan-card-badge plan-card-badge-latest">{t('plansPage.planCardBadgeLatest')}</span>
                         )}
                       </div>
                       <div className="plan-card-date">
@@ -2813,20 +2840,20 @@ Keep it practical and brief. Format with clear sections.`;
 
                     <div className="plan-card-details">
                       <div className="plan-detail-item">
-                        <span className="plan-detail-label">Duration</span>
+                        <span className="plan-detail-label">{t('plansPage.planCardDuration')}</span>
                         <span className="plan-detail-value">
-                          {numDays} {numDays === 1 ? 'Day' : 'Days'}
+                          {numDays} {numDays === 1 ? t('plansPage.planCardDurationDay') : t('plansPage.planCardDurationDays')}
                         </span>
                       </div>
                       {showCalories && (
                         <div className="plan-detail-item">
-                          <span className="plan-detail-label">Calories</span>
-                          <span className="plan-detail-value">{calories} cal</span>
+                          <span className="plan-detail-label">{t('plansPage.planCardCalories')}</span>
+                          <span className="plan-detail-value">{calories} {t('plansPage.planCardCalSuffix')}</span>
                         </div>
                       )}
                       {showGoal && (
                         <div className="plan-detail-item">
-                          <span className="plan-detail-label">Goal</span>
+                          <span className="plan-detail-label">{t('plansPage.planCardGoal')}</span>
                           <span className="plan-detail-value">{goal}</span>
                         </div>
                       )}
@@ -2834,7 +2861,7 @@ Keep it practical and brief. Format with clear sections.`;
 
                     <div className="plan-card-footer">
                       <span className="plan-card-cta">
-                        View plan
+                        {t('plansPage.planCardViewPlan')}
                         <ChevronRight size={16} />
                       </span>
                     </div>

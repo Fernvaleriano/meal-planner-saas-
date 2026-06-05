@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import { X, MessageCircle, ExternalLink, Send } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useLanguage } from '../context/LanguageContext';
 import { apiPost } from '../utils/api';
 
 function NotificationDetail({ notification, clientId, onClose, onReplySuccess }) {
   const navigate = useNavigate();
+  const { t } = useLanguage();
   const [replyText, setReplyText] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showReplyInput, setShowReplyInput] = useState(false);
@@ -65,7 +67,7 @@ function NotificationDetail({ notification, clientId, onClose, onReplySuccess })
     <div className="notification-detail-overlay" onClick={onClose}>
       <div className="notification-detail-modal" onClick={e => e.stopPropagation()}>
         <div className="notification-detail-header">
-          <h3>Notification</h3>
+          <h3>{t('notificationDetail.heading')}</h3>
           <button className="close-btn" onClick={onClose}>
             <X size={20} />
           </button>
@@ -79,7 +81,7 @@ function NotificationDetail({ notification, clientId, onClose, onReplySuccess })
                 <div className="comment-display">
                   <div className="comment-header">
                     <MessageCircle size={16} />
-                    <span>Your coach responded to your check-in</span>
+                    <span>{t('notificationDetail.coachRespondedToCheckin')}</span>
                   </div>
                   <div className="comment-text" style={{ whiteSpace: 'pre-wrap' }}>
                     "{metadata.coach_feedback || notification.message?.replace(/^Your coach responded to your check-in: /, '').replace(/^"|"$/g, '')}"
@@ -92,8 +94,8 @@ function NotificationDetail({ notification, clientId, onClose, onReplySuccess })
           {/* Meal Info Card */}
           {!isCoachResponse && (
             <div className="meal-info-card">
-              <div className="meal-type-badge">{metadata.meal_type || 'Meal'}</div>
-              <div className="meal-name">{metadata.food_name || 'Your meal'}</div>
+              <div className="meal-type-badge">{metadata.meal_type || t('notificationDetail.mealFallback')}</div>
+              <div className="meal-name">{metadata.food_name || t('notificationDetail.mealNameFallback')}</div>
               {metadata.entry_date && (
                 <div className="meal-date">{formatDate(metadata.entry_date)}</div>
               )}
@@ -107,7 +109,7 @@ function NotificationDetail({ notification, clientId, onClose, onReplySuccess })
                 <div className="reaction-display">
                   <span className="reaction-emoji">{metadata.reaction}</span>
                   <span className="reaction-text">
-                    {metadata.coach_name || 'Your coach'} reacted to your {metadata.meal_type || 'meal'}
+                    {metadata.coach_name || t('notificationDetail.coachFallbackName')} {t('notificationDetail.reactedToYour')} {metadata.meal_type || t('notificationDetail.mealFallback')}
                   </span>
                 </div>
               )}
@@ -116,7 +118,7 @@ function NotificationDetail({ notification, clientId, onClose, onReplySuccess })
                 <div className="comment-display">
                   <div className="comment-header">
                     <MessageCircle size={16} />
-                    <span>{metadata.coach_name || 'Your coach'}</span>
+                    <span>{metadata.coach_name || t('notificationDetail.coachFallbackName')}</span>
                   </div>
                   <div className="comment-text">
                     {metadata.full_comment || notification.message?.replace(/^"|"$/g, '')}
@@ -135,14 +137,14 @@ function NotificationDetail({ notification, clientId, onClose, onReplySuccess })
                   onClick={() => setShowReplyInput(true)}
                 >
                   <MessageCircle size={16} />
-                  Reply to coach
+                  {t('notificationDetail.replyToCoach')}
                 </button>
               ) : (
                 <div className="reply-input-container">
                   <textarea
                     value={replyText}
                     onChange={(e) => setReplyText(e.target.value)}
-                    placeholder="Write your reply..."
+                    placeholder={t('notificationDetail.replyPlaceholder')}
                     maxLength={500}
                     rows={3}
                     autoFocus
@@ -156,7 +158,7 @@ function NotificationDetail({ notification, clientId, onClose, onReplySuccess })
                         setReplyText('');
                       }}
                     >
-                      Cancel
+                      {t('notificationDetail.cancel')}
                     </button>
                     <button
                       className="send-btn"
@@ -164,7 +166,7 @@ function NotificationDetail({ notification, clientId, onClose, onReplySuccess })
                       disabled={!replyText.trim() || isSubmitting}
                     >
                       <Send size={14} />
-                      {isSubmitting ? 'Sending...' : 'Send'}
+                      {isSubmitting ? t('notificationDetail.sending') : t('notificationDetail.send')}
                     </button>
                   </div>
                 </div>
@@ -177,12 +179,12 @@ function NotificationDetail({ notification, clientId, onClose, onReplySuccess })
         <div className="notification-detail-footer">
           {isCoachResponse ? (
             <button className="view-entry-btn" onClick={onClose}>
-              Got it
+              {t('notificationDetail.gotIt')}
             </button>
           ) : (
             <button className="view-entry-btn" onClick={handleViewEntry}>
               <ExternalLink size={16} />
-              View in Diary
+              {t('notificationDetail.viewInDiary')}
             </button>
           )}
         </div>

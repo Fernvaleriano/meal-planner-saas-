@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { ChevronLeft, Ruler, Camera, X, Plus, Minus, ChevronDown, Trash2, Columns2, Sparkles, TrendingDown, TrendingUp, ChevronRight, Calendar, Award, Share2 } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 import { apiGet, apiPost, apiDelete } from '../utils/api';
 import { usePullToRefresh, PullToRefreshIndicator } from '../hooks/usePullToRefresh';
 import { BADGE_TIERS, getEarnedTiers, getNextTier, generateBadgeShareCard, shareOrDownloadBadge } from '../utils/badges';
@@ -49,29 +50,33 @@ const compressImage = (file, maxWidth = 1200, quality = 0.8) => {
   });
 };
 
-// Time frame options
+// Time frame options.
+// 'label' / 'shortLabel' are the original English strings kept for reference.
+// At render time, use t('progressPage.' + tf.labelKey) / t('progressPage.' + tf.shortLabelKey).
 const TIME_FRAMES = [
-  { label: '1 Week',   shortLabel: '1W',  value: '1w', days: 7 },
-  { label: '1 Month',  shortLabel: '1M',  value: '1m', days: 30 },
-  { label: '3 Months', shortLabel: '3M',  value: '3m', days: 90 },
-  { label: '6 Months', shortLabel: '6M',  value: '6m', days: 180 },
-  { label: '1 Year',   shortLabel: '1Y',  value: '1y', days: 365 },
-  { label: 'All Time', shortLabel: 'All', value: 'all', days: null },
+  { labelKey: 'timeframe1wLabel',   shortLabelKey: 'timeframe1wShort',   value: '1w',  days: 7 },
+  { labelKey: 'timeframe1mLabel',   shortLabelKey: 'timeframe1mShort',   value: '1m',  days: 30 },
+  { labelKey: 'timeframe3mLabel',   shortLabelKey: 'timeframe3mShort',   value: '3m',  days: 90 },
+  { labelKey: 'timeframe6mLabel',   shortLabelKey: 'timeframe6mShort',   value: '6m',  days: 180 },
+  { labelKey: 'timeframe1yLabel',   shortLabelKey: 'timeframe1yShort',   value: '1y',  days: 365 },
+  { labelKey: 'timeframeAllLabel',  shortLabelKey: 'timeframeAllShort',  value: 'all', days: null },
 ];
 
-// Metric definitions
+// Metric definitions.
+// 'labelKey' is used to look up the translated label via t('progressPage.' + config.labelKey).
+// The underlying key/dbField/unitKey values used in logic are UNCHANGED.
 const METRIC_CONFIGS = [
-  { key: 'weight', label: 'Weight', dbField: 'weight', unitKey: 'weight' },
-  { key: 'bodyFat', label: 'Body Fat', dbField: 'body_fat_percentage', unitKey: 'percent' },
-  { key: 'waist', label: 'Waist', dbField: 'waist', unitKey: 'circumference' },
-  { key: 'chest', label: 'Chest', dbField: 'chest', unitKey: 'circumference' },
-  { key: 'hips', label: 'Hips', dbField: 'hips', unitKey: 'circumference' },
-  { key: 'leftArm', label: 'Left Arm', dbField: 'left_arm', unitKey: 'circumference' },
-  { key: 'rightArm', label: 'Right Arm', dbField: 'right_arm', unitKey: 'circumference' },
-  { key: 'leftThigh', label: 'Left Thigh', dbField: 'left_thigh', unitKey: 'circumference' },
-  { key: 'rightThigh', label: 'Right Thigh', dbField: 'right_thigh', unitKey: 'circumference' },
-  { key: 'bpSystolic', label: 'Blood Pressure - Systolic', dbField: 'blood_pressure_systolic', unitKey: 'mmHg' },
-  { key: 'bpDiastolic', label: 'Blood Pressure - Diastolic', dbField: 'blood_pressure_diastolic', unitKey: 'mmHg' },
+  { key: 'weight',     labelKey: 'metricWeight',      dbField: 'weight',                   unitKey: 'weight' },
+  { key: 'bodyFat',    labelKey: 'metricBodyFat',      dbField: 'body_fat_percentage',       unitKey: 'percent' },
+  { key: 'waist',      labelKey: 'metricWaist',        dbField: 'waist',                     unitKey: 'circumference' },
+  { key: 'chest',      labelKey: 'metricChest',        dbField: 'chest',                     unitKey: 'circumference' },
+  { key: 'hips',       labelKey: 'metricHips',         dbField: 'hips',                      unitKey: 'circumference' },
+  { key: 'leftArm',    labelKey: 'metricLeftArm',      dbField: 'left_arm',                  unitKey: 'circumference' },
+  { key: 'rightArm',   labelKey: 'metricRightArm',     dbField: 'right_arm',                 unitKey: 'circumference' },
+  { key: 'leftThigh',  labelKey: 'metricLeftThigh',    dbField: 'left_thigh',                unitKey: 'circumference' },
+  { key: 'rightThigh', labelKey: 'metricRightThigh',   dbField: 'right_thigh',               unitKey: 'circumference' },
+  { key: 'bpSystolic', labelKey: 'metricBpSystolic',   dbField: 'blood_pressure_systolic',   unitKey: 'mmHg' },
+  { key: 'bpDiastolic',labelKey: 'metricBpDiastolic',  dbField: 'blood_pressure_diastolic',  unitKey: 'mmHg' },
 ];
 
 // Mini line chart component (pure SVG)
@@ -167,6 +172,7 @@ function Progress() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { clientData } = useAuth();
+  const { t } = useLanguage();
   const { showError, showSuccess } = useToast();
 
   // Get user's preferred units
@@ -388,7 +394,7 @@ function Progress() {
       loadMeasurements();
     } catch (err) {
       console.error('Error saving measurement:', err);
-      alert(err.message || 'Error saving. Please try again.');
+      alert(err.message || t('progressPage.errorSavingQuickLog'));
     } finally {
       setSavingQuickLog(false);
     }
@@ -402,7 +408,7 @@ function Progress() {
   const handleSaveMeasurement = async (e) => {
     e.preventDefault();
     if (!clientData?.id || !clientData?.coach_id) {
-      showError('Session data missing. Please refresh the page and try again.');
+      showError(t('progressPage.sessionMissing'));
       return;
     }
 
@@ -426,7 +432,7 @@ function Progress() {
         notes: measurementForm.notes || null
       });
 
-      showSuccess('Measurement saved!');
+      showSuccess(t('progressPage.measurementSaved'));
       setShowMeasurementModal(false);
       setMeasurementForm({
         date: getLocalDateString(),
@@ -437,7 +443,7 @@ function Progress() {
       loadMeasurements();
     } catch (err) {
       console.error('Error saving measurement:', err);
-      showError(err.message || 'Error saving measurement. Please try again.');
+      showError(err.message || t('progressPage.errorSavingMeasurement'));
     } finally {
       setSavingMeasurement(false);
     }
@@ -451,7 +457,7 @@ function Progress() {
       setMeasurements(prev => prev.filter(m => m.id !== measurementId));
     } catch (err) {
       console.error('Error deleting measurement:', err);
-      showError('Failed to delete measurement. Please try again.');
+      showError(t('progressPage.failedDeleteMeasurement'));
     }
   };
 
@@ -463,7 +469,7 @@ function Progress() {
       setPhotos(prev => prev.filter(p => p.id !== photoId));
     } catch (err) {
       console.error('Error deleting photo:', err);
-      showError('Failed to delete photo. Please try again.');
+      showError(t('progressPage.failedDeletePhoto'));
     }
   };
 
@@ -477,19 +483,19 @@ function Progress() {
       setPhotoPreview(compressed);
     } catch (err) {
       console.error('Error processing photo:', err);
-      showError('Error processing photo. Please try a different image.');
+      showError(t('progressPage.errorProcessingPhoto'));
     }
   };
 
   const handleUploadPhoto = async () => {
     if (!photoPreview) {
-      showError('Please select a photo first.');
+      showError(t('progressPage.pleaseSelectPhoto'));
       return;
     }
 
     // Validate required data
     if (!clientData?.id || !clientData?.coach_id) {
-      showError('Session data missing. Please refresh the page and try again.');
+      showError(t('progressPage.sessionMissing'));
       return;
     }
 
@@ -503,7 +509,7 @@ function Progress() {
         takenDate: photoDate
       });
 
-      showSuccess('Photo uploaded!');
+      showSuccess(t('progressPage.photoUploaded'));
       setShowPhotoModal(false);
       setPhotoPreview(null);
       setPhotoFile(null);
@@ -512,7 +518,7 @@ function Progress() {
       loadPhotos();
     } catch (err) {
       console.error('Error uploading photo:', err);
-      showError(err.message || 'Error uploading photo. Please try again.');
+      showError(err.message || t('progressPage.errorUploadingPhoto'));
     } finally {
       setUploadingPhoto(false);
     }
@@ -585,16 +591,21 @@ function Progress() {
         date1: photo1.taken_date || photo1.date_taken,
         date2: photo2.taken_date || photo2.date_taken
       });
-      setAiAnalysis(data.analysis || 'Unable to generate analysis.');
+      setAiAnalysis(data.analysis || t('progressPage.unableToAnalyze'));
     } catch (err) {
       console.error('Error analyzing photos:', err);
-      setAiAnalysis('Unable to analyze photos right now. Please try again later.');
+      setAiAnalysis(t('progressPage.unableToAnalyze'));
     } finally {
       setAnalyzingPhotos(false);
     }
   };
 
-  const photoTypeLabels = { front: 'Front', side: 'Side', back: 'Back', progress: 'Progress' };
+  const photoTypeLabels = {
+    front: t('progressPage.photoTypeFront'),
+    side: t('progressPage.photoTypeSide'),
+    back: t('progressPage.photoTypeBack'),
+    progress: t('progressPage.photoTypeProgress'),
+  };
 
   // Metric card component
   const MetricCard = ({ config }) => {
@@ -615,7 +626,7 @@ function Progress() {
     return (
       <div className="metric-card">
         <div className="metric-card-header">
-          <span className="metric-card-title">{config.label.toUpperCase()}</span>
+          <span className="metric-card-title">{t('progressPage.' + config.labelKey).toUpperCase()}</span>
           {data && data.change !== null && data.change !== 0 && (
             <div className="metric-change neutral">
               {data.change < 0 ? <TrendingDown size={14} /> : <TrendingUp size={14} />}
@@ -635,12 +646,12 @@ function Progress() {
           </>
         ) : (
           <div className="metric-no-data">
-            No data for selected time frame
+            {t('progressPage.noDataForTimeFrame')}
           </div>
         )}
 
         <button className="metric-log-btn" onClick={() => openQuickLog(config)}>
-          <span>Log Value</span>
+          <span>{t('progressPage.logValue')}</span>
           <ChevronRight size={18} />
         </button>
 
@@ -650,7 +661,7 @@ function Progress() {
               className="metric-history-toggle"
               onClick={() => setExpandedHistory(prev => ({ ...prev, [config.key]: !expanded }))}
             >
-              <span>{expanded ? 'Hide' : 'View'} entries ({entries.length})</span>
+              <span>{expanded ? t('progressPage.hideEntries', { count: entries.length }) : t('progressPage.viewEntries', { count: entries.length })}</span>
               <ChevronDown
                 size={16}
                 style={{ transition: 'transform 0.2s', transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)' }}
@@ -672,8 +683,8 @@ function Progress() {
                       <CoachReactionBadge reaction={coachReaction} title={`Coach reacted ${coachReaction?.reaction || ''}`} />
                       <button
                         className="metric-history-delete"
-                        aria-label="Delete entry"
-                        onClick={() => setConfirmDelete({ id: m.id, label: config.label, value: m[config.dbField], unit, date: formatDate(m.measured_date) })}
+                        aria-label={t('progressPage.deleteEntryAriaLabel')}
+                        onClick={() => setConfirmDelete({ id: m.id, label: t('progressPage.' + config.labelKey), value: m[config.dbField], unit, date: formatDate(m.measured_date) })}
                       >
                         <Trash2 size={16} />
                       </button>
@@ -682,7 +693,7 @@ function Progress() {
                 })}
                 {entries.length > visibleEntries.length && (
                   <li className="metric-history-more">
-                    Showing the most recent {visibleEntries.length} of {entries.length}
+                    {t('progressPage.showingMostRecent', { shown: visibleEntries.length, total: entries.length })}
                   </li>
                 )}
               </ul>
@@ -736,11 +747,11 @@ function Progress() {
         : `${totalCheckinCount} check-ins and counting 💪`;
       const result = await shareOrDownloadBadge(blob, featured, captionText);
       if (result.downloaded) {
-        showSuccess?.('Image saved — ready to share!');
+        showSuccess?.(t('progressPage.imageSaved'));
       }
     } catch (err) {
       console.error('Error sharing badges:', err);
-      showError?.('Could not generate share image');
+      showError?.(t('progressPage.couldNotGenerateShare'));
     } finally {
       setSharingBadge(false);
     }
@@ -755,7 +766,7 @@ function Progress() {
         <button className="back-btn-circle" onClick={() => navigate(-1)}>
           <ChevronLeft size={24} />
         </button>
-        <h1 className="page-title">Progress</h1>
+        <h1 className="page-title">{t('progressPage.pageTitle')}</h1>
       </div>
 
       {/* Tabs */}
@@ -764,19 +775,19 @@ function Progress() {
           className={`progress-tab ${activeTab === 'measurements' ? 'active' : ''}`}
           onClick={() => setActiveTab('measurements')}
         >
-          <Ruler size={18} /> Measurements
+          <Ruler size={18} /> {t('progressPage.tabMeasurements')}
         </button>
         <button
           className={`progress-tab ${activeTab === 'photos' ? 'active' : ''}`}
           onClick={() => setActiveTab('photos')}
         >
-          <Camera size={18} /> Photos
+          <Camera size={18} /> {t('progressPage.tabPhotos')}
         </button>
         <button
           className={`progress-tab ${activeTab === 'achievements' ? 'active' : ''}`}
           onClick={() => setActiveTab('achievements')}
         >
-          <Award size={18} /> Badges
+          <Award size={18} /> {t('progressPage.tabBadges')}
         </button>
       </div>
 
@@ -794,7 +805,7 @@ function Progress() {
                   className={`time-frame-segment ${timeFrame === tf.value ? 'active' : ''}`}
                   onClick={() => setTimeFrame(tf.value)}
                 >
-                  {tf.shortLabel}
+                  {t('progressPage.' + tf.shortLabelKey)}
                 </button>
               ))}
             </div>
@@ -802,13 +813,13 @@ function Progress() {
             {/* Log All Button */}
             <button className="btn-log-all" onClick={() => setShowMeasurementModal(true)}>
               <Plus size={18} />
-              <span>Log All Measurements</span>
+              <span>{t('progressPage.logAllMeasurements')}</span>
             </button>
 
             {loadingMeasurements ? (
               <div className="loading-state">
                 <div className="spinner"></div>
-                <p>Loading measurements...</p>
+                <p>{t('progressPage.loadingMeasurements')}</p>
               </div>
             ) : (() => {
               const tracked = METRIC_CONFIGS.filter(c => getMetricData(c.dbField));
@@ -824,7 +835,7 @@ function Progress() {
                   )}
                   {untracked.length > 0 && (
                     <div className="untracked-metrics-card">
-                      <div className="untracked-metrics-title">Track more</div>
+                      <div className="untracked-metrics-title">{t('progressPage.trackMore')}</div>
                       <div className="untracked-metrics-row">
                         {untracked.map(config => (
                           <button
@@ -833,14 +844,14 @@ function Progress() {
                             onClick={() => openQuickLog(config)}
                           >
                             <Plus size={14} />
-                            <span>{config.label}</span>
+                            <span>{t('progressPage.' + config.labelKey)}</span>
                           </button>
                         ))}
                       </div>
                     </div>
                   )}
                   {tracked.length === 0 && untracked.length === 0 && (
-                    <div className="metric-no-data">No measurements yet. Tap "Log All Measurements" to start.</div>
+                    <div className="metric-no-data">{t('progressPage.noMeasurementsYet')}</div>
                   )}
                 </>
               );
@@ -850,41 +861,41 @@ function Progress() {
           <>
             <div className="photos-action-bar">
               <button className="btn-primary full-width add-btn" onClick={() => setShowPhotoModal(true)}>
-                + Add Photo
+                {t('progressPage.addPhoto')}
               </button>
             </div>
 
             {compareMode && (
               <div className="compare-hint">
                 {selectedPhotos.length === 0
-                  ? '① Select your BEFORE photo'
-                  : '② Now select your AFTER photo'}
+                  ? t('progressPage.selectBeforePhoto')
+                  : t('progressPage.selectAfterPhoto')}
               </div>
             )}
 
             <div className="section-card">
               <div className="section-title-row">
-                <h3 className="section-title">Progress Photos</h3>
+                <h3 className="section-title">{t('progressPage.progressPhotosTitle')}</h3>
                 {photos.length >= 2 && (
                   <button
                     className={`compare-btn ${compareMode ? 'active' : ''}`}
                     onClick={toggleCompareMode}
                   >
                     <Columns2 size={16} />
-                    {compareMode ? 'Cancel' : 'Compare'}
+                    {compareMode ? t('progressPage.cancel') : t('progressPage.compare')}
                   </button>
                 )}
               </div>
               {loadingPhotos ? (
                 <div className="loading-state">
                   <div className="spinner"></div>
-                  <p>Loading photos...</p>
+                  <p>{t('progressPage.loadingPhotos')}</p>
                 </div>
               ) : photos.length === 0 ? (
                 <div className="empty-state-inline">
                   <Camera size={40} strokeWidth={1.5} className="empty-state-icon" />
-                  <p className="empty-state-title">No progress photos yet</p>
-                  <p className="empty-state-subtitle">Take your first photo to track your transformation journey!</p>
+                  <p className="empty-state-title">{t('progressPage.noPhotosYet')}</p>
+                  <p className="empty-state-subtitle">{t('progressPage.noPhotosSubtitle')}</p>
                 </div>
               ) : (
                 <div className="photos-grid">
@@ -905,7 +916,7 @@ function Progress() {
                           title={`Coach reacted ${coachReaction?.reaction || ''}`}
                         />
                         {isSelected && (
-                          <div className="photo-selected-badge">{selectedIndex === 0 ? 'Before' : 'After'}</div>
+                          <div className="photo-selected-badge">{selectedIndex === 0 ? t('progressPage.labelBefore') : t('progressPage.labelAfter')}</div>
                         )}
                         {!compareMode && (
                           <button
@@ -913,7 +924,7 @@ function Progress() {
                             onClick={(e) => {
                               e.stopPropagation();
                               const dateStr = new Date(photo.taken_date || photo.date_taken).toLocaleDateString();
-                              if (window.confirm(`Delete photo from ${dateStr}?`)) {
+                              if (window.confirm(t('progressPage.deletePhotoConfirm', { date: dateStr }))) {
                                 handleDeletePhoto(photo.id);
                               }
                             }}
@@ -937,19 +948,19 @@ function Progress() {
             {loadingCheckinCount ? (
               <div className="loading-state">
                 <div className="spinner"></div>
-                <p>Loading achievements...</p>
+                <p>{t('progressPage.loadingAchievements')}</p>
               </div>
             ) : (
               <>
                 <div className="achievements-summary-card">
                   <div className="achievements-stat">
                     <div className="achievements-stat-value">{totalCheckinCount}</div>
-                    <div className="achievements-stat-label">Check-ins</div>
+                    <div className="achievements-stat-label">{t('progressPage.checkIns')}</div>
                   </div>
                   <div className="achievements-stat-divider" aria-hidden="true" />
                   <div className="achievements-stat">
                     <div className="achievements-stat-value">{earnedTiers.length} / {BADGE_TIERS.length}</div>
-                    <div className="achievements-stat-label">Badges Earned</div>
+                    <div className="achievements-stat-label">{t('progressPage.badgesEarned')}</div>
                   </div>
                 </div>
 
@@ -963,7 +974,7 @@ function Progress() {
                       <div className="next-badge-progress-label">
                         <span className="next-badge-progress-label-text">
                           <span>
-                            {remaining} more to unlock <strong>{nextTier.name}</strong>
+                            {t('progressPage.moreToUnlock', { remaining })} <strong>{nextTier.nameKey ? t(nextTier.nameKey) : nextTier.name}</strong>
                           </span>
                           <BadgeIcon tier={nextTier} size={16} strokeWidth={2} />
                         </span>
@@ -982,7 +993,7 @@ function Progress() {
                   disabled={sharingBadge}
                 >
                   <Share2 size={18} />
-                  <span>{sharingBadge ? 'Generating…' : 'Share to social media'}</span>
+                  <span>{sharingBadge ? t('progressPage.generatingShare') : t('progressPage.shareToSocial')}</span>
                 </button>
 
                 <div className="badges-grid">
@@ -995,11 +1006,11 @@ function Progress() {
                       <div
                         key={tier.threshold}
                         className={`badge-card ${earned ? 'earned' : 'locked'}`}
-                        title={`${tier.name} — ${tier.desc}`}
+                        title={`${tier.nameKey ? t(tier.nameKey) : tier.name} — ${tier.descKey ? t(tier.descKey) : tier.desc}`}
                         style={{ '--badge-tier-color': tier.iconColor || '#fbbf24' }}
                       >
                         {earned
-                          ? <span className="badge-ribbon">Earned</span>
+                          ? <span className="badge-ribbon">{t('progressPage.earnedRibbon')}</span>
                           : <span className="badge-lock-icon">🔒</span>}
                         <span className="badge-icon">
                           <BadgeIcon
@@ -1036,7 +1047,7 @@ function Progress() {
         <div className="modal-overlay" onClick={() => setQuickLogMetric(null)}>
           <div className="quick-log-modal" onClick={e => e.stopPropagation()}>
             <div className="quick-log-header">
-              <h2>{quickLogMetric.label}</h2>
+              <h2>{t('progressPage.' + quickLogMetric.labelKey)}</h2>
               <button className="modal-close" onClick={() => setQuickLogMetric(null)}>
                 <X size={24} />
               </button>
@@ -1069,7 +1080,7 @@ function Progress() {
                 onClick={handleQuickLogSave}
                 disabled={savingQuickLog || !quickLogValue}
               >
-                {savingQuickLog ? 'Saving...' : 'Save'}
+                {savingQuickLog ? t('progressPage.saving') : t('progressPage.save')}
               </button>
             </div>
           </div>
@@ -1081,14 +1092,14 @@ function Progress() {
         <div className="modal-overlay" onClick={() => setConfirmDelete(null)}>
           <div className="quick-log-modal" onClick={e => e.stopPropagation()}>
             <div className="quick-log-header">
-              <h2>Delete entry?</h2>
+              <h2>{t('progressPage.deleteEntryTitle')}</h2>
               <button className="modal-close" onClick={() => setConfirmDelete(null)}>
                 <X size={24} />
               </button>
             </div>
             <div className="quick-log-body">
               <p style={{ margin: '0 0 16px', color: 'var(--text-secondary, #94a3b8)' }}>
-                Remove the {confirmDelete.label.toLowerCase()} entry of {confirmDelete.value} {confirmDelete.unit} from {confirmDelete.date}? If this came from a Weigh-In photo, the photo will be removed too.
+                {t('progressPage.deleteEntryBody', { label: confirmDelete.label.toLowerCase(), value: confirmDelete.value, unit: confirmDelete.unit, date: confirmDelete.date })}
               </p>
               <div style={{ display: 'flex', gap: 8 }}>
                 <button
@@ -1096,7 +1107,7 @@ function Progress() {
                   style={{ flex: 1 }}
                   onClick={() => setConfirmDelete(null)}
                 >
-                  Cancel
+                  {t('progressPage.cancel')}
                 </button>
                 <button
                   className="btn-primary"
@@ -1105,10 +1116,10 @@ function Progress() {
                     const id = confirmDelete.id;
                     setConfirmDelete(null);
                     await handleDeleteMeasurement(id);
-                    showSuccess?.('Entry deleted');
+                    showSuccess?.(t('progressPage.entryDeleted'));
                   }}
                 >
-                  Delete
+                  {t('progressPage.delete')}
                 </button>
               </div>
             </div>
@@ -1121,7 +1132,7 @@ function Progress() {
         <div className="modal-overlay" onClick={() => setShowMeasurementModal(false)}>
           <div className="modal-content" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
-              <h2>Log All Measurements</h2>
+              <h2>{t('progressPage.logAllMeasurementsTitle')}</h2>
               <button className="modal-close" onClick={() => setShowMeasurementModal(false)}>
                 <X size={24} />
               </button>
@@ -1129,21 +1140,21 @@ function Progress() {
             <div className="modal-body">
               <form onSubmit={handleSaveMeasurement}>
                 <div className="form-group">
-                  <label>Date</label>
+                  <label>{t('progressPage.formDate')}</label>
                   <input type="date" value={measurementForm.date}
                     onChange={(e) => handleMeasurementChange('date', e.target.value)} required />
                 </div>
 
                 <div className="form-row">
                   <div className="form-group">
-                    <label>Weight ({weightUnit})</label>
+                    <label>{t('progressPage.formWeightLabel', { unit: weightUnit })}</label>
                     <input type="number" inputMode="decimal" step="0.1"
                       placeholder={weightUnit === 'kg' ? '68.0' : '150.0'}
                       value={measurementForm.weight}
                       onChange={(e) => handleMeasurementChange('weight', e.target.value)} />
                   </div>
                   <div className="form-group">
-                    <label>Body Fat %</label>
+                    <label>{t('progressPage.formBodyFat')}</label>
                     <input type="number" inputMode="decimal" step="0.1" placeholder="20.0"
                       value={measurementForm.bodyFat}
                       onChange={(e) => handleMeasurementChange('bodyFat', e.target.value)} />
@@ -1152,13 +1163,13 @@ function Progress() {
 
                 <div className="form-row">
                   <div className="form-group">
-                    <label>Chest ({circumUnit})</label>
+                    <label>{t('progressPage.formChest', { unit: circumUnit })}</label>
                     <input type="number" inputMode="decimal" step="0.1"
                       value={measurementForm.chest}
                       onChange={(e) => handleMeasurementChange('chest', e.target.value)} />
                   </div>
                   <div className="form-group">
-                    <label>Waist ({circumUnit})</label>
+                    <label>{t('progressPage.formWaist', { unit: circumUnit })}</label>
                     <input type="number" inputMode="decimal" step="0.1"
                       value={measurementForm.waist}
                       onChange={(e) => handleMeasurementChange('waist', e.target.value)} />
@@ -1167,13 +1178,13 @@ function Progress() {
 
                 <div className="form-row">
                   <div className="form-group">
-                    <label>Hips ({circumUnit})</label>
+                    <label>{t('progressPage.formHips', { unit: circumUnit })}</label>
                     <input type="number" inputMode="decimal" step="0.1"
                       value={measurementForm.hips}
                       onChange={(e) => handleMeasurementChange('hips', e.target.value)} />
                   </div>
                   <div className="form-group">
-                    <label>Left Arm ({circumUnit})</label>
+                    <label>{t('progressPage.formLeftArm', { unit: circumUnit })}</label>
                     <input type="number" inputMode="decimal" step="0.1"
                       value={measurementForm.leftArm}
                       onChange={(e) => handleMeasurementChange('leftArm', e.target.value)} />
@@ -1182,13 +1193,13 @@ function Progress() {
 
                 <div className="form-row">
                   <div className="form-group">
-                    <label>Right Arm ({circumUnit})</label>
+                    <label>{t('progressPage.formRightArm', { unit: circumUnit })}</label>
                     <input type="number" inputMode="decimal" step="0.1"
                       value={measurementForm.rightArm}
                       onChange={(e) => handleMeasurementChange('rightArm', e.target.value)} />
                   </div>
                   <div className="form-group">
-                    <label>Left Thigh ({circumUnit})</label>
+                    <label>{t('progressPage.formLeftThigh', { unit: circumUnit })}</label>
                     <input type="number" inputMode="decimal" step="0.1"
                       value={measurementForm.leftThigh}
                       onChange={(e) => handleMeasurementChange('leftThigh', e.target.value)} />
@@ -1196,7 +1207,7 @@ function Progress() {
                 </div>
 
                 <div className="form-group">
-                  <label>Right Thigh ({circumUnit})</label>
+                  <label>{t('progressPage.formRightThigh', { unit: circumUnit })}</label>
                   <input type="number" inputMode="decimal" step="0.1"
                     value={measurementForm.rightThigh}
                     onChange={(e) => handleMeasurementChange('rightThigh', e.target.value)} />
@@ -1204,13 +1215,13 @@ function Progress() {
 
                 <div className="form-row">
                   <div className="form-group">
-                    <label>BP Systolic (mmHg)</label>
+                    <label>{t('progressPage.formBpSystolic')}</label>
                     <input type="number" inputMode="decimal" step="1" placeholder="120"
                       value={measurementForm.bpSystolic}
                       onChange={(e) => handleMeasurementChange('bpSystolic', e.target.value)} />
                   </div>
                   <div className="form-group">
-                    <label>BP Diastolic (mmHg)</label>
+                    <label>{t('progressPage.formBpDiastolic')}</label>
                     <input type="number" inputMode="decimal" step="1" placeholder="80"
                       value={measurementForm.bpDiastolic}
                       onChange={(e) => handleMeasurementChange('bpDiastolic', e.target.value)} />
@@ -1218,17 +1229,17 @@ function Progress() {
                 </div>
 
                 <div className="form-group">
-                  <label>Notes (optional)</label>
-                  <textarea placeholder="Any notes..." rows={2}
+                  <label>{t('progressPage.formNotes')}</label>
+                  <textarea placeholder={t('progressPage.formNotesPh')} rows={2}
                     value={measurementForm.notes}
                     onChange={(e) => handleMeasurementChange('notes', e.target.value)} />
                 </div>
 
                 <button type="submit" className="btn-primary full-width" disabled={savingMeasurement}>
-                  {savingMeasurement ? 'Saving...' : 'Save Measurement'}
+                  {savingMeasurement ? t('progressPage.saving') : t('progressPage.saveMeasurement')}
                 </button>
                 <button type="button" className="btn-secondary full-width" onClick={() => setShowMeasurementModal(false)}>
-                  Cancel
+                  {t('progressPage.cancel')}
                 </button>
               </form>
             </div>
@@ -1241,7 +1252,7 @@ function Progress() {
         <div className="modal-overlay" onClick={() => setShowPhotoModal(false)}>
           <div className="modal-content" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
-              <h2>Add Photo</h2>
+              <h2>{t('progressPage.addPhotoTitle')}</h2>
               <button className="modal-close" onClick={() => setShowPhotoModal(false)}>
                 <X size={24} />
               </button>
@@ -1252,38 +1263,38 @@ function Progress() {
               ) : (
                 <div className="upload-area" onClick={() => photoInputRef.current?.click()}>
                   <div className="upload-icon"><Camera size={48} strokeWidth={1.5} /></div>
-                  <div className="upload-text">Tap to select photo</div>
+                  <div className="upload-text">{t('progressPage.tapToSelectPhoto')}</div>
                 </div>
               )}
               <input ref={photoInputRef} type="file" accept="image/*" onChange={handlePhotoSelect} style={{ display: 'none' }} />
 
               <div className="form-group">
-                <label>Photo Type</label>
+                <label>{t('progressPage.photoTypeLabel')}</label>
                 <select value={photoType} onChange={(e) => setPhotoType(e.target.value)}>
-                  <option value="progress">Progress</option>
-                  <option value="front">Front View</option>
-                  <option value="side">Side View</option>
-                  <option value="back">Back View</option>
+                  <option value="progress">{t('progressPage.photoTypeOptProgress')}</option>
+                  <option value="front">{t('progressPage.photoTypeOptFront')}</option>
+                  <option value="side">{t('progressPage.photoTypeOptSide')}</option>
+                  <option value="back">{t('progressPage.photoTypeOptBack')}</option>
                 </select>
               </div>
 
               <div className="form-group">
-                <label>Date</label>
+                <label>{t('progressPage.formDate')}</label>
                 <input type="date" value={photoDate} onChange={(e) => setPhotoDate(e.target.value)} />
               </div>
 
               <button className="btn-primary full-width"
                 onClick={() => { if (photoPreview) { handleUploadPhoto(); } else { photoInputRef.current?.click(); } }}
                 disabled={uploadingPhoto}>
-                {uploadingPhoto ? 'Uploading...' : photoPreview ? 'Upload Photo' : 'Select Photo'}
+                {uploadingPhoto ? t('progressPage.uploading') : photoPreview ? t('progressPage.uploadPhoto') : t('progressPage.selectPhoto')}
               </button>
               {photoPreview && (
                 <button className="btn-secondary full-width"
                   onClick={() => { setPhotoPreview(null); setPhotoFile(null); }}>
-                  Choose Different Photo
+                  {t('progressPage.chooseDifferentPhoto')}
                 </button>
               )}
-              <button className="btn-secondary full-width" onClick={() => setShowPhotoModal(false)}>Cancel</button>
+              <button className="btn-secondary full-width" onClick={() => setShowPhotoModal(false)}>{t('progressPage.cancel')}</button>
             </div>
           </div>
         </div>
@@ -1298,21 +1309,21 @@ function Progress() {
               alt="Selected"
               style={{ width: '100%', maxHeight: '200px', objectFit: 'cover', borderRadius: '12px', marginBottom: '16px' }}
             />
-            <h3 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '8px' }}>{selectedPhotos.length === 0 ? 'Use as your BEFORE photo?' : 'Use as your AFTER photo?'}</h3>
+            <h3 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '8px' }}>{selectedPhotos.length === 0 ? t('progressPage.useAsBeforePhoto') : t('progressPage.useAsAfterPhoto')}</h3>
             <p style={{ fontSize: '14px', color: '#94a3b8', marginBottom: '24px', lineHeight: 1.5 }}>
               {selectedPhotos.length === 0
-                ? 'This will be your starting point for comparison.'
-                : 'This will be compared against your before photo.'}
+                ? t('progressPage.beforePhotoDesc')
+                : t('progressPage.afterPhotoDesc')}
             </p>
             <div style={{ display: 'flex', gap: '12px' }}>
               <button className="delete-cancel-btn" onClick={() => setPendingPhoto(null)} style={{ flex: 1, padding: '12px 16px', border: 'none', borderRadius: '10px', fontSize: '15px', fontWeight: 500, cursor: 'pointer' }}>
-                Cancel
+                {t('progressPage.cancel')}
               </button>
               <button
                 onClick={confirmPhotoSelection}
                 style={{ flex: 1, padding: '12px 16px', background: '#4ec5b7', border: 'none', borderRadius: '10px', fontSize: '15px', fontWeight: 600, color: 'white', cursor: 'pointer' }}
               >
-                {selectedPhotos.length === 0 ? 'Yes, Before' : 'Yes, After'}
+                {selectedPhotos.length === 0 ? t('progressPage.yesBeforeBtn') : t('progressPage.yesAfterBtn')}
               </button>
             </div>
           </div>
@@ -1324,7 +1335,7 @@ function Progress() {
         <div className="comparison-modal-overlay" onClick={closeComparison}>
           <div className="comparison-modal-content" onClick={e => e.stopPropagation()}>
             <div className="comparison-header">
-              <h2>Photo Comparison</h2>
+              <h2>{t('progressPage.photoComparison')}</h2>
               <button className="comparison-close-btn" onClick={closeComparison}>
                 <X size={20} />
               </button>
@@ -1334,12 +1345,12 @@ function Progress() {
               {selectedPhotos.map((photo, i) => (
                 <div key={photo.id} className="comparison-photo-card">
                   <div className="comparison-photo-label">
-                    <strong>{i === 0 ? 'Before' : 'After'}</strong>
+                    <strong>{i === 0 ? t('progressPage.labelBefore') : t('progressPage.labelAfter')}</strong>
                     {new Date(photo.taken_date || photo.date_taken).toLocaleDateString()}
                   </div>
-                  <img src={photo.url || photo.photo_url} alt={i === 0 ? 'Before' : 'After'} />
+                  <img src={photo.url || photo.photo_url} alt={i === 0 ? t('progressPage.labelBefore') : t('progressPage.labelAfter')} />
                   <div className="comparison-photo-badge">
-                    {photoTypeLabels[photo.photo_type] || photo.photo_type || 'Progress'}
+                    {photoTypeLabels[photo.photo_type] || photo.photo_type || t('progressPage.photoTypeProgress')}
                   </div>
                 </div>
               ))}
@@ -1349,12 +1360,12 @@ function Progress() {
               {!aiAnalysis && (
                 <button className="ai-analysis-btn" onClick={handleAiAnalysis} disabled={analyzingPhotos}>
                   <Sparkles size={18} />
-                  {analyzingPhotos ? 'Analyzing...' : 'Get AI Analysis'}
+                  {analyzingPhotos ? t('progressPage.analyzing') : t('progressPage.getAiAnalysis')}
                 </button>
               )}
               {aiAnalysis && (
                 <div>
-                  <div className="ai-analysis-label">AI Coach Analysis</div>
+                  <div className="ai-analysis-label">{t('progressPage.aiCoachAnalysis')}</div>
                   <div className="ai-analysis-text">{aiAnalysis}</div>
                 </div>
               )}

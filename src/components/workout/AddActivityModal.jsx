@@ -1,7 +1,9 @@
 import { useState, useEffect, useMemo, useRef, useCallback, startTransition } from 'react';
 import { X, Search, Loader2, Plus, Mic, MicOff, ChevronDown, Check, ChevronRight, Eye } from 'lucide-react';
 import { apiGet } from '../../utils/api';
+import { getSpeechLang } from '../../utils/speechLang';
 import SmartThumbnail from './SmartThumbnail';
+import { useLanguage } from '../../context/LanguageContext';
 
 // Number of exercises to show initially and per "load more"
 const INITIAL_DISPLAY_COUNT = 30;
@@ -245,45 +247,47 @@ const fuzzyScore = (exercise, query) => {
   return Math.max(score, 1);
 };
 
+// labelKey fields are resolved via t() at render time so they translate correctly.
 const MUSCLE_GROUPS = [
-  { value: '', label: 'All muscles' },
-  { value: 'chest', label: 'Chest' },
-  { value: 'back', label: 'Back' },
-  { value: 'shoulders', label: 'Shoulders' },
-  { value: 'biceps', label: 'Biceps' },
-  { value: 'triceps', label: 'Triceps' },
-  { value: 'legs', label: 'Legs' },
-  { value: 'glutes', label: 'Glutes' },
-  { value: 'core', label: 'Core' },
-  { value: 'cardio', label: 'Cardio' },
+  { value: '', labelKey: 'addActivity.muscleAll' },
+  { value: 'chest', labelKey: 'addActivity.muscleChest' },
+  { value: 'back', labelKey: 'addActivity.muscleBack' },
+  { value: 'shoulders', labelKey: 'addActivity.muscleShoulders' },
+  { value: 'biceps', labelKey: 'addActivity.muscleBiceps' },
+  { value: 'triceps', labelKey: 'addActivity.muscleTriceps' },
+  { value: 'legs', labelKey: 'addActivity.muscleLegs' },
+  { value: 'glutes', labelKey: 'addActivity.muscleGlutes' },
+  { value: 'core', labelKey: 'addActivity.muscleCore' },
+  { value: 'cardio', labelKey: 'addActivity.muscleCardio' },
 ];
 
 // These are now just fallback options - we'll build dynamic options from the data
+// labelKey fields are resolved via t() at render time so they translate correctly.
 const DEFAULT_EQUIPMENT_OPTIONS = [
-  { value: '', label: 'All equipment' },
-  { value: 'barbell', label: 'Barbell' },
-  { value: 'dumbbell', label: 'Dumbbells' },
-  { value: 'cable', label: 'Cable' },
-  { value: 'machine', label: 'Machine' },
-  { value: 'bodyweight', label: 'Bodyweight' },
-  { value: 'kettlebell', label: 'Kettlebell' },
-  { value: 'resistance band', label: 'Resistance Band' },
-  { value: 'bench', label: 'Bench' },
+  { value: '', labelKey: 'addActivity.equipAll' },
+  { value: 'barbell', labelKey: 'addActivity.equipBarbell' },
+  { value: 'dumbbell', labelKey: 'addActivity.equipDumbbells' },
+  { value: 'cable', labelKey: 'addActivity.equipCable' },
+  { value: 'machine', labelKey: 'addActivity.equipMachine' },
+  { value: 'bodyweight', labelKey: 'addActivity.equipBodyweight' },
+  { value: 'kettlebell', labelKey: 'addActivity.equipKettlebell' },
+  { value: 'resistance band', labelKey: 'addActivity.equipResistanceBand' },
+  { value: 'bench', labelKey: 'addActivity.equipBench' },
 ];
 
 const DIFFICULTY_OPTIONS = [
-  { value: '', label: 'All levels' },
-  { value: 'beginner', label: 'Beginner' },
-  { value: 'intermediate', label: 'Intermediate' },
-  { value: 'advanced', label: 'Advanced' },
+  { value: '', labelKey: 'addActivity.diffAll' },
+  { value: 'beginner', labelKey: 'addActivity.diffBeginner' },
+  { value: 'intermediate', labelKey: 'addActivity.diffIntermediate' },
+  { value: 'advanced', labelKey: 'addActivity.diffAdvanced' },
 ];
 
 const CATEGORY_OPTIONS = [
-  { value: '', label: 'All categories' },
-  { value: 'warmup', label: 'Warm-up' },
-  { value: 'stretch', label: 'Stretches' },
-  { value: 'strength', label: 'Strength' },
-  { value: 'cardio', label: 'Cardio' },
+  { value: '', labelKey: 'addActivity.catAll' },
+  { value: 'warmup', labelKey: 'addActivity.catWarmup' },
+  { value: 'stretch', labelKey: 'addActivity.catStretch' },
+  { value: 'strength', labelKey: 'addActivity.catStrength' },
+  { value: 'cardio', labelKey: 'addActivity.catCardio' },
 ];
 
 // Keywords for detecting warm-up exercises by name (comprehensive list from exercise library)
@@ -444,6 +448,7 @@ const exerciseMatchesMuscle = (exercise, filterKey) => {
 };
 
 function AddActivityModal({ onAdd, onClose, existingExerciseIds = [], multiSelect = true, genderPreference = 'all', coachId = null, isCoach = false }) {
+  const { t } = useLanguage();
   const [exercises, setExercises] = useState([]);
   const [loading, setLoading] = useState(true);
   const [inputValue, setInputValue] = useState(''); // Immediate input display
@@ -540,7 +545,7 @@ function AddActivityModal({ onAdd, onClose, existingExerciseIds = [], multiSelec
     const recognition = new SpeechRecognition();
     recognition.continuous = false;
     recognition.interimResults = false;
-    recognition.lang = 'en-US';
+    recognition.lang = getSpeechLang();
 
     recognition.onstart = () => setIsListening(true);
 
@@ -644,9 +649,10 @@ function AddActivityModal({ onAdd, onClose, existingExerciseIds = [], multiSelec
 
     // Sort alphabetically and create options
     const sortedEquipment = Array.from(uniqueEquipment).sort();
-    const options = [{ value: '', label: 'All equipment' }];
+    const options = [{ value: '', labelKey: 'addActivity.equipAll' }];
 
     sortedEquipment.forEach(equip => {
+      // Dynamic equipment names from the database are user/data content — not translated.
       options.push({ value: equip, label: equip });
     });
 
@@ -944,7 +950,7 @@ function AddActivityModal({ onAdd, onClose, existingExerciseIds = [], multiSelec
       <div className="swap-modal add-activity-modal" onClick={e => e.stopPropagation()}>
         {/* Header */}
         <div className="add-activity-header">
-          <h3>Add Activity</h3>
+          <h3>{t('addActivity.headerTitle')}</h3>
           <div className="add-activity-header-actions">
             {multiSelect && selectedExercises.length > 0 && (
               <button
@@ -953,7 +959,7 @@ function AddActivityModal({ onAdd, onClose, existingExerciseIds = [], multiSelec
                 disabled={selecting}
               >
                 <Plus size={18} />
-                <span>Add {selectedExercises.length}</span>
+                <span>{t('addActivity.addSelectedBtn', { count: selectedExercises.length })}</span>
               </button>
             )}
             <button className="swap-close-btn" onClick={handleClose}>
@@ -967,7 +973,7 @@ function AddActivityModal({ onAdd, onClose, existingExerciseIds = [], multiSelec
           <Search size={18} />
           <input
             type="text"
-            placeholder="Search activities"
+            placeholder={t('addActivity.searchPlaceholder')}
             value={inputValue}
             onChange={handleSearchChange}
           />
@@ -976,7 +982,7 @@ function AddActivityModal({ onAdd, onClose, existingExerciseIds = [], multiSelec
               className={`search-voice-btn ${isListening ? 'listening' : ''}`}
               onClick={toggleVoiceInput}
               type="button"
-              title="Voice search"
+              title={t('addActivity.voiceSearchTitle')}
             >
               {isListening ? <MicOff size={18} /> : <Mic size={18} />}
             </button>
@@ -994,7 +1000,7 @@ function AddActivityModal({ onAdd, onClose, existingExerciseIds = [], multiSelec
             >
               {MUSCLE_GROUPS.map(muscle => (
                 <option key={muscle.value} value={muscle.value}>
-                  {muscle.label}
+                  {t(muscle.labelKey)}
                 </option>
               ))}
             </select>
@@ -1010,7 +1016,7 @@ function AddActivityModal({ onAdd, onClose, existingExerciseIds = [], multiSelec
             >
               {equipmentOptions.map(equip => (
                 <option key={equip.value} value={equip.value}>
-                  {equip.label}
+                  {equip.labelKey ? t(equip.labelKey) : equip.label}
                 </option>
               ))}
             </select>
@@ -1026,7 +1032,7 @@ function AddActivityModal({ onAdd, onClose, existingExerciseIds = [], multiSelec
             >
               {DIFFICULTY_OPTIONS.map(diff => (
                 <option key={diff.value} value={diff.value}>
-                  {diff.label}
+                  {t(diff.labelKey)}
                 </option>
               ))}
             </select>
@@ -1042,7 +1048,7 @@ function AddActivityModal({ onAdd, onClose, existingExerciseIds = [], multiSelec
             >
               {CATEGORY_OPTIONS.map(cat => (
                 <option key={cat.value} value={cat.value}>
-                  {cat.label}
+                  {t(cat.labelKey)}
                 </option>
               ))}
             </select>
@@ -1056,7 +1062,7 @@ function AddActivityModal({ onAdd, onClose, existingExerciseIds = [], multiSelec
               onClick={handleCustomToggle}
               type="button"
             >
-              Custom
+              {t('addActivity.customFilter')}
             </button>
           )}
         </div>
@@ -1066,11 +1072,11 @@ function AddActivityModal({ onAdd, onClose, existingExerciseIds = [], multiSelec
           {loading ? (
             <div className="swap-loading">
               <Loader2 size={32} className="spin" />
-              <span>Loading exercises...</span>
+              <span>{t('addActivity.loadingExercises')}</span>
             </div>
           ) : filteredExercises.length === 0 ? (
             <div className="swap-empty">
-              <p>No exercises found</p>
+              <p>{t('addActivity.noExercisesFound')}</p>
             </div>
           ) : (
             <>
@@ -1090,7 +1096,7 @@ function AddActivityModal({ onAdd, onClose, existingExerciseIds = [], multiSelec
                         showPlayIndicator={false}
                       />
                       {getPreviewUrl(ex) && (
-                        <button className="swap-preview-btn" onClick={(e) => handlePreview(e, ex)} aria-label="Preview exercise">
+                        <button className="swap-preview-btn" onClick={(e) => handlePreview(e, ex)} aria-label={t('addActivity.previewAriaLabel')}>
                           <Eye size={12} />
                         </button>
                       )}
@@ -1115,7 +1121,7 @@ function AddActivityModal({ onAdd, onClose, existingExerciseIds = [], multiSelec
                   onClick={handleLoadMore}
                   type="button"
                 >
-                  <span>Load more ({filteredExercises.length - displayCount} remaining)</span>
+                  <span>{t('addActivity.loadMore', { count: filteredExercises.length - displayCount })}</span>
                   <ChevronRight size={18} />
                 </button>
               )}
@@ -1143,7 +1149,7 @@ function AddActivityModal({ onAdd, onClose, existingExerciseIds = [], multiSelec
                 ) : (
                   <img
                     src={getPreviewUrl(previewExercise)}
-                    alt={previewExercise.name || 'Exercise preview'}
+                    alt={previewExercise.name || t('addActivity.previewAltFallback')}
                     onError={(e) => { if (!e.target.dataset.fallback) { e.target.dataset.fallback = '1'; e.target.src = '/img/exercise-placeholder.svg'; } }}
                   />
                 )}
@@ -1161,7 +1167,7 @@ function AddActivityModal({ onAdd, onClose, existingExerciseIds = [], multiSelec
                 disabled={selecting}
               >
                 <Plus size={16} />
-                Add this exercise
+                {t('addActivity.addThisExercise')}
               </button>
             </div>
           </div>

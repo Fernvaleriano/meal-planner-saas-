@@ -2,6 +2,7 @@ import { useRef } from 'react';
 import { X, Share2, ImageIcon, Award } from 'lucide-react';
 import { BADGE_TIERS } from '../utils/badges';
 import BadgeIcon from './BadgeIcon';
+import { useLanguage } from '../context/LanguageContext';
 
 // Celebration popup shown when a client crosses a check-in milestone.
 //
@@ -27,6 +28,7 @@ function BadgeCelebrationModal({
   shareBgImage = null,
   onChangePhoto = null,
 }) {
+  const { t } = useLanguage();
   const fileInputRef = useRef(null);
 
   if (!badge || !badge.tier) return null;
@@ -45,14 +47,14 @@ function BadgeCelebrationModal({
       onClick={onClose}
       role="dialog"
       aria-modal="true"
-      aria-label="Badge unlocked"
+      aria-label={t('badgeCelebration.overlayAriaLabel')}
     >
       <div className="badge-unlock-modal" onClick={(e) => e.stopPropagation()}>
         <button
           type="button"
           className="badge-unlock-close"
           onClick={onClose}
-          aria-label="Close"
+          aria-label={t('badgeCelebration.closeAriaLabel')}
         >
           <X size={20} />
         </button>
@@ -62,19 +64,19 @@ function BadgeCelebrationModal({
           <span>✨</span><span>🎉</span><span>⭐</span><span>🎊</span>
         </div>
 
-        <div className="badge-unlock-header">BADGE UNLOCKED</div>
+        <div className="badge-unlock-header">{t('badgeCelebration.badgeUnlocked')}</div>
         <div
           className="badge-unlock-icon-disc"
           style={{ '--badge-tier-color': tier.iconColor || '#fbbf24' }}
         >
           <BadgeIcon tier={tier} size={88} strokeWidth={1.6} color="#ffffff" />
         </div>
-        <div className="badge-unlock-name">{tier.name}</div>
-        <div className="badge-unlock-desc">{tier.desc}</div>
+        <div className="badge-unlock-name">{tier.nameKey ? t(tier.nameKey) : tier.name}</div>
+        <div className="badge-unlock-desc">{tier.descKey ? t(tier.descKey) : tier.desc}</div>
 
         <div className="badge-unlock-stats">
           <Award size={16} strokeWidth={2.2} aria-hidden="true" />
-          <span>{earnedTiers.length} / {BADGE_TIERS.length} badges earned</span>
+          <span>{t('badgeCelebration.badgesEarned', { earned: earnedTiers.length, total: BADGE_TIERS.length })}</span>
         </div>
 
         {onShare && onChangePhoto && (
@@ -89,14 +91,14 @@ function BadgeCelebrationModal({
               )}
             </div>
             <div className="badge-unlock-bg-text">
-              <div className="badge-unlock-bg-label">Background photo</div>
+              <div className="badge-unlock-bg-label">{t('badgeCelebration.backgroundPhotoLabel')}</div>
               <button
                 type="button"
                 className="badge-unlock-bg-change-btn"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={sharing}
               >
-                {shareBgImage ? 'Change photo' : 'Add photo'}
+                {shareBgImage ? t('badgeCelebration.changePhoto') : t('badgeCelebration.addPhoto')}
               </button>
             </div>
             <input
@@ -117,7 +119,7 @@ function BadgeCelebrationModal({
             disabled={sharing}
           >
             <Share2 size={18} />
-            <span>{sharing ? 'Generating…' : 'Save / Share image'}</span>
+            <span>{sharing ? t('badgeCelebration.generating') : t('badgeCelebration.saveShareImage')}</span>
           </button>
         )}
 
@@ -126,7 +128,7 @@ function BadgeCelebrationModal({
           className="badge-unlock-done-btn"
           onClick={onClose}
         >
-          Awesome!
+          {t('badgeCelebration.awesome')}
         </button>
       </div>
     </div>
