@@ -64,4 +64,26 @@ export default {
   // Internal thrown error messages (caught and shown to user)
   errorGetUploadUrl: 'Failed to get upload URL',
   errorUploadStorage: 'Failed to upload file to storage',
+
+  // Coach-reaction chat pills ("Reacted {emoji} to {subject}"). Only used
+  // when the client is in Spanish; English renders the server text as-is.
+  reactedTo: 'Reacted {emoji} to {subject}',
+  reactSubjMeasurementOf: 'your measurement of {value}',
+  reactSubjCheckinDetail: 'your check-in ({detail})',
+  reactSubjNamedWorkout: 'your "{name}" workout',
+  reactSubjNewPrDetail: 'your new PR ({detail})',
+  reactSubjVoiceNoteOn: 'your voice note on {exercise}',
+  reactSubjNoteOn: 'your note on {exercise}',
+  reactSubjGymCheckinDetail: 'your {detail} gym check-in',
+  reactSubjTypedPhoto: 'your {type} photo',
+  reactSubjWorkout: 'your workout',
+  reactSubjMeasurements: 'your measurements',
+  reactSubjWeighIn: 'your weigh-in',
+  reactSubjGymCheckin: 'your gym check-in',
+  reactSubjCheckin: 'your check-in',
+  reactSubjCheckinWeekly: 'your weekly check-in',
+  reactSubjProgressPhoto: 'your progress photo',
+  reactSubjPr: 'your PR',
+  reactSubjNewPr: 'your new PR',
+  reactSubjWorkoutNote: 'your workout note',
 };
