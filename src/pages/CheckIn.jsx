@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { apiGet, apiPost } from '../utils/api';
 import { usePullToRefreshEvent } from '../hooks/usePullToRefreshEvent';
 import { useToast } from '../components/Toast';
+import { useLanguage } from '../context/LanguageContext';
 import BadgeCelebrationModal from '../components/BadgeCelebrationModal';
 import {
   getEarnedTiers,
@@ -17,6 +18,7 @@ function CheckIn() {
   const navigate = useNavigate();
   const { clientData } = useAuth();
   const { showError, showSuccess } = useToast();
+  const { t } = useLanguage();
 
   const [ratings, setRatings] = useState({
     energy: null,
@@ -93,7 +95,7 @@ function CheckIn() {
     e.preventDefault();
 
     if (!ratings.energy || !ratings.sleep || !ratings.hunger || !ratings.stress) {
-      showError('Please rate all wellness metrics before submitting.');
+      showError(t('checkInPage.errorRateAll'));
       return;
     }
 
@@ -137,11 +139,11 @@ function CheckIn() {
           });
         }, 400);
       } else {
-        showSuccess('Check-in submitted successfully!');
+        showSuccess(t('checkInPage.successSubmit'));
       }
     } catch (err) {
       console.error('Error submitting check-in:', err);
-      showError('Error submitting check-in. Please try again.');
+      showError(t('checkInPage.errorSubmit'));
     } finally {
       setSubmitting(false);
     }
@@ -159,14 +161,14 @@ function CheckIn() {
         clientName: clientData?.client_name,
         bgImage: shareBgImage,
       });
-      const caption = `Just unlocked ${tier.name} ${tier.icon} — ${newCount} check-ins strong!`;
+      const caption = t('checkInPage.badgeShareCaption', { name: tier.name, icon: tier.icon, count: newCount });
       const result = await shareOrDownloadBadge(blob, tier, caption);
       if (result.downloaded) {
-        showSuccess('Image saved — ready to share!');
+        showSuccess(t('checkInPage.successImageSaved'));
       }
     } catch (err) {
       console.error('Error sharing unlocked badge:', err);
-      showError('Could not generate share image');
+      showError(t('checkInPage.errorShareImage'));
     } finally {
       setSharingBadge(false);
     }
@@ -198,7 +200,7 @@ function CheckIn() {
             type="button"
             className={`rating-btn ${ratings[type] === value ? 'selected' : ''}`}
             onClick={() => handleRating(type, value)}
-            aria-label={`${label} ${value} out of 5`}
+            aria-label={t('checkInPage.ratingAriaLabel', { label, value })}
           >
             {value}
           </button>
@@ -220,7 +222,7 @@ function CheckIn() {
         <button className="back-btn-circle" onClick={() => navigate(-1)}>
           <ChevronLeft size={24} />
         </button>
-        <h1 className="page-title">Weekly Check-in</h1>
+        <h1 className="page-title">{t('checkInPage.pageTitle')}</h1>
         {streak > 0 && (
           <div className="streak-badge">
             <Flame size={16} />
@@ -234,18 +236,18 @@ function CheckIn() {
         <div className="section-card">
           <h2 className="section-title">
             <NotebookPen size={18} className="section-title-icon" />
-            <span>How are things going?</span>
+            <span>{t('checkInPage.sectionHowAreThings')}</span>
           </h2>
 
           <form onSubmit={handleSubmit}>
-            <RatingButtons type="energy" label="Energy Level" lowLabel="Drained" highLabel="Energized" />
-            <RatingButtons type="sleep" label="Sleep Quality" lowLabel="Poor" highLabel="Great" />
-            <RatingButtons type="hunger" label="Hunger Level" hint="1=always hungry, 5=satisfied" lowLabel="Always hungry" highLabel="Satisfied" />
-            <RatingButtons type="stress" label="Stress Level" hint="1=low, 5=high" lowLabel="Calm" highLabel="Overwhelmed" />
+            <RatingButtons type="energy" label={t('checkInPage.labelEnergy')} lowLabel={t('checkInPage.lowEnergy')} highLabel={t('checkInPage.highEnergy')} />
+            <RatingButtons type="sleep" label={t('checkInPage.labelSleep')} lowLabel={t('checkInPage.lowSleep')} highLabel={t('checkInPage.highSleep')} />
+            <RatingButtons type="hunger" label={t('checkInPage.labelHunger')} hint={t('checkInPage.hintHunger')} lowLabel={t('checkInPage.lowHunger')} highLabel={t('checkInPage.highHunger')} />
+            <RatingButtons type="stress" label={t('checkInPage.labelStress')} hint={t('checkInPage.hintStress')} lowLabel={t('checkInPage.lowStress')} highLabel={t('checkInPage.highStress')} />
 
             {/* Adherence Slider */}
             <div className="adherence-container">
-              <label className="rating-label">Meal Plan Adherence</label>
+              <label className="rating-label">{t('checkInPage.labelAdherence')}</label>
               <input
                 type="range"
                 className="adherence-slider"
@@ -259,9 +261,9 @@ function CheckIn() {
 
             {/* Text Areas */}
             <div className="form-group">
-              <label>What went well? (Wins)</label>
+              <label>{t('checkInPage.labelWins')}</label>
               <textarea
-                placeholder="Share your victories this week..."
+                placeholder={t('checkInPage.placeholderWins')}
                 value={wins}
                 onChange={(e) => setWins(e.target.value)}
                 rows={3}
@@ -269,9 +271,9 @@ function CheckIn() {
             </div>
 
             <div className="form-group">
-              <label>Challenges or struggles?</label>
+              <label>{t('checkInPage.labelChallenges')}</label>
               <textarea
-                placeholder="What was difficult?"
+                placeholder={t('checkInPage.placeholderChallenges')}
                 value={challenges}
                 onChange={(e) => setChallenges(e.target.value)}
                 rows={3}
@@ -279,9 +281,9 @@ function CheckIn() {
             </div>
 
             <div className="form-group">
-              <label>Questions for your coach?</label>
+              <label>{t('checkInPage.labelQuestions')}</label>
               <textarea
-                placeholder="Anything you'd like to ask?"
+                placeholder={t('checkInPage.placeholderQuestions')}
                 value={questions}
                 onChange={(e) => setQuestions(e.target.value)}
                 rows={3}
@@ -293,7 +295,7 @@ function CheckIn() {
               className="btn-primary full-width"
               disabled={submitting}
             >
-              {submitting ? 'Submitting...' : 'Submit Check-in'}
+              {submitting ? t('checkInPage.submitting') : t('checkInPage.submitBtn')}
             </button>
           </form>
         </div>
@@ -308,7 +310,7 @@ function CheckIn() {
           >
             <h3 className="section-title" style={{ margin: 0 }}>
               <Calendar size={18} className="section-title-icon" />
-              <span>Previous Check-ins</span>
+              <span>{t('checkInPage.previousCheckIns')}</span>
             </h3>
             <ChevronDown
               size={20}
@@ -324,12 +326,12 @@ function CheckIn() {
               {loadingHistory ? (
                 <div className="loading-state">
                   <div className="spinner"></div>
-                  <p>Loading history...</p>
+                  <p>{t('checkInPage.loadingHistory')}</p>
                 </div>
               ) : history.length === 0 ? (
                 <div className="empty-state-inline">
                   <span>📝</span>
-                  <p>No check-ins yet. Submit your first one above!</p>
+                  <p>{t('checkInPage.noCheckIns')}</p>
                 </div>
               ) : (
                 <div className="checkin-history">
@@ -356,19 +358,19 @@ function CheckIn() {
                           <span className={`checkin-adherence-badge band-${adherenceBand(adherencePct)}`}>{adherencePct}%</span>
                         </div>
                         <div className="checkin-ratings">
-                          {entry.energy_level && <span><Zap size={13} /> Energy: {entry.energy_level}/5</span>}
-                          {entry.sleep_quality && <span><Moon size={13} /> Sleep: {entry.sleep_quality}/5</span>}
-                          {entry.hunger_level && <span><Utensils size={13} /> Hunger: {entry.hunger_level}/5</span>}
-                          {entry.stress_level && <span><AlertCircle size={13} /> Stress: {entry.stress_level}/5</span>}
+                          {entry.energy_level && <span><Zap size={13} /> {t('checkInPage.historyEnergy', { value: entry.energy_level })}</span>}
+                          {entry.sleep_quality && <span><Moon size={13} /> {t('checkInPage.historySleep', { value: entry.sleep_quality })}</span>}
+                          {entry.hunger_level && <span><Utensils size={13} /> {t('checkInPage.historyHunger', { value: entry.hunger_level })}</span>}
+                          {entry.stress_level && <span><AlertCircle size={13} /> {t('checkInPage.historyStress', { value: entry.stress_level })}</span>}
                         </div>
                         {isMeaningful(entry.wins) && (
                           <div className="checkin-notes">
-                            <strong>Wins:</strong> {entry.wins}
+                            <strong>{t('checkInPage.historyWinsLabel')}</strong> {entry.wins}
                           </div>
                         )}
                         {isMeaningful(entry.challenges) && (
                           <div className="checkin-notes">
-                            <strong>Challenges:</strong> {entry.challenges}
+                            <strong>{t('checkInPage.historyChallengesLabel')}</strong> {entry.challenges}
                           </div>
                         )}
                       </div>
