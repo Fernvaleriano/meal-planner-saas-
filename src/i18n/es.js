@@ -34,6 +34,21 @@ export default {
     notRegistered: 'Esta cuenta no está registrada como cliente',
   },
 
+  forgot: {
+    title: 'Restablecer contraseña',
+    subtitle: 'Introduce tu correo para recibir un enlace de restablecimiento',
+    email: 'Correo electrónico',
+    emailPlaceholder: 'tu@correo.com',
+    sending: 'Enviando...',
+    sendLink: 'Enviar enlace de restablecimiento',
+    backToSignIn: 'Volver a iniciar sesión',
+    sendFailed: 'No se pudo enviar el correo de restablecimiento',
+    checkEmailTitle: 'Revisa tu correo',
+    sentTo: 'Te hemos enviado un enlace para restablecer la contraseña a',
+    spamNote: 'No olvides revisar tu carpeta de spam si no lo ves.',
+    poweredBy: 'Con tecnología de Ziquecoach',
+  },
+
   language: {
     title: 'Idioma',
     subtitle: 'Elige tu idioma',

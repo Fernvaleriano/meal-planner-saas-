@@ -41,6 +41,21 @@ export default {
     notRegistered: 'This account is not registered as a client',
   },
 
+  forgot: {
+    title: 'Reset Password',
+    subtitle: 'Enter your email to receive a reset link',
+    email: 'Email',
+    emailPlaceholder: 'your@email.com',
+    sending: 'Sending...',
+    sendLink: 'Send Reset Link',
+    backToSignIn: 'Back to Sign In',
+    sendFailed: 'Failed to send reset email',
+    checkEmailTitle: 'Check Your Email',
+    sentTo: "We've sent a password reset link to",
+    spamNote: "Don't forget to check your spam folder if you don't see it.",
+    poweredBy: 'Powered by Ziquecoach',
+  },
+
   language: {
     title: 'Language',
     subtitle: 'Choose your language',

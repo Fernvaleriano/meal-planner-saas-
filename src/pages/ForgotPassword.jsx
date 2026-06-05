@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../utils/supabase';
+import { useLanguage } from '../context/LanguageContext';
 
 function ForgotPassword() {
   const [email, setEmail] = useState('');
@@ -8,6 +9,7 @@ function ForgotPassword() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const navigate = useNavigate();
+  const { t } = useLanguage();
 
   const handleResetPassword = async (e) => {
     e.preventDefault();
@@ -26,7 +28,7 @@ function ForgotPassword() {
 
       setSuccess(true);
     } catch (err) {
-      setError(err.message || 'Failed to send reset email');
+      setError(err.message || t('forgot.sendFailed'));
     } finally {
       setLoading(false);
     }
@@ -45,8 +47,8 @@ function ForgotPassword() {
 
         {/* Header */}
         <div className="login-header">
-          <h1>Reset Password</h1>
-          <p>Enter your email to receive a reset link</p>
+          <h1>{t('forgot.title')}</h1>
+          <p>{t('forgot.subtitle')}</p>
         </div>
 
         {/* Form */}
@@ -59,12 +61,12 @@ function ForgotPassword() {
             )}
 
             <div className="login-field">
-              <label>Email</label>
+              <label>{t('forgot.email')}</label>
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="your@email.com"
+                placeholder={t('forgot.emailPlaceholder')}
                 required
                 autoComplete="email"
                 autoCapitalize="none"
@@ -79,10 +81,10 @@ function ForgotPassword() {
               {loading ? (
                 <>
                   <span className="login-spinner"></span>
-                  Sending...
+                  {t('forgot.sending')}
                 </>
               ) : (
-                'Send Reset Link'
+                t('forgot.sendLink')
               )}
             </button>
 
@@ -91,7 +93,7 @@ function ForgotPassword() {
               className="back-link"
               onClick={() => navigate('/login')}
             >
-              Back to Sign In
+              {t('forgot.backToSignIn')}
             </button>
           </form>
         ) : (
@@ -102,22 +104,22 @@ function ForgotPassword() {
                 <polyline points="22 4 12 14.01 9 11.01"></polyline>
               </svg>
             </div>
-            <h2>Check Your Email</h2>
-            <p>We've sent a password reset link to <strong>{email}</strong></p>
-            <p className="note">Don't forget to check your spam folder if you don't see it.</p>
+            <h2>{t('forgot.checkEmailTitle')}</h2>
+            <p>{t('forgot.sentTo')} <strong>{email}</strong></p>
+            <p className="note">{t('forgot.spamNote')}</p>
             <button
               type="button"
               className="login-button"
               onClick={() => navigate('/login')}
             >
-              Back to Sign In
+              {t('forgot.backToSignIn')}
             </button>
           </div>
         )}
 
         {/* Footer */}
         <div className="login-footer">
-          <p>Powered by Ziquecoach</p>
+          <p>{t('forgot.poweredBy')}</p>
         </div>
       </div>
 
