@@ -39,6 +39,18 @@ export default {
     subtitle: 'Elige tu idioma',
   },
 
+  nav: {
+    home: 'Inicio',
+    diary: 'Diario',
+    plans: 'Comidas',
+    workouts: 'Entrenamientos',
+    messages: 'Mensajes',
+    meals: 'Comidas',
+    check_in: 'Control',
+    progress: 'Progreso',
+    recipes: 'Recetas',
+  },
+
   settings: {
     defaultUser: 'Usuario',
 

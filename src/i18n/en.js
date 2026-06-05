@@ -46,6 +46,22 @@ export default {
     subtitle: 'Choose your language',
   },
 
+  // Bottom-nav / sidebar tab names. These are the DEFAULTS — a coach who
+  // renames a tab in Branding Settings always overrides these, in any
+  // language. English values here must match DEFAULT_TERMINOLOGY in
+  // BrandingContext exactly so English behavior is unchanged.
+  nav: {
+    home: 'Home',
+    diary: 'Diary',
+    plans: 'Meals',
+    workouts: 'Workouts',
+    messages: 'Messages',
+    meals: 'Meals',
+    check_in: 'Check-In',
+    progress: 'Progress',
+    recipes: 'Recipes',
+  },
+
   settings: {
     // Profile header
     defaultUser: 'User',
