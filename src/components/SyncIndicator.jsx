@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useLanguage } from '../context/LanguageContext';
 
 /**
  * Thin bar at the top of the screen that appears briefly when the app
@@ -13,6 +14,7 @@ import { useState, useEffect, useCallback } from 'react';
  * force-quitting the app.
  */
 export default function SyncIndicator() {
+  const { t } = useLanguage();
   const [syncing, setSyncing] = useState(false);
   const [stuck, setStuck] = useState(false);
   const [offline, setOffline] = useState(false);
@@ -94,15 +96,15 @@ export default function SyncIndicator() {
       {!stuck && !offline && <div className="sync-indicator-bar" />}
       <div className={`sync-indicator-content ${stuck || offline ? 'sync-indicator-content--expanded' : ''}`}>
         <span className="sync-indicator-text">
-          {offline ? 'No connection' : stuck ? 'Having trouble reconnecting' : 'Reconnecting...'}
+          {offline ? t('syncIndicator.noConnection') : stuck ? t('syncIndicator.havingTrouble') : t('syncIndicator.reconnecting')}
         </span>
         {(stuck || offline) && (
           <button
             className="sync-indicator-reload"
             onClick={handleReload}
-            aria-label="Reload page"
+            aria-label={t('syncIndicator.ariaReloadPage')}
           >
-            Reload
+            {t('syncIndicator.reloadLabel')}
           </button>
         )}
       </div>

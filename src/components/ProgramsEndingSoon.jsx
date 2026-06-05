@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Clock, AlertTriangle, CheckCircle, ChevronRight, Dumbbell, X, UserX } from 'lucide-react';
 import { apiGet } from '../utils/api';
+import { useLanguage } from '../context/LanguageContext';
 
 /**
  * Dashboard widget showing:
@@ -10,6 +11,7 @@ import { apiGet } from '../utils/api';
  * Displayed at the top of the coach Feed page for maximum visibility.
  */
 export default function ProgramsEndingSoon({ coachId }) {
+  const { t } = useLanguage();
   const [programs, setPrograms] = useState([]);
   const [clientsWithoutPrograms, setClientsWithoutPrograms] = useState([]);
   const [clientsWithExpiredOnly, setClientsWithExpiredOnly] = useState([]);
@@ -68,7 +70,7 @@ export default function ProgramsEndingSoon({ coachId }) {
       <div className="programs-ending-header">
         <div className="programs-ending-title">
           <AlertTriangle size={18} />
-          <span>Program Alerts</span>
+          <span>{t('programsEndingSoon.title')}</span>
           <span className="programs-ending-count">{totalVisible}</span>
         </div>
       </div>
@@ -83,11 +85,11 @@ export default function ProgramsEndingSoon({ coachId }) {
             <div className="programs-ending-card-main">
               <div className="programs-ending-card-info">
                 <div className="programs-ending-client-name">{client.clientName}</div>
-                <div className="programs-ending-program-name">No workout program assigned</div>
+                <div className="programs-ending-program-name">{t('programsEndingSoon.noProgramAssigned')}</div>
                 <div className="programs-ending-meta">
                   <span className="programs-ending-badge expired">
                     <UserX size={12} />
-                    No program
+                    {t('programsEndingSoon.badgeNoProgram')}
                   </span>
                 </div>
               </div>
@@ -95,14 +97,14 @@ export default function ProgramsEndingSoon({ coachId }) {
                 <button
                   className="programs-ending-assign-btn"
                   onClick={() => navigate('/workout-plans')}
-                  title="Assign program"
+                  title={t('programsEndingSoon.titleAssignProgram')}
                 >
                   <ChevronRight size={18} />
                 </button>
                 <button
                   className="programs-ending-dismiss-btn"
                   onClick={(e) => { e.stopPropagation(); handleDismiss(`no-program-${client.clientId}`); }}
-                  title="Dismiss"
+                  title={t('programsEndingSoon.titleDismiss')}
                 >
                   <X size={14} />
                 </button>
@@ -120,11 +122,11 @@ export default function ProgramsEndingSoon({ coachId }) {
             <div className="programs-ending-card-main">
               <div className="programs-ending-card-info">
                 <div className="programs-ending-client-name">{client.clientName}</div>
-                <div className="programs-ending-program-name">"{client.lastProgramName}" ended {client.lastProgramEndDate}</div>
+                <div className="programs-ending-program-name">{t('programsEndingSoon.programEnded', { programName: client.lastProgramName, endDate: client.lastProgramEndDate })}</div>
                 <div className="programs-ending-meta">
                   <span className="programs-ending-badge expired">
                     <AlertTriangle size={12} />
-                    Needs new program
+                    {t('programsEndingSoon.badgeNeedsNewProgram')}
                   </span>
                 </div>
               </div>
@@ -132,14 +134,14 @@ export default function ProgramsEndingSoon({ coachId }) {
                 <button
                   className="programs-ending-assign-btn"
                   onClick={() => navigate('/workout-plans')}
-                  title="Assign new program"
+                  title={t('programsEndingSoon.titleAssignNewProgram')}
                 >
                   <ChevronRight size={18} />
                 </button>
                 <button
                   className="programs-ending-dismiss-btn"
                   onClick={(e) => { e.stopPropagation(); handleDismiss(`expired-${client.clientId}`); }}
-                  title="Dismiss"
+                  title={t('programsEndingSoon.titleDismiss')}
                 >
                   <X size={14} />
                 </button>
@@ -162,12 +164,12 @@ export default function ProgramsEndingSoon({ coachId }) {
                   {program.isExpired ? (
                     <span className="programs-ending-badge expired">
                       <AlertTriangle size={12} />
-                      Ended
+                      {t('programsEndingSoon.badgeEnded')}
                     </span>
                   ) : (
                     <span className={`programs-ending-badge ${program.daysRemaining <= 3 ? 'urgent' : 'upcoming'}`}>
                       <Clock size={12} />
-                      {program.daysRemaining}d left
+                      {t('programsEndingSoon.daysLeft', { days: program.daysRemaining })}
                     </span>
                   )}
                   {program.plannedWorkouts > 0 && (
@@ -183,14 +185,14 @@ export default function ProgramsEndingSoon({ coachId }) {
                 <button
                   className="programs-ending-assign-btn"
                   onClick={() => navigate('/workout-plans')}
-                  title="Assign new program"
+                  title={t('programsEndingSoon.titleAssignNewProgram')}
                 >
                   <ChevronRight size={18} />
                 </button>
                 <button
                   className="programs-ending-dismiss-btn"
                   onClick={(e) => { e.stopPropagation(); handleDismiss(program.assignmentId); }}
-                  title="Dismiss"
+                  title={t('programsEndingSoon.titleDismiss')}
                 >
                   <X size={14} />
                 </button>

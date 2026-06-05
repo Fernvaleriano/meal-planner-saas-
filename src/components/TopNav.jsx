@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Bell } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useBranding } from '../context/BrandingContext';
+import { useLanguage } from '../context/LanguageContext';
 import { apiGet } from '../utils/api';
 import { onAppResume, onAppSuspend } from '../hooks/useAppLifecycle';
 
@@ -28,6 +29,7 @@ export function clearTopNavCaches() {
 function TopNav() {
   const { clientData } = useAuth();
   const { branding } = useBranding();
+  const { t } = useLanguage();
   const navigate = useNavigate();
   const [logoFailed, setLogoFailed] = useState(false);
   const logoUrl = branding?.brand_logo_url || DEFAULT_LOGO_URL;
@@ -105,7 +107,7 @@ function TopNav() {
   return (
     <nav className="top-nav">
       {/* Brand logo — coach's custom logo if set, otherwise Ziquecoach default */}
-      <Link to="/" className="nav-left" aria-label="Home">
+      <Link to="/" className="nav-left" aria-label={t('topNav.ariaHome')}>
         {!logoFailed ? (
           <img
             src={logoUrl}
@@ -125,12 +127,12 @@ function TopNav() {
         <Link
           to="/settings"
           className="nav-profile-avatar-btn"
-          aria-label="Profile settings"
+          aria-label={t('topNav.ariaProfileSettings')}
         >
           {clientData?.profile_photo_url ? (
             <img
               src={clientData.profile_photo_url}
-              alt="Profile"
+              alt={t('topNav.profileAlt')}
               className="nav-profile-avatar-img"
             />
           ) : (
@@ -146,7 +148,7 @@ function TopNav() {
           <button
             className="nav-btn"
             onClick={() => navigate('/notifications')}
-            aria-label="View notifications"
+            aria-label={t('topNav.ariaViewNotifications')}
           >
             <Bell size={18} aria-hidden="true" />
             {unreadCount > 0 && (
