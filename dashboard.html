@@ -977,6 +977,27 @@
             margin-top: 2px;
         }
         [data-theme="dark"] .activity-detail-time { color: #64748b; }
+        /* At-a-glance weight change vs the client's previous reading.
+           Neutral single color (no good/bad implied — weight gain isn't
+           universally bad); direction is shown by the arrow + sign. */
+        .activity-weight-delta {
+            display: inline-flex;
+            align-items: center;
+            gap: 2px;
+            margin-left: 6px;
+            padding: 1px 6px;
+            border-radius: 6px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            background: var(--gray-100);
+            color: var(--gray-600);
+            white-space: nowrap;
+            vertical-align: baseline;
+        }
+        [data-theme="dark"] .activity-weight-delta {
+            background: rgba(148, 163, 184, 0.15);
+            color: #cbd5e1;
+        }
         /* Per-item reaction + comment row */
         .activity-item-actions {
             display: flex;
@@ -6939,8 +6960,18 @@
                 weekAgo.setDate(weekAgo.getDate() - 7);
                 const isoWeekAgo = weekAgo.toISOString();
 
+                // For the weight "vs last time" indicator we need each
+                // client's prior reading, which may sit just before the
+                // 7-day activity window. Pull a wider weight history
+                // (last ~180 days) so the earliest in-window reading still
+                // has something to compare against. Kept as separate,
+                // additive queries so removing them leaves the feed working.
+                const historyDaysAgo = new Date();
+                historyDaysAgo.setDate(historyDaysAgo.getDate() - 180);
+                const isoHistoryAgo = historyDaysAgo.toISOString();
+
                 // Fetch all activity types in parallel
-                const [workoutsRes, prsRes, checkinsRes, photosRes, measurementsRes, gymProofsRes, badgesRes] = await Promise.all([
+                const [workoutsRes, prsRes, checkinsRes, photosRes, measurementsRes, gymProofsRes, badgesRes, measHistRes, checkinHistRes] = await Promise.all([
                     // ANY evidence of effort = win: count non-skipped logs that
                     // have at least one recorded set (do NOT require 'completed').
                     supabaseClient.from('workout_logs')
@@ -6995,8 +7026,63 @@
                         .eq('type', 'badge_earned')
                         .gte('created_at', isoWeekAgo)
                         .order('created_at', { ascending: false })
-                        .limit(30)
+                        .limit(30),
+                    // Weight history (for the +/- vs-last-time indicator).
+                    // Descending + limit so we always keep the most recent
+                    // rows; we re-sort ascending in JS to walk the timeline.
+                    supabaseClient.from('client_measurements')
+                        .select('client_id, weight, weight_unit, created_at')
+                        .in('client_id', clientIds)
+                        .not('weight', 'is', null)
+                        .gte('created_at', isoHistoryAgo)
+                        .order('created_at', { ascending: false })
+                        .limit(1000),
+                    supabaseClient.from('client_checkins')
+                        .select('client_id, weight, weight_unit, created_at')
+                        .eq('coach_id', coachId)
+                        .in('client_id', clientIds)
+                        .not('weight', 'is', null)
+                        .gte('created_at', isoHistoryAgo)
+                        .order('created_at', { ascending: false })
+                        .limit(1000)
                 ]);
+
+                // Build per-client, time-ascending weight timelines (in the
+                // coach's display unit) so we can compute the change vs the
+                // immediately-preceding reading for any weight event.
+                function buildWeightHistory(rows) {
+                    const byClient = {};
+                    (rows || []).forEach(r => {
+                        if (r.weight == null) return;
+                        (byClient[r.client_id] = byClient[r.client_id] || []).push({
+                            ts: new Date(r.created_at).getTime(),
+                            val: convertWeight(r.weight, r.weight_unit || 'lbs')
+                        });
+                    });
+                    Object.values(byClient).forEach(arr => arr.sort((a, b) => a.ts - b.ts));
+                    return byClient;
+                }
+                const measHistory = buildWeightHistory(measHistRes && measHistRes.data);
+                const checkinHistory = buildWeightHistory(checkinHistRes && checkinHistRes.data);
+
+                // Returns a small {dir, text} badge describing the change from
+                // the last reading before `ts`, or null if there's nothing to
+                // compare against. Neutral wording — no good/bad assumptions.
+                function weightDeltaBadge(historyByClient, clientId, ts, currentVal) {
+                    if (currentVal == null) return null;
+                    const arr = historyByClient[clientId];
+                    if (!arr || !arr.length) return null;
+                    let prev = null;
+                    for (const entry of arr) {
+                        if (entry.ts < ts) prev = entry; else break;
+                    }
+                    if (!prev) return null;
+                    const diff = Math.round((currentVal - prev.val) * 10) / 10;
+                    const unit = getCoachDisplayUnit();
+                    if (diff > 0) return { dir: 'up', text: `▲ +${diff} ${unit}` };
+                    if (diff < 0) return { dir: 'down', text: `▼ ${diff} ${unit}` };
+                    return { dir: 'same', text: `± 0 ${unit}` };
+                }
 
                 const events = [];
 
@@ -7019,10 +7105,13 @@
                 (checkinsRes.data || []).forEach(ci => {
                     const c = _activityClientMap[ci.client_id];
                     if (!c) return;
-                    const detail = ci.weight
-                        ? `${convertWeight(ci.weight, ci.weight_unit || 'lbs')} ${getCoachDisplayUnit()}`
+                    const wtVal = ci.weight != null ? convertWeight(ci.weight, ci.weight_unit || 'lbs') : null;
+                    const detail = wtVal != null
+                        ? `${wtVal} ${getCoachDisplayUnit()}`
                         : '';
-                    events.push({ type: 'checkin', icon: '✅', label: 'Submitted a check-in', clientId: ci.client_id, detail, time: ci.created_at, ts: new Date(ci.created_at).getTime(), itemId: String(ci.id), itemType: 'checkin' });
+                    const ciTs = new Date(ci.created_at).getTime();
+                    const weightDelta = weightDeltaBadge(checkinHistory, ci.client_id, ciTs, wtVal);
+                    events.push({ type: 'checkin', icon: '✅', label: 'Submitted a check-in', clientId: ci.client_id, detail, weightDelta, time: ci.created_at, ts: ciTs, itemId: String(ci.id), itemType: 'checkin' });
                 });
 
                 (photosRes.data || []).forEach(ph => {
@@ -7034,10 +7123,13 @@
                 (measurementsRes.data || []).forEach(m => {
                     const c = _activityClientMap[m.client_id];
                     if (!c) return;
-                    const wt = m.weight
-                        ? `${convertWeight(m.weight, m.weight_unit || 'lbs')} ${getCoachDisplayUnit()}`
+                    const wtVal = m.weight != null ? convertWeight(m.weight, m.weight_unit || 'lbs') : null;
+                    const wt = wtVal != null
+                        ? `${wtVal} ${getCoachDisplayUnit()}`
                         : '';
-                    events.push({ type: 'measurement', icon: '📏', label: 'Logged measurements', clientId: m.client_id, detail: wt, time: m.created_at, ts: new Date(m.created_at).getTime(), itemId: String(m.id), itemType: 'measurement' });
+                    const mTs = new Date(m.created_at).getTime();
+                    const weightDelta = weightDeltaBadge(measHistory, m.client_id, mTs, wtVal);
+                    events.push({ type: 'measurement', icon: '📏', label: 'Logged measurements', clientId: m.client_id, detail: wt, weightDelta, time: m.created_at, ts: mTs, itemId: String(m.id), itemType: 'measurement' });
                 });
 
                 ((gymProofsRes && gymProofsRes.data) || []).forEach(g => {
@@ -7340,7 +7432,7 @@
                         <span class="activity-detail-icon">${ev.icon}</span>
                         <div class="activity-detail-content">
                             <div class="activity-detail-top">
-                                <span class="activity-detail-text">${ev.label}${ev.detail ? ' — ' + ev.detail : ''}</span>
+                                <span class="activity-detail-text">${ev.label}${ev.detail ? ' — ' + ev.detail : ''}${ev.weightDelta ? `<span class="activity-weight-delta ${ev.weightDelta.dir}">${ev.weightDelta.text}</span>` : ''}</span>
                                 <span class="activity-detail-time">${timeAgo(ev.time)}</span>
                             </div>
                             <div class="activity-item-actions${existingReaction || hasCommented ? ' has-activity' : ''}" onclick="event.stopPropagation()">
