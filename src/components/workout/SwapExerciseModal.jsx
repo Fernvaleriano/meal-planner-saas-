@@ -2,20 +2,24 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { X, Loader2, Sparkles, ArrowRight, RefreshCw, ChevronDown, Dumbbell, Search, Star, Eye } from 'lucide-react';
 import { apiPost, apiGet } from '../../utils/api';
 import SmartThumbnail from './SmartThumbnail';
+import { useLanguage } from '../../context/LanguageContext';
 
+// Equipment option value-to-translation-key mapping.
+// Labels are resolved with t() at render time so they respond to language changes.
 const EQUIPMENT_OPTIONS = [
-  { value: '', label: 'All' },
-  { value: 'barbell', label: 'Barbell' },
-  { value: 'dumbbell', label: 'Dumbbell' },
-  { value: 'cable', label: 'Cable' },
-  { value: 'machine', label: 'Machine' },
-  { value: 'bodyweight', label: 'Bodyweight' },
-  { value: 'kettlebell', label: 'Kettlebell' },
-  { value: 'band', label: 'Bands' },
-  { value: 'smith', label: 'Smith' },
+  { value: '', labelKey: 'swapExercise.equipAll' },
+  { value: 'barbell', labelKey: 'swapExercise.equipBarbell' },
+  { value: 'dumbbell', labelKey: 'swapExercise.equipDumbbell' },
+  { value: 'cable', labelKey: 'swapExercise.equipCable' },
+  { value: 'machine', labelKey: 'swapExercise.equipMachine' },
+  { value: 'bodyweight', labelKey: 'swapExercise.equipBodyweight' },
+  { value: 'kettlebell', labelKey: 'swapExercise.equipKettlebell' },
+  { value: 'band', labelKey: 'swapExercise.equipBand' },
+  { value: 'smith', labelKey: 'swapExercise.equipSmith' },
 ];
 
 function SwapExerciseModal({ exercise, workoutExercises = [], onSwap, onClose, genderPreference = 'all', coachId = null }) {
+  const { t } = useLanguage();
   const [suggestions, setSuggestions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -162,7 +166,7 @@ function SwapExerciseModal({ exercise, workoutExercises = [], onSwap, onClose, g
       if (!isMountedRef.current || fetchIdRef.current !== myFetchId) return;
 
       console.error('Error fetching AI suggestions:', err);
-      setError('Failed to get suggestions. Please try again.');
+      setError(t('swapExercise.fetchError'));
       setSuggestions([]);
     }
 
@@ -362,7 +366,7 @@ function SwapExerciseModal({ exercise, workoutExercises = [], onSwap, onClose, g
         <div className="swap-modal ai-swap-modal" onClick={e => e.stopPropagation()}>
           <div className="swap-modal-header">
             <div className="swap-header-title">
-              <h3>Swap Exercise</h3>
+              <h3>{t('swapExercise.headerTitle')}</h3>
             </div>
             <button className="swap-close-btn" onClick={forceClose}>
               <X size={24} />
@@ -377,7 +381,7 @@ function SwapExerciseModal({ exercise, workoutExercises = [], onSwap, onClose, g
             textAlign: 'center',
             color: '#94a3b8'
           }}>
-            <p style={{ marginBottom: '16px' }}>Unable to load exercise data.</p>
+            <p style={{ marginBottom: '16px' }}>{t('swapExercise.unableToLoad')}</p>
             <button
               onClick={forceClose}
               style={{
@@ -389,7 +393,7 @@ function SwapExerciseModal({ exercise, workoutExercises = [], onSwap, onClose, g
                 cursor: 'pointer'
               }}
             >
-              Go Back
+              {t('swapExercise.goBack')}
             </button>
           </div>
         </div>
@@ -412,7 +416,7 @@ function SwapExerciseModal({ exercise, workoutExercises = [], onSwap, onClose, g
         <div className="swap-modal-header">
           <div className="swap-header-title">
             <Sparkles size={20} className="ai-icon" />
-            <h3>Smart Swap</h3>
+            <h3>{t('swapExercise.smartSwap')}</h3>
           </div>
           <button className="swap-close-btn" onClick={handleClose}>
             <X size={24} />
@@ -429,7 +433,7 @@ function SwapExerciseModal({ exercise, workoutExercises = [], onSwap, onClose, g
             />
           </div>
           <div className="swap-current-info">
-            <span className="swap-current-label">REPLACING</span>
+            <span className="swap-current-label">{t('swapExercise.replacingLabel')}</span>
             <span className="swap-current-name">{exercise.name}</span>
             <span className="swap-current-meta">
               {muscleGroup}
@@ -442,7 +446,7 @@ function SwapExerciseModal({ exercise, workoutExercises = [], onSwap, onClose, g
         <div className="swap-equipment-filter">
           <span className="swap-equipment-label">
             <Dumbbell size={14} />
-            Filter by Equipment
+            {t('swapExercise.filterByEquipment')}
           </span>
           <div className="swap-equipment-pills">
             {EQUIPMENT_OPTIONS.map(eq => (
@@ -452,7 +456,7 @@ function SwapExerciseModal({ exercise, workoutExercises = [], onSwap, onClose, g
                 onClick={() => handleEquipmentChange(eq.value)}
                 type="button"
               >
-                {eq.label}
+                {t(eq.labelKey)}
               </button>
             ))}
           </div>
@@ -464,7 +468,7 @@ function SwapExerciseModal({ exercise, workoutExercises = [], onSwap, onClose, g
             <div className="swap-coach-header">
               <span className="swap-coach-label">
                 <Star size={14} />
-                Coach Recommended
+                {t('swapExercise.coachRecommended')}
               </span>
             </div>
             <div className="swap-coach-list">
@@ -478,7 +482,7 @@ function SwapExerciseModal({ exercise, workoutExercises = [], onSwap, onClose, g
                   <div className="swap-exercise-thumb">
                     <SmartThumbnail exercise={ex} size="small" showPlayIndicator={false} className="swap-thumb-fill" />
                     {getPreviewUrl(ex) && (
-                      <button className="swap-preview-btn" onClick={(e) => handlePreview(e, ex)} aria-label="Preview exercise">
+                      <button className="swap-preview-btn" onClick={(e) => handlePreview(e, ex)} aria-label={t('swapExercise.ariaPreview')}>
                         <Eye size={12} />
                       </button>
                     )}
@@ -489,7 +493,7 @@ function SwapExerciseModal({ exercise, workoutExercises = [], onSwap, onClose, g
                       {ex.muscle_group || ex.muscleGroup}
                       {ex.equipment && ` • ${ex.equipment}`}
                     </span>
-                    <span className="swap-coach-badge">Your coach picked this for you</span>
+                    <span className="swap-coach-badge">{t('swapExercise.coachPickedThis')}</span>
                   </div>
                   <ArrowRight size={18} className="swap-arrow" />
                 </button>
@@ -503,7 +507,7 @@ function SwapExerciseModal({ exercise, workoutExercises = [], onSwap, onClose, g
           <div className="swap-ai-header">
             <span className="swap-ai-label">
               <Sparkles size={14} />
-              {exercise?.recommendedSwaps && exercise.recommendedSwaps.length > 0 ? 'More Suggestions' : 'AI Recommendations'}
+              {exercise?.recommendedSwaps && exercise.recommendedSwaps.length > 0 ? t('swapExercise.moreSuggestions') : t('swapExercise.aiRecommendations')}
             </span>
             {!loading && (
               <button className="swap-refresh-btn" onClick={handleRefresh}>
@@ -516,21 +520,21 @@ function SwapExerciseModal({ exercise, workoutExercises = [], onSwap, onClose, g
             {loading ? (
               <div className="swap-loading">
                 <Loader2 size={32} className="spin" />
-                <span>Finding smart alternatives...</span>
-                <span className="swap-loading-sub">AI is analyzing your workout</span>
+                <span>{t('swapExercise.loadingAlternatives')}</span>
+                <span className="swap-loading-sub">{t('swapExercise.aiAnalyzing')}</span>
               </div>
             ) : error ? (
               <div className="swap-error">
                 <p>{error}</p>
                 <button className="swap-retry-btn" onClick={handleRefresh}>
-                  Try Again
+                  {t('swapExercise.tryAgain')}
                 </button>
               </div>
             ) : suggestions.length === 0 ? (
               <div className="swap-empty">
-                <p>No alternative exercises found</p>
+                <p>{t('swapExercise.noAlternatives')}</p>
                 <button className="swap-retry-btn" onClick={handleRefresh}>
-                  Try Again
+                  {t('swapExercise.tryAgain')}
                 </button>
               </div>
             ) : (
@@ -545,7 +549,7 @@ function SwapExerciseModal({ exercise, workoutExercises = [], onSwap, onClose, g
                   <div className="swap-exercise-thumb">
                     <SmartThumbnail exercise={ex} size="small" showPlayIndicator={false} className="swap-thumb-fill" />
                     {getPreviewUrl(ex) && (
-                      <button className="swap-preview-btn" onClick={(e) => handlePreview(e, ex)} aria-label="Preview exercise">
+                      <button className="swap-preview-btn" onClick={(e) => handlePreview(e, ex)} aria-label={t('swapExercise.ariaPreview')}>
                         <Eye size={12} />
                       </button>
                     )}
@@ -571,7 +575,7 @@ function SwapExerciseModal({ exercise, workoutExercises = [], onSwap, onClose, g
         <div className="swap-browse-section">
           <button className="swap-browse-toggle" onClick={toggleBrowse}>
             <Search size={16} />
-            <span>Browse All Exercises</span>
+            <span>{t('swapExercise.browseAll')}</span>
             <ChevronDown size={18} className={`browse-chevron ${showBrowse ? 'open' : ''}`} />
           </button>
 
@@ -582,7 +586,7 @@ function SwapExerciseModal({ exercise, workoutExercises = [], onSwap, onClose, g
                 <Search size={16} />
                 <input
                   type="text"
-                  placeholder="Search by name..."
+                  placeholder={t('swapExercise.browseSearchPlaceholder')}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
@@ -593,11 +597,11 @@ function SwapExerciseModal({ exercise, workoutExercises = [], onSwap, onClose, g
                 {browseLoading ? (
                   <div className="swap-loading small">
                     <Loader2 size={24} className="spin" />
-                    <span>Loading...</span>
+                    <span>{t('swapExercise.loadingSmall')}</span>
                   </div>
                 ) : filteredBrowseExercises.length === 0 ? (
                   <div className="swap-empty small">
-                    <p>No exercises found</p>
+                    <p>{t('swapExercise.noExercisesFound')}</p>
                   </div>
                 ) : (
                   filteredBrowseExercises.slice(0, 20).map((ex) => (
@@ -610,7 +614,7 @@ function SwapExerciseModal({ exercise, workoutExercises = [], onSwap, onClose, g
                       <div className="swap-exercise-thumb small">
                         <SmartThumbnail exercise={ex} size="small" showPlayIndicator={false} className="swap-thumb-fill" />
                         {getPreviewUrl(ex) && (
-                          <button className="swap-preview-btn" onClick={(e) => handlePreview(e, ex)} aria-label="Preview exercise">
+                          <button className="swap-preview-btn" onClick={(e) => handlePreview(e, ex)} aria-label={t('swapExercise.ariaPreview')}>
                             <Eye size={12} />
                           </button>
                         )}
@@ -628,7 +632,7 @@ function SwapExerciseModal({ exercise, workoutExercises = [], onSwap, onClose, g
                 )}
                 {filteredBrowseExercises.length > 20 && (
                   <div className="swap-browse-more">
-                    <span>{filteredBrowseExercises.length - 20} more exercises available</span>
+                    <span>{t('swapExercise.browseMore', { count: filteredBrowseExercises.length - 20 })}</span>
                   </div>
                 )}
               </div>
@@ -674,7 +678,7 @@ function SwapExerciseModal({ exercise, workoutExercises = [], onSwap, onClose, g
                 disabled={selecting}
               >
                 <ArrowRight size={16} />
-                Swap to this exercise
+                {t('swapExercise.swapToThis')}
               </button>
             </div>
           </div>

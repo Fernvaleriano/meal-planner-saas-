@@ -10,6 +10,7 @@ import SwapExerciseModal from './SwapExerciseModal';
 import AskCoachChat from './AskCoachChat';
 import VoiceNotePlayer from '../VoiceNotePlayer';
 import AskAIChatModal from './AskAIChatModal';
+import { useLanguage } from '../../context/LanguageContext';
 
 // Number words to digits mapping for voice input (expanded)
 const numberWords = {
@@ -179,18 +180,19 @@ const parseVoiceInput = (transcript, currentSets) => {
 
 // Format a timestamp for personal notes — relative for recent ("2h ago",
 // "3d ago"), absolute for older entries.
-function formatPersonalNoteTime(iso) {
+// Pass `t` (from useLanguage) to get localised relative strings.
+function formatPersonalNoteTime(iso, t) {
   const d = new Date(iso);
   if (isNaN(d.getTime())) return '';
   const diffMs = Date.now() - d.getTime();
   const sec = Math.floor(diffMs / 1000);
-  if (sec < 60) return 'Just now';
+  if (sec < 60) return t('exerciseDetail.timeJustNow');
   const min = Math.floor(sec / 60);
-  if (min < 60) return `${min}m ago`;
+  if (min < 60) return t('exerciseDetail.timeMinAgo', { min });
   const hr = Math.floor(min / 60);
-  if (hr < 24) return `${hr}h ago`;
+  if (hr < 24) return t('exerciseDetail.timeHrAgo', { hr });
   const day = Math.floor(hr / 24);
-  if (day < 7) return `${day}d ago`;
+  if (day < 7) return t('exerciseDetail.timeDayAgo', { day });
   return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
@@ -220,6 +222,13 @@ function ExerciseDetailModal({
   dayIndex = 0, // Day index within the workout program
   allExercisesRaw = [] // All exercises for the current day (raw from workout_data)
 }) {
+  const { t } = useLanguage();
+
+  // Stable ref to `t` so callbacks with empty deps arrays (performSave,
+  // startVoiceInput) can produce translated strings without being re-created.
+  const tRef = useRef(t);
+  useEffect(() => { tRef.current = t; }, [t]);
+
   // Force close handler that always works - used for escape routes
   const forceClose = useCallback(() => {
     try {
@@ -841,8 +850,8 @@ function ExerciseDetailModal({
           setProgressTip({
             type: 'new_pr',
             icon: '\u{1F3C6}',
-            title: 'New Personal Record!',
-            message: `You just hit ${currentMaxWeight} ${currentWeightUnit} — up from ${previousMax} ${currentWeightUnit}. Keep pushing!`,
+            title: tRef.current('exerciseDetail.prNewRecord'),
+            message: tRef.current('exerciseDetail.prWeightMessage', { current: currentMaxWeight, previous: previousMax, unit: currentWeightUnit }),
           });
         }
         allTimeMaxWeightRef.current = currentMaxWeight;
@@ -862,10 +871,10 @@ function ExerciseDetailModal({
               setProgressTip({
                 type: 'new_pr',
                 icon: '\u{1F3C6}',
-                title: 'New Rep Record!',
+                title: tRef.current('exerciseDetail.prNewRepRecord'),
                 message: w > 0
-                  ? `${r} reps at ${w} ${currentWeightUnit} — beat your previous best of ${prevBest} reps!`
-                  : `${r} reps — beat your previous best of ${prevBest} reps!`,
+                  ? tRef.current('exerciseDetail.prRepsMessage', { reps: r, weight: w, unit: currentWeightUnit, prevReps: prevBest })
+                  : tRef.current('exerciseDetail.prRepsNoWeightMessage', { reps: r, prevReps: prevBest }),
               });
             }
             bestReps[w] = r; // Update so it doesn't re-trigger
@@ -917,14 +926,14 @@ function ExerciseDetailModal({
         const isAuthErr = err?.isAuthError || status === 401 || status === 403;
         const isTimeoutErr = err?.isTimeout || /timed out|timeout/i.test(err?.message || '');
         const message = isAuthErr
-          ? 'Session expired — sign out and back in, then retry.'
+          ? tRef.current('exerciseDetail.saveSessionExpired')
           : isTimeoutErr
-          ? 'Save timed out — check connection and tap the set to save again.'
-          : 'Could not save — tap the set to try again.';
+          ? tRef.current('exerciseDetail.saveTimedOut')
+          : tRef.current('exerciseDetail.saveCouldNot');
         setProgressTip({
           type: 'save_error',
           icon: '⚠️',
-          title: 'Save failed',
+          title: tRef.current('exerciseDetail.saveFailed'),
           message
         });
       }
@@ -1353,8 +1362,8 @@ function ExerciseDetailModal({
         setProgressTip({
           type: 'save_error',
           icon: '⚠️',
-          title: 'Could not send voice note',
-          message: 'Upload failed — check your connection and tap Send again.'
+          title: t('exerciseDetail.voiceNoteUploadFailed'),
+          message: t('exerciseDetail.voiceNoteUploadFailedMsg')
         });
         return;
       }
@@ -1364,8 +1373,8 @@ function ExerciseDetailModal({
         setProgressTip({
           type: 'save_error',
           icon: '⚠️',
-          title: 'Voice note saved, but coach may not see it',
-          message: 'Try logging at least one set on this exercise, then tap Send again.'
+          title: t('exerciseDetail.voiceNoteSavedButMissed'),
+          message: t('exerciseDetail.voiceNoteSavedButMissedMsg')
         });
       }
 
@@ -1575,7 +1584,7 @@ function ExerciseDetailModal({
   const startVoiceInput = useCallback(() => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
-      setVoiceError('Voice input not supported in this browser');
+      setVoiceError(tRef.current('exerciseDetail.voiceNotSupported'));
       return;
     }
 
@@ -1594,7 +1603,7 @@ function ExerciseDetailModal({
     recognition.onresult = (event) => {
       // Guard: Check array bounds before accessing
       if (!event.results || !event.results[0] || !event.results[0][0]) {
-        setVoiceError('No speech detected');
+        setVoiceError(tRef.current('exerciseDetail.voiceNoSpeech'));
         return;
       }
       const transcript = event.results[0][0].transcript;
@@ -1607,8 +1616,12 @@ function ExerciseDetailModal({
         const parsed = parseVoiceInput(transcript, prevSets);
 
         if (!parsed.understood) {
-          // Schedule error message outside of this updater
-          setTimeout(() => setVoiceError(`Could not understand. Try: "12 reps ${weightUnit === 'kg' ? '50 kg' : '135 lbs'}" or "done"`), 0);
+          // Schedule error message outside of this updater — weightUnit accessed
+          // via its own ref so this callback can keep its empty deps array.
+          setTimeout(() => {
+            const wUnit = weightUnitRef.current;
+            setVoiceError(tRef.current('exerciseDetail.voiceCouldNotUnderstand', { exampleWeight: wUnit === 'kg' ? '50 kg' : '135 lbs' }));
+          }, 0);
           return prevSets;
         }
 
@@ -1643,7 +1656,7 @@ function ExerciseDetailModal({
         // Schedule feedback and callback outside of updater
         if (parsed.bulk) {
           setTimeout(() => {
-            setVoiceError(`Updated ${parsed.sets.length} sets`);
+            setVoiceError(tRef.current('exerciseDetail.voiceUpdatedSets', { count: parsed.sets.length }));
             setTimeout(() => setVoiceError(null), 2000);
           }, 0);
         }
@@ -1663,11 +1676,11 @@ function ExerciseDetailModal({
     recognition.onerror = (event) => {
       console.error('Speech recognition error:', event.error);
       if (event.error === 'not-allowed') {
-        setVoiceError('Microphone access denied');
+        setVoiceError(tRef.current('exerciseDetail.voiceMicDenied'));
       } else if (event.error === 'no-speech') {
-        setVoiceError('No speech detected');
+        setVoiceError(tRef.current('exerciseDetail.voiceNoSpeech'));
       } else {
-        setVoiceError(`Error: ${event.error}`);
+        setVoiceError(tRef.current('exerciseDetail.voiceError', { error: event.error }));
       }
       setIsListening(false);
     };
@@ -2343,7 +2356,7 @@ function ExerciseDetailModal({
             <button className="close-btn" onClick={forceClose} type="button">
               <ChevronLeft size={24} />
             </button>
-            <h2 className="header-title">Exercise</h2>
+            <h2 className="header-title">{t('exerciseDetail.fallbackTitle')}</h2>
             <div className="header-actions"></div>
           </div>
           <div style={{
@@ -2356,8 +2369,8 @@ function ExerciseDetailModal({
             color: '#94a3b8'
           }}>
             <AlertCircle size={48} style={{ marginBottom: '16px', color: '#f59e0b' }} />
-            <h3 style={{ color: 'white', marginBottom: '8px' }}>Unable to load exercise</h3>
-            <p style={{ marginBottom: '24px' }}>The exercise data could not be loaded.</p>
+            <h3 style={{ color: 'white', marginBottom: '8px' }}>{t('exerciseDetail.unableToLoad')}</h3>
+            <p style={{ marginBottom: '24px' }}>{t('exerciseDetail.couldNotLoad')}</p>
             <button
               onClick={forceClose}
               style={{
@@ -2370,7 +2383,7 @@ function ExerciseDetailModal({
                 fontSize: '16px'
               }}
             >
-              Go Back
+              {t('exerciseDetail.goBack')}
             </button>
           </div>
         </div>
@@ -2395,7 +2408,7 @@ function ExerciseDetailModal({
                 type="button"
               >
                 <ArrowLeftRight size={16} />
-                <span>Swap</span>
+                <span>{t('exerciseDetail.swap')}</span>
               </button>
             )}
           </div>
@@ -2434,13 +2447,13 @@ function ExerciseDetailModal({
               {videoError && (
                 <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.7)', zIndex: 2, gap: '12px', color: 'white' }}>
                   <AlertCircle size={32} style={{ color: '#f59e0b' }} />
-                  <p style={{ margin: 0, fontSize: '14px' }}>Video failed to load</p>
+                  <p style={{ margin: 0, fontSize: '14px' }}>{t('exerciseDetail.videoFailed')}</p>
                   <button
                     onClick={handleRetryVideo}
                     type="button"
                     style={{ padding: '8px 20px', background: '#2cb5a5', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '14px' }}
                   >
-                    Retry
+                    {t('exerciseDetail.retry')}
                   </button>
                 </div>
               )}
@@ -2498,7 +2511,7 @@ function ExerciseDetailModal({
                 >
                   <ExternalLink size={16} className="ref-link-icon" />
                   <span className="ref-link-text">
-                    {link.title || (link.type === 'youtube' ? 'Watch demo' : link.type === 'instagram' ? 'View post' : 'Open link')}
+                    {link.title || (link.type === 'youtube' ? t('exerciseDetail.refWatchDemo') : link.type === 'instagram' ? t('exerciseDetail.refViewPost') : t('exerciseDetail.refOpenLink'))}
                   </span>
                 </a>
               ))}
@@ -2512,19 +2525,19 @@ function ExerciseDetailModal({
             {isSupersetExercise && (
               <span className="detail-exercise-badge superset-badge">
                 <Zap size={12} />
-                Superset {exercise.supersetGroup}
+                {t('exerciseDetail.badgeSupersetPrefix')} {exercise.supersetGroup}
               </span>
             )}
             {isWarmupExercise && (
               <span className="detail-exercise-badge warmup-badge">
                 <Flame size={12} />
-                Warm-up
+                {t('exerciseDetail.badgeWarmup')}
               </span>
             )}
             {isStretchExercise && (
               <span className="detail-exercise-badge stretch-badge">
                 <Leaf size={12} />
-                Stretch
+                {t('exerciseDetail.badgeStretch')}
               </span>
             )}
           </div>
@@ -2592,7 +2605,7 @@ function ExerciseDetailModal({
             {/* Coach-prescribed metrics (only if coach toggled them on) */}
             {sets.some(s => (exercise.showRPE && s.rpe) || (exercise.showPercent1RM && s.percent1RM) || (exercise.showHRZone && s.hrZone) || (exercise.showPace && s.pace) || (exercise.showIncline && s.incline)) && (
               <div className="coach-targets-row">
-                <span className="coach-targets-label">Coach Targets</span>
+                <span className="coach-targets-label">{t('exerciseDetail.coachTargets')}</span>
                 <div className="coach-targets-pills">
                   {sets.map((set, idx) => {
                     const tags = [];
@@ -2613,7 +2626,7 @@ function ExerciseDetailModal({
               className={`voice-input-btn-detail ${isListening ? 'listening' : ''}`}
               onClick={(e) => { e.stopPropagation(); toggleVoiceInput(); }}
               type="button"
-              title="Voice input"
+              title={t('exerciseDetail.voiceInputTitle')}
             >
               {isListening ? <MicOff size={20} /> : <Mic size={20} />}
             </button>
@@ -2626,12 +2639,12 @@ function ExerciseDetailModal({
             {isListening && (
               <div className="voice-listening">
                 <div className="voice-pulse"></div>
-                <span>Try: "12 at 50, 10 at 45, 8 at 40" or "done"</span>
+                <span>{t('exerciseDetail.voiceHint')}</span>
               </div>
             )}
             {lastTranscript && !isListening && (
               <div className="voice-transcript">
-                <span className="transcript-label">Heard:</span> "{lastTranscript}"
+                <span className="transcript-label">{t('exerciseDetail.voiceHeard')}</span> "{lastTranscript}"
               </div>
             )}
             {voiceError && (
@@ -2643,7 +2656,7 @@ function ExerciseDetailModal({
         {/* Effort Rating — inline pills for rating how hard the set was */}
         {!isTimedExercise && (setsChangedRef.current || selectedEffort) && sets.some(s => s.reps > 0 || s.weight > 0 || s.effort) && (
           <div className="detail-effort-section">
-            <span className="detail-effort-label">How hard was that?</span>
+            <span className="detail-effort-label">{t('exerciseDetail.howHardWasThat')}</span>
             <div className="detail-effort-pills">
               {EFFORT_OPTIONS.map(opt => (
                 <button
@@ -2680,19 +2693,19 @@ function ExerciseDetailModal({
                 <div className="coaching-rec-header">
                   <div className="coaching-rec-badge">
                     <Sparkles size={14} />
-                    <span>Coaching Recommendation</span>
+                    <span>{t('exerciseDetail.coachingRec')}</span>
                   </div>
                 </div>
 
                 <div className="coaching-rec-values">
                   <div className="coaching-rec-value-item">
                     <span className="coaching-rec-value-number">{prescribedSets}</span>
-                    <span className="coaching-rec-value-label">sets</span>
+                    <span className="coaching-rec-value-label">{t('exerciseDetail.recLabelSets')}</span>
                   </div>
                   <span className="coaching-rec-value-divider">x</span>
                   <div className="coaching-rec-value-item">
                     <span className="coaching-rec-value-number">{prescribedReps || '—'}</span>
-                    <span className="coaching-rec-value-label">reps</span>
+                    <span className="coaching-rec-value-label">{t('exerciseDetail.recLabelReps')}</span>
                   </div>
                   <span className="coaching-rec-value-divider">@</span>
                   <div className="coaching-rec-value-item">
@@ -2701,11 +2714,11 @@ function ExerciseDetailModal({
                   </div>
                 </div>
 
-                <p className="coaching-rec-reasoning">Recommended targets for this exercise. Push to hit them.</p>
+                <p className="coaching-rec-reasoning">{t('exerciseDetail.recPrescribedReasoning')}</p>
 
                 {lastSession && (
                   <div className="coaching-rec-last-session">
-                    <span>Last: {lastSession.reps} reps @ {lastSession.weight} {weightUnit}</span>
+                    <span>{t('exerciseDetail.recLastSession', { reps: lastSession.reps, weight: lastSession.weight, unit: weightUnit })}</span>
                     <span className="coaching-rec-last-date">{lastSession.date}</span>
                   </div>
                 )}
@@ -2713,7 +2726,7 @@ function ExerciseDetailModal({
                 <div className="coaching-rec-actions">
                   <button className="coaching-rec-btn adjust" onClick={() => setShowAskAI(true)}>
                     <MessageCircle size={16} />
-                    <span>Adjust</span>
+                    <span>{t('exerciseDetail.recAdjust')}</span>
                   </button>
                 </div>
               </div>
@@ -2725,12 +2738,12 @@ function ExerciseDetailModal({
               <div className="coaching-rec-header">
                 <div className="coaching-rec-badge">
                   <Sparkles size={14} />
-                  <span>Coaching Recommendation</span>
+                  <span>{t('exerciseDetail.coachingRec')}</span>
                 </div>
                 {acceptedCoachingRec && (
                   <span className="coaching-rec-accepted-badge">
                     <Check size={12} />
-                    Applied
+                    {t('exerciseDetail.recApplied')}
                   </span>
                 )}
               </div>
@@ -2738,12 +2751,12 @@ function ExerciseDetailModal({
               <div className="coaching-rec-values">
                 <div className="coaching-rec-value-item">
                   <span className="coaching-rec-value-number">{coachingRecommendation.sets}</span>
-                  <span className="coaching-rec-value-label">sets</span>
+                  <span className="coaching-rec-value-label">{t('exerciseDetail.recLabelSets')}</span>
                 </div>
                 <span className="coaching-rec-value-divider">x</span>
                 <div className="coaching-rec-value-item">
                   <span className="coaching-rec-value-number">{coachingRecommendation.reps}</span>
-                  <span className="coaching-rec-value-label">reps</span>
+                  <span className="coaching-rec-value-label">{t('exerciseDetail.recLabelReps')}</span>
                 </div>
                 <span className="coaching-rec-value-divider">@</span>
                 <div className="coaching-rec-value-item">
@@ -2756,7 +2769,7 @@ function ExerciseDetailModal({
 
               {coachingRecommendation.lastSession && (
                 <div className="coaching-rec-last-session">
-                  <span>Last: {coachingRecommendation.lastSession.reps} reps @ {coachingRecommendation.lastSession.weight} {weightUnit}</span>
+                  <span>{t('exerciseDetail.recLastSession', { reps: coachingRecommendation.lastSession.reps, weight: coachingRecommendation.lastSession.weight, unit: weightUnit })}</span>
                   <span className="coaching-rec-last-date">{coachingRecommendation.lastSession.date}</span>
                 </div>
               )}
@@ -2765,11 +2778,11 @@ function ExerciseDetailModal({
                 <div className="coaching-rec-actions">
                   <button className="coaching-rec-btn accept" onClick={handleAcceptCoachingRec}>
                     <Check size={16} />
-                    <span>Accept</span>
+                    <span>{t('exerciseDetail.recAccept')}</span>
                   </button>
                   <button className="coaching-rec-btn adjust" onClick={() => setShowAskAI(true)}>
                     <MessageCircle size={16} />
-                    <span>Adjust</span>
+                    <span>{t('exerciseDetail.recAdjust')}</span>
                   </button>
                 </div>
               )}
@@ -2784,7 +2797,7 @@ function ExerciseDetailModal({
               type="button"
               className="set-nudge-dismiss"
               onClick={() => setSetNudge(null)}
-              aria-label="Dismiss"
+              aria-label={t('exerciseDetail.ariaDismiss')}
             >
               <X size={14} />
             </button>
@@ -2805,9 +2818,9 @@ function ExerciseDetailModal({
           >
             <div className="client-note-toggle-left">
               <MessageCircle size={18} />
-              <span>Leave a Note to Coach</span>
+              <span>{t('exerciseDetail.leaveNoteToCoach')}</span>
             </div>
-            {clientNoteSaved && <span className="note-saved-badge">Saved</span>}
+            {clientNoteSaved && <span className="note-saved-badge">{t('exerciseDetail.noteSavedBadge')}</span>}
             {showNoteInput ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
           </button>
 
@@ -2815,7 +2828,7 @@ function ExerciseDetailModal({
             <div className="client-note-input-area">
               <textarea
                 className="client-note-textarea"
-                placeholder="Leave a note for your coach about this exercise..."
+                placeholder={t('exerciseDetail.notePlaceholder')}
                 value={clientNote}
                 onChange={(e) => handleClientNoteChange(e.target.value)}
                 rows={3}
@@ -2830,7 +2843,7 @@ function ExerciseDetailModal({
                       type="button"
                     >
                       <Square size={16} />
-                      <span>Stop</span>
+                      <span>{t('exerciseDetail.noteStop')}</span>
                     </button>
                   ) : (
                     <button
@@ -2840,7 +2853,7 @@ function ExerciseDetailModal({
                       type="button"
                     >
                       <Mic size={16} />
-                      <span>{voiceNoteUploading ? 'Sending...' : 'Voice Note'}</span>
+                      <span>{voiceNoteUploading ? t('exerciseDetail.noteSending') : t('exerciseDetail.noteVoiceNote')}</span>
                     </button>
                   )}
                 </div>
@@ -2865,7 +2878,7 @@ function ExerciseDetailModal({
                       disabled={voiceNoteUploading}
                     >
                       <Trash2 size={14} />
-                      <span>Discard</span>
+                      <span>{t('exerciseDetail.noteDiscard')}</span>
                     </button>
                     <button
                       type="button"
@@ -2874,7 +2887,7 @@ function ExerciseDetailModal({
                       disabled={voiceNoteUploading}
                     >
                       <Mic size={14} />
-                      <span>Re-record</span>
+                      <span>{t('exerciseDetail.noteReRecord')}</span>
                     </button>
                     <button
                       type="button"
@@ -2883,7 +2896,7 @@ function ExerciseDetailModal({
                       disabled={voiceNoteUploading}
                     >
                       <Send size={14} />
-                      <span>{voiceNoteUploading ? 'Sending...' : 'Send to Coach'}</span>
+                      <span>{voiceNoteUploading ? t('exerciseDetail.noteSending') : t('exerciseDetail.noteSendToCoach')}</span>
                     </button>
                   </div>
                 </div>
@@ -2898,10 +2911,10 @@ function ExerciseDetailModal({
                     className="voice-note-action-btn delete-sent"
                     onClick={deleteSentVoiceNote}
                     disabled={deletingVoiceNote || voiceNoteUploading}
-                    title="Delete voice note"
+                    title={t('exerciseDetail.noteDelete')}
                   >
                     <Trash2 size={14} />
-                    <span>{deletingVoiceNote ? 'Deleting...' : 'Delete'}</span>
+                    <span>{deletingVoiceNote ? t('exerciseDetail.noteDeleting') : t('exerciseDetail.noteDelete')}</span>
                   </button>
                 </div>
               )}
@@ -2913,7 +2926,7 @@ function ExerciseDetailModal({
                   type="button"
                 >
                   <Send size={14} />
-                  <span>Send Note</span>
+                  <span>{t('exerciseDetail.noteSendNote')}</span>
                 </button>
               )}
 
@@ -2925,7 +2938,7 @@ function ExerciseDetailModal({
                   disabled={deletingClientNote}
                 >
                   <Trash2 size={14} />
-                  <span>{deletingClientNote ? 'Deleting...' : 'Delete note'}</span>
+                  <span>{deletingClientNote ? t('exerciseDetail.noteDeleting') : t('exerciseDetail.noteDeleteNote')}</span>
                 </button>
               )}
             </div>
@@ -2941,10 +2954,10 @@ function ExerciseDetailModal({
           >
             <div className="personal-note-toggle-left">
               <NotebookPen size={18} />
-              <span>My Notes</span>
+              <span>{t('exerciseDetail.myNotes')}</span>
               <span className="personal-note-private-badge">
                 <Lock size={10} />
-                Private
+                {t('exerciseDetail.privateLabel')}
               </span>
               {personalNotes.length > 0 && (
                 <span className="personal-note-count">{personalNotes.length}</span>
@@ -2957,10 +2970,10 @@ function ExerciseDetailModal({
               exercise comes up again later. */}
           {!showPersonalNotes && personalNotes.length > 0 && (
             <div className="personal-note-preview">
-              <span className="personal-note-preview-label">Last note:</span>
+              <span className="personal-note-preview-label">{t('exerciseDetail.lastNoteLabel')}</span>
               <span className="personal-note-preview-text">{personalNotes[0].note_text}</span>
               <span className="personal-note-preview-time">
-                {formatPersonalNoteTime(personalNotes[0].created_at)}
+                {formatPersonalNoteTime(personalNotes[0].created_at, t)}
               </span>
             </div>
           )}
@@ -2968,12 +2981,14 @@ function ExerciseDetailModal({
           {showPersonalNotes && (
             <div className="personal-note-input-area">
               <p className="personal-note-help">
-                Notes only you can see. They follow this exercise — write something here and you'll see it again next time {exercise?.name ? <strong>{exercise.name}</strong> : 'this exercise'} comes up.
+                {exercise?.name
+                  ? t('exerciseDetail.personalNoteHelp', { exerciseName: exercise.name })
+                  : t('exerciseDetail.personalNoteHelpFallback')}
               </p>
 
               <textarea
                 className="personal-note-textarea"
-                placeholder={`E.g. "knee hurt on the last set" or "go heavier next time"`}
+                placeholder={t('exerciseDetail.personalNotePlaceholder')}
                 value={personalNoteDraft}
                 onChange={(e) => setPersonalNoteDraft(e.target.value)}
                 rows={3}
@@ -2988,35 +3003,35 @@ function ExerciseDetailModal({
                   type="button"
                 >
                   {personalNoteSaving ? <Loader2 size={14} className="spin" /> : <Plus size={14} />}
-                  <span>Add Note</span>
+                  <span>{t('exerciseDetail.addNote')}</span>
                 </button>
               </div>
 
               {personalNotesLoading ? (
                 <div className="personal-note-loading">
                   <Loader2 size={16} className="spin" />
-                  <span>Loading your notes…</span>
+                  <span>{t('exerciseDetail.loadingNotes')}</span>
                 </div>
               ) : personalNotes.length === 0 ? (
                 <div className="personal-note-empty">
-                  No notes yet. Anything you add will show up the next time this exercise appears.
+                  {t('exerciseDetail.noNotesYet')}
                 </div>
               ) : (
                 <div className="personal-note-list">
                   <div className="personal-note-list-header">
-                    Past notes
+                    {t('exerciseDetail.pastNotes')}
                   </div>
                   {(showAllPersonalNotes ? personalNotes : personalNotes.slice(0, 3)).map(note => (
                     <div key={note.id} className="personal-note-item">
                       <div className="personal-note-item-header">
                         <span className="personal-note-item-time">
-                          {formatPersonalNoteTime(note.created_at)}
+                          {formatPersonalNoteTime(note.created_at, t)}
                         </span>
                         <button
                           className="personal-note-delete-btn"
                           onClick={() => deletePersonalNote(note.id)}
                           type="button"
-                          aria-label="Delete note"
+                          aria-label={t('exerciseDetail.noteDeleteNote')}
                         >
                           <Trash2 size={12} />
                         </button>
@@ -3031,8 +3046,8 @@ function ExerciseDetailModal({
                       type="button"
                     >
                       {showAllPersonalNotes
-                        ? 'Show less'
-                        : `Show ${personalNotes.length - 3} more`}
+                        ? t('exerciseDetail.showLess')
+                        : t('exerciseDetail.showMore', { count: personalNotes.length - 3 })}
                     </button>
                   )}
                 </div>
@@ -3046,7 +3061,7 @@ function ExerciseDetailModal({
           <button className="exercise-history-toggle" onClick={toggleHistory} type="button">
             <div className="exercise-history-toggle-left">
               <History size={18} />
-              <span>Exercise History</span>
+              <span>{t('exerciseDetail.exerciseHistory')}</span>
             </div>
             {historyLoading ? (
               <Loader2 size={16} className="spin" />
@@ -3060,13 +3075,13 @@ function ExerciseDetailModal({
               {historyLoading ? (
                 <div className="exercise-history-loading">
                   <Loader2 size={20} className="spin" />
-                  <span>Loading history...</span>
+                  <span>{t('exerciseDetail.historyLoading')}</span>
                 </div>
               ) : !historyData || historyData.length === 0 ? (
                 <div className="exercise-history-empty">
                   <History size={32} />
-                  <p>No history yet for this exercise</p>
-                  <span>Log sets to start tracking</span>
+                  <p>{t('exerciseDetail.historyEmpty')}</p>
+                  <span>{t('exerciseDetail.historyLogSets')}</span>
                 </div>
               ) : (() => {
                 // Pre-process history data for chart and grouping
@@ -3150,19 +3165,19 @@ function ExerciseDetailModal({
                       {best1RM && (
                         <div className="history-stat-pill">
                           <TrendingUp size={14} />
-                          <span>Est. 1RM: {best1RM} {weightUnit}</span>
+                          <span>{t('exerciseDetail.historyEst1RM', { value: best1RM, unit: weightUnit })}</span>
                         </div>
                       )}
                       {historyStats?.totalWorkouts > 0 && (
                         <div className="history-stat-pill">
                           <BarChart3 size={14} />
-                          <span>{historyStats.totalWorkouts} sessions</span>
+                          <span>{t('exerciseDetail.historySessions', { count: historyStats.totalWorkouts })}</span>
                         </div>
                       )}
                       {historyStats?.prCount > 0 && (
                         <div className="history-stat-pill highlight">
                           <Award size={14} />
-                          <span>{historyStats.prCount} PRs</span>
+                          <span>{t('exerciseDetail.historyPRs', { count: historyStats.prCount })}</span>
                         </div>
                       )}
                     </div>
@@ -3194,7 +3209,7 @@ function ExerciseDetailModal({
                                   )}
                                   {entry.setsData.map((s, sIdx) => (
                                     <div key={sIdx} className="history-set-row">
-                                      <span className="history-set-num">Set {sIdx + 1}</span>
+                                      <span className="history-set-num">{t('exerciseDetail.historySetLabel', { num: sIdx + 1 })}</span>
                                       <span className="history-set-reps">{s.reps || 0} x</span>
                                       {s.weight > 0 && (
                                         <span className="history-set-weight">{s.weight} {weightUnit}</span>
@@ -3204,21 +3219,21 @@ function ExerciseDetailModal({
                                   {/* Delete history entry */}
                                   {confirmDeleteHistoryId === entry.id ? (
                                     <div className="history-delete-confirm">
-                                      <span>Delete this entry?</span>
+                                      <span>{t('exerciseDetail.historyDeleteEntry')}</span>
                                       <button
                                         className="history-delete-confirm-yes"
                                         onClick={() => handleDeleteHistoryEntry(entry.id)}
                                         disabled={deletingHistoryId === entry.id}
                                         type="button"
                                       >
-                                        {deletingHistoryId === entry.id ? <Loader2 size={12} className="spin" /> : 'Yes'}
+                                        {deletingHistoryId === entry.id ? <Loader2 size={12} className="spin" /> : t('exerciseDetail.historyDeleteYes')}
                                       </button>
                                       <button
                                         className="history-delete-confirm-no"
                                         onClick={() => setConfirmDeleteHistoryId(null)}
                                         type="button"
                                       >
-                                        No
+                                        {t('exerciseDetail.historyDeleteNo')}
                                       </button>
                                     </div>
                                   ) : (
@@ -3226,7 +3241,7 @@ function ExerciseDetailModal({
                                       className="history-entry-delete-btn"
                                       onClick={() => setConfirmDeleteHistoryId(entry.id)}
                                       type="button"
-                                      title="Delete this entry"
+                                      title={t('exerciseDetail.historyDeleteTitle')}
                                     >
                                       <Trash2 size={12} />
                                     </button>
@@ -3247,10 +3262,10 @@ function ExerciseDetailModal({
 
         {/* Muscle Groups */}
         <div className="muscle-groups-section">
-          <h4>Muscle groups</h4>
+          <h4>{t('exerciseDetail.muscleGroups')}</h4>
           <div className="muscle-info-row">
             <span className="muscle-name">
-              {exercise.muscle_group || exercise.muscleGroup || 'General'}
+              {exercise.muscle_group || exercise.muscleGroup || t('exerciseDetail.muscleGroupGeneral')}
             </span>
           </div>
         </div>
@@ -3262,7 +3277,7 @@ function ExerciseDetailModal({
           <div className="coach-voice-note-section">
             <div className="voice-note-header">
               <Mic size={12} />
-              <span>Voice note from your coach</span>
+              <span>{t('exerciseDetail.voiceNoteFromCoach')}</span>
             </div>
             <VoiceNotePlayer
               src={exercise.voiceNotePath
@@ -3281,7 +3296,7 @@ function ExerciseDetailModal({
           <div className="coach-text-note-section">
             <div className="text-note-header">
               <MessageCircle size={16} />
-              <span>Coach Note</span>
+              <span>{t('exerciseDetail.coachNote')}</span>
             </div>
             <p className="coach-note-text">{exercise.notes}</p>
           </div>
@@ -3291,7 +3306,7 @@ function ExerciseDetailModal({
         {exercises.length > 0 && (
           <div className="activity-progress-bar">
             <div className="activity-header">
-              <span>Activity {currentIndex + 1}/{exercises.length}</span>
+              <span>{t('exerciseDetail.activityProgress', { current: currentIndex + 1, total: exercises.length })}</span>
             </div>
             <div className="activity-thumbnails" ref={activityThumbsRef}>
               {exercises.map((ex, idx) => {
@@ -3390,22 +3405,22 @@ function ExerciseDetailModal({
               <div className="delete-confirm-icon">
                 <Trash2 size={32} />
               </div>
-              <h3>Delete Exercise?</h3>
-              <p>Remove "{exercise.name}" from this workout?</p>
+              <h3>{t('exerciseDetail.deleteExerciseTitle')}</h3>
+              <p>{t('exerciseDetail.deleteExercisePrompt', { name: exercise.name })}</p>
               <div className="delete-confirm-actions">
                 <button
                   className="delete-cancel-btn"
                   onClick={() => setShowDeleteConfirm(false)}
                   type="button"
                 >
-                  Cancel
+                  {t('exerciseDetail.deleteCancel')}
                 </button>
                 <button
                   className="delete-confirm-btn"
                   onClick={handleDeleteExercise}
                   type="button"
                 >
-                  Delete
+                  {t('exerciseDetail.deleteConfirm')}
                 </button>
               </div>
             </div>
