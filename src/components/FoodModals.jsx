@@ -88,7 +88,7 @@ export function SnapPhotoModal({ isOpen, onClose, mealType, clientData, onFoodLo
   const uploadRef = useRef(null);
   const MAX_PHOTOS = 4;
   const { showError, showSuccess } = useToast();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
 
   // Update selected meal type when prop changes
   useEffect(() => {
@@ -121,7 +121,8 @@ export function SnapPhotoModal({ isOpen, onClose, mealType, clientData, onFoodLo
     try {
       const data = await apiPost('/.netlify/functions/analyze-food-photo', {
         images: previews, // Send array of images
-        details: details || undefined
+        details: details || undefined,
+        language
       });
 
       if (data?.foods && data.foods.length > 0) {
@@ -971,7 +972,7 @@ export function ScanLabelModal({ isOpen, onClose, mealType, clientData, onFoodLo
   const uploadRef = useRef(null);
   const MAX_PHOTOS = 4;
   const { showError, showSuccess } = useToast();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
 
   useEffect(() => {
     setSelectedMealType(mealType);
@@ -1002,7 +1003,8 @@ export function ScanLabelModal({ isOpen, onClose, mealType, clientData, onFoodLo
 
     try {
       const data = await apiPost('/.netlify/functions/analyze-nutrition-label', {
-        images: previews // Send array of images
+        images: previews, // Send array of images
+        language
       });
 
       if (data?.calories !== undefined) {

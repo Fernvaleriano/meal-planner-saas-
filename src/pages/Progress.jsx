@@ -172,7 +172,7 @@ function Progress() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { clientData } = useAuth();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const { showError, showSuccess } = useToast();
 
   // Get user's preferred units
@@ -589,7 +589,8 @@ function Progress() {
         photoUrl2: photo2.url || photo2.photo_url,
         photoType: photo1.photo_type || 'progress',
         date1: photo1.taken_date || photo1.date_taken,
-        date2: photo2.taken_date || photo2.date_taken
+        date2: photo2.taken_date || photo2.date_taken,
+        language
       });
       setAiAnalysis(data.analysis || t('progressPage.unableToAnalyze'));
     } catch (err) {

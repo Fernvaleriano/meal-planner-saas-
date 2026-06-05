@@ -41,7 +41,7 @@ const getTodayKey = () => {
 function Dashboard() {
   const { clientData } = useAuth();
   const { showError, showSuccess } = useToast();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const today = getTodayKey();
 
   // Load all cached data for instant display
@@ -402,7 +402,8 @@ function Dashboard() {
     try {
       // Call AI to parse the food description
       const aiData = await apiPost('/.netlify/functions/analyze-food-text', {
-        text: foodInput
+        text: foodInput,
+        language
       });
 
       if (!aiData?.foods || aiData.foods.length === 0) {

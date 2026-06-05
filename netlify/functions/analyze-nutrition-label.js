@@ -4,6 +4,10 @@ const { handleCors, authenticateRequest, checkRateLimit, rateLimitResponse, cors
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
 
+const languageInstruction = (lang) => lang === 'es'
+    ? '\n\nIMPORTANT: Respond entirely in Spanish (Latin-American neutral). Write all meal names, food names, titles, descriptions, and cooking instructions in natural Spanish. Do NOT translate JSON field names/keys — keep the JSON structure and its keys exactly in English as specified.'
+    : '';
+
 const headers = {
     ...corsHeaders,
     'Content-Type': 'application/json'
@@ -56,7 +60,8 @@ exports.handler = async (event, context) => {
         }
 
         // Support both single image and multiple images
-        const { image, images } = body;
+        const { image, images, language } = body;
+        const lang = (language || 'en').toString().toLowerCase();
         const imageArray = images || (image ? [image] : []);
 
         if (imageArray.length === 0) {
@@ -136,7 +141,7 @@ Important:
 - If a value is not visible or unclear, use 0
 - If this is NOT a nutrition label, return: {"error": "No nutrition label detected"}
 
-Return ONLY the JSON object, nothing else.`;
+Return ONLY the JSON object, nothing else.${languageInstruction(lang)}`;
 
         // Build parts array for Gemini
         const parts = [

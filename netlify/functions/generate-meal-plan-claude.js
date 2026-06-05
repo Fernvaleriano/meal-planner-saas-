@@ -3,6 +3,10 @@ const AnthropicModule = require('@anthropic-ai/sdk');
 // Handle both CommonJS and ES module exports
 const Anthropic = AnthropicModule.default || AnthropicModule;
 
+const languageInstruction = (lang) => lang === 'es'
+  ? '\n\nIMPORTANT: Respond entirely in Spanish (Latin-American neutral). Write all meal names, food names, titles, descriptions, and cooking instructions in natural Spanish. Do NOT translate JSON field names/keys — keep the JSON structure and its keys exactly in English as specified.'
+  : '';
+
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 
 // USDA-verified food database
@@ -68,7 +72,8 @@ exports.handler = async (event, context) => {
   }
 
   try {
-    const { prompt, targets, previousAttempt } = JSON.parse(event.body);
+    const { prompt, targets, previousAttempt, language } = JSON.parse(event.body);
+    const lang = (language || 'en').toString().toLowerCase();
 
     if (!prompt || !targets) {
       return {
@@ -83,7 +88,7 @@ exports.handler = async (event, context) => {
     });
 
     // Build optimized Claude prompt
-    const systemPrompt = buildSystemPrompt(targets, previousAttempt);
+    const systemPrompt = buildSystemPrompt(targets, previousAttempt, lang);
 
     const message = await anthropic.messages.create({
       model: "claude-3-5-sonnet-20241022",
@@ -130,7 +135,7 @@ exports.handler = async (event, context) => {
   }
 };
 
-function buildSystemPrompt(targets, previousAttempt) {
+function buildSystemPrompt(targets, previousAttempt, lang = 'en') {
   let feedbackSection = '';
 
   if (previousAttempt && previousAttempt.errors) {
@@ -205,7 +210,7 @@ ${feedbackSection}
   "calculation": "200g chicken (330cal,62P,0C,8F) + 180g rice (202cal,4P,43C,2F) + 100g broccoli (34cal,3P,7C,0F) = 566cal total. Math check: (69×4)+(50×4)+(10×9) = 276+200+90 = 566 ✓"
 }
 
-Remember: Accuracy is critical. Coaches and their clients depend on these numbers being correct.`;
+Remember: Accuracy is critical. Coaches and their clients depend on these numbers being correct.${languageInstruction(lang)}`;
 }
 
 function extractJSON(text) {

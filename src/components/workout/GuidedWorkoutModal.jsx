@@ -586,7 +586,7 @@ function GuidedWorkoutModal({
   const [showSoftResetBanner, setShowSoftResetBanner] = useState(false);
   const [showSoftResetSplash, setShowSoftResetSplash] = useState(false);
   const { branding } = useBranding();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   // Captured crash info from the prior session (if any). Surfaced in the
   // resume prompt so the founder can read it back to chat without
   // tethering the phone. Cleared on user dismiss.
@@ -1826,6 +1826,7 @@ function GuidedWorkoutModal({
     try {
       const response = await apiPost('/.netlify/functions/ai-coach-chat', {
         message: userMessage,
+        language,
         context: {
           exerciseName: currentExercise?.name,
           lastSession: tip?.lastSession || null,
@@ -1859,7 +1860,7 @@ function GuidedWorkoutModal({
     } finally {
       setAiChatLoading(false);
     }
-  }, [currentExIndex, aiRecommendations, progressTips, currentExercise?.name, currentExercise?.exercise_type, aiChatLoading]);
+  }, [currentExIndex, aiRecommendations, progressTips, currentExercise?.name, currentExercise?.exercise_type, aiChatLoading, language]);
 
   // Save client note for coach
   const saveClientNote = useCallback(async (noteText, exIndex = currentExIndex) => {

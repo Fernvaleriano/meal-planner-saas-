@@ -1,6 +1,10 @@
 // Progress photo comparison analysis using Gemini 2.5 Flash Vision
 const { handleCors, authenticateRequest, checkRateLimit, rateLimitResponse, corsHeaders } = require('./utils/auth');
 
+const languageInstruction = (lang) => lang === 'es'
+  ? '\n\nIMPORTANT: Respond entirely in Spanish (Latin-American neutral). Write all names, titles, descriptions, instructions, reasons, and any prose text in natural Spanish. Do NOT translate JSON field names/keys — keep the JSON structure and its keys exactly in English as specified.'
+  : '';
+
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
 
@@ -75,6 +79,7 @@ exports.handler = async (event, context) => {
         }
 
         const { photoUrl1, photoUrl2, photoType, date1, date2 } = body;
+        const language = (body.language || 'en').toString().toLowerCase();
 
         if (!photoUrl1 || !photoUrl2) {
             return {
@@ -135,7 +140,7 @@ Never invent or exaggerate progress. If you see regression (weight gain, lost de
 
 Tone: direct, specific, motivating. Skip generic praise. Get excited about real progress, acknowledge the grind for subtle changes, address setbacks head-on.
 
-Format as plain text with short paragraph breaks. No markdown, no headers, no bullet points.`;
+Format as plain text with short paragraph breaks. No markdown, no headers, no bullet points.${languageInstruction(language)}`;
 
         const prompt = sameDate
             ? `${coachContext}

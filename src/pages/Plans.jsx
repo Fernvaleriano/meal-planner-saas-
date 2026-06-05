@@ -79,7 +79,7 @@ const getLocalDateString = () => {
 
 function Plans() {
   const { clientData } = useAuth();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const location = useLocation();
   const navigate = useNavigate();
   const { showError, showSuccess } = useToast();
@@ -803,7 +803,8 @@ Return ONLY valid JSON:
         prompt,
         isJson: true,
         targets: { calories: targetCalories, protein: targetProtein, carbs: targetCarbs, fat: targetFat },
-        mealsPerDay: 1
+        mealsPerDay: 1,
+        language
       });
 
       let newMeal = data.success && data.data ? data.data : null;
@@ -923,7 +924,8 @@ Return ONLY valid JSON:
           carbs: meal.carbs || 50,
           fat: meal.fat || 15
         },
-        mealsPerDay: 1
+        mealsPerDay: 1,
+        language
       });
 
       let revisedMeal = data.success && data.data ? data.data : null;
@@ -1574,7 +1576,8 @@ Keep it practical and brief. Format with clear sections.`;
 
       const response = await apiPost('/.netlify/functions/generate-meal-plan', {
         prompt,
-        isJson: false
+        isJson: false,
+        language
       });
 
       if (response.data) {

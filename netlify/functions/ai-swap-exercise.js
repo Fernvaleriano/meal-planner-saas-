@@ -1,6 +1,10 @@
 const { createClient } = require("@supabase/supabase-js");
 const Anthropic = require("@anthropic-ai/sdk");
 
+const languageInstruction = (lang) => lang === 'es'
+  ? '\n\nIMPORTANT: Respond entirely in Spanish (Latin-American neutral). Write all names, titles, descriptions, instructions, reasons, and any prose text in natural Spanish. Do NOT translate JSON field names/keys — keep the JSON structure and its keys exactly in English as specified.'
+  : '';
+
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
@@ -563,7 +567,9 @@ exports.handler = async (event) => {
   }
 
   try {
-    const { exercise, workoutExercises = [], equipment = "", coachId = null, previousSuggestionIds = [], equipmentFilter = "", muscleFilter = "" } = JSON.parse(event.body);
+    const parsedBody = JSON.parse(event.body);
+    const { exercise, workoutExercises = [], equipment = "", coachId = null, previousSuggestionIds = [], equipmentFilter = "", muscleFilter = "" } = parsedBody;
+    const language = (parsedBody.language || 'en').toString().toLowerCase();
 
     if (!exercise) {
       return { statusCode: 400, headers, body: JSON.stringify({ error: "Exercise is required" }) };
@@ -731,7 +737,7 @@ ${JSON.stringify(topCandidates, null, 1)}
 Return ONLY valid JSON, no markdown fences, no explanation:
 {"suggestions":[{"id":123,"name":"Exercise Name","reason":"Coaching reason in 10 words max"}]}
 
-Select exactly 5.`;
+Select exactly 5.${languageInstruction(language)}`;
 
     // Use higher temperature on refresh to get more varied rankings
     const isRefresh = previousSuggestionIds.length > 0;

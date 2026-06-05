@@ -55,7 +55,7 @@ const getGenderBasedDefaults = (gender) => {
 function Diary() {
   const { showError, showSuccess } = useToast();
   const { clientData, loading: authLoading } = useAuth();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -888,7 +888,8 @@ function Diary() {
     try {
       // Step 1: Analyze food with AI
       const aiData = await apiPost('/.netlify/functions/analyze-food-text', {
-        text: aiInput
+        text: aiInput,
+        language
       });
 
       if (!aiData?.foods || aiData.foods.length === 0) {
@@ -3947,7 +3948,8 @@ function Diary() {
                     setAiLogging(true);
                     try {
                       const aiData = await apiPost('/.netlify/functions/analyze-food-text', {
-                        text: aiInput
+                        text: aiInput,
+                        language
                       });
 
                       if (!aiData?.foods || aiData.foods.length === 0) {
