@@ -184,4 +184,28 @@ export default {
   // ── Distance / set meta ───────────────────────────────────────────
   setSingular: 'set',
   setPlural: 'sets',
+
+  // ── Spoken audio cues (TTS) ───────────────────────────────────────
+  spokenGo: 'Go!',
+  spokenRest: 'Rest.',
+  spokenWorkoutComplete: 'Workout complete! Great job.',
+  spokenSwitchSides: 'Switch sides',
+  spokenUpNext: 'Up next: {name}',
+  spokenSecondsLeft30: '30 seconds left',
+  spokenSecondsLeft10: '10 seconds',
+  spokenLastSetAlmostDone: 'Last set. Almost done!',
+  spokenLastSet: 'Last set.',
+  spokenRepsLeft: '{count} reps left',
+  spokenFiveRepsLeft: '5 reps left',
+  spokenSetComplete: 'Set complete. Log your set and rest up.',
+  spokenSkippedExerciseSingular: 'You skipped 1 exercise. Would you like to go back?',
+  spokenSkippedExercisesPlural: 'You skipped {count} exercises. Would you like to go back?',
+  spokenGetReady: 'Get ready. {name}. {desc}.',
+  spokenQuickRefresh: 'Quick refresh recommended',
+  spokenLoadNext: 'Load next exercise',
+  spokenSupersetStart: 'Superset {key}. {name}. Round 1 of {rounds}.',
+  spokenSupersetNext: 'Next up. {name}.',
+  spokenDescTimed: '{sets} sets, {duration} each',
+  spokenDescTillFailure: '{sets} sets, till failure',
+  spokenDescReps: '{sets} sets of {reps} reps',
 };

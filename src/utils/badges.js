@@ -55,15 +55,18 @@ const ICON_NODES = {
 // can be passed to the React icon for a coloured tile state.
 // `icon` (emoji) is retained for plain-text social share captions where
 // emoji actually read well.
+// name/desc are the English defaults (kept so non-translated callers and the
+// share-image canvas still work). nameKey/descKey resolve to localized strings
+// via t() at the React render sites (BadgeCelebrationModal, Progress).
 export const BADGE_TIERS = [
-  { threshold: 1,   icon: '🌱', iconName: 'Sprout',   iconColor: '#86efac', name: 'First Step',        desc: 'First check-in' },
-  { threshold: 7,   icon: '🔥', iconName: 'Flame',    iconColor: '#fb923c', name: 'Week Warrior',      desc: '7 check-ins' },
-  { threshold: 14,  icon: '⚡', iconName: 'Zap',      iconColor: '#fbbf24', name: 'Two Weeks Strong',  desc: '14 check-ins' },
-  { threshold: 30,  icon: '💪', iconName: 'Dumbbell', iconColor: '#67e8f9', name: 'Monthly Champion',  desc: '30 check-ins' },
-  { threshold: 60,  icon: '🏅', iconName: 'Medal',    iconColor: '#fcd34d', name: 'Consistency Hero',  desc: '60 check-ins' },
-  { threshold: 100, icon: '🏆', iconName: 'Trophy',   iconColor: '#fde047', name: 'Century Club',      desc: '100 check-ins' },
-  { threshold: 200, icon: '👑', iconName: 'Crown',    iconColor: '#facc15', name: 'Dedication Master', desc: '200 check-ins' },
-  { threshold: 365, icon: '💎', iconName: 'Gem',      iconColor: '#7dd3fc', name: 'Legend',            desc: '365 check-ins' },
+  { threshold: 1,   icon: '🌱', iconName: 'Sprout',   iconColor: '#86efac', name: 'First Step',        desc: 'First check-in',  nameKey: 'badges.name1',   descKey: 'badges.desc1' },
+  { threshold: 7,   icon: '🔥', iconName: 'Flame',    iconColor: '#fb923c', name: 'Week Warrior',      desc: '7 check-ins',     nameKey: 'badges.name7',   descKey: 'badges.desc7' },
+  { threshold: 14,  icon: '⚡', iconName: 'Zap',      iconColor: '#fbbf24', name: 'Two Weeks Strong',  desc: '14 check-ins',    nameKey: 'badges.name14',  descKey: 'badges.desc14' },
+  { threshold: 30,  icon: '💪', iconName: 'Dumbbell', iconColor: '#67e8f9', name: 'Monthly Champion',  desc: '30 check-ins',    nameKey: 'badges.name30',  descKey: 'badges.desc30' },
+  { threshold: 60,  icon: '🏅', iconName: 'Medal',    iconColor: '#fcd34d', name: 'Consistency Hero',  desc: '60 check-ins',    nameKey: 'badges.name60',  descKey: 'badges.desc60' },
+  { threshold: 100, icon: '🏆', iconName: 'Trophy',   iconColor: '#fde047', name: 'Century Club',      desc: '100 check-ins',   nameKey: 'badges.name100', descKey: 'badges.desc100' },
+  { threshold: 200, icon: '👑', iconName: 'Crown',    iconColor: '#facc15', name: 'Dedication Master', desc: '200 check-ins',   nameKey: 'badges.name200', descKey: 'badges.desc200' },
+  { threshold: 365, icon: '💎', iconName: 'Gem',      iconColor: '#7dd3fc', name: 'Legend',            desc: '365 check-ins',   nameKey: 'badges.name365', descKey: 'badges.desc365' },
 ];
 
 // Lookup helper used by the React BadgeIcon component and any canvas

@@ -182,4 +182,28 @@ export default {
   // ── Distance / set meta ───────────────────────────────────────────
   setSingular: 'serie',
   setPlural: 'series',
+
+  // ── Spoken audio cues (TTS) ───────────────────────────────────────
+  spokenGo: '¡Ya!',
+  spokenRest: 'Descansa.',
+  spokenWorkoutComplete: '¡Entrenamiento completo! ¡Bien hecho!',
+  spokenSwitchSides: 'Cambia de lado',
+  spokenUpNext: 'Siguiente: {name}',
+  spokenSecondsLeft30: 'Quedan 30 segundos',
+  spokenSecondsLeft10: '10 segundos',
+  spokenLastSetAlmostDone: '¡Última serie. Casi terminás!',
+  spokenLastSet: 'Última serie.',
+  spokenRepsLeft: '{count} reps restantes',
+  spokenFiveRepsLeft: '5 reps restantes',
+  spokenSetComplete: 'Serie completa. Registra tu serie y descansa.',
+  spokenSkippedExerciseSingular: 'Omitiste 1 ejercicio. ¿Quieres volver?',
+  spokenSkippedExercisesPlural: 'Omitiste {count} ejercicios. ¿Quieres volver?',
+  spokenGetReady: 'Prepárate. {name}. {desc}.',
+  spokenQuickRefresh: 'Se recomienda actualizar',
+  spokenLoadNext: 'Cargando siguiente ejercicio',
+  spokenSupersetStart: 'Superserie {key}. {name}. Ronda 1 de {rounds}.',
+  spokenSupersetNext: 'Siguiente. {name}.',
+  spokenDescTimed: '{sets} series, {duration} cada una',
+  spokenDescTillFailure: '{sets} series, hasta el fallo',
+  spokenDescReps: '{sets} series de {reps} reps',
 };

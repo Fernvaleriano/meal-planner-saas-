@@ -10,6 +10,7 @@ import { generateProgression, EFFORT_OPTIONS, EFFORT_TO_RIR, estimate1RM, parseS
 import { playTickSound, playCompleteChime, warmUpTickSound, resumeAudio, startTickKeepAlive, stopTickKeepAlive, setAudioEnabled } from '../../utils/audioTick';
 import { useBranding } from '../../context/BrandingContext';
 import { useLanguage } from '../../context/LanguageContext';
+import { getSpeechLang } from '../../utils/speechLang';
 
 // --- Resume helpers ---
 // Resume state is namespaced per assignment so two workouts scheduled on
@@ -295,6 +296,7 @@ const speak = (text, enabled) => {
     try {
       speechSynthesis.cancel();
       const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = getSpeechLang();
       utterance.rate = 0.95;
       utterance.pitch = 1.0;
       utterance.volume = 1.0;
@@ -1053,7 +1055,7 @@ function GuidedWorkoutModal({
         // (between sets, towel over phone, glancing at the gym mirror,
         // etc.). Short and clear — gates on the same voiceEnabled flag
         // as every other speech cue.
-        try { speak('Quick refresh recommended', voiceEnabledRef.current); } catch { /* ignore */ }
+        try { speak(t('guidedWorkout.spokenQuickRefresh'), voiceEnabledRef.current); } catch { /* ignore */ }
       }
     };
     const firstTimer = setTimeout(() => {
@@ -1115,6 +1117,7 @@ function GuidedWorkoutModal({
         if (typeof speechSynthesis !== 'undefined') {
           speechSynthesis.cancel();
           const u = new SpeechSynthesisUtterance(' ');
+          u.lang = getSpeechLang();
           u.volume = 0;
           speechSynthesis.speak(u);
         }
@@ -1209,7 +1212,7 @@ function GuidedWorkoutModal({
     // the cue here — the utterance plays out while the page reloads
     // and the splash card mounts.
     try { if (typeof speechSynthesis !== 'undefined') speechSynthesis.cancel(); } catch { /* ignore */ }
-    try { speak('Load next exercise', voiceEnabledRef.current); } catch { /* ignore */ }
+    try { speak(t('guidedWorkout.spokenLoadNext'), voiceEnabledRef.current); } catch { /* ignore */ }
     // Delay the reload long enough for the announcement to play.
     // ~1.5s covers the short utterance.
     pendingSoftResetTimerRef.current = setTimeout(() => {
@@ -2375,26 +2378,29 @@ function GuidedWorkoutModal({
         const ss = supersetState;
         if (ss) {
           const memberLabel = ss.memberPos === 0 && ss.round === 0
-            ? `Superset ${ss.groupKey}. ${currentExercise.name}. Round 1 of ${ss.totalRounds}.`
-            : `Next up. ${currentExercise.name}.`;
+            ? t('guidedWorkout.spokenSupersetStart', { key: ss.groupKey, name: currentExercise.name, rounds: ss.totalRounds })
+            : t('guidedWorkout.spokenSupersetNext', { name: currentExercise.name });
           await speak(memberLabel, voiceEnabled);
         } else {
           const desc = exInfo.isTimed
-            ? `${exInfo.sets} sets, ${formatDurationSpoken(exInfo.duration)} each`
+            ? t('guidedWorkout.spokenDescTimed', { sets: exInfo.sets, duration: formatDurationSpoken(exInfo.duration) })
             : exInfo.isTillFailure
-            ? `${exInfo.sets} sets, till failure`
-            : `${exInfo.sets} sets of ${exInfo.reps} reps`;
-          await speak(`Get ready. ${currentExercise.name}. ${desc}.`, voiceEnabled);
+            ? t('guidedWorkout.spokenDescTillFailure', { sets: exInfo.sets })
+            : t('guidedWorkout.spokenDescReps', { sets: exInfo.sets, reps: exInfo.reps });
+          await speak(t('guidedWorkout.spokenGetReady', { name: currentExercise.name, desc }), voiceEnabled);
         }
       } else if (phase === 'exercise') {
-        speak('Go!', voiceEnabled);
+        speak(t('guidedWorkout.spokenGo'), voiceEnabled);
       } else if (phase === 'rest') {
-        speak('Rest.', voiceEnabled);
+        speak(t('guidedWorkout.spokenRest'), voiceEnabled);
       } else if (phase === 'deferred-review') {
         const count = skippedQueue.length;
-        speak(`You skipped ${count} exercise${count !== 1 ? 's' : ''}. Would you like to go back?`, voiceEnabled);
+        speak(count === 1
+          ? t('guidedWorkout.spokenSkippedExerciseSingular')
+          : t('guidedWorkout.spokenSkippedExercisesPlural', { count }),
+          voiceEnabled);
       } else if (phase === 'complete') {
-        speak('Workout complete! Great job.', voiceEnabled);
+        speak(t('guidedWorkout.spokenWorkoutComplete'), voiceEnabled);
       }
     };
 
@@ -3061,7 +3067,7 @@ function GuidedWorkoutModal({
     if (isUnilateral && !pendingSecondSideRef.current) {
       pendingSecondSideRef.current = true;
       setPendingSecondSide(true);
-      speak('Switch sides', voiceEnabled);
+      speak(t('guidedWorkout.spokenSwitchSides'), voiceEnabled);
 
       // Stop any active rep countdown / timer immediately so nothing keeps
       // ticking while the client is physically switching sides.
@@ -3199,7 +3205,7 @@ function GuidedWorkoutModal({
           const nextEx = exercises[exIdx + 1];
           if (nextEx && !IS_IOS) {
             const nextName = nextEx.name || nextEx.exercise_name || 'next exercise';
-            setTimeout(() => speak(`Up next: ${nextName}`, voiceEnabled), 1500);
+            setTimeout(() => speak(t('guidedWorkout.spokenUpNext', { name: nextName }), voiceEnabled), 1500);
           }
         }
       } else {
@@ -3322,9 +3328,9 @@ function GuidedWorkoutModal({
 
     // Announce at 30s, 10s, and final 3-2-1
     if (timer === 30 && maxTime > 40) {
-      speak('30 seconds left', voiceEnabled);
+      speak(t('guidedWorkout.spokenSecondsLeft30'), voiceEnabled);
     } else if (timer === 10 && maxTime > 15) {
-      speak('10 seconds', voiceEnabled);
+      speak(t('guidedWorkout.spokenSecondsLeft10'), voiceEnabled);
     } else if (timer === 3) {
       speak('3', voiceEnabled);
     } else if (timer === 2) {
@@ -3361,9 +3367,9 @@ function GuidedWorkoutModal({
     if (isLastSet && lastSetAnnouncedRef.current !== key) {
       lastSetAnnouncedRef.current = key;
       if (currentExIndex >= exercises.length - 1) {
-        speak('Last set. Almost done!', true);
+        speak(t('guidedWorkout.spokenLastSetAlmostDone'), true);
       } else {
-        speak('Last set.', true);
+        speak(t('guidedWorkout.spokenLastSet'), true);
       }
     }
   }, [phase, currentExIndex, currentSetIndex, completedSets, exercises, voiceEnabled]);
@@ -3409,9 +3415,9 @@ function GuidedWorkoutModal({
           const total = repTotalRef.current;
           const halfway = Math.floor(total / 2);
           if (nextRep === halfway && total >= 10 && halfway > 5) {
-            speak(`${nextRep} reps left`, voiceEnabled);
+            speak(t('guidedWorkout.spokenRepsLeft', { count: nextRep }), voiceEnabled);
           } else if (nextRep === 5 && total > 8) {
-            speak('5 reps left', voiceEnabled);
+            speak(t('guidedWorkout.spokenFiveRepsLeft'), voiceEnabled);
           } else if (nextRep === 3) {
             speak('3', voiceEnabled);
           } else if (nextRep === 2) {
@@ -3431,7 +3437,7 @@ function GuidedWorkoutModal({
               // the client hears "Log your set" over the splash card.
               if (showSoftResetSplashRef.current) return;
               if (softResetSpeechActiveRef.current) return;
-              speak('Set complete. Log your set and rest up.', voiceEnabled);
+              speak(t('guidedWorkout.spokenSetComplete'), voiceEnabled);
             }, 300);
             // Auto-advance to rest — client can log during rest. The 0ms
             // setTimeout lets the setCurrentRep state update flush before
@@ -5285,6 +5291,7 @@ function GuidedWorkoutModal({
             if (typeof speechSynthesis !== 'undefined') {
               speechSynthesis.cancel();
               const u = new SpeechSynthesisUtterance(' ');
+              u.lang = getSpeechLang();
               u.volume = 0;
               speechSynthesis.speak(u);
             }

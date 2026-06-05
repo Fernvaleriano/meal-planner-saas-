@@ -71,8 +71,8 @@ function BadgeCelebrationModal({
         >
           <BadgeIcon tier={tier} size={88} strokeWidth={1.6} color="#ffffff" />
         </div>
-        <div className="badge-unlock-name">{tier.name}</div>
-        <div className="badge-unlock-desc">{tier.desc}</div>
+        <div className="badge-unlock-name">{tier.nameKey ? t(tier.nameKey) : tier.name}</div>
+        <div className="badge-unlock-desc">{tier.descKey ? t(tier.descKey) : tier.desc}</div>
 
         <div className="badge-unlock-stats">
           <Award size={16} strokeWidth={2.2} aria-hidden="true" />

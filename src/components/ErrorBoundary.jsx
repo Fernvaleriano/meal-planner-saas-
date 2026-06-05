@@ -1,6 +1,23 @@
 import { Component } from 'react';
 import { Sentry } from '../utils/sentry';
 
+// Minimal, dependency-free translations for the error screen. The outermost
+// ErrorBoundary sits ABOVE the LanguageProvider, so it must NOT use the
+// useLanguage hook (that could itself throw if the provider is what failed).
+// Read the saved language directly from localStorage instead — same key the
+// LanguageProvider writes. Falls back to English.
+const ERR_TEXT = {
+  en: { failedToLoad: 'Failed to load', retry: 'Retry', somethingWrong: 'Something went wrong', tryRefresh: 'Please try refreshing the page', refreshPage: 'Refresh Page' },
+  es: { failedToLoad: 'No se pudo cargar', retry: 'Reintentar', somethingWrong: 'Algo salió mal', tryRefresh: 'Intenta actualizar la página', refreshPage: 'Actualizar página' },
+};
+function errText() {
+  try {
+    const l = localStorage.getItem('zique-language');
+    if (l && ERR_TEXT[l]) return ERR_TEXT[l];
+  } catch { /* ignore */ }
+  return ERR_TEXT.en;
+}
+
 class ErrorBoundary extends Component {
   constructor(props) {
     super(props);
@@ -49,7 +66,7 @@ class ErrorBoundary extends Component {
             margin: '8px 0',
             color: '#9ca3af'
           }}>
-            <p style={{ margin: '0 0 8px', fontSize: '14px' }}>Failed to load</p>
+            <p style={{ margin: '0 0 8px', fontSize: '14px' }}>{errText().failedToLoad}</p>
             <button
               onClick={this.handleRetry}
               style={{
@@ -62,7 +79,7 @@ class ErrorBoundary extends Component {
                 fontSize: '13px'
               }}
             >
-              Retry
+              {errText().retry}
             </button>
           </div>
         );
@@ -75,9 +92,9 @@ class ErrorBoundary extends Component {
           minHeight: '100vh',
           color: 'white'
         }}>
-          <h2 style={{ marginBottom: '16px' }}>Something went wrong</h2>
+          <h2 style={{ marginBottom: '16px' }}>{errText().somethingWrong}</h2>
           <p style={{ color: '#9ca3af', marginBottom: '24px' }}>
-            Please try refreshing the page
+            {errText().tryRefresh}
           </p>
           <button
             onClick={() => window.location.reload()}
@@ -90,7 +107,7 @@ class ErrorBoundary extends Component {
               cursor: 'pointer'
             }}
           >
-            Refresh Page
+            {errText().refreshPage}
           </button>
         </div>
       );

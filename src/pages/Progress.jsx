@@ -974,7 +974,7 @@ function Progress() {
                       <div className="next-badge-progress-label">
                         <span className="next-badge-progress-label-text">
                           <span>
-                            {t('progressPage.moreToUnlock', { remaining })} <strong>{nextTier.name}</strong>
+                            {t('progressPage.moreToUnlock', { remaining })} <strong>{nextTier.nameKey ? t(nextTier.nameKey) : nextTier.name}</strong>
                           </span>
                           <BadgeIcon tier={nextTier} size={16} strokeWidth={2} />
                         </span>
@@ -1006,7 +1006,7 @@ function Progress() {
                       <div
                         key={tier.threshold}
                         className={`badge-card ${earned ? 'earned' : 'locked'}`}
-                        title={`${tier.name} — ${tier.desc}`}
+                        title={`${tier.nameKey ? t(tier.nameKey) : tier.name} — ${tier.descKey ? t(tier.descKey) : tier.desc}`}
                         style={{ '--badge-tier-color': tier.iconColor || '#fbbf24' }}
                       >
                         {earned
