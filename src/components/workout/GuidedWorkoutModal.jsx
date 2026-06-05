@@ -5003,35 +5003,35 @@ function GuidedWorkoutModal({
           <div className="guided-nav-controls">
             {(currentExIndex > 0 || isPlayingDeferred || supersetState) && (
               <button className="guided-back-btn" onClick={handleBack}>
-                <SkipBack size={18} /> Back
+                <SkipBack size={18} /> {t('guidedWorkout.backBtn')}
               </button>
             )}
             <button className="guided-pause-btn" onClick={() => setIsPaused(!isPaused)}>
               {isPaused ? <Play size={18} /> : <Pause size={18} />}
-              {isPaused ? 'Resume' : 'Pause'}
+              {isPaused ? t('guidedWorkout.resumeBtn') : t('guidedWorkout.pauseBtn')}
             </button>
             {!isPlayingDeferred && (
               <button className="guided-later-btn" onClick={handleDeferExercise}>
-                <Clock size={14} /> Busy
+                <Clock size={14} /> {t('guidedWorkout.busyBtn')}
               </button>
             )}
             <button className="guided-skip-btn" onClick={handleSkip}>
-              Skip <ChevronRight size={18} />
+              {t('guidedWorkout.skipBtn')} <ChevronRight size={18} />
             </button>
           </div>
         ) : phase === 'rest' ? (
           <div className="guided-nav-controls">
             {(currentExIndex > 0 || isPlayingDeferred || supersetState) && (
               <button className="guided-back-btn" onClick={handleBack}>
-                <SkipBack size={18} /> Back
+                <SkipBack size={18} /> {t('guidedWorkout.backBtn')}
               </button>
             )}
             <button className="guided-pause-btn" onClick={() => setIsPaused(!isPaused)}>
               {isPaused ? <Play size={18} /> : <Pause size={18} />}
-              {isPaused ? 'Resume' : 'Pause'}
+              {isPaused ? t('guidedWorkout.resumeBtn') : t('guidedWorkout.pauseBtn')}
             </button>
             <button className="guided-skip-btn" onClick={handleSkip}>
-              Skip Rest <ChevronRight size={18} />
+              {t('guidedWorkout.skipRestBtn')} <ChevronRight size={18} />
             </button>
           </div>
         ) : phase === 'exercise' && !info.isTimed && repCountdownActive ? (
@@ -5039,7 +5039,7 @@ function GuidedWorkoutModal({
           <div className="guided-timer-controls">
             <button className="guided-pause-btn" onClick={() => setIsPaused(!isPaused)}>
               {isPaused ? <Play size={22} /> : <Pause size={22} />}
-              {isPaused ? 'Resume' : 'Pause'}
+              {isPaused ? t('guidedWorkout.resumeBtn') : t('guidedWorkout.pauseBtn')}
             </button>
             <button className="guided-done-btn" onClick={() => {
               if (repIntervalRef.current) clearInterval(repIntervalRef.current);
@@ -5047,47 +5047,47 @@ function GuidedWorkoutModal({
               handleSetDone();
             }}>
               <Check size={22} />
-              Done
+              {t('guidedWorkout.doneBtn')}
             </button>
           </div>
         ) : phase === 'exercise' && !info.isTimed ? (
           <div className="guided-exercise-actions">
             {(currentExIndex > 0 || isPlayingDeferred || supersetState) && (
               <button className="guided-back-btn" onClick={handleBack}>
-                <SkipBack size={18} /> Back
+                <SkipBack size={18} /> {t('guidedWorkout.backBtn')}
               </button>
             )}
             <button className="guided-done-btn" onClick={handleSetDone}>
               <Check size={22} />
-              Done
+              {t('guidedWorkout.doneBtn')}
             </button>
             {!isPlayingDeferred && (
               <button className="guided-later-btn" onClick={handleDeferExercise}>
-                <Clock size={14} /> Busy
+                <Clock size={14} /> {t('guidedWorkout.busyBtn')}
               </button>
             )}
             <button className="guided-skip-btn-small" onClick={handleSkip}>
-              Skip
+              {t('guidedWorkout.skipBtn')}
             </button>
           </div>
         ) : phase === 'exercise' && info.isTimed ? (
           <div className="guided-timer-controls">
             {(currentExIndex > 0 || isPlayingDeferred || supersetState) && (
               <button className="guided-back-btn" onClick={handleBack}>
-                <SkipBack size={18} /> Back
+                <SkipBack size={18} /> {t('guidedWorkout.backBtn')}
               </button>
             )}
             <button className="guided-pause-btn" onClick={() => setIsPaused(!isPaused)}>
               {isPaused ? <Play size={22} /> : <Pause size={22} />}
-              {isPaused ? 'Resume' : 'Pause'}
+              {isPaused ? t('guidedWorkout.resumeBtn') : t('guidedWorkout.pauseBtn')}
             </button>
             {!isPlayingDeferred && (
               <button className="guided-later-btn" onClick={handleDeferExercise}>
-                <Clock size={14} /> Busy
+                <Clock size={14} /> {t('guidedWorkout.busyBtn')}
               </button>
             )}
             <button className="guided-skip-btn" onClick={handleSkip}>
-              Skip <SkipForward size={18} />
+              {t('guidedWorkout.skipBtn')} <SkipForward size={18} />
             </button>
           </div>
         ) : null}
@@ -5097,7 +5097,7 @@ function GuidedWorkoutModal({
       {exercises.length > 1 && phase !== 'get-ready' && !isPlayingDeferred && (
         <div className="guided-activity-progress">
           <div className="guided-activity-header">
-            <span>Activity {currentExIndex + 1}/{exercises.length}</span>
+            <span>{t('guidedWorkout.activityProgress', { current: currentExIndex + 1, total: exercises.length })}</span>
           </div>
           <div className="guided-activity-thumbnails" ref={guidedActivityThumbsRef}>
             {exercises.map((ex, idx) => {
@@ -5196,7 +5196,7 @@ function GuidedWorkoutModal({
           }}
         >
           <div style={{ flex: 1 }}>
-            Tap Refresh — frees up memory so the app doesn't slow down or close on you.
+            {t('guidedWorkout.softResetBannerText')}
           </div>
           <button
             type="button"
@@ -5213,12 +5213,12 @@ function GuidedWorkoutModal({
               flexShrink: 0
             }}
           >
-            Refresh
+            {t('guidedWorkout.softResetRefreshBtn')}
           </button>
           <button
             type="button"
             onClick={() => setShowSoftResetBanner(false)}
-            aria-label="Dismiss"
+            aria-label={t('guidedWorkout.ariaDismiss')}
             style={{
               padding: 4,
               background: 'transparent',
@@ -5336,13 +5336,13 @@ function GuidedWorkoutModal({
                 />
               ) : null}
               <div style={{ fontSize: 14, fontWeight: 600, color: brandColor, marginBottom: 6 }}>
-                ✓ Exercise complete
+                {t('guidedWorkout.exerciseCompleteLabel')}
               </div>
               <div style={{ fontSize: 18, fontWeight: 700, color: textPrimary, marginBottom: 14, wordBreak: 'break-word' }}>
                 {completedName}
               </div>
               {nextName && (
-                <div style={{ fontSize: 13, color: textMuted, marginBottom: 4 }}>Up next</div>
+                <div style={{ fontSize: 13, color: textMuted, marginBottom: 4 }}>{t('guidedWorkout.upNextLabel')}</div>
               )}
               {nextName && (
                 <div style={{ fontSize: 16, fontWeight: 600, color: textPrimary, marginBottom: 18, wordBreak: 'break-word' }}>
@@ -5366,7 +5366,7 @@ function GuidedWorkoutModal({
                   cursor: 'pointer'
                 }}
               >
-                Load Next Exercise
+                {t('guidedWorkout.loadNextExercise')}
               </button>
             </div>
           </div>
@@ -5380,20 +5380,20 @@ function GuidedWorkoutModal({
             <div className="guided-resume-icon">
               <Play size={32} />
             </div>
-            <h3>Resume Workout?</h3>
+            <h3>{t('guidedWorkout.resumeTitle')}</h3>
             <p className="guided-resume-detail">
-              You were on <strong>Exercise {resumeData.currentExIndex + 1}</strong> — {resumeData.exerciseName || 'Unknown'}
+              {t('guidedWorkout.resumeDetail', { number: resumeData.currentExIndex + 1, name: resumeData.exerciseName || 'Unknown' })}
             </p>
             <p className="guided-resume-elapsed">
-              {formatTime(resumeData.totalElapsed || 0)} elapsed
+              {t('guidedWorkout.resumeElapsed', { time: formatTime(resumeData.totalElapsed || 0) })}
             </p>
             <div className="guided-resume-actions">
               <button className="guided-resume-btn primary" onClick={handleResumeAccept}>
                 <Play size={18} />
-                Resume
+                {t('guidedWorkout.resumeBtn2')}
               </button>
               <button className="guided-resume-btn secondary" onClick={handleResumeDismiss}>
-                Start Over
+                {t('guidedWorkout.startOver')}
               </button>
             </div>
           </div>
@@ -5434,7 +5434,7 @@ function GuidedWorkoutModal({
                 {currentExercise?.name || 'Workout'}
               </div>
               <div className="guided-mini-timer">
-                {phase === 'rest' ? `Rest ${formatTime(timer)}` : formatTime(totalElapsed)}
+                {phase === 'rest' ? t('guidedWorkout.miniRestTimer', { time: formatTime(timer) }) : formatTime(totalElapsed)}
               </div>
             </div>
             <div className="guided-mini-actions">
@@ -5442,8 +5442,8 @@ function GuidedWorkoutModal({
                 type="button"
                 className={`guided-mini-btn ${isPiPActive ? 'active' : ''}`}
                 onClick={(e) => { e.stopPropagation(); handleEnterPiP(); }}
-                aria-label={isPiPActive ? 'Exit Picture-in-Picture' : 'Pop out video'}
-                title={isPiPActive ? 'Exit Picture-in-Picture' : 'Pop out video'}
+                aria-label={isPiPActive ? t('guidedWorkout.ariaExitPiP') : t('guidedWorkout.ariaPopOutVideo')}
+                title={isPiPActive ? t('guidedWorkout.titleExitPiP') : t('guidedWorkout.titlePopOutVideo')}
               >
                 <PictureInPicture2 size={16} />
               </button>
@@ -5451,8 +5451,8 @@ function GuidedWorkoutModal({
                 type="button"
                 className="guided-mini-btn"
                 onClick={(e) => { e.stopPropagation(); handleRestore(); }}
-                aria-label="Restore workout"
-                title="Restore"
+                aria-label={t('guidedWorkout.ariaRestoreWorkout')}
+                title={t('guidedWorkout.titleRestore')}
               >
                 <Maximize2 size={16} />
               </button>
@@ -5460,8 +5460,8 @@ function GuidedWorkoutModal({
                 type="button"
                 className="guided-mini-btn close"
                 onClick={(e) => { e.stopPropagation(); handleCloseWithSave(); }}
-                aria-label="End workout"
-                title="End workout"
+                aria-label={t('guidedWorkout.ariaEndWorkout')}
+                title={t('guidedWorkout.titleEndWorkout')}
               >
                 <X size={16} />
               </button>
@@ -5497,8 +5497,8 @@ function GuidedWorkoutModal({
         >
           <span style={{ fontSize: '18px' }}>🔄</span>
           {switchCountdown > 0
-            ? `Switch sides — ${switchCountdown}…`
-            : 'Side 2 — same reps'}
+            ? t('guidedWorkout.switchSidesCountdown', { count: switchCountdown })
+            : t('guidedWorkout.side2Label')}
         </div>
       )}
     </div>
