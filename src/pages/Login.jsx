@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { supabase } from '../utils/supabase';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 
 const DEFAULT_LOGO = 'https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/assets/ziquecoach-logo-teal.png';
 const DEFAULT_PRIMARY = '#2cb5a5';
@@ -39,6 +40,7 @@ function Login() {
   const [error, setError] = useState('');
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { t } = useLanguage();
   const [searchParams] = useSearchParams();
 
   const coachIdParam = searchParams.get('coachId');
@@ -95,7 +97,7 @@ function Login() {
 
       if (clientError || !client) {
         await supabase.auth.signOut();
-        throw new Error('This account is not registered as a client');
+        throw new Error(t('login.notRegistered'));
       }
 
       // Now that auth + client lookup both succeeded, it's safe to remember
@@ -108,7 +110,7 @@ function Login() {
 
       navigate('/', { replace: true });
     } catch (err) {
-      setError(err.message || 'Login failed');
+      setError(err.message || t('login.loginFailed'));
     } finally {
       setLoading(false);
     }
@@ -135,8 +137,8 @@ function Login() {
 
         {/* Header */}
         <div className="login-header">
-          <h1>{welcomeMessage || 'Welcome Back'}</h1>
-          <p>{hasCustomBranding ? `Sign in to ${brandName}` : 'Sign in to your client portal'}</p>
+          <h1>{welcomeMessage || t('login.welcomeBack')}</h1>
+          <p>{hasCustomBranding ? t('login.signInTo', { brand: brandName }) : t('login.signInPortal')}</p>
         </div>
 
         {/* Form */}
@@ -148,12 +150,12 @@ function Login() {
           )}
 
           <div className="login-field">
-            <label>Email</label>
+            <label>{t('login.email')}</label>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="your@email.com"
+              placeholder={t('login.emailPlaceholder')}
               required
               autoComplete="email"
               autoCapitalize="none"
@@ -161,12 +163,12 @@ function Login() {
           </div>
 
           <div className="login-field">
-            <label>Password</label>
+            <label>{t('login.password')}</label>
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="Your password"
+              placeholder={t('login.passwordPlaceholder')}
               required
               autoComplete="current-password"
             />
@@ -180,26 +182,26 @@ function Login() {
             {loading ? (
               <>
                 <span className="login-spinner"></span>
-                Signing in...
+                {t('login.signingIn')}
               </>
             ) : (
-              'Sign In'
+              t('login.signIn')
             )}
           </button>
 
           <div className="forgot-password-link">
-            <Link to="/forgot-password">Forgot your password?</Link>
+            <Link to="/forgot-password">{t('login.forgot')}</Link>
           </div>
         </form>
 
         {/* Back to role selection */}
         <div className="login-back-link">
-          <a href="/login-select.html">Not a client? Go back to select your role</a>
+          <a href="/login-select.html">{t('login.notClient')}</a>
         </div>
 
         {/* Footer */}
         <div className="login-footer">
-          <p>{hasCustomBranding ? `Powered by ${brandName}` : 'Powered by Ziquecoach'}</p>
+          <p>{hasCustomBranding ? t('login.poweredBy', { brand: brandName }) : t('login.poweredByDefault')}</p>
         </div>
       </div>
 

@@ -2,7 +2,8 @@ import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useBranding, DEFAULT_TUTORIAL_VIDEO_URL } from '../context/BrandingContext';
-import { Moon, Camera, Lock, LogOut, ChevronRight, Loader, Users, Scale, User, Utensils, Edit3, X, Palette, Droplets, CreditCard, PlayCircle, Download, Trash2 } from 'lucide-react';
+import { useLanguage } from '../context/LanguageContext';
+import { Moon, Camera, Lock, LogOut, ChevronRight, Loader, Users, Scale, User, Utensils, Edit3, X, Palette, Droplets, CreditCard, PlayCircle, Download, Trash2, Globe } from 'lucide-react';
 import { apiGet, apiPost, apiPut } from '../utils/api';
 import { supabase } from '../utils/supabase';
 import { usePullToRefreshEvent } from '../hooks/usePullToRefreshEvent';
@@ -27,6 +28,7 @@ function Settings() {
   const { clientData, theme, toggleTheme, logout, refreshClientData } = useAuth();
   const { branding } = useBranding();
   const { showError, showSuccess } = useToast();
+  const { t, language, setLanguage, supportedLanguages } = useLanguage();
   const isCoach = clientData?.is_coach === true;
 
   // Coach-controlled app tutorial video: built-in default, the coach's own
@@ -164,22 +166,22 @@ function Settings() {
       }
     } catch (err) {
       console.error('Error saving profile:', err);
-      showError('Failed to save profile. Please try again.');
+      showError(t('settings.profileSaveFailed'));
     } finally {
       setProfileSaving(false);
     }
   };
 
   const activityLevelLabels = {
-    '1.2': 'Sedentary',
-    '1.375': 'Lightly Active',
-    '1.55': 'Moderately Active',
-    '1.725': 'Very Active',
-    '1.9': 'Extra Active'
+    '1.2': t('settings.activity.sedentary'),
+    '1.375': t('settings.activity.lightlyActive'),
+    '1.55': t('settings.activity.moderatelyActive'),
+    '1.725': t('settings.activity.veryActive'),
+    '1.9': t('settings.activity.extraActive')
   };
 
   const getActivityLabel = (val) => {
-    if (!val) return 'Not set';
+    if (!val) return t('common.notSet');
     const num = parseFloat(val);
     if (Number.isNaN(num)) return `${val}`;
     const key = String(num);
@@ -281,7 +283,7 @@ function Settings() {
     if (!file) return;
 
     if (!clientData?.id) {
-      showError('Please wait for your profile to load');
+      showError(t('settings.photoWaitProfile'));
       return;
     }
 
@@ -301,13 +303,13 @@ function Settings() {
       if (response.success && response.photoUrl) {
         // Refresh client data to get updated photo
         await refreshClientData();
-        showSuccess('Profile photo updated!');
+        showSuccess(t('settings.photoUpdated'));
       } else {
         throw new Error(response.error || 'Upload failed');
       }
     } catch (err) {
       console.error('Error uploading photo:', err);
-      showError(err.message || 'Failed to upload photo. Please try again.');
+      showError(err.message || t('settings.photoFailed'));
     } finally {
       setUploadingPhoto(false);
       // Clear the input so the same file can be selected again
@@ -327,7 +329,7 @@ function Settings() {
   // Handle password reset
   const handlePasswordReset = async () => {
     if (!clientData?.email) {
-      showError('No email address found for your account');
+      showError(t('settings.pwNoEmail'));
       return;
     }
 
@@ -345,13 +347,13 @@ function Settings() {
 
       setPasswordMessage({
         type: 'success',
-        text: `Password reset email sent to ${clientData.email}. Check your inbox!`
+        text: t('settings.pwSent', { email: clientData.email })
       });
     } catch (err) {
       console.error('Password reset error:', err);
       setPasswordMessage({
         type: 'error',
-        text: err.message || 'Failed to send reset email. Please try again.'
+        text: err.message || t('settings.pwFailed')
       });
     } finally {
       setPasswordLoading(false);
@@ -360,7 +362,7 @@ function Settings() {
 
   // Handle logout with confirmation
   const handleLogout = async () => {
-    if (window.confirm('Are you sure you want to log out?')) {
+    if (window.confirm(t('settings.logoutConfirm'))) {
       await logout();
     }
   };
@@ -372,12 +374,12 @@ function Settings() {
     setExportingData(true);
     try {
       const res = await apiPost('/.netlify/functions/export-my-data', {});
-      showSuccess(res?.message || 'Your data export has been emailed to you.');
+      showSuccess(res?.message || t('settings.exportSent'));
     } catch (err) {
       if (err?.status === 429) {
-        showError(err.message || 'You can request one data export every 24 hours.');
+        showError(err.message || t('settings.exportRateLimited'));
       } else {
-        showError('Could not start your data export. Please try again later.');
+        showError(t('settings.exportFailed'));
       }
     } finally {
       setExportingData(false);
@@ -402,13 +404,13 @@ function Settings() {
     try {
       const res = await apiPost('/.netlify/functions/request-account-deletion', {});
       setShowDeleteModal(false);
-      showSuccess(res?.message || 'Your account is scheduled for deletion.');
+      showSuccess(res?.message || t('settings.deleteScheduled'));
       setTimeout(() => { logout(); }, 2500);
     } catch (err) {
       if (err?.status === 409) {
-        showError(err.message || 'This account cannot be deleted yet.');
+        showError(err.message || t('settings.deleteCannotYet'));
       } else {
-        showError('Could not process the deletion request. Please try again.');
+        showError(t('settings.deleteFailed'));
       }
     } finally {
       setDeletingAccount(false);
@@ -438,7 +440,7 @@ function Settings() {
     } catch (err) {
       console.error('Error updating exercise gender preference:', err);
       setExerciseGenderPref(previousValue); // Revert on error
-      showError('Failed to update preference. Please try again.');
+      showError(t('settings.prefUpdateFailed'));
     } finally {
       setExerciseGenderLoading(false);
     }
@@ -467,7 +469,7 @@ function Settings() {
     } catch (err) {
       console.error('Error updating weight unit preference:', err);
       setUnitPref(previousValue); // Revert on error
-      showError('Failed to update preference. Please try again.');
+      showError(t('settings.prefUpdateFailed'));
     } finally {
       setUnitPrefLoading(false);
     }
@@ -497,7 +499,7 @@ function Settings() {
       console.error('Error updating water goal:', err);
       setWaterGoal(previousGoal);
       setWaterGoalInput(String(previousGoal));
-      showError('Failed to update water goal. Please try again.');
+      showError(t('settings.waterGoalUpdateFailed'));
     } finally {
       setWaterGoalLoading(false);
     }
@@ -524,7 +526,7 @@ function Settings() {
     } catch (err) {
       console.error('Error updating water unit:', err);
       setWaterUnit(previousUnit);
-      showError('Failed to update water unit. Please try again.');
+      showError(t('settings.waterUnitUpdateFailed'));
     } finally {
       setWaterUnitLoading(false);
     }
@@ -563,14 +565,14 @@ function Settings() {
             <Camera size={14} />
           </div>
         </div>
-        <h1 className="profile-header-name">{clientData?.client_name || 'User'}</h1>
+        <h1 className="profile-header-name">{clientData?.client_name || t('settings.defaultUser')}</h1>
         <p className="profile-header-email">{clientData?.email || ''}</p>
       </div>
 
       {/* My Coach Section */}
       {clientData?.coach_id && (
         <div className="settings-card">
-          <div className="settings-card-title">MY COACH</div>
+          <div className="settings-card-title">{t('settings.myCoach')}</div>
           <div className="settings-item coach-item">
             <div className="coach-info">
               {coachData?.profile_photo_url ? (
@@ -585,12 +587,12 @@ function Settings() {
                 </div>
               )}
               <div className="coach-details">
-                <div className="coach-name">{coachData?.coach_name || 'Loading...'}</div>
-                <div className="coach-label">Nutrition Coach</div>
+                <div className="coach-name">{coachData?.coach_name || t('common.loading')}</div>
+                <div className="coach-label">{t('settings.nutritionCoach')}</div>
               </div>
             </div>
-            <Link to="/messages" className="coach-message-btn" aria-label="Message your coach">
-              Message
+            <Link to="/messages" className="coach-message-btn" aria-label={t('settings.messageYourCoach')}>
+              {t('settings.message')}
             </Link>
           </div>
         </div>
@@ -599,14 +601,14 @@ function Settings() {
       {/* My Profile Section */}
       <div className="settings-card">
         <div className="settings-card-title-row">
-          <div className="settings-card-title">MY PROFILE</div>
+          <div className="settings-card-title">{t('settings.myProfile')}</div>
           <button
             type="button"
             onClick={openProfileModal}
             className="settings-inline-action"
-            aria-label="Edit profile"
+            aria-label={t('settings.editProfileAria')}
           >
-            <Edit3 size={14} /> Edit
+            <Edit3 size={14} /> {t('common.edit')}
           </button>
         </div>
 
@@ -616,14 +618,14 @@ function Settings() {
               <User size={18} />
             </div>
             <div className="settings-item-text">
-              <div className="settings-item-title">Physical Stats</div>
+              <div className="settings-item-title">{t('settings.physicalStats')}</div>
               <div className="settings-item-subtitle">
                 {[
                   clientData?.age ? `${clientData.age}yo` : null,
                   clientData?.gender ? clientData.gender.charAt(0).toUpperCase() + clientData.gender.slice(1) : null,
                   clientData?.weight ? `${clientData.weight} ${unitPref === 'metric' ? 'kg' : 'lbs'}` : null,
                   (clientData?.height_ft || clientData?.height_in) ? `${clientData.height_ft || 0}'${clientData.height_in || 0}"` : null,
-                ].filter(Boolean).join(' / ') || 'Not set'}
+                ].filter(Boolean).join(' / ') || t('common.notSet')}
               </div>
             </div>
           </div>
@@ -637,7 +639,7 @@ function Settings() {
               <Utensils size={18} />
             </div>
             <div className="settings-item-text">
-              <div className="settings-item-title">Activity Level</div>
+              <div className="settings-item-title">{t('settings.activityLevel')}</div>
               <div className="settings-item-subtitle">{getActivityLabel(clientData?.activity_level)}</div>
             </div>
           </div>
@@ -651,12 +653,12 @@ function Settings() {
               <Utensils size={18} />
             </div>
             <div className="settings-item-text">
-              <div className="settings-item-title">Diet & Food Preferences</div>
+              <div className="settings-item-title">{t('settings.dietFoodPreferences')}</div>
               <div className="settings-item-subtitle">
                 {[
                   clientData?.diet_type ? clientData.diet_type.charAt(0).toUpperCase() + clientData.diet_type.slice(1) : null,
-                  clientData?.meal_count ? `${clientData.meal_count} meals/day` : null,
-                ].filter(Boolean).join(' / ') || 'Not set'}
+                  clientData?.meal_count ? t('settings.mealsPerDayShort', { count: clientData.meal_count }) : null,
+                ].filter(Boolean).join(' / ') || t('common.notSet')}
               </div>
             </div>
           </div>
@@ -668,7 +670,7 @@ function Settings() {
             <div className="settings-item">
               <div className="settings-item-left">
                 <div className="settings-item-text" style={{ marginLeft: '52px' }}>
-                  <div className="settings-item-title" style={{ fontSize: '0.8rem', color: 'var(--gray-500)' }}>Allergies</div>
+                  <div className="settings-item-title" style={{ fontSize: '0.8rem', color: 'var(--gray-500)' }}>{t('settings.allergies')}</div>
                   <div className="settings-item-subtitle">{clientData.allergies}</div>
                 </div>
               </div>
@@ -682,7 +684,7 @@ function Settings() {
             <div className="settings-item">
               <div className="settings-item-left">
                 <div className="settings-item-text" style={{ marginLeft: '52px' }}>
-                  <div className="settings-item-title" style={{ fontSize: '0.8rem', color: 'var(--gray-500)' }}>Disliked Foods</div>
+                  <div className="settings-item-title" style={{ fontSize: '0.8rem', color: 'var(--gray-500)' }}>{t('settings.dislikedFoods')}</div>
                   <div className="settings-item-subtitle">{clientData.disliked_foods}</div>
                 </div>
               </div>
@@ -696,7 +698,7 @@ function Settings() {
             <div className="settings-item">
               <div className="settings-item-left">
                 <div className="settings-item-text" style={{ marginLeft: '52px' }}>
-                  <div className="settings-item-title" style={{ fontSize: '0.8rem', color: 'var(--gray-500)' }}>Preferred Foods</div>
+                  <div className="settings-item-title" style={{ fontSize: '0.8rem', color: 'var(--gray-500)' }}>{t('settings.preferredFoods')}</div>
                   <div className="settings-item-subtitle">{clientData.preferred_foods}</div>
                 </div>
               </div>
@@ -710,13 +712,13 @@ function Settings() {
             <div className="settings-item">
               <div className="settings-item-left">
                 <div className="settings-item-text" style={{ marginLeft: '52px' }}>
-                  <div className="settings-item-title" style={{ fontSize: '0.8rem', color: 'var(--gray-500)' }}>Protein Powder</div>
+                  <div className="settings-item-title" style={{ fontSize: '0.8rem', color: 'var(--gray-500)' }}>{t('settings.proteinPowder')}</div>
                   <div className="settings-item-subtitle">
                     {[
                       clientData.protein_powder_brand,
                       clientData.protein_powder_calories ? `${clientData.protein_powder_calories}cal` : null,
                       clientData.protein_powder_protein ? `${clientData.protein_powder_protein}g protein` : null,
-                    ].filter(Boolean).join(' / ') || 'Yes'}
+                    ].filter(Boolean).join(' / ') || t('common.yes')}
                   </div>
                 </div>
               </div>
@@ -727,15 +729,15 @@ function Settings() {
 
       {/* Preferences Section */}
       <div className="settings-card">
-        <div className="settings-card-title">PREFERENCES</div>
+        <div className="settings-card-title">{t('settings.preferences')}</div>
         <div className="settings-item">
           <div className="settings-item-left">
             <div className="settings-icon-box neutral">
               <Moon size={18} />
             </div>
             <div className="settings-item-text">
-              <div className="settings-item-title">Dark Mode</div>
-              <div className="settings-item-subtitle">Easier on the eyes at night</div>
+              <div className="settings-item-title">{t('settings.darkMode')}</div>
+              <div className="settings-item-subtitle">{t('settings.darkModeSub')}</div>
             </div>
           </div>
           <button
@@ -749,6 +751,33 @@ function Settings() {
 
         <div className="settings-divider"></div>
 
+        {/* Language Preference */}
+        <div className="settings-item">
+          <div className="settings-item-left">
+            <div className="settings-icon-box neutral">
+              <Globe size={18} />
+            </div>
+            <div className="settings-item-text">
+              <div className="settings-item-title">{t('settings.languageRow')}</div>
+              <div className="settings-item-subtitle">{t('settings.languageRowSub')}</div>
+            </div>
+          </div>
+          <div className="gender-select-wrapper">
+            <select
+              value={language}
+              onChange={(e) => setLanguage(e.target.value)}
+              className="gender-select"
+              aria-label={t('settings.languageRow')}
+            >
+              {supportedLanguages.map(({ code, label }) => (
+                <option key={code} value={code}>{label}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div className="settings-divider"></div>
+
         {/* Exercise Demonstration Gender Preference */}
         <div className="settings-item">
           <div className="settings-item-left">
@@ -756,8 +785,8 @@ function Settings() {
               <Users size={18} />
             </div>
             <div className="settings-item-text">
-              <div className="settings-item-title">Exercise Demos</div>
-              <div className="settings-item-subtitle">Choose demonstration style</div>
+              <div className="settings-item-title">{t('settings.exerciseDemos')}</div>
+              <div className="settings-item-subtitle">{t('settings.exerciseDemosSub')}</div>
             </div>
           </div>
           <div className="gender-select-wrapper">
@@ -770,9 +799,9 @@ function Settings() {
                 className="gender-select"
                 disabled={exerciseGenderLoading}
               >
-                <option value="all">All</option>
-                <option value="male">Male</option>
-                <option value="female">Female</option>
+                <option value="all">{t('settings.optAll')}</option>
+                <option value="male">{t('settings.optMale')}</option>
+                <option value="female">{t('settings.optFemale')}</option>
               </select>
             )}
           </div>
@@ -787,8 +816,8 @@ function Settings() {
               <Scale size={18} />
             </div>
             <div className="settings-item-text">
-              <div className="settings-item-title">Weight Unit</div>
-              <div className="settings-item-subtitle">Kilograms or pounds</div>
+              <div className="settings-item-title">{t('settings.weightUnit')}</div>
+              <div className="settings-item-subtitle">{t('settings.weightUnitSub')}</div>
             </div>
           </div>
           <div className="gender-select-wrapper">
@@ -817,8 +846,8 @@ function Settings() {
               <Droplets size={18} />
             </div>
             <div className="settings-item-text">
-              <div className="settings-item-title">Water Goal</div>
-              <div className="settings-item-subtitle">Daily intake target</div>
+              <div className="settings-item-title">{t('settings.waterGoal')}</div>
+              <div className="settings-item-subtitle">{t('settings.waterGoalSub')}</div>
             </div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -846,10 +875,10 @@ function Settings() {
                 className="gender-select"
                 disabled={waterUnitLoading}
               >
-                <option value="glasses">glasses</option>
-                <option value="oz">oz</option>
-                <option value="ml">mL</option>
-                <option value="L">liters</option>
+                <option value="glasses">{t('settings.waterGlasses')}</option>
+                <option value="oz">{t('settings.waterOz')}</option>
+                <option value="ml">{t('settings.waterMl')}</option>
+                <option value="L">{t('settings.waterLiters')}</option>
               </select>
             )}
           </div>
@@ -859,15 +888,15 @@ function Settings() {
       {/* Branding Section - Coach Only */}
       {isCoach && (
         <div className="settings-card">
-          <div className="settings-card-title">COACH TOOLS</div>
+          <div className="settings-card-title">{t('settings.coachTools')}</div>
           <Link to="/branding" className="settings-item clickable" style={{ textDecoration: 'none', color: 'inherit' }}>
             <div className="settings-item-left">
               <div className="settings-icon-box brand">
                 <Palette size={18} />
               </div>
               <div className="settings-item-text">
-                <div className="settings-item-title">Branding Settings</div>
-                <div className="settings-item-subtitle">Colors, fonts, modules, terminology</div>
+                <div className="settings-item-title">{t('settings.brandingSettings')}</div>
+                <div className="settings-item-subtitle">{t('settings.brandingSettingsSub')}</div>
               </div>
             </div>
             <ChevronRight size={20} className="settings-chevron" />
@@ -881,8 +910,8 @@ function Settings() {
                 <CreditCard size={18} />
               </div>
               <div className="settings-item-text">
-                <div className="settings-item-title">Client Billing</div>
-                <div className="settings-item-subtitle">Payment plans, revenue, promo codes</div>
+                <div className="settings-item-title">{t('settings.clientBilling')}</div>
+                <div className="settings-item-subtitle">{t('settings.clientBillingSub')}</div>
               </div>
             </div>
             <ChevronRight size={20} className="settings-chevron" />
@@ -893,15 +922,15 @@ function Settings() {
       {/* Client Billing - Non-coach users */}
       {!isCoach && (
         <div className="settings-card">
-          <div className="settings-card-title">BILLING</div>
+          <div className="settings-card-title">{t('settings.billing')}</div>
           <Link to="/my-billing" className="settings-item clickable" style={{ textDecoration: 'none', color: 'inherit' }}>
             <div className="settings-item-left">
               <div className="settings-icon-box brand">
                 <CreditCard size={18} />
               </div>
               <div className="settings-item-text">
-                <div className="settings-item-title">Billing & Subscription</div>
-                <div className="settings-item-subtitle">Manage your plan, payments, invoices</div>
+                <div className="settings-item-title">{t('settings.billingSubscription')}</div>
+                <div className="settings-item-subtitle">{t('settings.billingSubscriptionSub')}</div>
               </div>
             </div>
             <ChevronRight size={20} className="settings-chevron" />
@@ -912,15 +941,15 @@ function Settings() {
       {/* Help & Support Section */}
       {tutorialVideoUrl && (
         <div className="settings-card">
-          <div className="settings-card-title">HELP &amp; SUPPORT</div>
+          <div className="settings-card-title">{t('settings.helpSupport')}</div>
           <div className="settings-item clickable" onClick={() => setShowTutorialModal(true)}>
             <div className="settings-item-left">
               <div className="settings-icon-box neutral">
                 <PlayCircle size={18} />
               </div>
               <div className="settings-item-text">
-                <div className="settings-item-title">App Tutorial</div>
-                <div className="settings-item-subtitle">Watch a quick walkthrough of the app</div>
+                <div className="settings-item-title">{t('settings.appTutorial')}</div>
+                <div className="settings-item-subtitle">{t('settings.appTutorialSub')}</div>
               </div>
             </div>
             <ChevronRight size={20} className="settings-chevron" />
@@ -930,15 +959,15 @@ function Settings() {
 
       {/* Account Section */}
       <div className="settings-card">
-        <div className="settings-card-title">ACCOUNT</div>
+        <div className="settings-card-title">{t('settings.account')}</div>
         <div className="settings-item clickable" onClick={() => setShowPasswordModal(true)}>
           <div className="settings-item-left">
             <div className="settings-icon-box neutral">
               <Lock size={18} />
             </div>
             <div className="settings-item-text">
-              <div className="settings-item-title">Change Password</div>
-              <div className="settings-item-subtitle">Update your account password</div>
+              <div className="settings-item-title">{t('settings.changePassword')}</div>
+              <div className="settings-item-subtitle">{t('settings.changePasswordSub')}</div>
             </div>
           </div>
           <ChevronRight size={20} className="settings-chevron" />
@@ -956,9 +985,9 @@ function Settings() {
               <Download size={18} />
             </div>
             <div className="settings-item-text">
-              <div className="settings-item-title">Export My Data</div>
+              <div className="settings-item-title">{t('settings.exportData')}</div>
               <div className="settings-item-subtitle">
-                Email me a copy of my data (link expires in 1 hour)
+                {t('settings.exportDataSub')}
               </div>
             </div>
           </div>
@@ -979,9 +1008,9 @@ function Settings() {
               <Trash2 size={18} />
             </div>
             <div className="settings-item-text">
-              <div className="settings-item-title">Delete My Account</div>
+              <div className="settings-item-title">{t('settings.deleteAccount')}</div>
               <div className="settings-item-subtitle">
-                Deactivates now; permanently deleted after 30 days
+                {t('settings.deleteAccountSub')}
               </div>
             </div>
           </div>
@@ -998,7 +1027,7 @@ function Settings() {
               <LogOut size={18} />
             </div>
             <div className="settings-item-text">
-              <div className="settings-item-title logout-text">Log Out</div>
+              <div className="settings-item-title logout-text">{t('settings.logOut')}</div>
             </div>
           </div>
         </div>
@@ -1006,7 +1035,7 @@ function Settings() {
 
       {/* Version Footer */}
       <div className="settings-version">
-        {branding?.brand_name || 'Ziquecoach'} &middot; v1.0
+        {t('settings.version', { brand: branding?.brand_name || 'Ziquecoach' })}
       </div>
 
 
@@ -1016,7 +1045,7 @@ function Settings() {
           <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: 560, width: '100%' }}>
             <div className="modal-header">
               <button className="modal-close" onClick={() => setShowTutorialModal(false)}><X size={20} /></button>
-              <span style={{ fontWeight: 600 }}>App Tutorial</span>
+              <span style={{ fontWeight: 600 }}>{t('settings.appTutorial')}</span>
             </div>
             <div className="modal-body" style={{ padding: '16px' }}>
               <video
@@ -1037,11 +1066,11 @@ function Settings() {
           <div className="modal-content" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
               <button className="modal-close" onClick={() => setShowPasswordModal(false)}>&times;</button>
-              <span style={{ fontWeight: 600 }}>Change Password</span>
+              <span style={{ fontWeight: 600 }}>{t('settings.changePassword')}</span>
             </div>
             <div className="modal-body" style={{ padding: '20px' }}>
               <p style={{ marginBottom: '16px', color: 'var(--gray-600)' }}>
-                We'll send a password reset link to your email address:
+                {t('settings.pwSendLinkIntro')}
               </p>
               <p style={{ marginBottom: '20px', fontWeight: 600, color: 'var(--gray-800)' }}>
                 {clientData?.email}
@@ -1079,7 +1108,7 @@ function Settings() {
                 }}
               >
                 {passwordLoading && <Loader size={18} className="spin" />}
-                {passwordLoading ? 'Sending...' : 'Send Reset Email'}
+                {passwordLoading ? t('settings.pwSending') : t('settings.pwSend')}
               </button>
             </div>
           </div>
@@ -1092,17 +1121,14 @@ function Settings() {
           <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: 460, width: '100%' }}>
             <div className="modal-header">
               <button className="modal-close" onClick={() => !deletingAccount && setShowDeleteModal(false)}>&times;</button>
-              <span style={{ fontWeight: 600 }}>Delete My Account</span>
+              <span style={{ fontWeight: 600 }}>{t('settings.deleteAccount')}</span>
             </div>
             <div className="modal-body" style={{ padding: '20px' }}>
               <p style={{ marginBottom: '12px', color: 'var(--gray-700, #374151)' }}>
-                This will <strong>deactivate your account immediately</strong>, sign
-                you out, cancel billing, and permanently delete your data in
-                <strong> 30 days</strong>. To cancel within 30 days, email
-                contact@ziquecoach.com.
+                {t('settings.deleteIntro')}
               </p>
               <p style={{ marginBottom: '8px', color: 'var(--gray-700, #374151)' }}>
-                Type <strong>DELETE</strong> to confirm:
+                {t('settings.deleteTypeToConfirm')}
               </p>
               <input
                 type="text"
@@ -1111,7 +1137,7 @@ function Settings() {
                 autoCapitalize="characters"
                 autoCorrect="off"
                 spellCheck={false}
-                placeholder="DELETE"
+                placeholder={t('settings.deleteConfirmPlaceholder')}
                 disabled={deletingAccount}
                 style={{
                   width: '100%',
@@ -1143,7 +1169,7 @@ function Settings() {
                 }}
               >
                 {deletingAccount && <Loader size={18} className="spin" />}
-                {deletingAccount ? 'Deleting...' : 'Permanently Delete My Account'}
+                {deletingAccount ? t('settings.deleting') : t('settings.deleteConfirmBtn')}
               </button>
               <button
                 onClick={() => !deletingAccount && setShowDeleteModal(false)}
@@ -1161,7 +1187,7 @@ function Settings() {
                   cursor: deletingAccount ? 'not-allowed' : 'pointer'
                 }}
               >
-                Cancel
+                {t('common.cancel')}
               </button>
             </div>
           </div>
@@ -1174,107 +1200,107 @@ function Settings() {
           <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxHeight: '85vh', display: 'flex', flexDirection: 'column' }}>
             <div className="modal-header">
               <button className="modal-close" onClick={() => setShowProfileModal(false)}><X size={20} /></button>
-              <span style={{ fontWeight: 600 }}>Edit Profile</span>
+              <span style={{ fontWeight: 600 }}>{t('settings.editProfile')}</span>
             </div>
             <div className="modal-body" style={{ padding: '16px', overflowY: 'auto', flex: 1 }}>
               {/* Physical Stats */}
               <div style={{ marginBottom: '20px' }}>
-                <div style={{ fontWeight: 600, fontSize: '0.85rem', color: 'var(--gray-500)', marginBottom: '12px', textTransform: 'uppercase' }}>Physical Stats</div>
+                <div style={{ fontWeight: 600, fontSize: '0.85rem', color: 'var(--gray-500)', marginBottom: '12px', textTransform: 'uppercase' }}>{t('settings.physicalStats')}</div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                   <label style={labelStyle}>
-                    <span style={labelTextStyle}>Age</span>
-                    <input type="number" value={profileForm.age} onChange={e => setProfileForm(f => ({ ...f, age: e.target.value }))} style={inputStyle} placeholder="e.g. 30" />
+                    <span style={labelTextStyle}>{t('settings.age')}</span>
+                    <input type="number" value={profileForm.age} onChange={e => setProfileForm(f => ({ ...f, age: e.target.value }))} style={inputStyle} placeholder={t('settings.agePlaceholder')} />
                   </label>
                   <label style={labelStyle}>
-                    <span style={labelTextStyle}>Gender</span>
+                    <span style={labelTextStyle}>{t('settings.gender')}</span>
                     <select value={profileForm.gender} onChange={e => setProfileForm(f => ({ ...f, gender: e.target.value }))} style={inputStyle}>
-                      <option value="">Select</option>
-                      <option value="male">Male</option>
-                      <option value="female">Female</option>
+                      <option value="">{t('common.select')}</option>
+                      <option value="male">{t('settings.optMale')}</option>
+                      <option value="female">{t('settings.optFemale')}</option>
                     </select>
                   </label>
                   <label style={labelStyle}>
-                    <span style={labelTextStyle}>Weight ({unitPref === 'metric' ? 'kg' : 'lbs'})</span>
-                    <input type="number" step="0.1" value={profileForm.weight} onChange={e => setProfileForm(f => ({ ...f, weight: e.target.value }))} style={inputStyle} placeholder="e.g. 185" />
+                    <span style={labelTextStyle}>{t('settings.weightWithUnit', { unit: unitPref === 'metric' ? 'kg' : 'lbs' })}</span>
+                    <input type="number" step="0.1" value={profileForm.weight} onChange={e => setProfileForm(f => ({ ...f, weight: e.target.value }))} style={inputStyle} placeholder={t('settings.weightPlaceholder')} />
                   </label>
                   <label style={labelStyle}>
-                    <span style={labelTextStyle}>Height</span>
+                    <span style={labelTextStyle}>{t('settings.height')}</span>
                     <div style={{ display: 'flex', gap: '6px' }}>
-                      <input type="number" value={profileForm.heightFt} onChange={e => setProfileForm(f => ({ ...f, heightFt: e.target.value }))} style={{ ...inputStyle, flex: 1 }} placeholder="ft" />
-                      <input type="number" value={profileForm.heightIn} onChange={e => setProfileForm(f => ({ ...f, heightIn: e.target.value }))} style={{ ...inputStyle, flex: 1 }} placeholder="in" />
+                      <input type="number" value={profileForm.heightFt} onChange={e => setProfileForm(f => ({ ...f, heightFt: e.target.value }))} style={{ ...inputStyle, flex: 1 }} placeholder={t('settings.heightFt')} />
+                      <input type="number" value={profileForm.heightIn} onChange={e => setProfileForm(f => ({ ...f, heightIn: e.target.value }))} style={{ ...inputStyle, flex: 1 }} placeholder={t('settings.heightIn')} />
                     </div>
                   </label>
                 </div>
                 <label style={{ ...labelStyle, marginTop: '12px' }}>
-                  <span style={labelTextStyle}>Activity Level</span>
+                  <span style={labelTextStyle}>{t('settings.activityLevel')}</span>
                   <select value={profileForm.activityLevel} onChange={e => setProfileForm(f => ({ ...f, activityLevel: e.target.value }))} style={inputStyle}>
-                    <option value="">Select</option>
-                    <option value="1.2">Sedentary</option>
-                    <option value="1.375">Lightly Active</option>
-                    <option value="1.55">Moderately Active</option>
-                    <option value="1.725">Very Active</option>
-                    <option value="1.9">Extra Active</option>
+                    <option value="">{t('common.select')}</option>
+                    <option value="1.2">{t('settings.activity.sedentary')}</option>
+                    <option value="1.375">{t('settings.activity.lightlyActive')}</option>
+                    <option value="1.55">{t('settings.activity.moderatelyActive')}</option>
+                    <option value="1.725">{t('settings.activity.veryActive')}</option>
+                    <option value="1.9">{t('settings.activity.extraActive')}</option>
                   </select>
                 </label>
               </div>
 
               {/* Fitness & Workout Preferences */}
               <div style={{ marginBottom: '20px' }}>
-                <div style={{ fontWeight: 600, fontSize: '0.85rem', color: 'var(--gray-500)', marginBottom: '12px', textTransform: 'uppercase' }}>Fitness & Workout</div>
+                <div style={{ fontWeight: 600, fontSize: '0.85rem', color: 'var(--gray-500)', marginBottom: '12px', textTransform: 'uppercase' }}>{t('settings.fitnessWorkout')}</div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                   <label style={labelStyle}>
-                    <span style={labelTextStyle}>Fitness Level</span>
+                    <span style={labelTextStyle}>{t('settings.fitnessLevel')}</span>
                     <select value={profileForm.fitnessLevel} onChange={e => setProfileForm(f => ({ ...f, fitnessLevel: e.target.value }))} style={inputStyle}>
-                      <option value="">Select</option>
-                      <option value="beginner">Complete Beginner</option>
-                      <option value="some_experience">Some Experience</option>
-                      <option value="intermediate">Intermediate</option>
-                      <option value="advanced">Advanced</option>
+                      <option value="">{t('common.select')}</option>
+                      <option value="beginner">{t('settings.fitnessLevelBeginner')}</option>
+                      <option value="some_experience">{t('settings.fitnessLevelSome')}</option>
+                      <option value="intermediate">{t('settings.fitnessLevelIntermediate')}</option>
+                      <option value="advanced">{t('settings.fitnessLevelAdvanced')}</option>
                     </select>
                   </label>
                   <label style={labelStyle}>
-                    <span style={labelTextStyle}>Exercise Frequency</span>
+                    <span style={labelTextStyle}>{t('settings.exerciseFrequency')}</span>
                     <select value={profileForm.exerciseFrequency} onChange={e => setProfileForm(f => ({ ...f, exerciseFrequency: e.target.value }))} style={inputStyle}>
-                      <option value="">Select</option>
-                      <option value="none">Not at all right now</option>
-                      <option value="1-2">1-2 times per week</option>
-                      <option value="3-4">3-4 times per week</option>
-                      <option value="5+">5+ times per week</option>
+                      <option value="">{t('common.select')}</option>
+                      <option value="none">{t('settings.freqNone')}</option>
+                      <option value="1-2">{t('settings.freq12')}</option>
+                      <option value="3-4">{t('settings.freq34')}</option>
+                      <option value="5+">{t('settings.freq5')}</option>
                     </select>
                   </label>
                   <label style={labelStyle}>
-                    <span style={labelTextStyle}>Workout Duration</span>
+                    <span style={labelTextStyle}>{t('settings.workoutDuration')}</span>
                     <select value={profileForm.workoutDuration} onChange={e => setProfileForm(f => ({ ...f, workoutDuration: e.target.value }))} style={inputStyle}>
-                      <option value="">Select</option>
-                      <option value="15-30">15-30 minutes</option>
-                      <option value="30-45">30-45 minutes</option>
-                      <option value="45-60">45-60 minutes</option>
-                      <option value="60+">60+ minutes</option>
+                      <option value="">{t('common.select')}</option>
+                      <option value="15-30">{t('settings.dur1530')}</option>
+                      <option value="30-45">{t('settings.dur3045')}</option>
+                      <option value="45-60">{t('settings.dur4560')}</option>
+                      <option value="60+">{t('settings.dur60')}</option>
                     </select>
                   </label>
                   <label style={labelStyle}>
-                    <span style={labelTextStyle}>Equipment Access</span>
+                    <span style={labelTextStyle}>{t('settings.equipmentAccess')}</span>
                     <select value={profileForm.equipmentAccess} onChange={e => setProfileForm(f => ({ ...f, equipmentAccess: e.target.value }))} style={inputStyle}>
-                      <option value="">Select</option>
-                      <option value="full_gym">Full Gym Membership</option>
-                      <option value="home_gym">Home Gym with Equipment</option>
-                      <option value="minimal">Minimal Equipment</option>
-                      <option value="bodyweight">No Equipment (bodyweight)</option>
+                      <option value="">{t('common.select')}</option>
+                      <option value="full_gym">{t('settings.equipFullGym')}</option>
+                      <option value="home_gym">{t('settings.equipHomeGym')}</option>
+                      <option value="minimal">{t('settings.equipMinimal')}</option>
+                      <option value="bodyweight">{t('settings.equipBodyweight')}</option>
                     </select>
                   </label>
                 </div>
                 <div style={{ marginTop: '12px' }}>
-                  <span style={labelTextStyle}>Exercise Types You Enjoy</span>
+                  <span style={labelTextStyle}>{t('settings.exerciseTypesEnjoy')}</span>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', marginTop: '6px' }}>
                     {[
-                      { v: 'weight_training', l: 'Weight Training' },
-                      { v: 'cardio', l: 'Cardio' },
-                      { v: 'hiit', l: 'HIIT / Circuit' },
-                      { v: 'yoga_pilates', l: 'Yoga / Pilates' },
-                      { v: 'group_classes', l: 'Group Classes' },
-                      { v: 'sports', l: 'Sports' },
-                      { v: 'walking_hiking', l: 'Walking / Hiking' },
-                      { v: 'swimming', l: 'Swimming' }
+                      { v: 'weight_training', l: t('settings.typeWeightTraining') },
+                      { v: 'cardio', l: t('settings.typeCardio') },
+                      { v: 'hiit', l: t('settings.typeHiit') },
+                      { v: 'yoga_pilates', l: t('settings.typeYoga') },
+                      { v: 'group_classes', l: t('settings.typeGroup') },
+                      { v: 'sports', l: t('settings.typeSports') },
+                      { v: 'walking_hiking', l: t('settings.typeWalking') },
+                      { v: 'swimming', l: t('settings.typeSwimming') }
                     ].map(opt => {
                       const checked = Array.isArray(profileForm.exerciseTypes) && profileForm.exerciseTypes.includes(opt.v);
                       return (
@@ -1297,44 +1323,44 @@ function Settings() {
                   </div>
                 </div>
                 <label style={{ ...labelStyle, marginTop: '12px' }}>
-                  <span style={labelTextStyle}>Health Concerns / Injuries</span>
+                  <span style={labelTextStyle}>{t('settings.healthConcerns')}</span>
                   <textarea
                     value={profileForm.healthConcerns}
                     onChange={e => setProfileForm(f => ({ ...f, healthConcerns: e.target.value }))}
                     style={{ ...inputStyle, minHeight: '60px', resize: 'vertical', fontFamily: 'inherit' }}
-                    placeholder="e.g. Shoulder injury, bad knees... Type 'None' if none."
+                    placeholder={t('settings.healthConcernsPlaceholder')}
                   />
                 </label>
                 <label style={{ ...labelStyle, marginTop: '12px' }}>
-                  <span style={labelTextStyle}>Fitness Goals</span>
+                  <span style={labelTextStyle}>{t('settings.fitnessGoals')}</span>
                   <textarea
                     value={profileForm.fitnessGoalDetails}
                     onChange={e => setProfileForm(f => ({ ...f, fitnessGoalDetails: e.target.value }))}
                     style={{ ...inputStyle, minHeight: '60px', resize: 'vertical', fontFamily: 'inherit' }}
-                    placeholder="e.g. Run a 5K, do 10 pull-ups, improve flexibility..."
+                    placeholder={t('settings.fitnessGoalsPlaceholder')}
                   />
                 </label>
               </div>
 
               {/* Diet Preferences */}
               <div style={{ marginBottom: '20px' }}>
-                <div style={{ fontWeight: 600, fontSize: '0.85rem', color: 'var(--gray-500)', marginBottom: '12px', textTransform: 'uppercase' }}>Diet & Food Preferences</div>
+                <div style={{ fontWeight: 600, fontSize: '0.85rem', color: 'var(--gray-500)', marginBottom: '12px', textTransform: 'uppercase' }}>{t('settings.dietFoodPreferences')}</div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                   <label style={labelStyle}>
-                    <span style={labelTextStyle}>Diet Type</span>
+                    <span style={labelTextStyle}>{t('settings.dietType')}</span>
                     <select value={profileForm.dietType} onChange={e => setProfileForm(f => ({ ...f, dietType: e.target.value }))} style={inputStyle}>
-                      <option value="">Select</option>
-                      <option value="omnivore">Omnivore</option>
-                      <option value="vegetarian">Vegetarian</option>
-                      <option value="vegan">Vegan</option>
-                      <option value="keto">Keto</option>
-                      <option value="paleo">Paleo</option>
+                      <option value="">{t('common.select')}</option>
+                      <option value="omnivore">{t('settings.dietOmnivore')}</option>
+                      <option value="vegetarian">{t('settings.dietVegetarian')}</option>
+                      <option value="vegan">{t('settings.dietVegan')}</option>
+                      <option value="keto">{t('settings.dietKeto')}</option>
+                      <option value="paleo">{t('settings.dietPaleo')}</option>
                     </select>
                   </label>
                   <label style={labelStyle}>
-                    <span style={labelTextStyle}>Meals Per Day</span>
+                    <span style={labelTextStyle}>{t('settings.mealsPerDay')}</span>
                     <select value={profileForm.mealCount} onChange={e => setProfileForm(f => ({ ...f, mealCount: e.target.value }))} style={inputStyle}>
-                      <option value="">Select</option>
+                      <option value="">{t('common.select')}</option>
                       <option value="2">2</option>
                       <option value="3">3</option>
                       <option value="4">4</option>
@@ -1344,71 +1370,71 @@ function Settings() {
                   </label>
                 </div>
                 <label style={{ ...labelStyle, marginTop: '12px' }}>
-                  <span style={labelTextStyle}>Macro Preference</span>
+                  <span style={labelTextStyle}>{t('settings.macroPreference')}</span>
                   <select value={profileForm.macroPreference} onChange={e => setProfileForm(f => ({ ...f, macroPreference: e.target.value }))} style={inputStyle}>
-                    <option value="">Balanced (default)</option>
-                    <option value="balanced">Balanced</option>
-                    <option value="high_protein">High Protein</option>
-                    <option value="low_carb">Low Carb</option>
-                    <option value="high_carb">High Carb</option>
-                    <option value="low_fat">Low Fat</option>
+                    <option value="">{t('settings.macroBalancedDefault')}</option>
+                    <option value="balanced">{t('settings.macroBalanced')}</option>
+                    <option value="high_protein">{t('settings.macroHighProtein')}</option>
+                    <option value="low_carb">{t('settings.macroLowCarb')}</option>
+                    <option value="high_carb">{t('settings.macroHighCarb')}</option>
+                    <option value="low_fat">{t('settings.macroLowFat')}</option>
                   </select>
                 </label>
                 <label style={{ ...labelStyle, marginTop: '12px' }}>
-                  <span style={labelTextStyle}>Allergies</span>
-                  <input type="text" value={profileForm.allergies} onChange={e => setProfileForm(f => ({ ...f, allergies: e.target.value }))} style={inputStyle} placeholder="e.g. Shellfish, Peanuts" />
+                  <span style={labelTextStyle}>{t('settings.allergies')}</span>
+                  <input type="text" value={profileForm.allergies} onChange={e => setProfileForm(f => ({ ...f, allergies: e.target.value }))} style={inputStyle} placeholder={t('settings.allergiesPlaceholder')} />
                 </label>
                 <label style={{ ...labelStyle, marginTop: '12px' }}>
-                  <span style={labelTextStyle}>Disliked Foods</span>
-                  <input type="text" value={profileForm.dislikedFoods} onChange={e => setProfileForm(f => ({ ...f, dislikedFoods: e.target.value }))} style={inputStyle} placeholder="e.g. Mushrooms, Olives" />
+                  <span style={labelTextStyle}>{t('settings.dislikedFoods')}</span>
+                  <input type="text" value={profileForm.dislikedFoods} onChange={e => setProfileForm(f => ({ ...f, dislikedFoods: e.target.value }))} style={inputStyle} placeholder={t('settings.dislikedFoodsPlaceholder')} />
                 </label>
                 <label style={{ ...labelStyle, marginTop: '12px' }}>
-                  <span style={labelTextStyle}>Preferred Foods</span>
-                  <input type="text" value={profileForm.preferredFoods} onChange={e => setProfileForm(f => ({ ...f, preferredFoods: e.target.value }))} style={inputStyle} placeholder="e.g. Chicken, Rice, Broccoli" />
+                  <span style={labelTextStyle}>{t('settings.preferredFoods')}</span>
+                  <input type="text" value={profileForm.preferredFoods} onChange={e => setProfileForm(f => ({ ...f, preferredFoods: e.target.value }))} style={inputStyle} placeholder={t('settings.preferredFoodsPlaceholder')} />
                 </label>
                 <label style={{ ...labelStyle, marginTop: '12px' }}>
-                  <span style={labelTextStyle}>Cooking Equipment</span>
-                  <input type="text" value={profileForm.cookingEquipment} onChange={e => setProfileForm(f => ({ ...f, cookingEquipment: e.target.value }))} style={inputStyle} placeholder="e.g. Oven, Air Fryer, Stovetop" />
+                  <span style={labelTextStyle}>{t('settings.cookingEquipment')}</span>
+                  <input type="text" value={profileForm.cookingEquipment} onChange={e => setProfileForm(f => ({ ...f, cookingEquipment: e.target.value }))} style={inputStyle} placeholder={t('settings.cookingEquipmentPlaceholder')} />
                 </label>
                 <label style={{ ...labelStyle, marginTop: '12px' }}>
-                  <span style={labelTextStyle}>Budget</span>
+                  <span style={labelTextStyle}>{t('settings.budget')}</span>
                   <select value={profileForm.budget} onChange={e => setProfileForm(f => ({ ...f, budget: e.target.value }))} style={inputStyle}>
-                    <option value="">Select</option>
-                    <option value="budget">Budget-Friendly</option>
-                    <option value="moderate">Moderate</option>
-                    <option value="premium">Premium</option>
+                    <option value="">{t('common.select')}</option>
+                    <option value="budget">{t('settings.budgetFriendly')}</option>
+                    <option value="moderate">{t('settings.budgetModerate')}</option>
+                    <option value="premium">{t('settings.budgetPremium')}</option>
                   </select>
                 </label>
               </div>
 
               {/* Protein Powder */}
               <div style={{ marginBottom: '20px' }}>
-                <div style={{ fontWeight: 600, fontSize: '0.85rem', color: 'var(--gray-500)', marginBottom: '12px', textTransform: 'uppercase' }}>Protein Powder</div>
+                <div style={{ fontWeight: 600, fontSize: '0.85rem', color: 'var(--gray-500)', marginBottom: '12px', textTransform: 'uppercase' }}>{t('settings.proteinPowder')}</div>
                 <label style={{ ...labelStyle, display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '10px' }}>
                   <input type="checkbox" checked={profileForm.useProteinPowder} onChange={e => setProfileForm(f => ({ ...f, useProteinPowder: e.target.checked }))} />
-                  <span style={{ fontSize: '0.9rem', color: 'var(--gray-700)' }}>I use protein powder</span>
+                  <span style={{ fontSize: '0.9rem', color: 'var(--gray-700)' }}>{t('settings.iUseProteinPowder')}</span>
                 </label>
                 {profileForm.useProteinPowder && (
                   <div style={{ marginTop: '12px' }}>
                     <label style={labelStyle}>
-                      <span style={labelTextStyle}>Brand</span>
-                      <input type="text" value={profileForm.proteinPowderBrand} onChange={e => setProfileForm(f => ({ ...f, proteinPowderBrand: e.target.value }))} style={inputStyle} placeholder="e.g. Optimum Nutrition" />
+                      <span style={labelTextStyle}>{t('settings.brand')}</span>
+                      <input type="text" value={profileForm.proteinPowderBrand} onChange={e => setProfileForm(f => ({ ...f, proteinPowderBrand: e.target.value }))} style={inputStyle} placeholder={t('settings.brandPlaceholder')} />
                     </label>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginTop: '12px' }}>
                       <label style={labelStyle}>
-                        <span style={labelTextStyle}>Calories</span>
+                        <span style={labelTextStyle}>{t('settings.calories')}</span>
                         <input type="number" value={profileForm.proteinPowderCalories} onChange={e => setProfileForm(f => ({ ...f, proteinPowderCalories: e.target.value }))} style={inputStyle} placeholder="120" />
                       </label>
                       <label style={labelStyle}>
-                        <span style={labelTextStyle}>Protein (g)</span>
+                        <span style={labelTextStyle}>{t('settings.proteinG')}</span>
                         <input type="number" value={profileForm.proteinPowderProtein} onChange={e => setProfileForm(f => ({ ...f, proteinPowderProtein: e.target.value }))} style={inputStyle} placeholder="24" />
                       </label>
                       <label style={labelStyle}>
-                        <span style={labelTextStyle}>Carbs (g)</span>
+                        <span style={labelTextStyle}>{t('settings.carbsG')}</span>
                         <input type="number" value={profileForm.proteinPowderCarbs} onChange={e => setProfileForm(f => ({ ...f, proteinPowderCarbs: e.target.value }))} style={inputStyle} placeholder="3" />
                       </label>
                       <label style={labelStyle}>
-                        <span style={labelTextStyle}>Fat (g)</span>
+                        <span style={labelTextStyle}>{t('settings.fatG')}</span>
                         <input type="number" value={profileForm.proteinPowderFat} onChange={e => setProfileForm(f => ({ ...f, proteinPowderFat: e.target.value }))} style={inputStyle} placeholder="1" />
                       </label>
                     </div>
@@ -1436,7 +1462,7 @@ function Settings() {
                 }}
               >
                 {profileSaving && <Loader size={18} className="spin" />}
-                {profileSaving ? 'Saving...' : 'Save Changes'}
+                {profileSaving ? t('common.saving') : t('common.saveChanges')}
               </button>
             </div>
           </div>
