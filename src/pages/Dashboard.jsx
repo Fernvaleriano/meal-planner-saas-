@@ -9,6 +9,7 @@ import { SnapPhotoModal, SearchFoodsModal, FavoritesModal, ScanLabelModal } from
 import { usePullToRefresh, PullToRefreshIndicator } from '../hooks/usePullToRefresh';
 import { onAppResume } from '../hooks/useAppLifecycle';
 import { useToast } from '../components/Toast';
+import { useLanguage } from '../context/LanguageContext';
 
 const WeightProofModal = lazy(() => import('../components/WeightProofModal'));
 
@@ -39,6 +40,7 @@ const getTodayKey = () => {
 function Dashboard() {
   const { clientData } = useAuth();
   const { showError, showSuccess } = useToast();
+  const { t } = useLanguage();
   const today = getTodayKey();
 
   // Load all cached data for instant display
@@ -341,32 +343,32 @@ function Dashboard() {
 
     // Early morning — nothing logged yet likely
     if (hour >= 5 && hour < 9) {
-      if (todayProgress.calories === 0) return "Good morning — start strong with a protein-rich breakfast.";
-      return `Good morning — you're already at ${todayProgress.protein}g protein. Keep it up.`;
+      if (todayProgress.calories === 0) return t('dashboard.coachingEarlyNoLog');
+      return t('dashboard.coachingEarlyLogged', { protein: todayProgress.protein });
     }
     // Late morning
     if (hour >= 9 && hour < 12) {
-      if (todayProgress.calories === 0) return "Morning's moving — don't forget to log breakfast.";
-      return `${proteinLeft}g protein left today. You've got this.`;
+      if (todayProgress.calories === 0) return t('dashboard.coachingMorningNoLog');
+      return t('dashboard.coachingMorningLogged', { proteinLeft });
     }
     // Midday
     if (hour >= 12 && hour < 15) {
-      if (caloriePercent >= 60) return "Solid day so far — stay on track this afternoon.";
-      return `Halfway through the day — ${caloriesLeft} cal and ${proteinLeft}g protein to go.`;
+      if (caloriePercent >= 60) return t('dashboard.coachingMiddayGood');
+      return t('dashboard.coachingMiddayBehind', { caloriesLeft, proteinLeft });
     }
     // Afternoon
     if (hour >= 15 && hour < 18) {
-      if (proteinLeft <= 30) return "Almost hit your protein goal — finish strong.";
-      return `Afternoon check — ${proteinLeft}g protein left. Dinner can close that gap.`;
+      if (proteinLeft <= 30) return t('dashboard.coachingAfternoonClose');
+      return t('dashboard.coachingAfternoonCheck', { proteinLeft });
     }
     // Evening
     if (hour >= 18 && hour < 21) {
-      if (caloriePercent >= 90) return "Almost there — great discipline today.";
-      return `Evening push — ${caloriesLeft} cal remaining. Let's close it out.`;
+      if (caloriePercent >= 90) return t('dashboard.coachingEveningGood');
+      return t('dashboard.coachingEveningPush', { caloriesLeft });
     }
     // Late night
-    if (todayProgress.calories === 0) return "Day's almost over — log what you ate today.";
-    return `Wrapping up — you hit ${caloriePercent}% of your calorie goal today.`;
+    if (todayProgress.calories === 0) return t('dashboard.coachingLateNoLog');
+    return t('dashboard.coachingLateWrap', { caloriePercent });
   };
 
   // Calculate overall progress percentage
@@ -403,7 +405,7 @@ function Dashboard() {
       });
 
       if (!aiData?.foods || aiData.foods.length === 0) {
-        showError('Could not recognize the food. Please try describing it differently.');
+        showError(t('dashboard.errorNoFood'));
         return;
       }
 
@@ -414,15 +416,15 @@ function Dashboard() {
     } catch (err) {
       console.error('Error analyzing food:', err);
       if (err.isTimeout) {
-        showError('Food analysis timed out. Please check your connection and try again.');
+        showError(t('dashboard.errorTimeout'));
       } else if (err.isAuthError) {
-        showError('Session expired. Please refresh the page and try again.');
+        showError(t('dashboard.errorSession'));
       } else if (err.status === 429) {
-        showError('Too many requests. Please wait a moment and try again.');
+        showError(t('dashboard.errorTooManyRequests'));
       } else if (err.status === 503 || (err.message && err.message.includes('busy'))) {
-        showError('AI service is temporarily busy. Please try again in a moment.');
+        showError(t('dashboard.errorAIBusy'));
       } else {
-        showError(`Error analyzing food: ${err.message || 'Unknown error'}`);
+        showError(t('dashboard.errorAnalyzingFood', { message: err.message || 'Unknown error' }));
       }
     } finally {
       setIsLogging(false);
@@ -434,7 +436,7 @@ function Dashboard() {
     if (!parsedFoods || parsedFoods.length === 0) return;
 
     if (!clientData?.id) {
-      showError('Please wait for your profile to load, then try again.');
+      showError(t('dashboard.errorWaitForProfile'));
       return;
     }
 
@@ -497,7 +499,7 @@ function Dashboard() {
       logSuccessTimerRef.current = setTimeout(() => setLogSuccess(false), 3000);
     } catch (err) {
       console.error('Error logging food:', err);
-      showError('Error logging food. Please try again.');
+      showError(t('dashboard.errorLoggingFood'));
     } finally {
       setIsLogging(false);
     }
@@ -573,11 +575,11 @@ function Dashboard() {
             const baseText = preVoiceInputRef.current;
             setFoodInput(baseText ? `${baseText} ${res.transcript}` : res.transcript);
           } else {
-            showError('No speech detected. Please try again and speak clearly.');
+            showError(t('dashboard.voiceErrorNoTranscript'));
           }
         } catch (err) {
           console.error('Transcription failed:', err);
-          showError('Could not transcribe audio. Please check your internet connection and try again.');
+          showError(t('dashboard.voiceErrorTranscriptFailed'));
         } finally {
           setIsTranscribing(false);
         }
@@ -589,9 +591,9 @@ function Dashboard() {
     } catch (err) {
       console.error('MediaRecorder start failed:', err);
       if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
-        showError('Microphone access denied. Please allow microphone access in your device settings.');
+        showError(t('dashboard.voiceErrorMicDenied'));
       } else {
-        showError('Could not access microphone. Please check your permissions.');
+        showError(t('dashboard.voiceErrorMicAccess'));
       }
       resetVoiceUI();
     }
@@ -604,7 +606,7 @@ function Dashboard() {
         startMediaRecorderFallback();
         return;
       }
-      showError('Voice input is not supported on this device.');
+      showError(t('dashboard.voiceErrorNotSupported'));
       return;
     }
 
@@ -629,9 +631,9 @@ function Dashboard() {
       } catch (err) {
         console.error('iOS microphone warmup failed:', err);
         if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
-          showError('Microphone access denied. Please allow microphone access in your iPhone Settings > Safari > Microphone.');
+          showError(t('dashboard.voiceErrorIOSDenied'));
         } else {
-          showError('Could not access microphone. Please check your microphone permissions in Settings.');
+          showError(t('dashboard.voiceErrorIOSMic'));
         }
         return;
       }
@@ -684,19 +686,19 @@ function Dashboard() {
 
       // User-friendly error messages for each error type
       const errorMessages = {
-        'no-speech': 'No speech detected. Please try again and speak clearly.',
-        'not-allowed': 'Microphone access denied. Please allow microphone access in your browser settings.',
+        'no-speech': t('dashboard.voiceErrorNoSpeech'),
+        'not-allowed': t('dashboard.voiceErrorNotAllowed'),
         'audio-capture': isIOS()
-          ? 'Could not access microphone on your iPhone. Please:\n• Go to Settings > Safari > Microphone and allow access\n• Make sure no other app is using the microphone\n• Try closing and reopening Safari'
-          : 'Could not access your microphone. Please check that:\n• No other app is using the microphone\n• Your microphone is properly connected\n• You have granted microphone permissions',
-        'network': 'Network error. Voice recognition requires an internet connection.',
-        'service-not-allowed': 'Voice recognition is not available. Please try again later.',
-        'bad-grammar': 'Could not understand the speech. Please try again.',
-        'language-not-supported': 'Language not supported. Please try speaking in English.'
+          ? t('dashboard.voiceErrorAudioCaptureIOS')
+          : t('dashboard.voiceErrorAudioCapture'),
+        'network': t('dashboard.voiceErrorNetwork'),
+        'service-not-allowed': t('dashboard.voiceErrorServiceNotAllowed'),
+        'bad-grammar': t('dashboard.voiceErrorBadGrammar'),
+        'language-not-supported': t('dashboard.voiceErrorLangNotSupported'),
       };
 
       if (event.error !== 'aborted') {
-        const message = errorMessages[event.error] || `Voice input error: ${event.error}. Please try again.`;
+        const message = errorMessages[event.error] || t('dashboard.voiceErrorGeneric', { error: event.error });
         showError(message);
       }
       resetVoiceUI();
@@ -711,7 +713,7 @@ function Dashboard() {
       recognitionRef.current = recognition;
     } catch (err) {
       console.error('Failed to start speech recognition:', err);
-      showError('Could not start microphone. Please try again.');
+      showError(t('dashboard.voiceErrorStartFailed'));
       resetVoiceUI();
     }
   };
@@ -799,7 +801,7 @@ function Dashboard() {
   const getSupplementTitration = (supp) => {
     if (!supp.has_schedule || !supp.schedule || supp.schedule.length === 0) return null;
     const startDate = supp.client_start_date || supp.start_date;
-    if (!startDate) return { status: 'not_started', message: 'Not started yet' };
+    if (!startDate) return { status: 'not_started', message: t('dashboard.titrationNotStarted') };
 
     const start = new Date(startDate);
     const now = new Date();
@@ -818,7 +820,7 @@ function Dashboard() {
     if (currentPhaseIndex === -1 && currentWeek > phases[phases.length - 1].weekEnd) {
       return { status: 'completed', currentDose: phases[phases.length - 1].dose, currentPhaseIndex: phases.length, totalPhases: phases.length };
     }
-    if (currentPhaseIndex === -1) return { status: 'not_started', message: 'Starts soon' };
+    if (currentPhaseIndex === -1) return { status: 'not_started', message: t('dashboard.titrationStartsSoon') };
 
     const phase = phases[currentPhaseIndex];
     const weeksLeft = phase.weekEnd - currentWeek;
@@ -830,8 +832,8 @@ function Dashboard() {
       currentDose: phase.dose,
       currentPhaseIndex,
       totalPhases: phases.length,
-      weekRange: `Wk ${phase.weekStart}-${phase.weekEnd}`,
-      upcomingChange: nextPhase && daysUntilChange <= 7 ? `${nextPhase.dose} in ~${daysUntilChange}d` : null
+      weekRange: t('dashboard.titrationWeekRange', { start: phase.weekStart, end: phase.weekEnd }),
+      upcomingChange: nextPhase && daysUntilChange <= 7 ? t('dashboard.titrationUpcoming', { dose: nextPhase.dose, days: daysUntilChange }) : null
     };
   };
 
@@ -889,7 +891,7 @@ function Dashboard() {
   const takenSupplementsCount = Object.keys(supplementIntake).length;
 
   // Render progress ring with value inside
-  const ProgressRing = ({ current, target, color, label }) => {
+  const ProgressRing = ({ current, target, color, label, isCalories }) => {
     const radius = 27;
     const circumference = 2 * Math.PI * radius;
     const progress = Math.min(100, (current / target) * 100);
@@ -919,7 +921,7 @@ function Dashboard() {
         </svg>
         <div className="progress-ring-value">
           <span className="current">{Math.round(current)}</span>
-          <span className="target">/{target}{label === 'Calories' ? ' kcal' : 'g'}</span>
+          <span className="target">/{target}{isCalories ? ' kcal' : 'g'}</span>
         </div>
         <div className="progress-ring-label">{label}</div>
       </div>
@@ -964,7 +966,7 @@ function Dashboard() {
             textAlign: 'center'
           }}
         >
-          Some data couldn't be refreshed — pull down to retry.
+          {t('dashboard.dataStale')}
         </div>
       )}
 
@@ -972,8 +974,8 @@ function Dashboard() {
       <div className="ai-hero-card">
         <div className="ai-hero-header">
           <div className="ai-hero-title">
-            <h2 id="ai-hero-title">What did you eat?</h2>
-            <span className="ai-powered-label">AI-powered logging</span>
+            <h2 id="ai-hero-title">{t('dashboard.whatDidYouEat')}</h2>
+            <span className="ai-powered-label">{t('dashboard.aiPoweredLogging')}</span>
           </div>
         </div>
 
@@ -981,32 +983,32 @@ function Dashboard() {
         <p className="coaching-message">{getCoachingMessage()}</p>
 
         {/* Meal Type Selector */}
-        <div className="meal-type-selector" role="group" aria-label="Select meal type">
+        <div className="meal-type-selector" role="group" aria-label={t('dashboard.mealTypeGroupAriaLabel')}>
           {[
-            { id: 'breakfast', Icon: Sunrise, label: 'Breakfast' },
-            { id: 'lunch', Icon: Sun, label: 'Lunch' },
-            { id: 'dinner', Icon: Moon, label: 'Dinner' },
-            { id: 'snack', Icon: Coffee, label: 'Snack' }
+            { id: 'breakfast', Icon: Sunrise, labelKey: 'mealBreakfast' },
+            { id: 'lunch', Icon: Sun, labelKey: 'mealLunch' },
+            { id: 'dinner', Icon: Moon, labelKey: 'mealDinner' },
+            { id: 'snack', Icon: Coffee, labelKey: 'mealSnack' }
           ].map(meal => (
             <button
               key={meal.id}
               className={`meal-type-btn ${selectedMealType === meal.id ? 'active' : ''}`}
               onClick={() => setSelectedMealType(meal.id)}
-              aria-label={`Select ${meal.label}`}
+              aria-label={t('dashboard.mealSelectAriaLabel', { mealLabel: t(`dashboard.${meal.labelKey}`) })}
               aria-pressed={selectedMealType === meal.id}
             >
               <span className="meal-icon" aria-hidden="true"><meal.Icon size={24} /></span>
-              <span className="meal-label">{meal.label}</span>
+              <span className="meal-label">{t(`dashboard.${meal.labelKey}`)}</span>
             </button>
           ))}
         </div>
 
         {/* Food Input */}
-        <label htmlFor="food-description" className="visually-hidden">Describe what you ate</label>
+        <label htmlFor="food-description" className="visually-hidden">{t('dashboard.foodInputLabel')}</label>
         <textarea
           id="food-description"
           className="food-input"
-          placeholder="Describe what you ate... e.g., 'Grilled chicken with rice and vegetables' or 'A large coffee with oat milk'"
+          placeholder={t('dashboard.foodInputPlaceholder')}
           value={foodInput}
           onChange={(e) => setFoodInput(e.target.value)}
           rows={2}
@@ -1019,7 +1021,7 @@ function Dashboard() {
             className={`voice-btn ${isRecording ? 'recording' : ''} ${isTranscribing ? 'transcribing' : ''}`}
             onClick={toggleVoiceInput}
             disabled={isTranscribing}
-            aria-label={isTranscribing ? 'Transcribing...' : isRecording ? 'Stop voice input' : 'Start voice input'}
+            aria-label={isTranscribing ? t('dashboard.voiceAriaTranscribing') : isRecording ? t('dashboard.voiceAriaStop') : t('dashboard.voiceAriaStart')}
             aria-pressed={isRecording}
           >
             <Mic size={20} aria-hidden="true" />
@@ -1030,7 +1032,7 @@ function Dashboard() {
             disabled={isLogging || !foodInput.trim() || showConfirmation}
             style={logSuccess ? { background: '#22c55e' } : {}}
           >
-            {isLogging ? 'Analyzing...' : logSuccess ? 'Logged!' : 'Log Food'}
+            {isLogging ? t('dashboard.logFoodAnalyzing') : logSuccess ? t('dashboard.logFoodLogged') : t('dashboard.logFoodDefault')}
             {logSuccess ? <Check size={18} /> : <ChevronRight size={18} />}
           </button>
         </div>
@@ -1040,7 +1042,7 @@ function Dashboard() {
           <div className="food-confirmation-box">
             <div className="food-confirmation-header">
               <CheckCircle size={18} className="confirm-icon" />
-              <span>Ready to log</span>
+              <span>{t('dashboard.confirmReadyToLog')}</span>
             </div>
 
             {parsedFoods.map((food, idx) => (
@@ -1053,12 +1055,12 @@ function Dashboard() {
             ))}
 
             <div className="food-confirmation-servings">
-              <span id="servings-label">Servings:</span>
+              <span id="servings-label">{t('dashboard.confirmServingsLabel')}</span>
               <div className="servings-adjuster" role="group" aria-labelledby="servings-label">
                 <button
                   className="servings-btn"
                   onClick={() => setServings(prev => Math.max(0.5, prev - 0.5))}
-                  aria-label="Decrease servings"
+                  aria-label={t('dashboard.confirmDecreaseAriaLabel')}
                 >
                   <Minus size={16} aria-hidden="true" />
                 </button>
@@ -1066,7 +1068,7 @@ function Dashboard() {
                 <button
                   className="servings-btn"
                   onClick={() => setServings(prev => prev + 0.5)}
-                  aria-label="Increase servings"
+                  aria-label={t('dashboard.confirmIncreaseAriaLabel')}
                 >
                   <Plus size={16} aria-hidden="true" />
                 </button>
@@ -1076,25 +1078,25 @@ function Dashboard() {
             <div className="food-confirmation-macros">
               <div className="macro-item">
                 <span className="macro-value">{Math.round(parsedFoods.reduce((sum, f) => sum + (f.calories || 0), 0) * servings)}</span>
-                <span className="macro-label">CALORIES</span>
+                <span className="macro-label">{t('dashboard.confirmMacroCalories')}</span>
               </div>
               <div className="macro-item protein">
                 <span className="macro-value">{Math.round(parsedFoods.reduce((sum, f) => sum + (f.protein || 0), 0) * servings)}g</span>
-                <span className="macro-label">PROTEIN</span>
+                <span className="macro-label">{t('dashboard.confirmMacroProtein')}</span>
               </div>
               <div className="macro-item carbs">
                 <span className="macro-value">{Math.round(parsedFoods.reduce((sum, f) => sum + (f.carbs || 0), 0) * servings)}g</span>
-                <span className="macro-label">CARBS</span>
+                <span className="macro-label">{t('dashboard.confirmMacroCarbs')}</span>
               </div>
               <div className="macro-item fat">
                 <span className="macro-value">{Math.round(parsedFoods.reduce((sum, f) => sum + (f.fat || 0), 0) * servings)}g</span>
-                <span className="macro-label">FAT</span>
+                <span className="macro-label">{t('dashboard.confirmMacroFat')}</span>
               </div>
             </div>
 
             <div className="food-confirmation-actions">
               <button className="confirm-cancel-btn" onClick={cancelLogFood}>
-                Cancel
+                {t('dashboard.confirmCancel')}
               </button>
               <button
                 className="confirm-add-btn"
@@ -1102,25 +1104,25 @@ function Dashboard() {
                 disabled={isLogging}
               >
                 <Check size={18} />
-                {isLogging ? 'Adding...' : `Add to ${selectedMealType?.charAt(0).toUpperCase() + selectedMealType?.slice(1)}`}
+                {isLogging ? t('dashboard.confirmAdding') : t('dashboard.confirmAddTo', { mealType: selectedMealType ? t(`dashboard.meal${selectedMealType.charAt(0).toUpperCase() + selectedMealType.slice(1)}`) : '' })}
               </button>
             </div>
           </div>
         )}
 
         {/* Quick Action Buttons */}
-        <div className="ai-hero-quick-actions" role="group" aria-label="Quick food logging options">
-          <button className="quick-action-pill" onClick={() => setPhotoModalOpen(true)} aria-label="Take a photo of your food">
-            <Camera size={16} aria-hidden="true" /> Log by Photo
+        <div className="ai-hero-quick-actions" role="group" aria-label={t('dashboard.quickActionsAriaLabel')}>
+          <button className="quick-action-pill" onClick={() => setPhotoModalOpen(true)} aria-label={t('dashboard.pillLogByPhotoAria')}>
+            <Camera size={16} aria-hidden="true" /> {t('dashboard.pillLogByPhoto')}
           </button>
-          <button className="quick-action-pill" onClick={() => setSearchModalOpen(true)} aria-label="Search food database">
-            <Search size={16} aria-hidden="true" /> Search Foods
+          <button className="quick-action-pill" onClick={() => setSearchModalOpen(true)} aria-label={t('dashboard.pillSearchFoodsAria')}>
+            <Search size={16} aria-hidden="true" /> {t('dashboard.pillSearchFoods')}
           </button>
-          <button className="quick-action-pill" onClick={() => setFavoritesModalOpen(true)} aria-label="Log from your favorite foods">
-            <Heart size={16} aria-hidden="true" /> Favorites
+          <button className="quick-action-pill" onClick={() => setFavoritesModalOpen(true)} aria-label={t('dashboard.pillFavoritesAria')}>
+            <Heart size={16} aria-hidden="true" /> {t('dashboard.pillFavorites')}
           </button>
-          <button className="quick-action-pill" onClick={() => setScanLabelModalOpen(true)} aria-label="Scan nutrition label">
-            <ScanLine size={16} aria-hidden="true" /> Scan Nutrition Label
+          <button className="quick-action-pill" onClick={() => setScanLabelModalOpen(true)} aria-label={t('dashboard.pillScanLabelAria')}>
+            <ScanLine size={16} aria-hidden="true" /> {t('dashboard.pillScanLabel')}
           </button>
         </div>
       </div>
@@ -1129,14 +1131,14 @@ function Dashboard() {
       <button
         className="gym-proof-banner weight-proof-banner"
         onClick={() => setWeightProofOpen(true)}
-        aria-label="Open weigh-in"
+        aria-label={t('dashboard.weighInAriaLabel')}
       >
         <div className="gym-proof-banner-icon weight-proof-banner-icon">
           <Scale size={20} />
         </div>
         <div className="gym-proof-banner-text">
-          <span className="gym-proof-banner-title">Weigh-In</span>
-          <span className="gym-proof-banner-sub">Snap your scale — AI logs the number for you</span>
+          <span className="gym-proof-banner-title">{t('dashboard.weighInTitle')}</span>
+          <span className="gym-proof-banner-sub">{t('dashboard.weighInSub')}</span>
         </div>
         <ChevronRight size={18} className="gym-proof-banner-arrow" />
       </button>
@@ -1146,7 +1148,7 @@ function Dashboard() {
         <div className="progress-card-header">
           <div className="progress-card-title">
             <BarChart3 size={20} className="progress-icon" />
-            <h3>Today's Progress</h3>
+            <h3>{t('dashboard.progressCardTitle')}</h3>
           </div>
           <span className="progress-date">{formatTodayDate()}</span>
         </div>
@@ -1156,31 +1158,32 @@ function Dashboard() {
             current={todayProgress.calories}
             target={targets.calories}
             color="#4ec5b7"
-            label="Calories"
+            label={t('dashboard.ringCalories')}
+            isCalories
           />
           <ProgressRing
             current={todayProgress.protein}
             target={targets.protein}
             color="#4ec5b7"
-            label="Protein"
+            label={t('dashboard.ringProtein')}
           />
           <ProgressRing
             current={todayProgress.carbs}
             target={targets.carbs}
             color="#4ec5b7"
-            label="Carbs"
+            label={t('dashboard.ringCarbs')}
           />
           <ProgressRing
             current={todayProgress.fat}
             target={targets.fat}
             color="#4ec5b7"
-            label="Fat"
+            label={t('dashboard.ringFat')}
           />
         </div>
 
         <div className="daily-progress-bar">
           <div className="daily-progress-header">
-            <span>Daily Goal Progress</span>
+            <span>{t('dashboard.dailyGoalProgress')}</span>
             <span className="daily-progress-percent">{getOverallProgress()}%</span>
           </div>
           <div className="daily-progress-track">
@@ -1193,7 +1196,7 @@ function Dashboard() {
 
         <Link to="/diary" className="view-diary-btn">
           <BookOpen size={18} />
-          View Diary
+          {t('dashboard.viewDiary')}
         </Link>
       </div>
 
@@ -1203,7 +1206,7 @@ function Dashboard() {
           <div className="supplements-header">
             <div className="supplements-title">
               <Pill size={20} className="supplements-icon" />
-              <span>Recommended Supplement Protocol</span>
+              <span>{t('dashboard.supplementsTitle')}</span>
             </div>
             <span className="supplements-counter">{takenSupplementsCount}/{supplements.length}</span>
           </div>
@@ -1241,24 +1244,24 @@ function Dashboard() {
                 custom: Star,
               };
               const timingLabels = {
-                morning: 'Morning',
-                'with-breakfast': 'With Breakfast',
-                'with_breakfast': 'With Breakfast',
-                'before-workout': 'Before Workout',
-                'before_workout': 'Before Workout',
-                'after-workout': 'After Workout',
-                'after_workout': 'After Workout',
-                'with-lunch': 'With Lunch',
-                'with_lunch': 'With Lunch',
-                'with-meals': 'With Meals',
-                'with_meals': 'With Meals',
-                'with-dinner': 'With Dinner',
-                'with_dinner': 'With Dinner',
-                evening: 'Evening',
-                bedtime: 'Bedtime',
-                'before-bed': 'Bedtime',
-                'before_bed': 'Bedtime',
-                custom: 'Custom',
+                morning: t('dashboard.timingMorning'),
+                'with-breakfast': t('dashboard.timingWithBreakfast'),
+                'with_breakfast': t('dashboard.timingWithBreakfast'),
+                'before-workout': t('dashboard.timingBeforeWorkout'),
+                'before_workout': t('dashboard.timingBeforeWorkout'),
+                'after-workout': t('dashboard.timingAfterWorkout'),
+                'after_workout': t('dashboard.timingAfterWorkout'),
+                'with-lunch': t('dashboard.timingWithLunch'),
+                'with_lunch': t('dashboard.timingWithLunch'),
+                'with-meals': t('dashboard.timingWithMeals'),
+                'with_meals': t('dashboard.timingWithMeals'),
+                'with-dinner': t('dashboard.timingWithDinner'),
+                'with_dinner': t('dashboard.timingWithDinner'),
+                evening: t('dashboard.timingEvening'),
+                bedtime: t('dashboard.timingBedtime'),
+                'before-bed': t('dashboard.timingBedtime'),
+                'before_bed': t('dashboard.timingBedtime'),
+                custom: t('dashboard.timingCustom'),
               };
               // Chronological order through the day. Keys not in this list
               // sort to the end (alphabetical fallback inside the bucket).
@@ -1333,14 +1336,14 @@ function Dashboard() {
                               <span className="supplement-titration-badge upcoming">{titration.upcomingChange}</span>
                             )}
                             {titration?.status === 'active' && !titration.upcomingChange && (
-                              <span className="supplement-titration-badge active">Phase {titration.currentPhaseIndex + 1}/{titration.totalPhases}</span>
+                              <span className="supplement-titration-badge active">{t('dashboard.supplementPhaseBadge', { current: titration.currentPhaseIndex + 1, total: titration.totalPhases })}</span>
                             )}
                           </div>
                           {hasExpandableContent && (
                             <button
                               className={`supplement-expand-btn ${isExpanded ? 'expanded' : ''}`}
                               onClick={(e) => toggleSupplementExpanded(supp.id, e)}
-                              aria-label="Toggle details"
+                              aria-label={t('dashboard.supplementExpandAriaLabel')}
                             >
                               <ChevronDown size={18} />
                             </button>
@@ -1363,7 +1366,7 @@ function Dashboard() {
                                 </div>
                                 {supp.schedule.map((phase, i) => (
                                   <div key={i} className="supplement-schedule-detail" style={titration?.currentPhaseIndex === i ? { fontWeight: 700, color: 'var(--brand-primary)' } : {}}>
-                                    {titration?.currentPhaseIndex === i ? '> ' : ''}Wk {phase.weekStart}-{phase.weekEnd}: {phase.dose}
+                                    {titration?.currentPhaseIndex === i ? '> ' : ''}{t('dashboard.titrationWeekRange', { start: phase.weekStart, end: phase.weekEnd })}: {phase.dose}
                                   </div>
                                 ))}
                               </>
@@ -1383,43 +1386,43 @@ function Dashboard() {
       )}
 
       {/* Quick Actions Grid */}
-      <h3 className="section-heading">Quick Actions</h3>
+      <h3 className="section-heading">{t('dashboard.quickActionsHeading')}</h3>
       <div className="quick-actions-grid">
         <Link to="/check-in" className="quick-action-card">
           <div className="quick-action-card-icon">
             <ClipboardCheck size={24} />
           </div>
-          <span>Check-In</span>
+          <span>{t('dashboard.quickActionCheckIn')}</span>
         </Link>
         <Link to="/progress" className="quick-action-card">
           <div className="quick-action-card-icon">
             <TrendingUp size={24} />
           </div>
-          <span>Progress</span>
+          <span>{t('dashboard.quickActionProgress')}</span>
         </Link>
         <Link to="/recipes" className="quick-action-card">
           <div className="quick-action-card-icon">
             <ChefHat size={24} />
           </div>
-          <span>Recipes</span>
+          <span>{t('dashboard.quickActionRecipes')}</span>
         </Link>
         <div className="quick-action-card" onClick={() => setFavoritesModalOpen(true)} style={{ cursor: 'pointer' }}>
           <div className="quick-action-card-icon">
             <Heart size={24} />
           </div>
-          <span>Favorites</span>
+          <span>{t('dashboard.quickActionFavorites')}</span>
         </div>
         <Link to="/challenges" className="quick-action-card">
           <div className="quick-action-card-icon">
             <Trophy size={24} />
           </div>
-          <span>Challenges</span>
+          <span>{t('dashboard.quickActionChallenges')}</span>
         </Link>
         <Link to="/settings" className="quick-action-card">
           <div className="quick-action-card-icon">
             <UserCircle size={24} />
           </div>
-          <span>Profile</span>
+          <span>{t('dashboard.quickActionProfile')}</span>
         </Link>
       </div>
 
