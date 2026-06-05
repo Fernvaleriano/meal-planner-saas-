@@ -14,8 +14,7 @@
 // localStorage (key 'zique-language'), the same approach already used for the
 // dark-mode theme.
 import { createContext, useContext, useState, useCallback, useEffect, useMemo } from 'react';
-import en from '../i18n/en';
-import es from '../i18n/es';
+import { en, es } from '../i18n/dict';
 
 const DICTS = { en, es };
 
