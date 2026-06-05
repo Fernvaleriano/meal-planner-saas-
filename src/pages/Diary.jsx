@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { ChevronLeft, ChevronRight, ChevronDown, Plus, Minus, Camera, Search, Heart, Copy, ArrowLeft, FileText, Sunrise, Sun, Moon, Coffee, Apple, Droplets, Bot, Maximize2, BarChart3, Check, CheckCircle, Trash2, Dumbbell, UtensilsCrossed, Mic, X, ChefHat, Sparkles, Send, Zap, MapPin, Salad, RotateCcw, Pencil, Share2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 import { apiGet, apiPost, apiPut, apiDelete, fetchWithTimeout } from '../utils/api';
 import { FavoritesModal, SnapPhotoModal, ScanLabelModal, SearchFoodsModal } from '../components/FoodModals';
 import { usePullToRefresh, PullToRefreshIndicator } from '../hooks/usePullToRefresh';
@@ -53,6 +54,7 @@ const getGenderBasedDefaults = (gender) => {
 function Diary() {
   const { showError, showSuccess } = useToast();
   const { clientData, loading: authLoading } = useAuth();
+  const { t } = useLanguage();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -552,7 +554,7 @@ function Diary() {
     if (selectedEntries.size === 0) return;
 
     const count = selectedEntries.size;
-    if (!window.confirm(`Delete ${count} selected item${count > 1 ? 's' : ''}?`)) return;
+    if (!window.confirm(count === 1 ? t('diaryPage.confirmDeleteSelected_one', { count }) : t('diaryPage.confirmDeleteSelected_other', { count }))) return;
 
     // Delete all selected entries in parallel
     const entriesToDelete = Array.from(selectedEntries);
@@ -622,7 +624,10 @@ function Diary() {
 
     // Show error if some failed
     if (failedCount > 0) {
-      showError(`Failed to delete ${failedCount} item${failedCount > 1 ? 's' : ''}. ${successfulIds.size > 0 ? `${successfulIds.size} item${successfulIds.size > 1 ? 's were' : ' was'} deleted successfully.` : ''}`);
+      const successMsg = successfulIds.size > 0
+        ? t('diaryPage.toastDeleteSuccessMsg', { count: successfulIds.size, plural: successfulIds.size > 1 ? 's' : '' })
+        : '';
+      showError(t('diaryPage.toastDeleteFailed', { count: failedCount, plural: failedCount > 1 ? 's' : '', successMsg }));
     }
   };
 
@@ -701,9 +706,9 @@ function Diary() {
 
     const diffDays = Math.round((selected - today) / (1000 * 60 * 60 * 24));
 
-    if (diffDays === 0) return 'Today';
-    if (diffDays === -1) return 'Yesterday';
-    if (diffDays === 1) return 'Tomorrow';
+    if (diffDays === 0) return t('diaryPage.today');
+    if (diffDays === -1) return t('diaryPage.yesterday');
+    if (diffDays === 1) return t('diaryPage.tomorrow');
     return currentDate.toLocaleDateString('en-US', { weekday: 'long' });
   };
 
@@ -866,14 +871,14 @@ function Diary() {
 
     // Check if auth is still loading
     if (authLoading || !clientData) {
-      showError('Loading your profile... Please try again in a moment.');
+      showError(t('diaryPage.toastLoadingProfile'));
       return;
     }
 
     // Check if there was an error fetching client data
     if (!clientData.id) {
       console.error('AI Log: clientData.id is null (fetch may have failed)', { clientData });
-      showError('Your profile is still loading. Please wait a moment and try again.');
+      showError(t('diaryPage.toastProfileLoading'));
       return;
     }
 
@@ -1082,7 +1087,7 @@ function Diary() {
       setEditingEntry(null);
     } catch (err) {
       console.error('Error updating entry:', err);
-      showError('Failed to update entry');
+      showError(t('diaryPage.toastUpdateFailed'));
     }
   };
 
@@ -1095,7 +1100,7 @@ function Diary() {
       const data = await apiGet(`/.netlify/functions/food-diary?clientId=${clientData.id}&date=${fromDate}`);
 
       if (!data.entries || data.entries.length === 0) {
-        showError('No entries to copy from that date');
+        showError(t('diaryPage.toastNoCopyEntries'));
         return;
       }
 
@@ -1131,7 +1136,7 @@ function Diary() {
         } catch (e) { /* ignore individual failures */ }
       }
 
-      showSuccess(`Copied ${copiedCount} entries!`);
+      showSuccess(t('diaryPage.toastCopiedEntries', { count: copiedCount }));
 
       // Reload if we copied to current date
       if (toDate === formatDate(currentDate)) {
@@ -1140,7 +1145,7 @@ function Diary() {
       }
     } catch (err) {
       console.error('Error copying entries:', err);
-      showError('Failed to copy entries');
+      showError(t('diaryPage.toastCopyFailed'));
     }
   };
 
@@ -1154,7 +1159,7 @@ function Diary() {
   // Execute copy from date picker
   const executeCopyDate = async () => {
     if (!copyDateInput) {
-      showError('Please select a date');
+      showError(t('diaryPage.toastNoCopyDate'));
       return;
     }
     setShowCopyDayModal(false);
@@ -1367,11 +1372,11 @@ function Diary() {
             const baseText = preVoiceInputRef.current;
             setAiInput(baseText ? `${baseText} ${res.transcript}` : res.transcript);
           } else {
-            showError('No speech detected. Please try again and speak clearly.');
+            showError(t('diaryPage.toastNoSpeechDetected'));
           }
         } catch (err) {
           console.error('Transcription failed:', err);
-          showError('Could not transcribe audio. Please check your internet connection and try again.');
+          showError(t('diaryPage.toastTranscribeFailed'));
         } finally {
           setIsTranscribing(false);
         }
@@ -1383,9 +1388,9 @@ function Diary() {
     } catch (err) {
       console.error('MediaRecorder start failed:', err);
       if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
-        showError('Microphone access denied. Please allow microphone access in your device settings.');
+        showError(t('diaryPage.toastMicDenied'));
       } else {
-        showError('Could not access microphone. Please check your permissions.');
+        showError(t('diaryPage.toastMicFailed'));
       }
       resetVoiceUI();
     }
@@ -1398,7 +1403,7 @@ function Diary() {
         startMediaRecorderFallback();
         return;
       }
-      showError('Voice input is not supported on this device.');
+      showError(t('diaryPage.toastVoiceNotSupported'));
       return;
     }
 
@@ -1423,9 +1428,9 @@ function Diary() {
       } catch (err) {
         console.error('iOS microphone warmup failed:', err);
         if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
-          showError('Microphone access denied. Please allow microphone access in your iPhone Settings > Safari > Microphone.');
+          showError(t('diaryPage.toastMicDeniedIOS'));
         } else {
-          showError('Could not access microphone. Please check your microphone permissions in Settings.');
+          showError(t('diaryPage.toastMicFailedIOS'));
         }
         return;
       }
@@ -1477,19 +1482,19 @@ function Diary() {
 
       // User-friendly error messages for each error type
       const errorMessages = {
-        'no-speech': 'No speech detected. Please try again and speak clearly.',
-        'not-allowed': 'Microphone access denied. Please allow microphone access in your browser settings.',
+        'no-speech': t('diaryPage.toastVoiceNoSpeech'),
+        'not-allowed': t('diaryPage.toastVoiceNotAllowed'),
         'audio-capture': isIOS()
-          ? 'Could not access microphone on your iPhone. Please:\n• Go to Settings > Safari > Microphone and allow access\n• Make sure no other app is using the microphone\n• Try closing and reopening Safari'
-          : 'Could not access your microphone. Please check that:\n• No other app is using the microphone\n• Your microphone is properly connected\n• You have granted microphone permissions',
-        'network': 'Network error. Voice recognition requires an internet connection.',
-        'service-not-allowed': 'Voice recognition is not available. Please try again later.',
-        'bad-grammar': 'Could not understand the speech. Please try again.',
-        'language-not-supported': 'Language not supported. Please try speaking in English.'
+          ? t('diaryPage.toastVoiceAudioCaptureIOS')
+          : t('diaryPage.toastVoiceAudioCapture'),
+        'network': t('diaryPage.toastVoiceNetwork'),
+        'service-not-allowed': t('diaryPage.toastVoiceServiceNotAllowed'),
+        'bad-grammar': t('diaryPage.toastVoiceBadGrammar'),
+        'language-not-supported': t('diaryPage.toastVoiceLangNotSupported')
       };
 
       if (event.error !== 'aborted') {
-        const message = errorMessages[event.error] || `Voice input error: ${event.error}. Please try again.`;
+        const message = errorMessages[event.error] || t('diaryPage.toastVoiceGenericError', { error: event.error });
         showError(message);
       }
       resetVoiceUI();
@@ -1504,7 +1509,7 @@ function Diary() {
       recognitionRef.current = recognition;
     } catch (err) {
       console.error('Failed to start speech recognition:', err);
-      showError('Could not start microphone. Please try again.');
+      showError(t('diaryPage.toastMicStartFailed'));
       resetVoiceUI();
     }
   };
@@ -1594,7 +1599,7 @@ function Diary() {
 
     // Check if auth is still loading
     if (authLoading || !clientData) {
-      showError('Loading your profile... Please try again in a moment.');
+      showError(t('diaryPage.toastLoadingProfile'));
       return;
     }
 
@@ -1603,7 +1608,7 @@ function Diary() {
       console.error('AI Chat: clientData.id is null (fetch may have failed)', { clientData });
       // Don't show error - just let it fail gracefully or retry
       // This can happen on slow connections
-      showError('Your profile is still loading. Please wait a moment and try again.');
+      showError(t('diaryPage.toastProfileLoading'));
       return;
     }
 
@@ -1630,7 +1635,7 @@ function Diary() {
       });
 
       if (data.error) {
-        setAiMessages(prev => [...prev, { role: 'assistant', content: 'Sorry, I encountered an error. Please try again.' }]);
+        setAiMessages(prev => [...prev, { role: 'assistant', content: t('diaryPage.aiErrorRetry') }]);
         return;
       }
 
@@ -1665,7 +1670,7 @@ function Diary() {
       }
     } catch (err) {
       console.error('AI error:', err);
-      setAiMessages(prev => [...prev, { role: 'assistant', content: 'Sorry, I couldn\'t connect. Please try again.' }]);
+      setAiMessages(prev => [...prev, { role: 'assistant', content: t('diaryPage.aiCantConnect') }]);
     } finally {
       setAiLogging(false);
     }
@@ -1802,7 +1807,7 @@ function Diary() {
       }]);
     } catch (err) {
       console.error('Error adding food:', err);
-      setAiMessages(prev => [...prev, { role: 'assistant', content: 'Sorry, I couldn\'t add that food. Please try manually.' }]);
+      setAiMessages(prev => [...prev, { role: 'assistant', content: t('diaryPage.aiCantAddFood') }]);
     }
   };
 
@@ -1810,7 +1815,7 @@ function Diary() {
   const cancelAIFoodLog = () => {
     setPendingFoodLog(null);
     setSelectedAIMealType(null);
-    setAiMessages(prev => [...prev, { role: 'assistant', content: 'No problem! Let me know if you want to log something else.' }]);
+    setAiMessages(prev => [...prev, { role: 'assistant', content: t('diaryPage.aiNoProblem') }]);
   };
 
   // Undo last food log from AI
@@ -1848,7 +1853,7 @@ function Diary() {
       ));
     } catch (err) {
       console.error('Error undoing food log:', err);
-      setAiMessages(prev => [...prev, { role: 'assistant', content: 'Sorry, couldn\'t undo that. Try deleting it manually from your diary.' }]);
+      setAiMessages(prev => [...prev, { role: 'assistant', content: t('diaryPage.aiCantUndo') }]);
     }
   };
 
@@ -1858,7 +1863,7 @@ function Diary() {
 
     const mealEntries = groupedEntries[saveMealType];
     if (!mealEntries || mealEntries.length === 0) {
-      showError('No foods in this meal to save');
+      showError(t('diaryPage.toastNoFoodsInMeal'));
       return;
     }
 
@@ -1885,11 +1890,11 @@ function Diary() {
       });
       // Clear the favorites cache so the list shows the new favorite
       sessionStorage.removeItem(`favorites_${clientData.id}`);
-      showSuccess('Meal saved to favorites!');
+      showSuccess(t('diaryPage.toastMealSaved'));
       setShowSaveMealModal(false);
     } catch (err) {
       console.error('Error saving meal:', err);
-      showError('Failed to save meal');
+      showError(t('diaryPage.toastMealSaveFailed'));
     }
   };
 
@@ -2007,7 +2012,7 @@ function Diary() {
       setShowEditGoalsModal(false);
     } catch (err) {
       console.error('Error saving goals:', err);
-      showError(err.message || 'Failed to save goals. Please try again.');
+      showError(err.message || t('diaryPage.toastGoalSaveFailed'));
     } finally {
       setSavingGoals(false);
     }
@@ -2066,10 +2071,10 @@ function Diary() {
 
         // Build active stats
         const activeToggles = [];
-        if (shareDiaryToggles.calories) activeToggles.push({ label: 'Calories', value: String(Math.round(totals.calories)) });
-        if (shareDiaryToggles.protein) activeToggles.push({ label: 'Protein', value: `${Math.round(totals.protein)}g` });
-        if (shareDiaryToggles.carbs) activeToggles.push({ label: 'Carbs', value: `${Math.round(totals.carbs)}g` });
-        if (shareDiaryToggles.fat) activeToggles.push({ label: 'Fat', value: `${Math.round(totals.fat)}g` });
+        if (shareDiaryToggles.calories) activeToggles.push({ label: t('diaryPage.shareCalories'), value: String(Math.round(totals.calories)) });
+        if (shareDiaryToggles.protein) activeToggles.push({ label: t('diaryPage.shareProtein'), value: `${Math.round(totals.protein)}g` });
+        if (shareDiaryToggles.carbs) activeToggles.push({ label: t('diaryPage.shareCarbs'), value: `${Math.round(totals.carbs)}g` });
+        if (shareDiaryToggles.fat) activeToggles.push({ label: t('diaryPage.shareFat'), value: `${Math.round(totals.fat)}g` });
 
         // Stats row
         if (activeToggles.length > 0) {
@@ -2115,10 +2120,10 @@ function Diary() {
           ctx.fill();
         };
 
-        if (shareDiaryToggles.calories) drawProgressBar('Calories', totals.calories, goals.calorie_goal, '#2cb5a5', progressY);
-        if (shareDiaryToggles.protein) drawProgressBar('Protein', totals.protein, goals.protein_goal, '#10b981', progressY + 36);
-        if (shareDiaryToggles.carbs) drawProgressBar('Carbs', totals.carbs, goals.carbs_goal, '#f59e0b', progressY + 72);
-        if (shareDiaryToggles.fat) drawProgressBar('Fat', totals.fat, goals.fat_goal, '#ef4444', progressY + 108);
+        if (shareDiaryToggles.calories) drawProgressBar(t('diaryPage.shareCalories'), totals.calories, goals.calorie_goal, '#2cb5a5', progressY);
+        if (shareDiaryToggles.protein) drawProgressBar(t('diaryPage.shareProtein'), totals.protein, goals.protein_goal, '#10b981', progressY + 36);
+        if (shareDiaryToggles.carbs) drawProgressBar(t('diaryPage.shareCarbs'), totals.carbs, goals.carbs_goal, '#f59e0b', progressY + 72);
+        if (shareDiaryToggles.fat) drawProgressBar(t('diaryPage.shareFat'), totals.fat, goals.fat_goal, '#ef4444', progressY + 108);
 
         // Water section
         if (shareDiaryToggles.water) {
@@ -2135,14 +2140,14 @@ function Diary() {
           ctx.fillStyle = '#d1d5db';
           ctx.font = '15px -apple-system, BlinkMacSystemFont, sans-serif';
           ctx.textAlign = 'center';
-          ctx.fillText(`${entries.length} food${entries.length !== 1 ? 's' : ''} logged today`, width / 2, mealsY);
+          ctx.fillText(entries.length === 1 ? t('diaryPage.shareCardFoodsLogged_one', { count: entries.length }) : t('diaryPage.shareCardFoodsLogged_other', { count: entries.length }), width / 2, mealsY);
         }
 
         // Footer
         ctx.fillStyle = '#9ca3af';
         ctx.font = '18px -apple-system, BlinkMacSystemFont, sans-serif';
         ctx.textAlign = 'center';
-        ctx.fillText('Powered by Ziquecoach', width / 2, height - 30);
+        ctx.fillText(t('diaryPage.shareCardPoweredBy'), width / 2, height - 30);
 
         // Convert and share
         canvas.toBlob(async (blob) => {
@@ -2253,8 +2258,8 @@ function Diary() {
         </svg>
         <div className="calorie-ring-value">
           <span className="calorie-eaten">{totals.calories.toLocaleString()}</span>
-          <span className="calorie-eaten-divider">of {(goals.calorie_goal || 0).toLocaleString()}</span>
-          <span className="calorie-label">eaten</span>
+          <span className="calorie-eaten-divider">{t('diaryPage.of', { goal: (goals.calorie_goal || 0).toLocaleString() })}</span>
+          <span className="calorie-label">{t('diaryPage.eaten')}</span>
         </div>
       </div>
     );
@@ -2322,7 +2327,7 @@ function Diary() {
     };
 
     const handleDelete = () => {
-      if (window.confirm(`Delete "${entry.food_name}"?`)) {
+      if (window.confirm(t('diaryPage.confirmDeleteEntry', { name: entry.food_name }))) {
         onDelete();
       }
     };
@@ -2354,7 +2359,7 @@ function Diary() {
           <div className="meal-entry-info">
             <span className="meal-entry-name">{entry.food_name}</span>
             <span className="meal-entry-serving">
-              {entry.number_of_servings || 1} serving
+              {entry.number_of_servings || 1} {t('diaryPage.serving')}
               {/* Show coach interaction indicators */}
               {(reactions?.length > 0 || comments?.length > 0) && (
                 <button
@@ -2388,7 +2393,7 @@ function Diary() {
         {!inSelectionMode && (
           <button className="meal-entry-delete-btn" onClick={handleDelete}>
             <Trash2 size={20} />
-            <span>Delete</span>
+            <span>{t('diaryPage.deleteEntry')}</span>
           </button>
         )}
       </div>
@@ -2418,7 +2423,7 @@ function Diary() {
 
     const openSaveMeal = () => {
       if (entries.length === 0) {
-        showError('Add some foods first to save as a meal');
+        showError(t('diaryPage.toastAddSomeFoodsFirst'));
         return;
       }
       setSaveMealType(mealType);
@@ -2441,7 +2446,7 @@ function Diary() {
             {getMealIcon(mealType)}
             <span>{title}</span>
             {isCollapsed && entries.length > 0 && (
-              <span className="meal-item-count">• {entries.length} item{entries.length !== 1 ? 's' : ''}</span>
+              <span className="meal-item-count">{entries.length === 1 ? t('diaryPage.itemCount_one', { count: entries.length }) : t('diaryPage.itemCount_other', { count: entries.length })}</span>
             )}
           </div>
           <div className="meal-section-right">
@@ -2478,12 +2483,12 @@ function Diary() {
                 onClick={openAddFood}
               >
                 <Plus size={16} />
-                Add Food
+                {t('diaryPage.addFood')}
               </button>
               {entries.length > 0 && (
                 <button className="meal-footer-btn save" onClick={openSaveMeal}>
                   <Heart size={16} />
-                  Save Meal
+                  {t('diaryPage.saveMeal')}
                 </button>
               )}
             </div>
@@ -2532,38 +2537,38 @@ function Diary() {
 
       {/* Quick Actions Row — view toggle + utility icons */}
       <div className="diary-quick-actions">
-        <div className="diary-view-toggle" role="group" aria-label="Diary view">
+        <div className="diary-view-toggle" role="group" aria-label={t('diaryPage.ariaDiaryView')}>
           <button
             className="diary-view-btn"
             onClick={() => setShowDailyReportModal(true)}
-            aria-label="Daily report"
+            aria-label={t('diaryPage.ariaDailyReport')}
           >
             <FileText size={15} />
-            <span>Daily</span>
+            <span>{t('diaryPage.daily')}</span>
           </button>
           <button
             className="diary-view-btn"
             onClick={() => { fetchWeeklyData(); setShowWeeklySummaryModal(true); }}
-            aria-label="Weekly summary"
+            aria-label={t('diaryPage.ariaWeeklySummary')}
           >
             <BarChart3 size={15} />
-            <span>Weekly</span>
+            <span>{t('diaryPage.weekly')}</span>
           </button>
         </div>
         <div className="diary-utility-actions">
           <button
             className="diary-icon-btn"
             onClick={() => setShowCopyDayModal(true)}
-            aria-label="Copy day"
-            title="Copy day"
+            aria-label={t('diaryPage.ariaCopyDay')}
+            title={t('diaryPage.ariaCopyDay')}
           >
             <Copy size={16} />
           </button>
           <button
             className="diary-icon-btn"
             onClick={() => setShowShareDiaryModal(true)}
-            aria-label="Share diary"
-            title="Share diary"
+            aria-label={t('diaryPage.ariaShareDiary')}
+            title={t('diaryPage.ariaShareDiary')}
           >
             <Share2 size={16} />
           </button>
@@ -2573,11 +2578,11 @@ function Diary() {
       {/* Calorie Summary */}
       <div className="calorie-summary">
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-          <h3 className="calorie-title" style={{ margin: 0 }}>Calories</h3>
+          <h3 className="calorie-title" style={{ margin: 0 }}>{t('diaryPage.caloriesTitle')}</h3>
           {(clientData?.can_edit_goals || clientData?.can_edit_micronutrient_goals) && (
             <button
               onClick={openEditGoalsModal}
-              aria-label="Edit calorie and macro goals"
+              aria-label={t('diaryPage.ariaEditGoals')}
               style={{
                 background: 'none',
                 border: 'none',
@@ -2596,28 +2601,28 @@ function Diary() {
         <div className="calorie-breakdown">
           <div className={`calorie-remaining-pill ${remaining < 0 ? 'over' : ''}`}>
             <span className="calorie-remaining-value">{Math.abs(remaining).toLocaleString()}</span>
-            <span className="calorie-remaining-label">{remaining < 0 ? 'over goal' : 'cal left'}</span>
+            <span className="calorie-remaining-label">{remaining < 0 ? t('diaryPage.overGoal') : t('diaryPage.calLeft')}</span>
           </div>
         </div>
 
         {/* Macro Progress Bars - 3-column grid for primary macros, horizontal scroll for micros */}
         <div className="macro-progress-primary">
           <div className="macro-bar-item">
-            <span className="macro-bar-label protein">P:</span>
+            <span className="macro-bar-label protein">{t('diaryPage.proteinAbbr')}</span>
             <span className="macro-bar-value">{Math.round(totals.protein)}/{goals.protein_goal}g</span>
             <div className="macro-bar-track">
               <div className="macro-bar-fill protein" style={{ width: `${proteinProgress}%` }} />
             </div>
           </div>
           <div className="macro-bar-item">
-            <span className="macro-bar-label carbs">C:</span>
+            <span className="macro-bar-label carbs">{t('diaryPage.carbsAbbr')}</span>
             <span className="macro-bar-value">{Math.round(totals.carbs)}/{goals.carbs_goal}g</span>
             <div className="macro-bar-track">
               <div className="macro-bar-fill carbs" style={{ width: `${carbsProgress}%` }} />
             </div>
           </div>
           <div className="macro-bar-item">
-            <span className="macro-bar-label fat">F:</span>
+            <span className="macro-bar-label fat">{t('diaryPage.fatAbbr')}</span>
             <span className="macro-bar-value">{Math.round(totals.fat)}/{goals.fat_goal}g</span>
             <div className="macro-bar-track">
               <div className="macro-bar-fill fat" style={{ width: `${fatProgress}%` }} />
@@ -2627,56 +2632,56 @@ function Diary() {
         <div className="macro-progress-scroll">
           <div className="macro-progress-bars">
             <div className="macro-bar-item">
-              <span className="macro-bar-label fiber">Fiber:</span>
+              <span className="macro-bar-label fiber">{t('diaryPage.fiber')}</span>
               <span className="macro-bar-value">{Math.round(totals.fiber || 0)}/{goals.fiber_goal || 28}g</span>
               <div className="macro-bar-track">
                 <div className="macro-bar-fill fiber" style={{ width: `${fiberProgress}%` }} />
               </div>
             </div>
             <div className="macro-bar-item">
-              <span className="macro-bar-label sugar">Sugar:</span>
+              <span className="macro-bar-label sugar">{t('diaryPage.sugar')}</span>
               <span className="macro-bar-value">{Math.round(totals.sugar || 0)}/{goals.sugar_goal || 50}g</span>
               <div className="macro-bar-track">
                 <div className="macro-bar-fill sugar" style={{ width: `${sugarProgress}%` }} />
               </div>
             </div>
             <div className="macro-bar-item">
-              <span className="macro-bar-label sodium">Sodium:</span>
+              <span className="macro-bar-label sodium">{t('diaryPage.sodium')}</span>
               <span className="macro-bar-value">{Math.round(totals.sodium || 0)}/{goals.sodium_goal || 2300}mg</span>
               <div className="macro-bar-track">
                 <div className="macro-bar-fill sodium" style={{ width: `${sodiumProgress}%` }} />
               </div>
             </div>
             <div className="macro-bar-item">
-              <span className="macro-bar-label potassium">Potassium:</span>
+              <span className="macro-bar-label potassium">{t('diaryPage.potassium')}</span>
               <span className="macro-bar-value">{Math.round(totals.potassium || 0)}/{goals.potassium_goal || 3500}mg</span>
               <div className="macro-bar-track">
                 <div className="macro-bar-fill potassium" style={{ width: `${potassiumProgress}%` }} />
               </div>
             </div>
             <div className="macro-bar-item">
-              <span className="macro-bar-label calcium">Calcium:</span>
+              <span className="macro-bar-label calcium">{t('diaryPage.calcium')}</span>
               <span className="macro-bar-value">{Math.round(totals.calcium || 0)}/{goals.calcium_goal || 1000}mg</span>
               <div className="macro-bar-track">
                 <div className="macro-bar-fill calcium" style={{ width: `${calciumProgress}%` }} />
               </div>
             </div>
             <div className="macro-bar-item">
-              <span className="macro-bar-label iron">Iron:</span>
+              <span className="macro-bar-label iron">{t('diaryPage.iron')}</span>
               <span className="macro-bar-value">{(totals.iron || 0).toFixed(1)}/{goals.iron_goal || 18}mg</span>
               <div className="macro-bar-track">
                 <div className="macro-bar-fill iron" style={{ width: `${ironProgress}%` }} />
               </div>
             </div>
             <div className="macro-bar-item">
-              <span className="macro-bar-label vitaminC">Vitamin C:</span>
+              <span className="macro-bar-label vitaminC">{t('diaryPage.vitaminC')}</span>
               <span className="macro-bar-value">{Math.round(totals.vitaminC || 0)}/{goals.vitamin_c_goal || 90}mg</span>
               <div className="macro-bar-track">
                 <div className="macro-bar-fill vitaminC" style={{ width: `${vitaminCProgress}%` }} />
               </div>
             </div>
             <div className="macro-bar-item">
-              <span className="macro-bar-label cholesterol">Cholesterol:</span>
+              <span className="macro-bar-label cholesterol">{t('diaryPage.cholesterol')}</span>
               <span className="macro-bar-value">{Math.round(totals.cholesterol || 0)}/{goals.cholesterol_goal || 300}mg</span>
               <div className="macro-bar-track">
                 <div className="macro-bar-fill cholesterol" style={{ width: `${cholesterolProgress}%` }} />
@@ -2691,17 +2696,17 @@ function Diary() {
         <div className="selection-mode-bar active">
           <button className="selection-btn cancel" onClick={clearSelection}>
             <X size={16} />
-            Cancel
+            {t('diaryPage.cancel')}
           </button>
-          <span className="selection-count">{selectedEntries.size} selected</span>
+          <span className="selection-count">{t('diaryPage.selected', { count: selectedEntries.size })}</span>
           <div className="selection-actions">
             <button className="selection-btn select-all" onClick={selectAllEntries}>
-              Select All
+              {t('diaryPage.selectAll')}
             </button>
             {selectedEntries.size > 0 && (
               <button className="selection-btn delete" onClick={deleteSelectedEntries}>
                 <Trash2 size={16} />
-                Delete
+                {t('diaryPage.delete')}
               </button>
             )}
           </div>
@@ -2717,10 +2722,10 @@ function Diary() {
         </div>
       ) : (
         <div className="meal-sections">
-          <MealSection title="Breakfast" entries={groupedEntries.breakfast} mealType="breakfast" />
-          <MealSection title="Lunch" entries={groupedEntries.lunch} mealType="lunch" />
-          <MealSection title="Dinner" entries={groupedEntries.dinner} mealType="dinner" />
-          <MealSection title="Snacks" entries={groupedEntries.snack} mealType="snack" />
+          <MealSection title={t('diaryPage.breakfast')} entries={groupedEntries.breakfast} mealType="breakfast" />
+          <MealSection title={t('diaryPage.lunch')} entries={groupedEntries.lunch} mealType="lunch" />
+          <MealSection title={t('diaryPage.dinner')} entries={groupedEntries.dinner} mealType="dinner" />
+          <MealSection title={t('diaryPage.snacks')} entries={groupedEntries.snack} mealType="snack" />
         </div>
       )}
 
@@ -2735,7 +2740,7 @@ function Diary() {
             className="water-btn-compact"
             onClick={() => handleWaterAction('remove', 1)}
             disabled={waterIntake <= 0}
-            aria-label="Remove one"
+            aria-label={t('diaryPage.waterRemoveOne')}
           >
             −
           </button>
@@ -2751,7 +2756,7 @@ function Diary() {
             className="water-btn-compact"
             onClick={() => handleWaterAction('add', 1)}
             disabled={waterIntake >= waterGoal}
-            aria-label="Add one"
+            aria-label={t('diaryPage.waterAddOne')}
           >
             +
           </button>
@@ -2764,43 +2769,43 @@ function Diary() {
           <div className="ai-teaser-header">
             <div className="ai-teaser-title">
               <Bot size={20} className="ai-icon" />
-              <span>AI Nutrition Assistant</span>
+              <span>{t('diaryPage.aiTitle')}</span>
             </div>
             <button
               className="ai-teaser-open-btn"
               onClick={() => setAiExpanded(true)}
             >
               <Maximize2 size={16} />
-              <span>Open</span>
+              <span>{t('diaryPage.aiOpen')}</span>
             </button>
           </div>
 
-          <p className="ai-teaser-subtitle">Get personalized nutrition advice</p>
+          <p className="ai-teaser-subtitle">{t('diaryPage.aiSubtitle')}</p>
 
           {/* Preview Pills - just show 2-3 */}
           <div className="ai-teaser-pills">
             {goals.protein_goal - totals.protein > 30 && (
               <button
                 className="ai-teaser-pill protein"
-                onClick={() => { setAiExpanded(true); askAI('What high protein foods should I eat?'); }}
+                onClick={() => { setAiExpanded(true); askAI(t('diaryPage.aiPromptProtein')); }}
               >
                 <Dumbbell size={16} />
-                <span>Need protein</span>
+                <span>{t('diaryPage.aiNeedProtein')}</span>
               </button>
             )}
             <button
               className="ai-teaser-pill"
-              onClick={() => { setAiExpanded(true); askAI('Give me a healthy snack idea'); }}
+              onClick={() => { setAiExpanded(true); askAI(t('diaryPage.aiPromptSnack')); }}
             >
               <Apple size={16} />
-              <span>Snack ideas</span>
+              <span>{t('diaryPage.aiSnackIdeas')}</span>
             </button>
             <button
               className="ai-teaser-pill"
-              onClick={() => { setAiExpanded(true); askAI('How am I doing today?'); }}
+              onClick={() => { setAiExpanded(true); askAI(t('diaryPage.aiPromptProgress')); }}
             >
               <BarChart3 size={16} />
-              <span>My progress</span>
+              <span>{t('diaryPage.aiMyProgress')}</span>
             </button>
           </div>
         </div>
@@ -2815,14 +2820,14 @@ function Diary() {
             <div className="ai-modal-header">
               <div className="ai-modal-title">
                 <Bot size={20} className="ai-icon" />
-                <span>AI Nutrition Assistant</span>
+                <span>{t('diaryPage.aiTitle')}</span>
               </div>
               <div className="ai-modal-header-actions">
                 {aiMessages.length > 0 && (
                   <button
                     className="ai-modal-new-conversation"
                     onClick={clearConversation}
-                    title="New conversation"
+                    title={t('diaryPage.aiNewConversation')}
                   >
                     <RotateCcw size={18} />
                   </button>
@@ -2841,66 +2846,66 @@ function Diary() {
               {/* Welcome Screen - when no messages and no pending food log */}
               {aiMessages.length === 0 && !aiLogging && !pendingFoodLog && (
                 <div className="ai-modal-welcome">
-                  <p className="ai-modal-greeting">Hi {clientData?.name?.split(' ')[0] || 'there'},</p>
-                  <h2 className="ai-modal-headline">How can I help with nutrition today?</h2>
+                  <p className="ai-modal-greeting">{t('diaryPage.aiGreeting', { name: clientData?.name?.split(' ')[0] || 'there' })}</p>
+                  <h2 className="ai-modal-headline">{t('diaryPage.aiHeadline')}</h2>
 
                   {/* Dynamic suggestions based on current macros */}
                   <div className="ai-modal-suggestions">
                     {goals.protein_goal - totals.protein > 30 && (
                       <button
                         className="ai-modal-pill protein"
-                        onClick={() => askAI('What high protein foods should I eat?')}
+                        onClick={() => askAI(t('diaryPage.aiPromptProtein'))}
                       >
                         <Dumbbell size={18} />
-                        <span>Need {Math.round(goals.protein_goal - totals.protein)}g more protein</span>
+                        <span>{t('diaryPage.aiNeedMoreProtein', { amount: Math.round(goals.protein_goal - totals.protein) })}</span>
                       </button>
                     )}
                     {goals.calorie_goal - totals.calories > 500 && (
                       <button
                         className="ai-modal-pill calories"
-                        onClick={() => askAI(`What should I eat with ${goals.calorie_goal - totals.calories} calories left?`)}
+                        onClick={() => askAI(t('diaryPage.aiPromptCalRemaining', { amount: goals.calorie_goal - totals.calories }))}
                       >
                         <BarChart3 size={18} />
-                        <span>{goals.calorie_goal - totals.calories} cal remaining</span>
+                        <span>{t('diaryPage.aiCalRemaining', { amount: goals.calorie_goal - totals.calories })}</span>
                       </button>
                     )}
                     {/* Show "hungry but low on calories" when they have less than 300 cal left but aren't over yet */}
                     {goals.calorie_goal - totals.calories > 0 && goals.calorie_goal - totals.calories <= 300 && (
                       <button
                         className="ai-modal-pill hungry"
-                        onClick={() => askAI('I\'m hungry but almost at my calorie limit. What filling, low-calorie foods can I eat?')}
+                        onClick={() => askAI(t('diaryPage.aiPromptHungry'))}
                       >
                         <Salad size={18} />
-                        <span>Hungry but only {Math.round(goals.calorie_goal - totals.calories)} cal left</span>
+                        <span>{t('diaryPage.aiHungryLowCal', { amount: Math.round(goals.calorie_goal - totals.calories) })}</span>
                       </button>
                     )}
                   </div>
 
                   {/* Quick Actions - 2 column grid */}
                   <div className="ai-modal-quick-actions grid">
-                    <button className="ai-modal-pill" onClick={() => askAI('I have some ingredients - help me make a meal')}>
+                    <button className="ai-modal-pill" onClick={() => askAI(t('diaryPage.aiPromptMakeFood'))}>
                       <ChefHat size={18} />
-                      <span>What can I make?</span>
+                      <span>{t('diaryPage.aiWhatCanIMake')}</span>
                     </button>
-                    <button className="ai-modal-pill" onClick={() => askAI('Give me a quick meal I can make in under 5 minutes')}>
+                    <button className="ai-modal-pill" onClick={() => askAI(t('diaryPage.aiPromptQuick'))}>
                       <Zap size={18} />
-                      <span>Quick & easy</span>
+                      <span>{t('diaryPage.aiQuickEasy')}</span>
                     </button>
-                    <button className="ai-modal-pill" onClick={() => askAI('I\'m eating out - what should I order that fits my macros?')}>
+                    <button className="ai-modal-pill" onClick={() => askAI(t('diaryPage.aiPromptEatOut'))}>
                       <MapPin size={18} />
-                      <span>Eating out</span>
+                      <span>{t('diaryPage.aiEatingOut')}</span>
                     </button>
-                    <button className="ai-modal-pill" onClick={() => askAI('Give me a healthy snack idea')}>
+                    <button className="ai-modal-pill" onClick={() => askAI(t('diaryPage.aiPromptSnack'))}>
                       <Apple size={18} />
-                      <span>Snack ideas</span>
+                      <span>{t('diaryPage.aiSnackIdeasModal')}</span>
                     </button>
-                    <button className="ai-modal-pill" onClick={() => askAI('How am I doing today?')}>
+                    <button className="ai-modal-pill" onClick={() => askAI(t('diaryPage.aiPromptProgress'))}>
                       <BarChart3 size={18} />
-                      <span>My progress</span>
+                      <span>{t('diaryPage.aiMyProgressModal')}</span>
                     </button>
-                    <button className="ai-modal-pill" onClick={() => askAI('What can I eat for dinner?')}>
+                    <button className="ai-modal-pill" onClick={() => askAI(t('diaryPage.aiPromptDinner'))}>
                       <UtensilsCrossed size={18} />
-                      <span>Dinner ideas</span>
+                      <span>{t('diaryPage.aiDinnerIdeas')}</span>
                     </button>
                   </div>
                 </div>
@@ -2919,7 +2924,7 @@ function Diary() {
                           className="ai-undo-btn"
                           onClick={() => undoLastFoodLog(msg.undoEntryId)}
                         >
-                          <RotateCcw size={14} /> Undo
+                          <RotateCcw size={14} /> {t('diaryPage.aiUndo')}
                         </button>
                       )}
 
@@ -2939,7 +2944,7 @@ function Diary() {
                             </button>
                           ))}
                           <button className="more-ideas-btn" onClick={requestMoreIdeas} disabled={aiLogging}>
-                            {aiLogging ? 'Loading...' : 'More ideas'}
+                            {aiLogging ? t('diaryPage.aiLoading') : t('diaryPage.aiMoreIdeas')}
                           </button>
                         </div>
                       )}
@@ -2955,13 +2960,13 @@ function Diary() {
                       </div>
                       <div className="action-buttons">
                         <button className="action-btn log-btn" onClick={() => logFoodSuggestion(selectedSuggestion)}>
-                          <Check size={14} /> Log
+                          <Check size={14} /> {t('diaryPage.aiLog')}
                         </button>
                         <button className="action-btn details-btn" onClick={() => getFoodDetails(selectedSuggestion)}>
-                          <FileText size={14} /> Details
+                          <FileText size={14} /> {t('diaryPage.aiDetails')}
                         </button>
                         <button className="action-btn revise-btn" onClick={() => reviseFoodSuggestion(selectedSuggestion)}>
-                          <span>&#9998;</span> Revise
+                          <span>&#9998;</span> {t('diaryPage.aiRevise')}
                         </button>
                       </div>
                     </div>
@@ -2978,7 +2983,7 @@ function Diary() {
                         </div>
                       </div>
                       <div className="ai-meal-type-selector">
-                        <label>Add to:</label>
+                        <label>{t('diaryPage.aiAddTo')}</label>
                         {['breakfast', 'lunch', 'dinner', 'snack'].map(type => (
                           <button
                             key={type}
@@ -2991,10 +2996,10 @@ function Diary() {
                       </div>
                       <div className="ai-food-log-actions">
                         <button className="confirm-btn" onClick={confirmAIFoodLog}>
-                          <Check size={14} /> Add
+                          <Check size={14} /> {t('diaryPage.aiConfirmAdd')}
                         </button>
                         <button className="cancel-btn" onClick={cancelAIFoodLog}>
-                          Cancel
+                          {t('diaryPage.aiCancelLog')}
                         </button>
                       </div>
                     </div>
@@ -3010,7 +3015,7 @@ function Diary() {
                     <span></span>
                     <span></span>
                   </div>
-                  <span>Thinking...</span>
+                  <span>{t('diaryPage.aiThinking')}</span>
                 </div>
               )}
             </div>
@@ -3019,7 +3024,7 @@ function Diary() {
             <div className="ai-modal-input-area">
               {/* Meal Type Selector */}
               <div className="ai-modal-meal-selector">
-                <span className="meal-label">Logging to:</span>
+                <span className="meal-label">{t('diaryPage.aiLoggingTo')}</span>
                 {['breakfast', 'lunch', 'dinner', 'snack'].map(meal => (
                   <button
                     key={meal}
@@ -3037,7 +3042,7 @@ function Diary() {
                   className={`voice-btn ${isRecording ? 'recording' : ''} ${isTranscribing ? 'transcribing' : ''}`}
                   onClick={toggleVoiceInput}
                   disabled={isTranscribing}
-                  aria-label={isTranscribing ? 'Transcribing...' : isRecording ? 'Stop voice input' : 'Start voice input'}
+                  aria-label={isTranscribing ? t('diaryPage.voiceTranscribing') : isRecording ? t('diaryPage.voiceStop') : t('diaryPage.voiceStart')}
                   aria-pressed={isRecording}
                 >
                   <Mic size={20} />
@@ -3046,7 +3051,7 @@ function Diary() {
                   ref={aiInputRef}
                   type="text"
                   className="ai-modal-input"
-                  placeholder="Ask me anything or log food..."
+                  placeholder={t('diaryPage.aiInputPlaceholder')}
                   value={aiInput}
                   onChange={(e) => setAiInput(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleAiChat()}
@@ -3078,12 +3083,12 @@ function Diary() {
           <div className="modal-content" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
               <button className="modal-close" onClick={() => setShowCopyDayModal(false)}>&times;</button>
-              <span style={{ fontWeight: 600 }}>Copy Day</span>
+              <span style={{ fontWeight: 600 }}>{t('diaryPage.copyDayTitle')}</span>
             </div>
             <div className="modal-body" style={{ padding: '20px' }}>
               <div style={{ marginBottom: '16px' }}>
                 <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500 }}>
-                  {copyMode === 'from' ? 'Copy entries FROM this date:' : 'Copy entries TO this date:'}
+                  {copyMode === 'from' ? t('diaryPage.copyFromLabel') : t('diaryPage.copyToLabel')}
                 </label>
                 <input
                   type="date"
@@ -3097,13 +3102,13 @@ function Diary() {
                   className={`ai-chip ${copyMode === 'from' ? 'active' : ''}`}
                   onClick={() => setCopyMode('from')}
                 >
-                  Copy From Date
+                  {t('diaryPage.copyFromDate')}
                 </button>
                 <button
                   className={`ai-chip ${copyMode === 'to' ? 'active' : ''}`}
                   onClick={() => setCopyMode('to')}
                 >
-                  Copy To Date
+                  {t('diaryPage.copyToDate')}
                 </button>
               </div>
               <button
@@ -3111,7 +3116,7 @@ function Diary() {
                 onClick={executeCopyDate}
                 style={{ width: '100%', padding: '12px', borderRadius: '8px', background: '#2cb5a5', color: 'white', border: 'none', fontWeight: 600 }}
               >
-                Copy Entries
+                {t('diaryPage.copyEntries')}
               </button>
             </div>
           </div>
@@ -3124,46 +3129,46 @@ function Diary() {
           <div className="modal-content" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
               <button className="modal-close" onClick={() => setShowDailyReportModal(false)}>&times;</button>
-              <span style={{ fontWeight: 600 }}>Daily Report</span>
+              <span style={{ fontWeight: 600 }}>{t('diaryPage.dailyReportTitle')}</span>
             </div>
             <div className="modal-body" style={{ padding: '20px' }}>
               <div className="daily-report-card">
-                <h3>Daily Summary - {formatFullDate()}</h3>
+                <h3>{t('diaryPage.dailySummary', { date: formatFullDate() })}</h3>
                 <div className="report-stats">
                   <div className="report-stat">
                     <span className="report-value">{totals.calories}</span>
-                    <span className="report-label">Calories</span>
+                    <span className="report-label">{t('diaryPage.reportCalories')}</span>
                   </div>
                   <div className="report-stat">
                     <span className="report-value">{Math.round(totals.protein)}g</span>
-                    <span className="report-label">Protein</span>
+                    <span className="report-label">{t('diaryPage.reportProtein')}</span>
                   </div>
                   <div className="report-stat">
                     <span className="report-value">{Math.round(totals.carbs)}g</span>
-                    <span className="report-label">Carbs</span>
+                    <span className="report-label">{t('diaryPage.reportCarbs')}</span>
                   </div>
                   <div className="report-stat">
                     <span className="report-value">{Math.round(totals.fat)}g</span>
-                    <span className="report-label">Fat</span>
+                    <span className="report-label">{t('diaryPage.reportFat')}</span>
                   </div>
                 </div>
                 <div className="report-progress">
                   <div className="progress-item">
-                    <span>Calories</span>
+                    <span>{t('diaryPage.reportCalories')}</span>
                     <div className="progress-bar">
                       <div className="progress-fill" style={{ width: `${calorieProgress}%` }} />
                     </div>
                     <span>{calorieProgress}%</span>
                   </div>
                   <div className="progress-item">
-                    <span>Protein</span>
+                    <span>{t('diaryPage.reportProtein')}</span>
                     <div className="progress-bar">
                       <div className="progress-fill protein" style={{ width: `${proteinProgress}%` }} />
                     </div>
                     <span>{proteinProgress}%</span>
                   </div>
                   <div className="progress-item">
-                    <span>Water</span>
+                    <span>{t('diaryPage.reportWater')}</span>
                     <div className="progress-bar">
                       <div className="progress-fill water" style={{ width: `${(waterIntake / waterGoal) * 100}%` }} />
                     </div>
@@ -3184,7 +3189,7 @@ function Diary() {
               <button className="summary-close-btn" onClick={() => setShowShareDiaryModal(false)}>
                 <X size={24} />
               </button>
-              <h2>Share your diary!</h2>
+              <h2>{t('diaryPage.shareDiaryTitle')}</h2>
             </div>
 
             {/* Preview Card */}
@@ -3200,32 +3205,32 @@ function Diary() {
                     {shareDiaryToggles.calories && (
                       <div className="share-stat">
                         <span className="share-stat-value">{Math.round(totals.calories)}</span>
-                        <span className="share-stat-label">Calories</span>
+                        <span className="share-stat-label">{t('diaryPage.shareCalories')}</span>
                       </div>
                     )}
                     {shareDiaryToggles.protein && (
                       <div className="share-stat">
                         <span className="share-stat-value">{Math.round(totals.protein)}g</span>
-                        <span className="share-stat-label">Protein</span>
+                        <span className="share-stat-label">{t('diaryPage.shareProtein')}</span>
                       </div>
                     )}
                     {shareDiaryToggles.carbs && (
                       <div className="share-stat">
                         <span className="share-stat-value">{Math.round(totals.carbs)}g</span>
-                        <span className="share-stat-label">Carbs</span>
+                        <span className="share-stat-label">{t('diaryPage.shareCarbs')}</span>
                       </div>
                     )}
                     {shareDiaryToggles.fat && (
                       <div className="share-stat">
                         <span className="share-stat-value">{Math.round(totals.fat)}g</span>
-                        <span className="share-stat-label">Fat</span>
+                        <span className="share-stat-label">{t('diaryPage.shareFat')}</span>
                       </div>
                     )}
                   </div>
                   <div className="diary-share-progress">
                     {shareDiaryToggles.calories && (
                       <div className="diary-share-progress-row">
-                        <span className="diary-share-progress-label">Calories</span>
+                        <span className="diary-share-progress-label">{t('diaryPage.shareCalories')}</span>
                         <div className="diary-share-progress-bar">
                           <div className="diary-share-progress-fill calories" style={{ width: `${calorieProgress}%` }} />
                         </div>
@@ -3234,7 +3239,7 @@ function Diary() {
                     )}
                     {shareDiaryToggles.protein && (
                       <div className="diary-share-progress-row">
-                        <span className="diary-share-progress-label">Protein</span>
+                        <span className="diary-share-progress-label">{t('diaryPage.shareProtein')}</span>
                         <div className="diary-share-progress-bar">
                           <div className="diary-share-progress-fill protein" style={{ width: `${proteinProgress}%` }} />
                         </div>
@@ -3243,7 +3248,7 @@ function Diary() {
                     )}
                     {shareDiaryToggles.carbs && (
                       <div className="diary-share-progress-row">
-                        <span className="diary-share-progress-label">Carbs</span>
+                        <span className="diary-share-progress-label">{t('diaryPage.shareCarbs')}</span>
                         <div className="diary-share-progress-bar">
                           <div className="diary-share-progress-fill carbs" style={{ width: `${carbsProgress}%` }} />
                         </div>
@@ -3252,7 +3257,7 @@ function Diary() {
                     )}
                     {shareDiaryToggles.fat && (
                       <div className="diary-share-progress-row">
-                        <span className="diary-share-progress-label">Fat</span>
+                        <span className="diary-share-progress-label">{t('diaryPage.shareFat')}</span>
                         <div className="diary-share-progress-bar">
                           <div className="diary-share-progress-fill fat" style={{ width: `${fatProgress}%` }} />
                         </div>
@@ -3264,9 +3269,9 @@ function Diary() {
                     <div className="diary-share-water">💧 {waterIntake} / {waterGoal} glasses</div>
                   )}
                   {shareDiaryToggles.meals && entries.length > 0 && (
-                    <div className="diary-share-meals">{entries.length} food{entries.length !== 1 ? 's' : ''} logged today</div>
+                    <div className="diary-share-meals">{entries.length === 1 ? t('diaryPage.shareCardFoodsLogged_one', { count: entries.length }) : t('diaryPage.shareCardFoodsLogged_other', { count: entries.length })}</div>
                   )}
-                  <div className="share-card-footer">Powered by Ziquecoach</div>
+                  <div className="share-card-footer">{t('diaryPage.shareCardPoweredBy')}</div>
                 </div>
               </div>
             </div>
@@ -3280,19 +3285,19 @@ function Diary() {
               onChange={handleShareDiaryBgChange}
             />
             <button className="change-image-btn" onClick={() => shareDiaryBgInputRef.current?.click()}>
-              Change image
+              {t('diaryPage.changeImage')}
             </button>
 
             {/* Toggle Controls */}
             <div className="share-toggles">
-              <h3>Statistics</h3>
+              <h3>{t('diaryPage.shareStatistics')}</h3>
               {[
-                { key: 'calories', label: 'Calories', value: `${Math.round(totals.calories)} / ${goals.calorie_goal}` },
-                { key: 'protein', label: 'Protein', value: `${Math.round(totals.protein)}g / ${goals.protein_goal}g` },
-                { key: 'carbs', label: 'Carbs', value: `${Math.round(totals.carbs)}g / ${goals.carbs_goal}g` },
-                { key: 'fat', label: 'Fat', value: `${Math.round(totals.fat)}g / ${goals.fat_goal}g` },
-                { key: 'water', label: 'Water', value: `${waterIntake} / ${waterGoal} ${waterUnit === 'glasses' ? (waterGoal === 1 ? 'glass' : 'glasses') : waterUnit}` },
-                { key: 'meals', label: 'Foods Logged', value: `${entries.length} item${entries.length !== 1 ? 's' : ''}` }
+                { key: 'calories', label: t('diaryPage.shareCalories'), value: `${Math.round(totals.calories)} / ${goals.calorie_goal}` },
+                { key: 'protein', label: t('diaryPage.shareProtein'), value: `${Math.round(totals.protein)}g / ${goals.protein_goal}g` },
+                { key: 'carbs', label: t('diaryPage.shareCarbs'), value: `${Math.round(totals.carbs)}g / ${goals.carbs_goal}g` },
+                { key: 'fat', label: t('diaryPage.shareFat'), value: `${Math.round(totals.fat)}g / ${goals.fat_goal}g` },
+                { key: 'water', label: t('diaryPage.shareWater'), value: `${waterIntake} / ${waterGoal} ${waterUnit === 'glasses' ? (waterGoal === 1 ? 'glass' : 'glasses') : waterUnit}` },
+                { key: 'meals', label: t('diaryPage.shareFoodsLogged'), value: `${entries.length} item${entries.length !== 1 ? 's' : ''}` }
               ].map(({ key, label, value }) => (
                 <div className="share-toggle-row" key={key}>
                   <div className="toggle-info">
@@ -3311,7 +3316,7 @@ function Diary() {
 
             <button className="share-results-btn" onClick={handleShareDiary}>
               <Share2 size={18} />
-              Share diary
+              {t('diaryPage.shareDiaryBtn')}
             </button>
           </div>
         </div>
@@ -3323,10 +3328,10 @@ function Diary() {
           <div className="modal-content weekly-summary-modal" onClick={e => e.stopPropagation()}>
             <div className="modal-header weekly-summary-header">
               <button className="modal-close" onClick={() => setShowWeeklySummaryModal(false)}>&times;</button>
-              <span style={{ fontWeight: 600 }}>Weekly Summary</span>
+              <span style={{ fontWeight: 600 }}>{t('diaryPage.weeklySummaryTitle')}</span>
               {weeklyData && (
-                <span className="weekly-adherence-pill" title="Days logged this week">
-                  {weeklyData.daysLogged}/7 days
+                <span className="weekly-adherence-pill" title={t('diaryPage.weeklyDaysLoggedTitle')}>
+                  {t('diaryPage.weeklyDaysLogged', { logged: weeklyData.daysLogged })}
                 </span>
               )}
             </div>
@@ -3336,7 +3341,7 @@ function Diary() {
                   <div className="ai-loading-dots">
                     <span></span><span></span><span></span>
                   </div>
-                  <p style={{ marginTop: '12px', color: '#64748b' }}>Loading weekly data...</p>
+                  <p style={{ marginTop: '12px', color: '#64748b' }}>{t('diaryPage.weeklyLoadingData')}</p>
                 </div>
               ) : weeklyData ? (
                 <>
@@ -3346,22 +3351,22 @@ function Diary() {
                       <div className="weekly-avg-value">
                         {weeklyData.averages.calories.toLocaleString()}
                       </div>
-                      <div className="weekly-avg-label">Avg Calories / Day</div>
+                      <div className="weekly-avg-label">{t('diaryPage.weeklyAvgCaloriesDay')}</div>
                     </div>
                     <div className="weekly-avg-card weekly-avg-protein">
                       <div className="weekly-avg-value">
                         {weeklyData.averages.protein}<span className="weekly-avg-unit">g</span>
                       </div>
-                      <div className="weekly-avg-label">Avg Protein / Day</div>
+                      <div className="weekly-avg-label">{t('diaryPage.weeklyAvgProteinDay')}</div>
                     </div>
                   </div>
 
                   {/* Calorie Bar Chart */}
                   <div className="weekly-chart-section">
                     <div className="weekly-chart-header">
-                      <h4>Calories by Day</h4>
+                      <h4>{t('diaryPage.weeklyCaloriesByDay')}</h4>
                       <span className="weekly-chart-goal">
-                        Goal: {goals.calorie_goal.toLocaleString()}
+                        {t('diaryPage.weeklyGoal', { goal: goals.calorie_goal.toLocaleString() })}
                       </span>
                     </div>
                     {(() => {
@@ -3370,7 +3375,7 @@ function Diary() {
                       const chartMax = maxCal * 1.1;
                       const goalPct = (goal / chartMax) * 100;
                       return (
-                        <div className="weekly-chart" role="img" aria-label="Calories per day bar chart">
+                        <div className="weekly-chart" role="img" aria-label={t('diaryPage.ariaCaloriesBarChart')}>
                           <div
                             className="weekly-chart-goal-line"
                             style={{ bottom: `${goalPct}%` }}
@@ -3386,10 +3391,10 @@ function Diary() {
                                     <div
                                       className={`weekly-chart-bar ${overGoal ? 'over-goal' : ''}`}
                                       style={{ height: `${heightPct}%` }}
-                                      title={`${day.dayName}: ${day.calories} cal`}
+                                      title={t('diaryPage.weeklyChartBarTitle', { day: day.dayName, calories: day.calories })}
                                     />
                                   ) : (
-                                    <div className="weekly-chart-bar empty" title={`${day.dayName}: no data`} />
+                                    <div className="weekly-chart-bar empty" title={t('diaryPage.weeklyChartBarEmpty', { day: day.dayName })} />
                                   )}
                                 </div>
                                 <div className="weekly-chart-label">{day.dayName}</div>
@@ -3403,7 +3408,7 @@ function Diary() {
 
                   {/* Daily Breakdown */}
                   <div className="weekly-breakdown-section">
-                    <h4>Daily Breakdown</h4>
+                    <h4>{t('diaryPage.weeklyDailyBreakdown')}</h4>
                     <div className="weekly-breakdown-list">
                       {weeklyData.days.map((day, idx) => (
                         <div
@@ -3423,7 +3428,7 @@ function Diary() {
                               </span>
                             </>
                           ) : (
-                            <span className="weekly-breakdown-empty">No data</span>
+                            <span className="weekly-breakdown-empty">{t('diaryPage.weeklyNoData')}</span>
                           )}
                         </div>
                       ))}
@@ -3433,23 +3438,23 @@ function Diary() {
                   {/* Week Totals */}
                   <div className="weekly-totals-card">
                     <div className="weekly-totals-header">
-                      <h4>Week Totals</h4>
+                      <h4>{t('diaryPage.weeklyTotals')}</h4>
                     </div>
                     <div className="weekly-totals-grid">
                       <div className="weekly-totals-stat">
-                        <span className="weekly-totals-label">Calories</span>
+                        <span className="weekly-totals-label">{t('diaryPage.weeklyTotalCalories')}</span>
                         <span className="weekly-totals-value">{weeklyData.totals.calories.toLocaleString()}</span>
                       </div>
                       <div className="weekly-totals-stat">
-                        <span className="weekly-totals-label">Protein</span>
+                        <span className="weekly-totals-label">{t('diaryPage.weeklyTotalProtein')}</span>
                         <span className="weekly-totals-value">{Math.round(weeklyData.totals.protein)}<span className="weekly-totals-unit">g</span></span>
                       </div>
                       <div className="weekly-totals-stat">
-                        <span className="weekly-totals-label">Carbs</span>
+                        <span className="weekly-totals-label">{t('diaryPage.weeklyTotalCarbs')}</span>
                         <span className="weekly-totals-value">{Math.round(weeklyData.totals.carbs)}<span className="weekly-totals-unit">g</span></span>
                       </div>
                       <div className="weekly-totals-stat">
-                        <span className="weekly-totals-label">Fat</span>
+                        <span className="weekly-totals-label">{t('diaryPage.weeklyTotalFat')}</span>
                         <span className="weekly-totals-value">{Math.round(weeklyData.totals.fat)}<span className="weekly-totals-unit">g</span></span>
                       </div>
                     </div>
@@ -3457,7 +3462,7 @@ function Diary() {
                 </>
               ) : (
                 <p style={{ textAlign: 'center', color: '#64748b' }}>
-                  Unable to load weekly data.
+                  {t('diaryPage.weeklyLoadFailed')}
                 </p>
               )}
             </div>
@@ -3470,7 +3475,7 @@ function Diary() {
         <div className="modal-overlay active" onClick={() => { setShowEditEntryModal(false); setEditingEntry(null); }}>
           <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '400px' }}>
             <div className="modal-header">
-              <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 600 }}>Edit Food</h3>
+              <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 600 }}>{t('diaryPage.editFoodTitle')}</h3>
               <button className="modal-close" onClick={() => { setShowEditEntryModal(false); setEditingEntry(null); }}>&times;</button>
             </div>
             <div className="modal-body" style={{ padding: '20px' }}>
@@ -3483,7 +3488,7 @@ function Diary() {
 
               {/* Servings Adjuster */}
               <div style={{ marginBottom: '20px' }}>
-                <label style={{ display: 'block', fontWeight: 500, marginBottom: '8px', color: '#374151' }}>Number of Servings</label>
+                <label style={{ display: 'block', fontWeight: 500, marginBottom: '8px', color: '#374151' }}>{t('diaryPage.numberOfServings')}</label>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                   <button
                     onClick={() => {
@@ -3552,23 +3557,23 @@ function Diary() {
 
               {/* Nutrition Preview */}
               <div style={{ background: 'var(--gray-100)', borderRadius: '12px', padding: '16px', marginBottom: '20px' }}>
-                <div style={{ fontWeight: 500, marginBottom: '12px', color: 'var(--gray-700)' }}>Nutrition</div>
+                <div style={{ fontWeight: 500, marginBottom: '12px', color: 'var(--gray-700)' }}>{t('diaryPage.nutritionPreview')}</div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                   <div style={{ textAlign: 'center' }}>
                     <div style={{ fontSize: '1.3rem', fontWeight: 600, color: '#f97316' }}>{editingEntry.calories || 0}</div>
-                    <div style={{ fontSize: '0.8rem', color: 'var(--gray-400)' }}>Calories</div>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--gray-400)' }}>{t('diaryPage.nutritionCalories')}</div>
                   </div>
                   <div style={{ textAlign: 'center' }}>
                     <div style={{ fontSize: '1.3rem', fontWeight: 600, color: '#2cb5a5' }}>{editingEntry.protein || 0}g</div>
-                    <div style={{ fontSize: '0.8rem', color: 'var(--gray-400)' }}>Protein</div>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--gray-400)' }}>{t('diaryPage.nutritionProtein')}</div>
                   </div>
                   <div style={{ textAlign: 'center' }}>
                     <div style={{ fontSize: '1.3rem', fontWeight: 600, color: '#10b981' }}>{editingEntry.carbs || 0}g</div>
-                    <div style={{ fontSize: '0.8rem', color: 'var(--gray-400)' }}>Carbs</div>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--gray-400)' }}>{t('diaryPage.nutritionCarbs')}</div>
                   </div>
                   <div style={{ textAlign: 'center' }}>
                     <div style={{ fontSize: '1.3rem', fontWeight: 600, color: '#f59e0b' }}>{editingEntry.fat || 0}g</div>
-                    <div style={{ fontSize: '0.8rem', color: 'var(--gray-400)' }}>Fat</div>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--gray-400)' }}>{t('diaryPage.nutritionFat')}</div>
                   </div>
                 </div>
               </div>
@@ -3588,7 +3593,7 @@ function Diary() {
                     cursor: 'pointer'
                   }}
                 >
-                  Cancel
+                  {t('diaryPage.cancelEdit')}
                 </button>
                 <button
                   onClick={() => handleUpdateEntry(editingEntry)}
@@ -3603,7 +3608,7 @@ function Diary() {
                     cursor: 'pointer'
                   }}
                 >
-                  Save Changes
+                  {t('diaryPage.saveChanges')}
                 </button>
               </div>
             </div>
@@ -3620,7 +3625,7 @@ function Diary() {
               <input
                 type="text"
                 className="search-input"
-                placeholder="Search for food..."
+                placeholder={t('diaryPage.searchPlaceholder')}
                 value={searchQuery}
                 onChange={(e) => {
                   setSearchQuery(e.target.value);
@@ -3632,7 +3637,7 @@ function Diary() {
             <div className="modal-body">
               {/* Meal Type Selector */}
               <div className="modal-meal-selector">
-                <label>Add to:</label>
+                <label>{t('diaryPage.searchAddTo')}</label>
                 <div className="meal-type-chips">
                   {['breakfast', 'lunch', 'dinner', 'snack'].map(type => (
                     <button
@@ -3647,7 +3652,7 @@ function Diary() {
               </div>
               <div className="search-results">
                 {searchLoading ? (
-                  <div style={{ textAlign: 'center', padding: '20px' }}>Searching...</div>
+                  <div style={{ textAlign: 'center', padding: '20px' }}>{t('diaryPage.searching')}</div>
                 ) : searchResults.length > 0 ? (
                   searchResults.map((food, idx) => (
                     <div key={idx} className="search-result-item" onClick={() => addFoodFromSearch(food)}>
@@ -3660,25 +3665,25 @@ function Diary() {
                   ))
                 ) : searchQuery ? (
                   <div style={{ textAlign: 'center', padding: '20px', color: '#64748b' }}>
-                    No results found
+                    {t('diaryPage.noResults')}
                   </div>
                 ) : (
                   <div style={{ textAlign: 'center', padding: '20px', color: '#64748b' }}>
-                    Type to search for foods
+                    {t('diaryPage.typeToSearch')}
                   </div>
                 )}
               </div>
 
               {/* Quick Add Options */}
               <div className="quick-add-section" style={{ marginTop: '20px', borderTop: '1px solid #e2e8f0', paddingTop: '20px' }}>
-                <div style={{ fontWeight: 600, marginBottom: '12px', color: '#64748b' }}>Or try these options</div>
+                <div style={{ fontWeight: 600, marginBottom: '12px', color: '#64748b' }}>{t('diaryPage.orTryOptions')}</div>
                 <button className="quick-add-btn" onClick={() => { setShowSearchModal(false); setShowPhotoModal(true); }}>
                   <div className="quick-add-icon" style={{ background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', borderRadius: '10px', width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <Camera size={20} color="white" />
                   </div>
                   <div className="quick-add-text">
-                    <div style={{ fontWeight: 600 }}>Log by Photo</div>
-                    <div style={{ fontSize: '0.85rem', color: '#64748b' }}>Take a photo of your food</div>
+                    <div style={{ fontWeight: 600 }}>{t('diaryPage.logByPhoto')}</div>
+                    <div style={{ fontSize: '0.85rem', color: '#64748b' }}>{t('diaryPage.logByPhotoSub')}</div>
                   </div>
                 </button>
                 <button className="quick-add-btn" onClick={() => { setShowSearchModal(false); setShowAILogModal(true); }} style={{ marginTop: '10px' }}>
@@ -3686,8 +3691,8 @@ function Diary() {
                     <Mic size={20} color="white" />
                   </div>
                   <div className="quick-add-text">
-                    <div style={{ fontWeight: 600 }}>AI Voice/Text Log</div>
-                    <div style={{ fontSize: '0.85rem', color: '#64748b' }}>Speak or type what you ate</div>
+                    <div style={{ fontWeight: 600 }}>{t('diaryPage.aiVoiceTextLog')}</div>
+                    <div style={{ fontSize: '0.85rem', color: '#64748b' }}>{t('diaryPage.aiVoiceTextLogSub')}</div>
                   </div>
                 </button>
                 <button className="quick-add-btn" onClick={() => { setShowSearchModal(false); setShowFavoritesModal(true); }} style={{ marginTop: '10px' }}>
@@ -3695,8 +3700,8 @@ function Diary() {
                     <Heart size={20} color="white" />
                   </div>
                   <div className="quick-add-text">
-                    <div style={{ fontWeight: 600 }}>From Favorites</div>
-                    <div style={{ fontSize: '0.85rem', color: '#64748b' }}>Add your saved favorite meals</div>
+                    <div style={{ fontWeight: 600 }}>{t('diaryPage.fromFavorites')}</div>
+                    <div style={{ fontSize: '0.85rem', color: '#64748b' }}>{t('diaryPage.fromFavoritesSub')}</div>
                   </div>
                 </button>
                 <button className="quick-add-btn" onClick={() => { setShowSearchModal(false); setShowScanLabelModal(true); }} style={{ marginTop: '10px' }}>
@@ -3704,8 +3709,8 @@ function Diary() {
                     <FileText size={20} color="white" />
                   </div>
                   <div className="quick-add-text">
-                    <div style={{ fontWeight: 600 }}>Scan Nutrition Label</div>
-                    <div style={{ fontSize: '0.85rem', color: '#64748b' }}>Scan nutrition facts label</div>
+                    <div style={{ fontWeight: 600 }}>{t('diaryPage.scanNutritionLabel')}</div>
+                    <div style={{ fontSize: '0.85rem', color: '#64748b' }}>{t('diaryPage.scanNutritionLabelSub')}</div>
                   </div>
                 </button>
               </div>
@@ -3720,10 +3725,10 @@ function Diary() {
           <div className="modal-content" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
               <button className="modal-close" onClick={() => setShowSaveMealModal(false)}>&times;</button>
-              <span style={{ fontWeight: 600 }}>Save Meal to Favorites</span>
+              <span style={{ fontWeight: 600 }}>{t('diaryPage.saveMealTitle')}</span>
             </div>
             <div className="modal-body" style={{ padding: '20px' }}>
-              <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500 }}>Meal Name</label>
+              <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500 }}>{t('diaryPage.mealNameLabel')}</label>
               <input
                 type="text"
                 id="saveMealName"
@@ -3735,7 +3740,7 @@ function Diary() {
                 onClick={() => handleSaveMeal(document.getElementById('saveMealName').value)}
                 style={{ width: '100%', padding: '12px', borderRadius: '8px', background: '#2cb5a5', color: 'white', border: 'none', fontWeight: 600 }}
               >
-                Save to Favorites
+                {t('diaryPage.saveToFavorites')}
               </button>
             </div>
           </div>
@@ -3761,7 +3766,7 @@ function Diary() {
           <div className="modal-content ai-log-modal" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
               <button className="modal-close" onClick={() => setShowAILogModal(false)}>&times;</button>
-              <span style={{ fontWeight: 600 }}>Add Food</span>
+              <span style={{ fontWeight: 600 }}>{t('diaryPage.addFoodTitle')}</span>
             </div>
             <div className="modal-body" style={{ padding: '20px' }}>
               {/* Other Options Row */}
@@ -3793,7 +3798,7 @@ function Diary() {
                   className="food-option-btn"
                 >
                   <Search size={20} style={{ color: 'var(--gray-600)' }} />
-                  <span style={{ fontSize: '0.75rem', color: 'var(--gray-600)' }}>Search</span>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--gray-600)' }}>{t('diaryPage.searchOption')}</span>
                 </button>
                 <button
                   onClick={() => {
@@ -3816,7 +3821,7 @@ function Diary() {
                   className="food-option-btn"
                 >
                   <Camera size={20} style={{ color: 'var(--gray-600)' }} />
-                  <span style={{ fontSize: '0.75rem', color: 'var(--gray-600)' }}>Photo</span>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--gray-600)' }}>{t('diaryPage.photoOption')}</span>
                 </button>
                 <button
                   onClick={() => {
@@ -3839,7 +3844,7 @@ function Diary() {
                   className="food-option-btn"
                 >
                   <Heart size={20} style={{ color: 'var(--gray-600)' }} />
-                  <span style={{ fontSize: '0.75rem', color: 'var(--gray-600)' }}>Favorites</span>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--gray-600)' }}>{t('diaryPage.favoritesOption')}</span>
                 </button>
                 <button
                   onClick={() => {
@@ -3862,7 +3867,7 @@ function Diary() {
                   className="food-option-btn"
                 >
                   <FileText size={20} style={{ color: 'var(--gray-600)' }} />
-                  <span style={{ fontSize: '0.75rem', color: 'var(--gray-600)' }}>Scan Nutrition Label</span>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--gray-600)' }}>{t('diaryPage.scanOption')}</span>
                 </button>
               </div>
 
@@ -3875,14 +3880,14 @@ function Diary() {
                 color: 'var(--gray-400)'
               }}>
                 <div style={{ flex: 1, height: '1px', background: 'var(--gray-200)' }} />
-                <span style={{ fontSize: '0.8rem', fontWeight: 500 }}>or describe what you ate</span>
+                <span style={{ fontSize: '0.8rem', fontWeight: 500 }}>{t('diaryPage.orDescribe')}</span>
                 <div style={{ flex: 1, height: '1px', background: 'var(--gray-200)' }} />
               </div>
 
               {/* Meal Type Selector with icons (matches Dashboard) */}
               <div style={{ marginBottom: '16px' }}>
-                <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500, fontSize: '0.9rem' }}>Add to:</label>
-                <div className="meal-type-selector" role="group" aria-label="Select meal type">
+                <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500, fontSize: '0.9rem' }}>{t('diaryPage.addToLabel')}</label>
+                <div className="meal-type-selector" role="group" aria-label={t('diaryPage.ariaSelectMealType')}>
                   {[
                     { id: 'breakfast', Icon: Sunrise, label: 'Breakfast' },
                     { id: 'lunch', Icon: Sun, label: 'Lunch' },
@@ -3906,7 +3911,7 @@ function Diary() {
               {/* Food Input (controlled — shared with voice transcript) */}
               <textarea
                 id="aiLogInput"
-                placeholder="e.g., 2 eggs with toast and butter, black coffee"
+                placeholder={t('diaryPage.foodInputPlaceholder')}
                 value={aiInput}
                 onChange={(e) => setAiInput(e.target.value)}
                 style={{
@@ -3927,7 +3932,7 @@ function Diary() {
                   className={`voice-btn ${isRecording ? 'recording' : ''} ${isTranscribing ? 'transcribing' : ''}`}
                   onClick={toggleVoiceInput}
                   disabled={isTranscribing || aiLogging}
-                  aria-label={isTranscribing ? 'Transcribing...' : isRecording ? 'Stop voice input' : 'Start voice input'}
+                  aria-label={isTranscribing ? t('diaryPage.voiceTranscribing') : isRecording ? t('diaryPage.voiceStop') : t('diaryPage.voiceStart')}
                   aria-pressed={isRecording}
                 >
                   <Mic size={20} aria-hidden="true" />
@@ -3945,7 +3950,7 @@ function Diary() {
                       });
 
                       if (!aiData?.foods || aiData.foods.length === 0) {
-                        showError('Could not recognize any foods. Please try again with more details.');
+                        showError(t('diaryPage.toastFoodNotRecognized'));
                         return;
                       }
 
@@ -3955,7 +3960,7 @@ function Diary() {
                       setAiLogShowConfirmation(true);
                     } catch (err) {
                       console.error('Error analyzing food:', err);
-                      showError('Failed to analyze food. Please try again.');
+                      showError(t('diaryPage.toastAnalyzeFailed'));
                     } finally {
                       setAiLogging(false);
                     }
@@ -3963,7 +3968,7 @@ function Diary() {
                   style={{ flex: 1, padding: '14px', borderRadius: '8px', background: '#2cb5a5', color: 'white', border: 'none', fontWeight: 600, fontSize: '1rem' }}
                   disabled={aiLogging || !aiInput.trim() || aiLogShowConfirmation}
                 >
-                  {aiLogging ? 'Analyzing...' : 'Log Food'}
+                  {aiLogging ? t('diaryPage.analyzing') : t('diaryPage.logFood')}
                 </button>
               </div>
 
@@ -3972,7 +3977,7 @@ function Diary() {
                 <div className="food-confirmation-box" style={{ marginTop: '16px' }}>
                   <div className="food-confirmation-header">
                     <CheckCircle size={18} className="confirm-icon" />
-                    <span>Ready to log</span>
+                    <span>{t('diaryPage.readyToLog')}</span>
                   </div>
 
                   {aiLogParsedFoods.map((food, idx) => (
@@ -3985,12 +3990,12 @@ function Diary() {
                   ))}
 
                   <div className="food-confirmation-servings">
-                    <span id="ai-log-servings-label">Servings:</span>
+                    <span id="ai-log-servings-label">{t('diaryPage.servingsLabel')}</span>
                     <div className="servings-adjuster" role="group" aria-labelledby="ai-log-servings-label">
                       <button
                         className="servings-btn"
                         onClick={() => setAiLogServings(prev => Math.max(0.5, prev - 0.5))}
-                        aria-label="Decrease servings"
+                        aria-label={t('diaryPage.ariaDecreaseServings')}
                       >
                         <Minus size={16} aria-hidden="true" />
                       </button>
@@ -3998,7 +4003,7 @@ function Diary() {
                       <button
                         className="servings-btn"
                         onClick={() => setAiLogServings(prev => prev + 0.5)}
-                        aria-label="Increase servings"
+                        aria-label={t('diaryPage.ariaIncreaseServings')}
                       >
                         <Plus size={16} aria-hidden="true" />
                       </button>
@@ -4008,19 +4013,19 @@ function Diary() {
                   <div className="food-confirmation-macros">
                     <div className="macro-item">
                       <span className="macro-value">{Math.round(aiLogParsedFoods.reduce((sum, f) => sum + (f.calories || 0), 0) * aiLogServings)}</span>
-                      <span className="macro-label">CALORIES</span>
+                      <span className="macro-label">{t('diaryPage.macroCalories')}</span>
                     </div>
                     <div className="macro-item protein">
                       <span className="macro-value">{Math.round(aiLogParsedFoods.reduce((sum, f) => sum + (f.protein || 0), 0) * aiLogServings)}g</span>
-                      <span className="macro-label">PROTEIN</span>
+                      <span className="macro-label">{t('diaryPage.macroProtein')}</span>
                     </div>
                     <div className="macro-item carbs">
-                      <span className="macro-value">{Math.round(aiLogParsedFoods.reduce((sum, f) => sum + (f.carbs || 0), 0) * aiLogServings)}g</span>
-                      <span className="macro-label">CARBS</span>
+                      <span className="macro-value">{Math.round(aiLogParsedFoods.reduce((sum, f) => sum + (f.carbs || 0) , 0) * aiLogServings)}g</span>
+                      <span className="macro-label">{t('diaryPage.macroCarbs')}</span>
                     </div>
                     <div className="macro-item fat">
                       <span className="macro-value">{Math.round(aiLogParsedFoods.reduce((sum, f) => sum + (f.fat || 0), 0) * aiLogServings)}g</span>
-                      <span className="macro-label">FAT</span>
+                      <span className="macro-label">{t('diaryPage.macroFat')}</span>
                     </div>
                   </div>
 
@@ -4033,7 +4038,7 @@ function Diary() {
                         setAiLogServings(1);
                       }}
                     >
-                      Cancel
+                      {t('diaryPage.confirmCancel')}
                     </button>
                     <button
                       className="confirm-add-btn"
@@ -4076,10 +4081,10 @@ function Diary() {
                           setAiLogServings(1);
                           setShowAILogModal(false);
                           refreshDiaryData();
-                          showSuccess(`Added ${count} food(s) to ${selectedMealType}!`);
+                          showSuccess(t('diaryPage.toastAddedFoods', { count, meal: selectedMealType }));
                         } catch (err) {
                           console.error('Error logging food:', err);
-                          showError('Failed to log food. Please try again.');
+                          showError(t('diaryPage.toastLogFailed'));
                         } finally {
                           setAiLogging(false);
                         }
@@ -4087,7 +4092,7 @@ function Diary() {
                       disabled={aiLogging}
                     >
                       <Check size={18} />
-                      {aiLogging ? 'Adding...' : `Add to ${selectedMealType?.charAt(0).toUpperCase() + selectedMealType?.slice(1)}`}
+                      {aiLogging ? t('diaryPage.adding') : t('diaryPage.addToMeal', { meal: selectedMealType?.charAt(0).toUpperCase() + selectedMealType?.slice(1) })}
                     </button>
                   </div>
                 </div>
@@ -4141,7 +4146,7 @@ function Diary() {
         <div className="modal-overlay" onClick={() => setShowInteractionModal(false)}>
           <div className="interaction-modal" onClick={(e) => e.stopPropagation()}>
             <div className="interaction-modal-header">
-              <h3>Coach Feedback</h3>
+              <h3>{t('diaryPage.coachFeedback')}</h3>
               <button className="modal-close-btn" onClick={() => setShowInteractionModal(false)}>
                 <X size={20} />
               </button>
@@ -4152,14 +4157,14 @@ function Diary() {
             <div className="interaction-modal-content">
               {selectedInteraction.reactions?.length > 0 && (
                 <div className="interaction-section">
-                  <div className="interaction-section-title">Reactions</div>
+                  <div className="interaction-section-title">{t('diaryPage.interactionReactions')}</div>
                   {selectedInteraction.reactions.map((r, i) => (
                     <div key={i} className="interaction-reaction-item">
                       <div className="interaction-avatar">
                         {r.coachName?.charAt(0)?.toUpperCase() || 'C'}
                       </div>
                       <div className="interaction-details">
-                        <span className="interaction-coach-name">{r.coachName || 'Coach'}</span>
+                        <span className="interaction-coach-name">{r.coachName || t('diaryPage.coachFallback')}</span>
                         <span className="interaction-emoji">{r.reaction}</span>
                       </div>
                     </div>
@@ -4168,14 +4173,14 @@ function Diary() {
               )}
               {selectedInteraction.comments?.length > 0 && (
                 <div className="interaction-section">
-                  <div className="interaction-section-title">Comments</div>
+                  <div className="interaction-section-title">{t('diaryPage.interactionComments')}</div>
                   {selectedInteraction.comments.map((c, i) => (
                     <div key={i} className="interaction-comment-item">
                       <div className="interaction-avatar">
                         {c.authorName?.charAt(0)?.toUpperCase() || 'C'}
                       </div>
                       <div className="interaction-comment-bubble">
-                        <span className="interaction-coach-name">{c.authorName || 'Coach'}</span>
+                        <span className="interaction-coach-name">{c.authorName || t('diaryPage.coachFallback')}</span>
                         <p className="interaction-comment-text">{c.comment}</p>
                         <span className="interaction-comment-time">
                           {new Date(c.createdAt).toLocaleDateString()}
@@ -4195,15 +4200,15 @@ function Diary() {
         <div className="modal-overlay active" onClick={() => setShowEditGoalsModal(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '400px' }}>
             <div className="modal-header">
-              <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 600 }}>Edit Goals</h3>
+              <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 600 }}>{t('diaryPage.editGoalsTitle')}</h3>
               <button className="modal-close" onClick={() => setShowEditGoalsModal(false)}>&times;</button>
             </div>
             <div className="modal-body" style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '16px', maxHeight: '70vh', overflowY: 'auto' }}>
               {clientData?.can_edit_goals && [{
-                  key: 'calorie_goal', label: 'Calories', unit: 'kcal', color: '#f97316', step: 50 },
-                { key: 'protein_goal', label: 'Protein', unit: 'g', color: '#2cb5a5', step: 5 },
-                { key: 'carbs_goal', label: 'Carbs', unit: 'g', color: '#10b981', step: 5 },
-                { key: 'fat_goal', label: 'Fat', unit: 'g', color: '#f59e0b', step: 5 }
+                  key: 'calorie_goal', label: t('diaryPage.nutritionCalories'), unit: 'kcal', color: '#f97316', step: 50 },
+                { key: 'protein_goal', label: t('diaryPage.nutritionProtein'), unit: 'g', color: '#2cb5a5', step: 5 },
+                { key: 'carbs_goal', label: t('diaryPage.nutritionCarbs'), unit: 'g', color: '#10b981', step: 5 },
+                { key: 'fat_goal', label: t('diaryPage.nutritionFat'), unit: 'g', color: '#f59e0b', step: 5 }
               ].map(({ key, label, unit, color, step }) => (
                 <div key={key} style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                   <label style={{ fontSize: '0.85rem', fontWeight: 600, color }}>
@@ -4258,18 +4263,18 @@ function Diary() {
                 <>
                   <div style={{ borderTop: '1px solid var(--border-color, #e2e8f0)', paddingTop: '12px', marginTop: '4px' }}>
                     <p style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary, #64748b)', margin: '0 0 12px' }}>
-                      Micronutrient Targets
+                      {t('diaryPage.micronutrientTargets')}
                     </p>
                   </div>
                   {[
-                    { key: 'fiber_goal', label: 'Fiber', unit: 'g', color: '#8b5cf6', step: 1, placeholder: 28 },
-                    { key: 'sugar_goal', label: 'Sugar', unit: 'g', color: '#ec4899', step: 5, placeholder: 50 },
-                    { key: 'sodium_goal', label: 'Sodium', unit: 'mg', color: '#ef4444', step: 100, placeholder: 2300 },
-                    { key: 'potassium_goal', label: 'Potassium', unit: 'mg', color: '#4ec5b7', step: 100, placeholder: 3500 },
-                    { key: 'calcium_goal', label: 'Calcium', unit: 'mg', color: '#a8a29e', step: 50, placeholder: 1000 },
-                    { key: 'iron_goal', label: 'Iron', unit: 'mg', color: '#b91c1c', step: 1, placeholder: 18 },
-                    { key: 'vitamin_c_goal', label: 'Vitamin C', unit: 'mg', color: '#f59e0b', step: 5, placeholder: 90 },
-                    { key: 'cholesterol_goal', label: 'Cholesterol', unit: 'mg', color: '#22998a', step: 10, placeholder: 300 }
+                    { key: 'fiber_goal', label: t('diaryPage.fiber').replace(/:$/, ''), unit: 'g', color: '#8b5cf6', step: 1, placeholder: 28 },
+                    { key: 'sugar_goal', label: t('diaryPage.sugar').replace(/:$/, ''), unit: 'g', color: '#ec4899', step: 5, placeholder: 50 },
+                    { key: 'sodium_goal', label: t('diaryPage.sodium').replace(/:$/, ''), unit: 'mg', color: '#ef4444', step: 100, placeholder: 2300 },
+                    { key: 'potassium_goal', label: t('diaryPage.potassium').replace(/:$/, ''), unit: 'mg', color: '#4ec5b7', step: 100, placeholder: 3500 },
+                    { key: 'calcium_goal', label: t('diaryPage.calcium').replace(/:$/, ''), unit: 'mg', color: '#a8a29e', step: 50, placeholder: 1000 },
+                    { key: 'iron_goal', label: t('diaryPage.iron').replace(/:$/, ''), unit: 'mg', color: '#b91c1c', step: 1, placeholder: 18 },
+                    { key: 'vitamin_c_goal', label: t('diaryPage.vitaminC').replace(/:$/, ''), unit: 'mg', color: '#f59e0b', step: 5, placeholder: 90 },
+                    { key: 'cholesterol_goal', label: t('diaryPage.cholesterol').replace(/:$/, ''), unit: 'mg', color: '#22998a', step: 10, placeholder: 300 }
                   ].map(({ key, label, unit, color, step, placeholder }) => (
                     <div key={key} style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                       <label style={{ fontSize: '0.85rem', fontWeight: 600, color }}>
@@ -4332,7 +4337,7 @@ function Diary() {
                   opacity: savingGoals ? 0.6 : 1
                 }}
               >
-                {savingGoals ? 'Saving...' : 'Save Goals'}
+                {savingGoals ? t('diaryPage.saving') : t('diaryPage.saveGoals')}
               </button>
             </div>
           </div>
