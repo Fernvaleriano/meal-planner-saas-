@@ -3,6 +3,7 @@ import { X, Send, Loader2, MessageCircle, Bot, ChevronLeft, Mic } from 'lucide-r
 import { apiPost } from '../../utils/api';
 
 import { useToast } from '../../components/Toast';
+import { useLanguage } from '../../context/LanguageContext';
 // Helper function to strip markdown formatting from text
 const stripMarkdown = (text) => {
   if (!text) return text;
@@ -23,6 +24,7 @@ const stripMarkdown = (text) => {
 
 function AskCoachChat({ exercise, onClose }) {
   const { showError, showSuccess } = useToast();
+  const { t } = useLanguage();
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -94,7 +96,7 @@ function AskCoachChat({ exercise, onClose }) {
 
   const toggleVoiceInput = () => {
     if (!voiceSupported) {
-      showError('Voice input is not supported in this browser. Please try Chrome or Safari.');
+      showError(t('askCoachChat.errorVoiceNotSupported'));
       return;
     }
     if (isRecording) {
@@ -126,9 +128,9 @@ function AskCoachChat({ exercise, onClose }) {
         stream.getTracks().forEach(t => t.stop());
       } catch (err) {
         if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
-          showError('Microphone access denied. Please allow microphone access in your device settings.');
+          showError(t('askCoachChat.errorMicDeniedDevice'));
         } else {
-          showError('Could not access microphone. Please check permissions.');
+          showError(t('askCoachChat.errorMicAccess'));
         }
         return;
       }
@@ -167,7 +169,7 @@ function AskCoachChat({ exercise, onClose }) {
     recognition.onerror = (event) => {
       console.warn('Speech recognition error:', event.error);
       if (event.error === 'not-allowed') {
-        showError('Microphone access denied. Please allow microphone access.');
+        showError(t('askCoachChat.errorMicDenied'));
       }
       setIsRecording(false);
       recognitionRef.current = null;
@@ -746,10 +748,10 @@ function AskCoachChat({ exercise, onClose }) {
 
   // Quick question suggestions
   const quickQuestions = [
-    "What's the proper form?",
-    "Common mistakes to avoid?",
-    "Can I do this at home?",
-    "What muscles does this work?"
+    t('askCoachChat.quickForm'),
+    t('askCoachChat.quickMistakes'),
+    t('askCoachChat.quickHome'),
+    t('askCoachChat.quickMuscles'),
   ];
 
   const handleQuickQuestion = (q) => {
@@ -770,14 +772,14 @@ function AskCoachChat({ exercise, onClose }) {
       <div className="ask-coach-modal" onClick={e => e.stopPropagation()}>
         {/* Header */}
         <div className="ask-coach-header">
-          <button className="back-btn" onClick={forceClose} type="button" aria-label="Go back">
+          <button className="back-btn" onClick={forceClose} type="button" aria-label={t('askCoachChat.ariaGoBack')}>
             <ChevronLeft size={24} />
           </button>
           <div className="coach-title">
             <Bot size={20} />
-            <span>Ask Coach</span>
+            <span>{t('askCoachChat.headerTitle')}</span>
           </div>
-          <button className="close-btn" onClick={forceClose} type="button" aria-label="Close">
+          <button className="close-btn" onClick={forceClose} type="button" aria-label={t('askCoachChat.ariaClose')}>
             <X size={20} />
           </button>
         </div>
@@ -803,7 +805,7 @@ function AskCoachChat({ exercise, onClose }) {
               </div>
               <div className="message-bubble typing">
                 <Loader2 size={16} className="spin" />
-                <span>Thinking...</span>
+                <span>{t('askCoachChat.thinking')}</span>
               </div>
             </div>
           )}
@@ -831,7 +833,7 @@ function AskCoachChat({ exercise, onClose }) {
           <input
             ref={inputRef}
             type="text"
-            placeholder="Ask about form, alternatives, tips..."
+            placeholder={t('askCoachChat.inputPlaceholder')}
             value={input}
             onChange={e => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
@@ -844,7 +846,7 @@ function AskCoachChat({ exercise, onClose }) {
               onClick={toggleVoiceInput}
               disabled={loading}
               type="button"
-              title={isRecording ? 'Stop recording' : 'Voice input'}
+              title={isRecording ? t('askCoachChat.voiceStop') : t('askCoachChat.voiceStart')}
             >
               <Mic size={18} />
             </button>
