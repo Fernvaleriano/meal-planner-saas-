@@ -6,6 +6,7 @@ import { apiGet, apiPost } from '../utils/api';
 import { supabase } from '../utils/supabase';
 import { usePullToRefreshEvent } from '../hooks/usePullToRefreshEvent';
 import { onAppResume } from '../hooks/useAppLifecycle';
+import { getDateLocale } from '../utils/dateLocale';
 
 import { useToast } from '../components/Toast';
 import { useLanguage } from '../context/LanguageContext';
@@ -32,6 +33,48 @@ const REACTION_EMOJIS = ['❤️', '💪', '🔥', '👏', '😂', '👍'];
 // new reactable surfaces (measurements, weigh-in, gym check-in, etc.) all
 // match without having to update the regex each time.
 const REACTION_NOTIFICATION_RE = /^Reacted\s+\S.*?\s+to\s+your\s+/i;
+
+// The server sends coach reactions as plain "Reacted {emoji} to {subject}"
+// chat messages in English. For Spanish clients we re-render them on the
+// client (the server doesn't know the client's language — it's per-device).
+// The subject vocabulary is bounded by react-to-activity.js's shortLabel
+// formats. Callers only invoke this when language === 'es', so English clients
+// are completely unaffected; unknown subjects fall back to the original text.
+const translateReactionSubject = (subject, t) => {
+  const s = subject.trim();
+  let m;
+  if ((m = s.match(/^your measurement of (.+)$/i)))   return t('messagesPage.reactSubjMeasurementOf', { value: m[1] });
+  if ((m = s.match(/^your check-in \((.+)\)$/i)))      return t('messagesPage.reactSubjCheckinDetail', { detail: m[1] });
+  if ((m = s.match(/^your "(.+)" workout$/i)))         return t('messagesPage.reactSubjNamedWorkout', { name: m[1] });
+  if ((m = s.match(/^your new PR \((.+)\)$/i)))        return t('messagesPage.reactSubjNewPrDetail', { detail: m[1] });
+  if ((m = s.match(/^your voice note on (.+)$/i)))     return t('messagesPage.reactSubjVoiceNoteOn', { exercise: m[1] });
+  if ((m = s.match(/^your note on (.+)$/i)))           return t('messagesPage.reactSubjNoteOn', { exercise: m[1] });
+  if ((m = s.match(/^your (.+) gym check-in$/i)))      return t('messagesPage.reactSubjGymCheckinDetail', { detail: m[1] });
+  const exact = {
+    'your workout': 'reactSubjWorkout',
+    'your completed workout': 'reactSubjWorkout',
+    'your measurements': 'reactSubjMeasurements',
+    'your logged measurements': 'reactSubjMeasurements',
+    'your weigh-in': 'reactSubjWeighIn',
+    'your gym check-in': 'reactSubjGymCheckin',
+    'your check-in': 'reactSubjCheckin',
+    'your weekly check-in': 'reactSubjCheckinWeekly',
+    'your progress photo': 'reactSubjProgressPhoto',
+    'your pr': 'reactSubjPr',
+    'your new pr': 'reactSubjNewPr',
+    'your workout note': 'reactSubjWorkoutNote',
+  };
+  const key = exact[s.toLowerCase()];
+  if (key) return t('messagesPage.' + key);
+  if ((m = s.match(/^your (.+) photo$/i)))             return t('messagesPage.reactSubjTypedPhoto', { type: m[1] });
+  return subject; // graceful fallback
+};
+
+const translateReactionMessage = (text, t) => {
+  const m = text.match(/^Reacted\s+(.+?)\s+to\s+(your\b[\s\S]*)$/i);
+  if (!m) return text;
+  return t('messagesPage.reactedTo', { emoji: m[1], subject: translateReactionSubject(m[2], t) });
+};
 
 // Coach replies are sent in the format:
 //   Re: <subject> — "<quoted excerpt>" — <reply text>
@@ -64,7 +107,7 @@ function Messages() {
   const { user, clientData } = useAuth();
   const location = useLocation();
   const { showError, showSuccess } = useToast();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const isCoach = clientData?.is_coach === true;
   const coachId = isCoach ? user?.id : null;
   const clientId = clientData?.id;
@@ -830,19 +873,19 @@ function Messages() {
     const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
 
     if (diffDays === 0) {
-      return date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+      return date.toLocaleTimeString(getDateLocale(), { hour: 'numeric', minute: '2-digit' });
     } else if (diffDays === 1) {
       return t('messagesPage.yesterday');
     } else if (diffDays < 7) {
-      return date.toLocaleDateString([], { weekday: 'short' });
+      return date.toLocaleDateString(getDateLocale(), { weekday: 'short' });
     }
-    return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+    return date.toLocaleDateString(getDateLocale(), { month: 'short', day: 'numeric' });
   };
 
   // Format message time
   const formatMessageTime = (dateStr) => {
     const date = new Date(dateStr);
-    return date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+    return date.toLocaleTimeString(getDateLocale(), { hour: 'numeric', minute: '2-digit' });
   };
 
   // Group messages by date
@@ -851,7 +894,7 @@ function Messages() {
     let currentDate = null;
 
     msgs.forEach(msg => {
-      const msgDate = new Date(msg.created_at).toLocaleDateString([], {
+      const msgDate = new Date(msg.created_at).toLocaleDateString(getDateLocale(), {
         weekday: 'long', month: 'long', day: 'numeric'
       });
       if (msgDate !== currentDate) {
@@ -1092,7 +1135,7 @@ function Messages() {
                         <p className="chat-reply-text">{parsedReply.reply}</p>
                       </>
                     ) : (
-                      msg.message && <p>{msg.message}</p>
+                      msg.message && <p>{isOldReaction && language === 'es' ? translateReactionMessage(msg.message, t) : msg.message}</p>
                     )}
 
                     {/* Time + read receipt */}

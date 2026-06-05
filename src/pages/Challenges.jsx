@@ -6,6 +6,7 @@ import { apiGet, apiPost, apiPut, apiDelete } from '../utils/api';
 import { useToast } from '../components/Toast';
 import { usePullToRefreshEvent } from '../hooks/usePullToRefreshEvent';
 import { useLanguage } from '../context/LanguageContext';
+import { getDateLocale } from '../utils/dateLocale';
 
 // Module-level: store i18n keys instead of hard-coded English so that t()
 // can resolve them at render time inside each component.
@@ -33,7 +34,7 @@ function getTypeConfig(type) {
 
 function formatDate(dateStr) {
   if (!dateStr) return '';
-  return new Date(dateStr + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  return new Date(dateStr + 'T00:00:00').toLocaleDateString(getDateLocale(), { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
 function daysUntil(dateStr) {
@@ -362,7 +363,7 @@ function CreateChallengeForm({ coachId, onClose, onCreated }) {
     // Auto-generate title
     const config = CHALLENGE_TYPES.find(t => t.key === type);
     if (config && !title) {
-      const month = new Date().toLocaleDateString('en-US', { month: 'long' });
+      const month = new Date().toLocaleDateString(getDateLocale(), { month: 'long' });
       setTitle(`${month} ${t(`challengesPage.${config.labelKey}`)} Challenge`);
     }
     setStep(2);

@@ -20,6 +20,7 @@ import { useToast } from '../components/Toast';
 import { parseDurationToSeconds, estimateWorkoutMinutes, estimateWorkoutCalories, clientWeightKg } from '../utils/workoutDuration';
 import { buildWorkedOutDates } from '../utils/workoutEvidence';
 import { usePullToRefresh, PullToRefreshIndicator } from '../hooks/usePullToRefresh';
+import { getDateLocale } from '../utils/dateLocale';
 
 const GymProofModal = React.lazy(() => import('../components/GymProofModal'));
 
@@ -75,7 +76,7 @@ const formatDisplayDate = (date) => {
       return 'Today';
     }
     const options = { weekday: 'long', month: 'short', day: 'numeric' };
-    return date.toLocaleDateString('en-US', options);
+    return date.toLocaleDateString(getDateLocale(), options);
   } catch {
     return 'Today';
   }
@@ -2980,7 +2981,7 @@ function Workouts() {
       if (isScheduled) {
         // Show success feedback for scheduled workout
         if (typeof showSuccess === 'function') {
-          showSuccess(`"${workoutName}" scheduled for ${new Date(dateStr + 'T12:00:00').toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}`);
+          showSuccess(`"${workoutName}" scheduled for ${new Date(dateStr + 'T12:00:00').toLocaleDateString(getDateLocale(), { weekday: 'short', month: 'short', day: 'numeric' })}`);
         }
       }
       refreshWeekSchedule();
@@ -3027,7 +3028,7 @@ function Workouts() {
 
       if (res?.success) {
         if (typeof showSuccess === 'function') {
-          const startStr = new Date(startDate + 'T12:00:00').toLocaleDateString(undefined, {
+          const startStr = new Date(startDate + 'T12:00:00').toLocaleDateString(getDateLocale(), {
             weekday: 'short', month: 'short', day: 'numeric'
           });
           showSuccess(`"${program.name}" scheduled! Starting ${startStr}, ${selectedDays.length} days/week`);
@@ -6268,7 +6269,7 @@ function Workouts() {
                 workoutHistory.map((log, idx) => (
                   <div key={log.id || idx} className={`history-item ${log.status}`}>
                     <div className="history-date">
-                      {new Date(log.workout_date || log.created_at).toLocaleDateString('en-US', {
+                      {new Date(log.workout_date || log.created_at).toLocaleDateString(getDateLocale(), {
                         weekday: 'short',
                         month: 'short',
                         day: 'numeric'

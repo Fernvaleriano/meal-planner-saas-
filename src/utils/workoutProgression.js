@@ -1,5 +1,6 @@
 // Shared workout progression engine
 // Used by both ExerciseDetailModal and GuidedWorkoutModal for consistent coaching suggestions
+import { getDateLocale } from './dateLocale';
 
 // Effort level options (user-friendly RIR / RPE)
 export const EFFORT_OPTIONS = [
@@ -225,7 +226,7 @@ export const generateProgression = ({ previousSessions, exercise, weightUnit, la
 
   // --- Format date ---
   const dateLabel = lastDateObj
-    ? lastDateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+    ? lastDateObj.toLocaleDateString(getDateLocale(), { month: 'short', day: 'numeric' })
     : 'last session';
 
   // --- Prescribed sets ---

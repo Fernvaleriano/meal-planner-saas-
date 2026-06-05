@@ -6,6 +6,7 @@ import { apiGet, apiPost } from '../utils/api';
 import { usePullToRefreshEvent } from '../hooks/usePullToRefreshEvent';
 import { useToast } from '../components/Toast';
 import { useLanguage } from '../context/LanguageContext';
+import { getDateLocale } from '../utils/dateLocale';
 import BadgeCelebrationModal from '../components/BadgeCelebrationModal';
 import {
   getEarnedTiers,
@@ -349,7 +350,7 @@ function CheckIn() {
                       <div key={idx} className="checkin-entry">
                         <div className="checkin-entry-header">
                           <span className="checkin-date">
-                            {new Date(entry.checkin_date || entry.created_at).toLocaleDateString('en-US', {
+                            {new Date(entry.checkin_date || entry.created_at).toLocaleDateString(getDateLocale(), {
                               weekday: 'short',
                               month: 'short',
                               day: 'numeric'

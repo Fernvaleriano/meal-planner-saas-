@@ -13,6 +13,7 @@ import BadgeIcon from '../components/BadgeIcon';
 import { useToast } from '../components/Toast';
 import CoachReactionBadge from '../components/CoachReactionBadge';
 import { useClientReactions } from '../hooks/useClientReactions';
+import { getDateLocale } from '../utils/dateLocale';
 // Get today's date in local timezone (NOT UTC)
 const getLocalDateString = () => {
   const now = new Date();
@@ -620,7 +621,7 @@ function Progress() {
     const visibleEntries = entries.slice(0, 30);
 
     const formatDate = (iso) =>
-      new Date(iso + 'T00:00:00').toLocaleDateString('en-US', {
+      new Date(iso + 'T00:00:00').toLocaleDateString(getDateLocale(), {
         month: 'short', day: 'numeric', year: 'numeric'
       });
 
@@ -924,7 +925,7 @@ function Progress() {
                             className="photo-delete-btn"
                             onClick={(e) => {
                               e.stopPropagation();
-                              const dateStr = new Date(photo.taken_date || photo.date_taken).toLocaleDateString();
+                              const dateStr = new Date(photo.taken_date || photo.date_taken).toLocaleDateString(getDateLocale());
                               if (window.confirm(t('progressPage.deletePhotoConfirm', { date: dateStr }))) {
                                 handleDeletePhoto(photo.id);
                               }
@@ -934,7 +935,7 @@ function Progress() {
                           </button>
                         )}
                         <div className="photo-date-overlay">
-                          {new Date(photo.taken_date || photo.date_taken).toLocaleDateString()}
+                          {new Date(photo.taken_date || photo.date_taken).toLocaleDateString(getDateLocale())}
                         </div>
                       </div>
                     );
@@ -1347,7 +1348,7 @@ function Progress() {
                 <div key={photo.id} className="comparison-photo-card">
                   <div className="comparison-photo-label">
                     <strong>{i === 0 ? t('progressPage.labelBefore') : t('progressPage.labelAfter')}</strong>
-                    {new Date(photo.taken_date || photo.date_taken).toLocaleDateString()}
+                    {new Date(photo.taken_date || photo.date_taken).toLocaleDateString(getDateLocale())}
                   </div>
                   <img src={photo.url || photo.photo_url} alt={i === 0 ? t('progressPage.labelBefore') : t('progressPage.labelAfter')} />
                   <div className="comparison-photo-badge">

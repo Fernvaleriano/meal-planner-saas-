@@ -4,6 +4,7 @@ import { apiGet } from '../../utils/api';
 import SmartThumbnail from './SmartThumbnail';
 import { estimateWorkoutMinutes, estimateWorkoutCalories } from '../../utils/workoutDuration';
 import { useLanguage } from '../../context/LanguageContext';
+import { getDateLocale } from '../../utils/dateLocale';
 
 // Maps category keys to translation keys in the clubWorkouts namespace.
 const CATEGORY_LABEL_KEYS = {
@@ -572,7 +573,7 @@ function ClubWorkoutsModal({ onClose, onSelectWorkout, onScheduleProgram, coachI
                   {t('clubWorkouts.endsOn', { date: (() => {
                     const end = new Date(scheduleStartDate + 'T12:00:00');
                     end.setDate(end.getDate() + (numberOfWeeks * 7) - 1);
-                    return end.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+                    return end.toLocaleDateString(getDateLocale(), { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
                   })() })}
                 </p>
               )}
@@ -616,9 +617,9 @@ function ClubWorkoutsModal({ onClose, onSelectWorkout, onScheduleProgram, coachI
                   </span>
                   {scheduleStartDate && (
                     <span className="schedule-summary-detail">
-                      {t('clubWorkouts.starting', { date: new Date(scheduleStartDate + 'T12:00:00').toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' }) })}
+                      {t('clubWorkouts.starting', { date: new Date(scheduleStartDate + 'T12:00:00').toLocaleDateString(getDateLocale(), { weekday: 'long', month: 'long', day: 'numeric' }) })}
                       {scheduleInfo.endDate && (
-                        <>{t('clubWorkouts.ends', { date: scheduleInfo.endDate.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' }) })}</>
+                        <>{t('clubWorkouts.ends', { date: scheduleInfo.endDate.toLocaleDateString(getDateLocale(), { weekday: 'long', month: 'long', day: 'numeric' }) })}</>
                       )}
                     </span>
                   )}

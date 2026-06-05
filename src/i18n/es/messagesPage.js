@@ -62,4 +62,26 @@ export default {
   // Internal thrown error messages (caught and shown to user)
   errorGetUploadUrl: 'No se pudo obtener la URL de carga',
   errorUploadStorage: 'No se pudo subir el archivo al almacenamiento',
+
+  // Coach-reaction chat pills ("Reacted {emoji} to {subject}"), re-rendered
+  // in Spanish on the client.
+  reactedTo: 'Reaccionó {emoji} a {subject}',
+  reactSubjMeasurementOf: 'tu medición de {value}',
+  reactSubjCheckinDetail: 'tu control ({detail})',
+  reactSubjNamedWorkout: 'tu entrenamiento "{name}"',
+  reactSubjNewPrDetail: 'tu nuevo récord ({detail})',
+  reactSubjVoiceNoteOn: 'tu nota de voz sobre {exercise}',
+  reactSubjNoteOn: 'tu nota sobre {exercise}',
+  reactSubjGymCheckinDetail: 'tu registro en el gimnasio de {detail}',
+  reactSubjTypedPhoto: 'tu foto de {type}',
+  reactSubjWorkout: 'tu entrenamiento',
+  reactSubjMeasurements: 'tus mediciones',
+  reactSubjWeighIn: 'tu pesaje',
+  reactSubjGymCheckin: 'tu registro en el gimnasio',
+  reactSubjCheckin: 'tu control',
+  reactSubjCheckinWeekly: 'tu control semanal',
+  reactSubjProgressPhoto: 'tu foto de progreso',
+  reactSubjPr: 'tu récord',
+  reactSubjNewPr: 'tu nuevo récord',
+  reactSubjWorkoutNote: 'tu nota de entrenamiento',
 };

@@ -3,6 +3,7 @@ import { X, MessageCircle, ExternalLink, Send } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '../context/LanguageContext';
 import { apiPost } from '../utils/api';
+import { getDateLocale } from '../utils/dateLocale';
 
 function NotificationDetail({ notification, clientId, onClose, onReplySuccess }) {
   const navigate = useNavigate();
@@ -20,7 +21,7 @@ function NotificationDetail({ notification, clientId, onClose, onReplySuccess })
   const formatDate = (dateStr) => {
     if (!dateStr) return '';
     const date = new Date(dateStr);
-    return date.toLocaleDateString('en-US', {
+    return date.toLocaleDateString(getDateLocale(), {
       weekday: 'long',
       month: 'short',
       day: 'numeric'
