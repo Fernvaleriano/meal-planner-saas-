@@ -348,6 +348,31 @@ A partial React rebuild exists in `src/` but is **not the primary codebase**. So
 
 ## Default Workout Template Format
 
+### ⛔ NEVER BUILD A WORKOUT WITHOUT EXERCISE `id`s — IT SHOWS UP EMPTY (READ FIRST)
+**If you create or assign a workout for the founder/a client, EVERY exercise
+object MUST include the numeric `id` from the `exercises` table. No exceptions.**
+
+- The CLIENT app (`src/pages/Workouts.jsx`) filters out any exercise that lacks
+  an `id` (`getWorkoutExercises` → `.filter(ex => ex && ex.id)`). An exercise
+  with a perfect name + video + thumbnail but NO `id` is invisible to the
+  client. A whole workout of such exercises shows as **"0/0 activities" /
+  completely empty** even though it looks full in the coach builder (the builder
+  keys off name/thumbnail, so it renders fine — DO NOT trust the builder view as
+  proof the client will see it).
+- This bit a real prenatal program (June 2026): I hand-built it in template
+  format with names + media but no `id`, so it was empty in both the client's
+  and the founder's accounts. **Do not ever do this again.**
+- HOW TO DO IT RIGHT: resolve each exercise name against the `exercises` table
+  and copy its real `id` onto the exercise object (the seed function does this
+  correctly at `seed-default-workouts.js` → `id: dbMatch.id`). If you insert a
+  program/assignment directly via SQL/MCP, you MUST look up and attach `id` for
+  every exercise. Names that don't exist in the `exercises` table can't get an
+  `id` — pick a name that DOES exist, or the exercise will never show.
+- SAFETY NET (don't rely on it as an excuse to skip ids): `workout-assignments.js`
+  GET-by-date runs `backfillExerciseIdsByName` to re-attach missing ids by name
+  on load. It only helps when the name exactly matches a library exercise. Build
+  it right at the source anyway.
+
 ### File Location
 `netlify/functions/seed-default-workouts.js` — contains `DEFAULT_PROGRAMS` array. Also update `cleanup-default-workouts.js` if renaming/removing templates.
 
