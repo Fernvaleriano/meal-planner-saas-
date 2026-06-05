@@ -1662,7 +1662,7 @@ function Diary() {
         setSelectedAIMealType(getDefaultMealType());
         setAiMessages(prev => [...prev, {
           role: 'assistant',
-          content: data.parsed.confirmation || `Ready to log ${data.parsed.food_name}:`,
+          content: data.parsed.confirmation || t('diaryPage.readyToLogFood', { name: data.parsed.food_name }),
           pendingFood: data.parsed
         }]);
       } else {
@@ -1699,7 +1699,7 @@ function Diary() {
       protein: food.protein,
       carbs: food.carbs,
       fat: food.fat,
-      confirmation: `Ready to log ${food.name}:`
+      confirmation: t('diaryPage.readyToLogFood', { name: food.name })
     });
     setSelectedAIMealType(getDefaultMealType());
   };
@@ -1707,27 +1707,27 @@ function Diary() {
   // Get recipe details
   const getFoodDetails = (food) => {
     setSelectedSuggestion(null);
-    setAiInput(`What's in the ${food.name}? Give me the recipe or ingredients.`);
-    setTimeout(() => handleAiChat(`What's in the ${food.name}? Give me the recipe or ingredients.`), 100);
+    setAiInput(t('diaryPage.aiPromptGetDetails', { name: food.name }));
+    setTimeout(() => handleAiChat(t('diaryPage.aiPromptGetDetails', { name: food.name })), 100);
   };
 
   // Revise food suggestion
   const reviseFoodSuggestion = (food) => {
     setSelectedSuggestion(null);
-    setAiInput(`I want to adjust the ${food.name}. Can you help me revise the portion size or ingredients?`);
+    setAiInput(t('diaryPage.aiPromptRevise', { name: food.name }));
     if (aiInputRef.current) aiInputRef.current.focus();
   };
 
   // Request more ideas
   const requestMoreIdeas = () => {
-    let query = 'Give me different food options';
+    let query = t('diaryPage.aiPromptMoreIdeasDefault');
     switch (suggestionContext) {
-      case 'protein': query = 'Give me more high-protein food options'; break;
-      case 'dinner': query = 'Give me more dinner ideas'; break;
-      case 'snack': query = 'Give me more snack ideas'; break;
-      case 'lunch': query = 'Give me more lunch ideas'; break;
-      case 'breakfast': query = 'Give me more breakfast ideas'; break;
-      default: query = 'Give me different food options';
+      case 'protein': query = t('diaryPage.aiPromptMoreIdeasProtein'); break;
+      case 'dinner': query = t('diaryPage.aiPromptMoreIdeasDinner'); break;
+      case 'snack': query = t('diaryPage.aiPromptMoreIdeasSnack'); break;
+      case 'lunch': query = t('diaryPage.aiPromptMoreIdeasLunch'); break;
+      case 'breakfast': query = t('diaryPage.aiPromptMoreIdeasBreakfast'); break;
+      default: query = t('diaryPage.aiPromptMoreIdeasDefault');
     }
     setAiInput(query);
     setTimeout(() => handleAiChat(query), 100);
@@ -2975,7 +2975,7 @@ function Diary() {
                   {/* Pending food log confirmation */}
                   {pendingFoodLog && (
                     <div className="ai-modal-message assistant food-log">
-                      {pendingFoodLog.confirmation || 'Ready to log this food:'}
+                      {pendingFoodLog.confirmation || t('diaryPage.readyToLogThisFood')}
                       <div className="ai-food-log-preview">
                         <div className="food-name">{pendingFoodLog.food_name}</div>
                         <div className="food-macros">

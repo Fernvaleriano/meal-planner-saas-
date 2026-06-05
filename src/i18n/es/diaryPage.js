@@ -303,4 +303,20 @@ export default {
   weeklyDaysLoggedTitle: 'Días registrados esta semana',
   weeklyChartBarTitle: '{day}: {calories} cal',
   weeklyChartBarEmpty: '{day}: sin datos',
+
+  // AI food detail / revision prompts (dynamic — include food name)
+  aiPromptGetDetails: '¿Qué lleva el/la {name}? Dame la receta o los ingredientes.',
+  aiPromptRevise: 'Quiero ajustar el/la {name}. ¿Puedes ayudarme a revisar el tamaño de la porción o los ingredientes?',
+
+  // "More ideas" prompts
+  aiPromptMoreIdeasDefault: 'Dame opciones de alimentos diferentes',
+  aiPromptMoreIdeasProtein: 'Dame más opciones de alimentos con alto contenido de proteína',
+  aiPromptMoreIdeasDinner: 'Dame más ideas para cenar',
+  aiPromptMoreIdeasSnack: 'Dame más ideas de merienda',
+  aiPromptMoreIdeasLunch: 'Dame más ideas para el almuerzo',
+  aiPromptMoreIdeasBreakfast: 'Dame más ideas para el desayuno',
+
+  // AI chat — food confirmation labels
+  readyToLogFood: 'Listo para registrar {name}:',
+  readyToLogThisFood: 'Listo para registrar este alimento:',
 };

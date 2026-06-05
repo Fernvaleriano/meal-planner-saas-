@@ -307,4 +307,16 @@ export default {
   // AI food detail / revision prompts (dynamic — include food name)
   aiPromptGetDetails: "What's in the {name}? Give me the recipe or ingredients.",
   aiPromptRevise: 'I want to adjust the {name}. Can you help me revise the portion size or ingredients?',
+
+  // "More ideas" prompts
+  aiPromptMoreIdeasDefault: 'Give me different food options',
+  aiPromptMoreIdeasProtein: 'Give me more high-protein food options',
+  aiPromptMoreIdeasDinner: 'Give me more dinner ideas',
+  aiPromptMoreIdeasSnack: 'Give me more snack ideas',
+  aiPromptMoreIdeasLunch: 'Give me more lunch ideas',
+  aiPromptMoreIdeasBreakfast: 'Give me more breakfast ideas',
+
+  // AI chat — food confirmation labels
+  readyToLogFood: 'Ready to log {name}:',
+  readyToLogThisFood: 'Ready to log this food:',
 };
