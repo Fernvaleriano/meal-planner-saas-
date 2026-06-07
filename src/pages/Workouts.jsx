@@ -842,7 +842,19 @@ function Workouts() {
       }
     } catch { /* ignore */ }
     try {
-      const target = `/app/workouts?_zsr=${Date.now()}`;
+      // Carry the date the client was on through the reload. Without this the
+      // post-reload page defaults selectedDate back to today, so a workout
+      // scheduled for any OTHER day can't be found in today's list — the
+      // auto-reopen effect never matches the target, and the resume identity
+      // check (which keys on dateStr) also fails. Result: the client is
+      // bounced to the calendar instead of resuming. The post-reload effect
+      // already knows how to honor `?date=YYYY-MM-DD`; we just have to send it.
+      const activeWorkout = todayWorkoutRef.current;
+      const reloadDateStr = activeWorkout?.workout_date || formatDate(selectedDateRef.current);
+      const dateParam = (reloadDateStr && /^\d{4}-\d{2}-\d{2}$/.test(reloadDateStr))
+        ? `&date=${reloadDateStr}`
+        : '';
+      const target = `/app/workouts?_zsr=${Date.now()}${dateParam}`;
       window.location.assign(target);
     } catch {
       try { window.location.reload(); } catch { /* ignore */ }
