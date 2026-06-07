@@ -10799,11 +10799,11 @@
 
                 const isSelected = selectedExercises.has(ex.id || ex.name);
                 return `
-                <div class="exercise-card${isSelected ? ' selected' : ''}" data-exercise-id="${ex.id || ''}" data-exercise-name="${ex.name}" onclick='toggleExerciseSelection(${JSON.stringify(ex).replace(/'/g, "\\'")})'>
+                <div class="exercise-card${isSelected ? ' selected' : ''}" data-exercise-id="${ex.id || ''}" data-exercise-name="${ex.name}" onclick="toggleExerciseSelection(${JSON.stringify(ex).replace(/"/g, '&quot;')})">
                     <div class="exercise-card-check">
                         <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 6l3 3 5-5"/></svg>
                     </div>
-                    <div class="exercise-thumb-container" onclick="event.stopPropagation(); openExercisePreview(${JSON.stringify(ex).replace(/'/g, "\\'")})">
+                    <div class="exercise-thumb-container" onclick="event.stopPropagation(); openExercisePreview(${JSON.stringify(ex).replace(/"/g, '&quot;')})">
                         ${mediaElement}
                         ${hasVideo ? '<div class="video-indicator">▶</div>' : ''}
                         <button class="edit-thumb-btn ${hasThumbnail ? '' : 'no-thumb'}" onclick="event.stopPropagation(); openThumbnailModal(${JSON.stringify(ex).replace(/"/g, '&quot;')})" title="${hasThumbnail ? 'Change thumbnail' : 'Add thumbnail'}">

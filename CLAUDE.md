@@ -420,3 +420,33 @@ A partial React rebuild exists in `src/` but is **not the primary codebase**. So
 2. Exercise names must exist in the `exercises` table **with exact case matching** (the seed function looks them up to attach video/thumbnail URLs)
 3. The `CURRENT_DEFAULT_PROGRAM_NAMES` array auto-updates from `DEFAULT_PROGRAMS`
 4. Existing coaches who already have the template (by name) will NOT get a duplicate
+
+### ⚠️ "LOAD IT INTO MY BUILDER" = DIRECT DB INSERT, NOT JUST THE SEED FILE (DO THIS EVERY TIME)
+When the founder says *"load it into my workout builder like you always do,"*
+editing `seed-default-workouts.js` is **NOT enough** — that only takes effect
+after the code is deployed live AND the page is reloaded, so the template will
+NOT actually appear in his builder. He means: **make it show up in his builder
+right now.** So after adding the program to the seed file, you MUST ALSO insert
+it directly into his coach account via the Supabase MCP (`execute_sql`):
+- **His coach account:** `coaches.email = 'contact@ziquefitness.com'`,
+  `coach_id = ab3acf54-0499-46b7-b130-63e836e70503` (name "Ziquecoach", the
+  master/admin account). Confirm the id by email each time in case it changes.
+- **Insert into `workout_programs`** with `coach_id` above, `is_template: true`,
+  `is_published: false`, `is_club_workout: false`, plus name/description/
+  program_type/difficulty/days_per_week/program_data.
+- **Enrich exactly like the seeder does:** for every exercise, look it up in
+  `exercises` (globals `coach_id IS NULL` take priority, then his customs),
+  case-insensitive on name, and attach `id`, `video_url`, `animation_url`,
+  `thumbnail_url`, `muscle_group`, `equipment`, and overwrite `name` with the
+  exact DB casing. An exercise WITHOUT these enriched fields shows up with no
+  video/thumbnail — that's the failure the founder keeps catching.
+- **Do the enrichment + insert in ONE `execute_sql`** so the big program_data
+  JSON never has to be hand-retyped: generate it with a small node script
+  (read `DEFAULT_PROGRAMS`, dollar-quote the raw `program_data`, then a SQL CTE
+  joins to `exercises` and rebuilds the days). Pattern lives in this session's
+  history (program #448, "Upper Lower Split - Full Gym (4 Day)", June 2026).
+- **Verify after insert:** `RETURNING` the day count, total exercise count, and
+  count of exercises with an `id`/`video_url` — they must be equal (e.g. 53/53).
+  If `matched < total`, an exercise name is wrong (didn't match the library).
+- Skip the insert only if that template name already exists for his coach_id
+  (avoid duplicates).
