@@ -24,6 +24,11 @@ response, every chat, forever — not just technical ones.
 If you find yourself writing a wall of text with code blocks and
 headers in a casual conversation — stop, delete, rewrite plain.
 
+- **ALWAYS put GPT / image / any copy-paste prompt inside a code block
+  (copy-paste box) — every time, no exceptions.** The founder copies
+  these straight into ChatGPT, so they must be one clean fenced block he
+  can tap to copy, not loose text mixed into the reply.
+
 ## ⚠️ OPERATIONAL REMINDERS — ACTION REQUIRED (read me)
 
 - **DECISION (May 2026): WEB-ONLY. Native / App Store is intentionally
