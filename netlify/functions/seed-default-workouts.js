@@ -712,6 +712,39 @@ const DEFAULT_PROGRAMS = [
       }
 
     ]}
+  },
+  {
+    name: 'Shoulder Therapy & Strengthening (Daily)',
+    description: 'Rehab / prehab | Daily | ~20 min | Rotator cuff + scapular stability + stretches',
+    program_type: 'flexibility',
+    difficulty: 'beginner',
+    days_per_week: 7,
+    program_data: { days: [
+      {
+        name: 'Day 1 — Shoulder Therapy',
+        exercises: [
+          // WARM-UP
+          { name: 'Arm circle', sets: 1, trackingType: 'time', duration: 30, setsData: [{ duration: 30, restSeconds: 10 }], notes: 'WARM-UP — 15 sec forward, 15 sec backward. Slow and controlled.', section: 'warm-up' },
+          { name: 'shoulder circle', sets: 1, trackingType: 'time', duration: 30, setsData: [{ duration: 30, restSeconds: 10 }], notes: 'WARM-UP — Roll shoulders forward 15 sec, then backward 15 sec. Loosen up.', section: 'warm-up' },
+          { name: 'Arm swing side to side', sets: 1, trackingType: 'time', duration: 30, setsData: [{ duration: 30, restSeconds: 10 }], notes: 'WARM-UP — Gentle swings across the body. Let momentum do the work.', section: 'warm-up' },
+
+          // MAIN — Rotator cuff & scapular stability
+          { name: 'Dumbbell External Rotation', sets: 2, trackingType: 'reps', setsData: [{ reps: 15, restSeconds: 30 }, { reps: 15, restSeconds: 30 }], notes: 'Light weight only. Elbow pinned at 90°, rotate outward slowly. Key rotator cuff exercise.' },
+          { name: 'Dumbbell Lying External Shoulder Rotation', sets: 2, trackingType: 'reps', setsData: [{ reps: 12, restSeconds: 30 }, { reps: 12, restSeconds: 30 }], notes: 'Lie on your side, elbow on hip. Rotate the weight up slowly — 2 sec up, 2 sec down. Very light.' },
+          { name: 'Resistance Band Pull Apart', sets: 3, trackingType: 'reps', setsData: [{ reps: 15, restSeconds: 30 }, { reps: 15, restSeconds: 30 }, { reps: 15, restSeconds: 30 }], notes: 'Arms straight out front, pull band apart squeezing shoulder blades together. Pause at the end.' },
+          { name: 'Cable Face Pull With Rope', sets: 3, trackingType: 'reps', setsData: [{ reps: 15, restSeconds: 45 }, { reps: 15, restSeconds: 45 }, { reps: 15, restSeconds: 45 }], notes: 'Pull to face level, elbows high and wide. Squeeze rear delts at the top. Light weight, perfect form.' },
+          { name: 'Dumbbell Seated Lateral Raise', sets: 2, trackingType: 'reps', setsData: [{ reps: 12, restSeconds: 45 }, { reps: 12, restSeconds: 45 }], notes: 'Very light dumbbells. Raise to shoulder height only — no higher. Slow controlled reps.' },
+          { name: 'Standing Y Raise', sets: 2, trackingType: 'reps', setsData: [{ reps: 12, restSeconds: 30 }, { reps: 12, restSeconds: 30 }], notes: 'Thumbs up, raise arms into a Y shape overhead. Strengthens lower traps and scapular stabilizers.' },
+          { name: 'Scapula Push Up', sets: 2, trackingType: 'reps', setsData: [{ reps: 12, restSeconds: 30 }, { reps: 12, restSeconds: 30 }], notes: 'Plank position, arms locked. Push shoulder blades apart, then squeeze together. Small controlled movement.' },
+
+          // COOL-DOWN STRETCHES
+          { name: 'Across chest shoulder stretch', sets: 1, trackingType: 'time', duration: 30, setsData: [{ duration: 30, restSeconds: 0 }], notes: 'COOL-DOWN — 15 sec per arm. Gentle pull, no forcing.', section: 'cool-down' },
+          { name: 'Arms Behind Back Shoulder Flexor Stretch', sets: 1, trackingType: 'time', duration: 30, setsData: [{ duration: 30, restSeconds: 0 }], notes: 'COOL-DOWN — Clasp hands behind back, lift gently. Opens up the front of the shoulders.', section: 'cool-down' },
+          { name: 'Cross Body Shoulder Stretch', sets: 1, trackingType: 'time', duration: 30, setsData: [{ duration: 30, restSeconds: 0 }], notes: 'COOL-DOWN — Pull arm across body. 15 sec each side. Breathe deeply.', section: 'cool-down' },
+          { name: 'reaching up shoulder stretch', sets: 1, trackingType: 'time', duration: 30, setsData: [{ duration: 30, restSeconds: 0 }], notes: 'COOL-DOWN — Reach overhead and gently pull one arm with the other. Hold and breathe.', section: 'cool-down' }
+        ]
+      }
+    ]}
   }
 ];
 
