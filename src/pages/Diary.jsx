@@ -2276,7 +2276,7 @@ function Diary() {
     useEffect(() => {
       if (isHighlighted && entryRef.current) {
         setTimeout(() => {
-          entryRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          entryRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }, 100);
       }
     }, [isHighlighted]);
