@@ -7838,33 +7838,45 @@ async function uploadMealVoiceNote(dayIndex, mealIndex, audioBlob) {
             throw new Error('Failed to upload voice note to storage');
         }
 
-        // Step 3: Get a signed view URL
-        const signedUrlResult = await apiPost('/.netlify/functions/get-signed-video-url', {
-            filePath: uploadUrlResult.filePath
-        });
-
-        if (signedUrlResult.success) {
-            // Store voice note URL in meal data
-            if (lastPlanQuery.currentPlan && lastPlanQuery.currentPlan[dayIndex] && lastPlanQuery.currentPlan[dayIndex].plan[mealIndex]) {
-                lastPlanQuery.currentPlan[dayIndex].plan[mealIndex].voice_note_url = signedUrlResult.url;
-                lastPlanQuery.currentPlan[dayIndex].plan[mealIndex].voice_note_path = uploadUrlResult.filePath;
-            }
-
-            // Save to database if plan exists
-            if (lastPlanQuery.planId) {
-                await apiPost(UPDATE_PLAN_NOTES_ENDPOINT, {
-                    planId: lastPlanQuery.planId,
-                    coachId: currentCoach.id,
-                    planData: lastPlanQuery
-                });
-            }
-
-            // Re-render to show the audio player
-            displayDietPlan(lastPlanQuery.currentPlan);
-            showToast('Voice note saved!', 'success');
-        } else {
-            throw new Error('Failed to get voice note URL');
+        // The file is now in storage. Attach it to the meal using the storage
+        // PATH — that's all the client and coach players need (both build a
+        // never-expiring proxy URL from the path). Do this FIRST and
+        // unconditionally so a hiccup in the optional signed-URL step below can
+        // never orphan an already-uploaded recording (previously a failed
+        // signed-URL lookup threw the note away and the plan went out silent).
+        const targetMeal = lastPlanQuery.currentPlan
+            && lastPlanQuery.currentPlan[dayIndex]
+            && lastPlanQuery.currentPlan[dayIndex].plan
+            && lastPlanQuery.currentPlan[dayIndex].plan[mealIndex];
+        if (!targetMeal) {
+            throw new Error('Could not find the meal to attach the voice note to. Please try again.');
         }
+        targetMeal.voice_note_path = uploadUrlResult.filePath;
+
+        // Step 3 (best-effort): a signed view URL is a nicety only. If it fails
+        // we still have the path, so never block on it.
+        try {
+            const signedUrlResult = await apiPost('/.netlify/functions/get-signed-video-url', {
+                filePath: uploadUrlResult.filePath
+            });
+            targetMeal.voice_note_url = (signedUrlResult && signedUrlResult.success) ? signedUrlResult.url : null;
+        } catch (signErr) {
+            console.warn('Voice note signed-URL lookup failed (using path proxy instead):', signErr);
+            targetMeal.voice_note_url = null;
+        }
+
+        // Save to database if plan exists
+        if (lastPlanQuery.planId) {
+            await apiPost(UPDATE_PLAN_NOTES_ENDPOINT, {
+                planId: lastPlanQuery.planId,
+                coachId: currentCoach.id,
+                planData: lastPlanQuery
+            });
+        }
+
+        // Re-render to show the audio player
+        displayDietPlan(lastPlanQuery.currentPlan);
+        showToast('Voice note saved!', 'success');
     } catch (err) {
         console.error('Error uploading voice note:', err);
         showToast(err.message || 'Error saving voice note', 'error');
