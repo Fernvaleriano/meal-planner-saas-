@@ -12427,7 +12427,14 @@ async function autoSaveAsTemplate(planQuery, templateName) {
             ingredients: meal.ingredients,
             ingredientData: meal.ingredientData || null,
             instructions: meal.instructions,
-            isCustom: meal.isCustom || false
+            isCustom: meal.isCustom || false,
+            // Carry the coach's note + voice note into the template so they
+            // come along when the template is reused / posted to clients.
+            // voice_note_path is the durable one (client builds its own
+            // never-expiring URL from it); voice_note_url is kept best-effort.
+            coach_note: meal.coach_note || null,
+            voice_note_path: meal.voice_note_path || null,
+            voice_note_url: meal.voice_note_url || null
         }))
     }));
 
@@ -12500,7 +12507,14 @@ async function saveAsTemplate() {
             ingredients: meal.ingredients,
             ingredientData: meal.ingredientData || null,
             instructions: meal.instructions,
-            isCustom: meal.isCustom || false
+            isCustom: meal.isCustom || false,
+            // Carry the coach's note + voice note into the template so they
+            // come along when the template is reused / posted to clients.
+            // voice_note_path is the durable one (client builds its own
+            // never-expiring URL from it); voice_note_url is kept best-effort.
+            coach_note: meal.coach_note || null,
+            voice_note_path: meal.voice_note_path || null,
+            voice_note_url: meal.voice_note_url || null
         }))
     }));
 
