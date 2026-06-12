@@ -13190,6 +13190,84 @@ textarea,
     background: #d97706;
 }
 
+/* Image Prompt Button */
+.meal-action-btn.image-prompt-btn {
+    background: #6366f1;
+    color: white;
+    flex-direction: row;
+    gap: 8px;
+    padding: 14px 20px;
+    width: 100%;
+    justify-content: center;
+    border-radius: 14px;
+}
+
+.meal-action-btn.image-prompt-btn:hover {
+    background: #4f46e5;
+}
+
+.meal-action-btn.image-prompt-btn.loading {
+    opacity: 0.75;
+    cursor: wait;
+}
+
+.meal-image-prompt-section {
+    padding: 0 16px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.image-prompt-box {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+[data-theme="dark"] .image-prompt-box {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.12);
+}
+
+.image-prompt-text {
+    font-size: 0.85rem;
+    line-height: 1.6;
+    color: #334155;
+    margin: 0;
+}
+
+[data-theme="dark"] .image-prompt-text {
+    color: #cbd5e1;
+}
+
+.image-prompt-copy-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    align-self: flex-end;
+    background: #6366f1;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 8px 14px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.image-prompt-copy-btn:hover {
+    background: #4f46e5;
+}
+
+.image-prompt-copy-btn.copied {
+    background: #22c55e;
+}
+
 /* Meal Modal Macros - Compact 4-column layout */
 .meal-modal-macros {
     display: flex;

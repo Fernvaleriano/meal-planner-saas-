@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, Calendar, Flame, Target, Clock, Utensils, Coffee, Sun, Moon, Apple, Heart, ClipboardList, RefreshCw, Pencil, Crosshair, BookOpen, X, Plus, Minus, Trash2, Search, Undo2, RotateCcw, ShoppingCart, ChefHat, FileDown, Check, MessageSquare, Mic, MoreHorizontal } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar, Flame, Target, Clock, Utensils, Coffee, Sun, Moon, Apple, Heart, ClipboardList, RefreshCw, Pencil, Crosshair, BookOpen, X, Plus, Minus, Trash2, Search, Undo2, RotateCcw, ShoppingCart, ChefHat, FileDown, Check, MessageSquare, Mic, MoreHorizontal, Camera, Copy } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { apiGet, apiPost } from '../utils/api';
@@ -146,6 +146,11 @@ function Plans() {
   // Meal image loading state
   const [mealImageLoading, setMealImageLoading] = useState(false);
   const [mealImageUrl, setMealImageUrl] = useState(null);
+
+  // Image prompt state
+  const [imagePrompt, setImagePrompt] = useState(null);
+  const [imagePromptLoading, setImagePromptLoading] = useState(false);
+  const [imagePromptCopied, setImagePromptCopied] = useState(false);
 
   // Undo state management
   const [previousMealStates, setPreviousMealStates] = useState(() => {
@@ -611,6 +616,42 @@ function Plans() {
     setSelectedMeal(null);
     setMealImageUrl(null);
     setMealImageLoading(false);
+    setImagePrompt(null);
+    setImagePromptLoading(false);
+    setImagePromptCopied(false);
+  };
+
+  // Generate an AI food photography prompt for the current meal
+  const handleGenerateImagePrompt = async (meal) => {
+    if (imagePromptLoading) return;
+    setImagePromptLoading(true);
+    setImagePrompt(null);
+    setImagePromptCopied(false);
+    try {
+      const res = await apiPost('/.netlify/functions/generate-image-prompt', {
+        mealName: meal.name,
+        mealType: meal.type || meal.meal_type,
+        ingredients: meal.ingredients || [],
+        calories: meal.calories,
+        protein: meal.protein,
+      });
+      setImagePrompt(res.prompt || '');
+    } catch (err) {
+      showError('Could not generate prompt. Try again.');
+    } finally {
+      setImagePromptLoading(false);
+    }
+  };
+
+  const handleCopyImagePrompt = async () => {
+    if (!imagePrompt) return;
+    try {
+      await navigator.clipboard.writeText(imagePrompt);
+      setImagePromptCopied(true);
+      setTimeout(() => setImagePromptCopied(false), 2500);
+    } catch {
+      showError('Could not copy. Please copy manually.');
+    }
   };
 
   // Toggle favorite - optimistic update for instant response
@@ -2367,6 +2408,34 @@ Keep it practical and brief. Format with clear sections.`;
                   <BookOpen size={18} />
                   <span>{t('plansPage.actionRecipe')}</span>
                 </button>
+              </div>
+
+              {/* Image Prompt Generator */}
+              <div className="meal-image-prompt-section">
+                <button
+                  className={`meal-action-btn image-prompt-btn${imagePromptLoading ? ' loading' : ''}`}
+                  onClick={() => handleGenerateImagePrompt(selectedMeal)}
+                  disabled={imagePromptLoading}
+                >
+                  <Camera size={18} />
+                  <span>{imagePromptLoading ? 'Generating...' : 'Image Prompt'}</span>
+                </button>
+
+                {imagePrompt && (
+                  <div className="image-prompt-box">
+                    <p className="image-prompt-text">{imagePrompt}</p>
+                    <button
+                      className={`image-prompt-copy-btn${imagePromptCopied ? ' copied' : ''}`}
+                      onClick={handleCopyImagePrompt}
+                    >
+                      {imagePromptCopied ? (
+                        <><Check size={15} /> Copied!</>
+                      ) : (
+                        <><Copy size={15} /> Copy Prompt</>
+                      )}
+                    </button>
+                  </div>
+                )}
               </div>
 
               {/* Close Button */}
