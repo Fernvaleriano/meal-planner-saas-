@@ -4608,6 +4608,12 @@ document.addEventListener('DOMContentLoaded', () => {
             if (client) {
                 console.log('✅ Auto-filling data for client:', client.client_name);
 
+                // Keep the in-memory plan's client in sync so saving (and other
+                // features that read lastPlanQuery.clientId) work even when the
+                // plan was loaded rather than generated.
+                lastPlanQuery.clientId = client.id;
+                lastPlanQuery.clientName = client.client_name;
+
                 // Physical stats
                 if (client.age) document.getElementById('dp_age').value = client.age;
                 if (client.gender) document.getElementById('dp_gender').value = client.gender;
@@ -7422,6 +7428,26 @@ async function saveCoachPlan(planData, clientName) {
     if (!planData) {
         console.warn(`❌ [Save #${attemptId}] No plan data provided - cannot save`);
         return false;
+    }
+
+    // Fallback: if the plan has no clientId but a client is selected in the
+    // dropdown, use that. This covers plans that were loaded (template / existing
+    // plan / imported) rather than freshly generated — those paths never stamped
+    // clientId onto lastPlanQuery, so saving would otherwise fail even though a
+    // client is clearly selected on screen.
+    if ((!planData.clientId || isNaN(planData.clientId) || planData.clientId <= 0) && plannerMode !== 'template') {
+        const clientSelectorEl = document.getElementById('dp_client_selector');
+        const selectedVal = clientSelectorEl ? clientSelectorEl.value : '';
+        const fallbackId = selectedVal ? parseInt(selectedVal) : NaN;
+        if (!isNaN(fallbackId) && fallbackId > 0) {
+            planData.clientId = fallbackId;
+            const fallbackClient = clientsList.find(c => c.id === fallbackId);
+            if (fallbackClient) {
+                planData.clientName = fallbackClient.client_name;
+                clientName = fallbackClient.client_name;
+            }
+            console.log(`🩹 [Save #${attemptId}] clientId missing on plan — recovered from selector:`, fallbackId);
+        }
     }
 
     // Validate that clientId exists and is valid (skip in template mode)
