@@ -37,9 +37,10 @@ exports.handler = async (event) => {
         const now = new Date();
         const todayStr = now.toISOString().split('T')[0];
 
-        // Look ahead window: programs ending within 14 days
+        // Look ahead window: programs ending within N days (default 6, can be overridden)
+        const daysAhead = parseInt(event.queryStringParameters?.daysAhead || '6');
         const lookAheadDate = new Date(now);
-        lookAheadDate.setDate(lookAheadDate.getDate() + 14);
+        lookAheadDate.setDate(lookAheadDate.getDate() + daysAhead);
         const lookAheadStr = lookAheadDate.toISOString().split('T')[0];
 
         // Also look back 7 days for recently expired programs (extended from 3)
@@ -179,15 +180,41 @@ exports.handler = async (event) => {
             });
         }
 
+        // Create a client-focused view with end dates
+        const clientsWithUpcomingWorkouts = {};
+        for (const prog of programs) {
+            const clientKey = prog.clientId;
+            if (!clientsWithUpcomingWorkouts[clientKey]) {
+                clientsWithUpcomingWorkouts[clientKey] = {
+                    clientId: prog.clientId,
+                    clientName: prog.clientName,
+                    endDate: prog.endDate,
+                    daysRemaining: prog.daysRemaining,
+                    isExpired: prog.isExpired,
+                    assignments: []
+                };
+            }
+            clientsWithUpcomingWorkouts[clientKey].assignments.push({
+                programName: prog.programName,
+                endDate: prog.endDate
+            });
+        }
+
+        const clientList = Object.values(clientsWithUpcomingWorkouts).sort((a, b) =>
+            new Date(a.endDate) - new Date(b.endDate)
+        );
+
         return {
             statusCode: 200,
             headers,
             body: JSON.stringify({
                 programs,
                 count: programs.length,
+                clientList,
                 clientsWithoutPrograms,
                 clientsWithExpiredOnly,
-                totalClientsWithoutProgram: clientsWithoutPrograms.length + clientsWithExpiredOnly.length
+                totalClientsWithoutProgram: clientsWithoutPrograms.length + clientsWithExpiredOnly.length,
+                daysAhead: daysAhead
             })
         };
 
