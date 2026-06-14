@@ -713,6 +713,98 @@ const DEFAULT_PROGRAMS = [
 
     ]}
   }
+  ,
+
+  // ─── UPPER / LOWER / FULL BODY — Beginner (3 Day) ────────────────────────────
+  {
+    name: 'Upper Body / Lower Body / Full Body - Beginner (3 Day)',
+    description: 'Beginner | 3 days/week | ~60 min | Upper Body + Lower Body + Full Body | Standard gym equipment',
+    program_type: 'strength',
+    difficulty: 'beginner',
+    days_per_week: 3,
+    program_data: { days: [
+
+      // ── DAY 1: UPPER BODY ────────────────────────────────────────────────
+      {
+        name: 'Day 1 — Upper Body',
+        exercises: [
+          // WARM-UP
+          { name: 'Jumping jack', sets: 1, trackingType: 'time', duration: 60, setsData: [{ duration: 60, restSeconds: 15 }], notes: 'WARM-UP — Get your heart rate up. Light, controlled pace.', section: 'warm-up' },
+          { name: 'Arm circle', sets: 1, trackingType: 'time', duration: 30, setsData: [{ duration: 30, restSeconds: 10 }], notes: 'WARM-UP — 15 sec forward, 15 sec backward. Loosen up the shoulders.', section: 'warm-up' },
+          { name: 'Arm circles backward', sets: 1, trackingType: 'time', duration: 30, setsData: [{ duration: 30, restSeconds: 10 }], notes: 'WARM-UP — Reverse direction to fully open the shoulder joint.', section: 'warm-up' },
+
+          // MAIN WORKOUT — Push/pull balance, compound first then isolation
+          { name: 'Chest Press Machine', sets: 3, trackingType: 'reps', setsData: [{ reps: 12, restSeconds: 60 }, { reps: 12, restSeconds: 60 }, { reps: 12, restSeconds: 60 }], notes: 'Machine gives you a stable path — great for learning. 2 sec push, 2 sec return. Squeeze chest at top.' },
+          { name: 'Seated Cable Row V Bar Machine', sets: 3, trackingType: 'reps', setsData: [{ reps: 12, restSeconds: 60 }, { reps: 12, restSeconds: 60 }, { reps: 12, restSeconds: 60 }], notes: 'Sit tall. Pull the handle to your belly button, squeeze shoulder blades together. Control the return — don\'t let the cable yank you.' },
+          { name: 'Dumbbell Seated Shoulder Press', sets: 3, trackingType: 'reps', setsData: [{ reps: 12, restSeconds: 60 }, { reps: 12, restSeconds: 60 }, { reps: 12, restSeconds: 60 }], notes: 'Sit with back supported. Press straight up, don\'t fully lock out elbows. Lower slowly.' },
+          { name: 'Cable Close Grip Front Lat Pulldown', sets: 3, trackingType: 'reps', setsData: [{ reps: 12, restSeconds: 60 }, { reps: 12, restSeconds: 60 }, { reps: 12, restSeconds: 60 }], notes: 'Pull bar to upper chest — think elbows to your back pockets. Squeeze lats. Don\'t lean back too far.' },
+          { name: 'Cable Triceps Push Down V Bar', sets: 3, trackingType: 'reps', setsData: [{ reps: 15, restSeconds: 60 }, { reps: 15, restSeconds: 60 }, { reps: 15, restSeconds: 60 }], notes: 'Keep elbows pinned to your sides. Push all the way down and squeeze. No swinging.' },
+          { name: 'Alternate bicep curl standing dumbbells', sets: 3, trackingType: 'reps', setsData: [{ reps: 12, restSeconds: 60 }, { reps: 12, restSeconds: 60 }, { reps: 12, restSeconds: 60 }], notes: 'No swinging the hips. Curl one at a time, squeeze at the top, lower slowly. Keep elbows close to your sides.' },
+
+          // COOL-DOWN STRETCHES
+          { name: 'Cross Body Shoulder Stretch', sets: 2, trackingType: 'time', duration: 30, setsData: [{ duration: 30, restSeconds: 5 }, { duration: 30, restSeconds: 5 }], notes: 'COOL-DOWN — 30 sec each arm. Gentle pull, no pain.', section: 'cool-down' },
+          { name: 'Above Head Chest Stretch', sets: 1, trackingType: 'time', duration: 30, setsData: [{ duration: 30, restSeconds: 0 }], notes: 'COOL-DOWN — Clasp hands overhead, open up the chest. Deep breaths.', section: 'cool-down' },
+          { name: 'Triceps Light Stretch', sets: 2, trackingType: 'time', duration: 30, setsData: [{ duration: 30, restSeconds: 5 }, { duration: 30, restSeconds: 5 }], notes: 'COOL-DOWN — 30 sec each arm. Pull elbow behind the head gently.', section: 'cool-down' },
+          { name: 'Lats Stretch On Wall', sets: 2, trackingType: 'time', duration: 30, setsData: [{ duration: 30, restSeconds: 5 }, { duration: 30, restSeconds: 5 }], notes: 'COOL-DOWN — 30 sec each side. Feel the stretch through the back.', section: 'cool-down' }
+        ]
+      },
+
+      // ── DAY 2: LOWER BODY ────────────────────────────────────────────────
+      {
+        name: 'Day 2 — Lower Body',
+        exercises: [
+          // WARM-UP
+          { name: 'Jumping jack', sets: 1, trackingType: 'time', duration: 60, setsData: [{ duration: 60, restSeconds: 15 }], notes: 'WARM-UP — Get blood moving to the legs.', section: 'warm-up' },
+          { name: 'Bodyweight Squats', sets: 2, trackingType: 'time', duration: 45, setsData: [{ duration: 45, restSeconds: 15 }, { duration: 45, restSeconds: 15 }], notes: 'WARM-UP — Slow and controlled. Wake up the knees and hips.', section: 'warm-up' },
+          { name: 'Glute Bridge Bodyweight', sets: 2, trackingType: 'time', duration: 45, setsData: [{ duration: 45, restSeconds: 15 }, { duration: 45, restSeconds: 15 }], notes: 'WARM-UP — Activate the glutes before squatting. Squeeze hard at the top.', section: 'warm-up' },
+
+          // MAIN WORKOUT — Compound first, machines last
+          { name: 'Dumbbell Goblet Squat', sets: 3, trackingType: 'reps', setsData: [{ reps: 12, restSeconds: 75 }, { reps: 12, restSeconds: 75 }, { reps: 12, restSeconds: 75 }], notes: 'Hold dumbbell at chest. Sit back and down, knees tracking over toes. Drive through your heels.' },
+          { name: 'Leg Press Machine Normal Stance', sets: 3, trackingType: 'reps', setsData: [{ reps: 12, restSeconds: 90 }, { reps: 12, restSeconds: 90 }, { reps: 12, restSeconds: 90 }], notes: 'Feet shoulder-width. Lower until knees reach 90 degrees. Don\'t lock out at the top.' },
+          { name: 'Dumbbell Romanian Deadlift', sets: 3, trackingType: 'reps', setsData: [{ reps: 10, restSeconds: 75 }, { reps: 10, restSeconds: 75 }, { reps: 10, restSeconds: 75 }], notes: 'Hinge at the hips, slight knee bend. Lower until you feel a hamstring stretch. Keep the dumbbells close to your legs.' },
+          { name: 'Dumbbell Lunge Alternating On The Spot', sets: 3, trackingType: 'reps', setsData: [{ reps: 10, restSeconds: 60 }, { reps: 10, restSeconds: 60 }, { reps: 10, restSeconds: 60 }], notes: '10 reps each leg. Keep torso upright. Step wide enough so front knee stays over ankle, not past toes.' },
+          { name: 'Seated Leg Curl Machine', sets: 3, trackingType: 'reps', setsData: [{ reps: 15, restSeconds: 60 }, { reps: 15, restSeconds: 60 }, { reps: 15, restSeconds: 60 }], notes: 'Hamstring isolation. Slow on the way up — 3 sec count. Squeeze at peak contraction.' },
+          { name: 'Lever Leg Extension', sets: 3, trackingType: 'reps', setsData: [{ reps: 15, restSeconds: 60 }, { reps: 15, restSeconds: 60 }, { reps: 15, restSeconds: 60 }], notes: 'Quad isolation. Squeeze for 1 second at the top. Control the descent — don\'t let it drop.' },
+          { name: 'Dumbbell Standing Calf Raise', sets: 3, trackingType: 'reps', setsData: [{ reps: 15, restSeconds: 45 }, { reps: 15, restSeconds: 45 }, { reps: 15, restSeconds: 45 }], notes: 'Full stretch at the bottom, hard squeeze at the top. Slow and deliberate.' },
+
+          // COOL-DOWN STRETCHES
+          { name: 'Standing Quadriceps Stretch', sets: 2, trackingType: 'time', duration: 30, setsData: [{ duration: 30, restSeconds: 5 }, { duration: 30, restSeconds: 5 }], notes: 'COOL-DOWN — 30 sec each leg. Stand tall, pull heel to glute.', section: 'cool-down' },
+          { name: 'Seated Single Leg Hamstring Stretch', sets: 2, trackingType: 'time', duration: 30, setsData: [{ duration: 30, restSeconds: 5 }, { duration: 30, restSeconds: 5 }], notes: 'COOL-DOWN — 30 sec each leg. Reach toward toes, don\'t bounce.', section: 'cool-down' },
+          { name: 'Kneeling Hip Flexor Stretch', sets: 2, trackingType: 'time', duration: 30, setsData: [{ duration: 30, restSeconds: 5 }, { duration: 30, restSeconds: 5 }], notes: 'COOL-DOWN — 30 sec each side. Lunge forward, push hips down and forward.', section: 'cool-down' },
+          { name: 'Lying Bent Knee Cross Glutes Stretch', sets: 2, trackingType: 'time', duration: 30, setsData: [{ duration: 30, restSeconds: 5 }, { duration: 30, restSeconds: 5 }], notes: 'COOL-DOWN — 30 sec each side. Cross ankle over knee and pull gently.', section: 'cool-down' },
+          { name: 'Calf stretch with hands against wall', sets: 2, trackingType: 'time', duration: 30, setsData: [{ duration: 30, restSeconds: 5 }, { duration: 30, restSeconds: 5 }], notes: 'COOL-DOWN — 30 sec each leg. Press heel flat into the floor.', section: 'cool-down' }
+        ]
+      },
+
+      // ── DAY 3: FULL BODY ─────────────────────────────────────────────────
+      {
+        name: 'Day 3 — Full Body',
+        exercises: [
+          // WARM-UP
+          { name: 'Jumping jack', sets: 1, trackingType: 'time', duration: 60, setsData: [{ duration: 60, restSeconds: 15 }], notes: 'WARM-UP — Light and controlled. Get the whole body moving.', section: 'warm-up' },
+          { name: 'High knees', sets: 1, trackingType: 'time', duration: 30, setsData: [{ duration: 30, restSeconds: 10 }], notes: 'WARM-UP — Drive knees to hip height. Pump your arms.', section: 'warm-up' },
+          { name: 'Arm circle', sets: 1, trackingType: 'time', duration: 30, setsData: [{ duration: 30, restSeconds: 10 }], notes: 'WARM-UP — Open up shoulders before pressing and rowing.', section: 'warm-up' },
+          { name: 'Bodyweight Squats', sets: 1, trackingType: 'time', duration: 45, setsData: [{ duration: 45, restSeconds: 15 }], notes: 'WARM-UP — Slow and controlled, wake up the lower body.', section: 'warm-up' },
+
+          // MAIN WORKOUT — Full body compound movements
+          { name: 'Dumbbell Romanian Deadlift', sets: 3, trackingType: 'reps', setsData: [{ reps: 10, restSeconds: 90 }, { reps: 10, restSeconds: 90 }, { reps: 10, restSeconds: 90 }], notes: 'The foundation. Hinge at the hips, feel the hamstring stretch, then drive hips forward to stand. Keep back flat.' },
+          { name: 'Dumbbell Bench Press', sets: 3, trackingType: 'reps', setsData: [{ reps: 12, restSeconds: 60 }, { reps: 12, restSeconds: 60 }, { reps: 12, restSeconds: 60 }], notes: 'Feet flat on the floor. Lower dumbbells to chest level, press up and in. Don\'t let the weights drift wide.' },
+          { name: 'Dumbbell Goblet Squat', sets: 3, trackingType: 'reps', setsData: [{ reps: 12, restSeconds: 75 }, { reps: 12, restSeconds: 75 }, { reps: 12, restSeconds: 75 }], notes: 'Hold dumbbell at chest. Sit back and down, drive through heels. Keep chest up.' },
+          { name: 'Dumbbell One Arm Row (rack Support)', sets: 3, trackingType: 'reps', setsData: [{ reps: 10, restSeconds: 60 }, { reps: 10, restSeconds: 60 }, { reps: 10, restSeconds: 60 }], notes: '10 reps each arm. Rest hand and knee on bench. Pull elbow to the ceiling — think rowing a boat. Keep back flat.' },
+          { name: 'Dumbbell Step Up On Bench', sets: 3, trackingType: 'reps', setsData: [{ reps: 10, restSeconds: 60 }, { reps: 10, restSeconds: 60 }, { reps: 10, restSeconds: 60 }], notes: '10 reps each leg. Drive through the heel on the bench. Control the way down — don\'t step off the side.' },
+          { name: 'Plank On Elbows', sets: 3, trackingType: 'time', duration: 30, setsData: [{ duration: 30, restSeconds: 30 }, { duration: 30, restSeconds: 30 }, { duration: 30, restSeconds: 30 }], notes: 'Keep body in a straight line. Squeeze glutes, brace your abs, breathe. If 30 sec is too easy, go longer.' },
+
+          // COOL-DOWN STRETCHES
+          { name: 'Child Pose Lower back Stretch', sets: 1, trackingType: 'time', duration: 60, setsData: [{ duration: 60, restSeconds: 0 }], notes: 'COOL-DOWN — Arms extended, sink hips back. Long deep breaths. Great work today.', section: 'cool-down' },
+          { name: 'Seated Toe Touch Hamstrings Stretch', sets: 1, trackingType: 'time', duration: 30, setsData: [{ duration: 30, restSeconds: 0 }], notes: 'COOL-DOWN — Legs straight out, reach forward. Hold and breathe.', section: 'cool-down' },
+          { name: 'Kneeling Hip Flexor Stretch', sets: 2, trackingType: 'time', duration: 30, setsData: [{ duration: 30, restSeconds: 5 }, { duration: 30, restSeconds: 5 }], notes: 'COOL-DOWN — 30 sec each side. Lunge and push hips forward.', section: 'cool-down' },
+          { name: 'Cross Body Shoulder Stretch', sets: 2, trackingType: 'time', duration: 30, setsData: [{ duration: 30, restSeconds: 5 }, { duration: 30, restSeconds: 5 }], notes: 'COOL-DOWN — 30 sec each arm. Gentle pull across the chest.', section: 'cool-down' },
+          { name: 'Lying Crossover Stretch', sets: 2, trackingType: 'time', duration: 30, setsData: [{ duration: 30, restSeconds: 5 }, { duration: 30, restSeconds: 5 }], notes: 'COOL-DOWN — 30 sec each side. Lying spinal twist. Let gravity do the work.', section: 'cool-down' }
+        ]
+      }
+
+    ]}
+  }
 ];
 
 // Exercise names the seed function will look up in the DB
