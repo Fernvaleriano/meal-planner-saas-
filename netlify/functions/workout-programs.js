@@ -28,7 +28,7 @@ exports.handler = async (event) => {
   try {
     // GET - Fetch workout programs
     if (event.httpMethod === 'GET') {
-      const { coachId, programId } = event.queryStringParameters || {};
+      const { coachId, programId, summary } = event.queryStringParameters || {};
 
       // Get single program by ID
       if (programId) {
@@ -63,6 +63,32 @@ exports.handler = async (event) => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
+
+      // Opt-in lightweight mode (?summary=1). Returning every program's full
+      // program_data pushes the response past Netlify's 6MB body limit once a
+      // coach has many programs (causing a 502). List views request summary mode
+      // and fetch a program's full contents on demand via ?programId=. Callers
+      // that need the full data (e.g. assigning a program to a client) omit the
+      // flag and get the unchanged full payload.
+      if (summary === '1' || summary === 'true') {
+        const lightweight = (programs || []).map((p) => {
+          const days = (p.program_data && Array.isArray(p.program_data.days)) ? p.program_data.days : [];
+          const exerciseCount = days.reduce((sum, d) => sum + ((d.exercises && d.exercises.length) || 0), 0);
+          const { program_data, ...rest } = p;
+          return {
+            ...rest,
+            days_count: days.length,
+            exercise_count: exerciseCount,
+            image_url: (program_data && program_data.image_url) || null
+          };
+        });
+
+        return {
+          statusCode: 200,
+          headers,
+          body: JSON.stringify({ programs: lightweight })
+        };
+      }
 
       return {
         statusCode: 200,
