@@ -7640,8 +7640,8 @@
             const searchHtml = `<input type="text" class="mwp-search" id="mwpSearchInput" placeholder="Search workouts..." oninput="filterMobileWorkoutList()">`;
 
             const listHtml = programs.map(p => {
-                const dayCount = p.program_data?.days?.length || p.days_per_week || 0;
-                const totalExercises = (p.program_data?.days || []).reduce((sum, d) => sum + (d.exercises || []).length, 0);
+                const dayCount = p.days_count ?? p.program_data?.days?.length ?? p.days_per_week ?? 0;
+                const totalExercises = p.exercise_count ?? (p.program_data?.days || []).reduce((sum, d) => sum + (d.exercises || []).length, 0);
                 return `
                     <div class="mwp-program-card" onclick="viewMobileWorkoutDetail(${p.id})" data-name="${(p.name || '').toLowerCase()}" data-type="${p.program_type || ''}" data-difficulty="${p.difficulty || ''}">
                         <div class="mwp-program-card-name">${p.name || 'Untitled Program'}${p.is_club_workout ? ' <span style="font-size:10px;background:rgba(139,92,246,0.2);color:#c4b5fd;padding:2px 6px;border-radius:4px;font-weight:600;">CLUB</span>' : ''}</div>
@@ -7673,7 +7673,7 @@
         }
 
         async function viewMobileWorkoutDetail(programId) {
-            const program = programs.find(p => p.id === programId);
+            let program = programs.find(p => p.id === programId);
             if (!program) return;
 
             mwpViewingProgramId = programId;
@@ -7683,7 +7683,15 @@
             const body = document.getElementById('mwpBody');
             body.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-muted);">Loading workout...</div>';
 
-            // Enrich with video data if available
+            // Fetch the full program contents on demand (list payload is lightweight)
+            try {
+                program = await getFullProgram(programId);
+            } catch (err) {
+                body.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-muted);">Could not load workout. Check your connection.</div>';
+                return;
+            }
+            if (!program) return;
+
             const days = program.program_data?.days || [];
 
             let html = '';
@@ -7968,7 +7976,7 @@
         // Load programs
         async function loadPrograms() {
             try {
-                const result = await apiCall(`/.netlify/functions/workout-programs?coachId=${currentCoachId}`);
+                const result = await apiCall(`/.netlify/functions/workout-programs?coachId=${currentCoachId}&summary=1`);
                 programs = result.programs || [];
                 renderProgramList();
             } catch (err) {
@@ -7984,6 +7992,21 @@
         // Render program list — sidebar removed, this is now a no-op
         function renderProgramList() {
             // Program list is now on coach-workout-plans.html
+        }
+
+        // The programs list is loaded lightweight (without the heavy program_data)
+        // so the response stays under Netlify's 6MB limit even with many programs.
+        // Fetch a program's full contents on demand and cache it back into the list.
+        async function getFullProgram(id) {
+            const cached = programs.find(p => p.id === id);
+            if (cached && cached.program_data) return cached;
+            const result = await apiCall(`/.netlify/functions/workout-programs?programId=${id}`);
+            const full = result.program;
+            if (full) {
+                const idx = programs.findIndex(p => p.id === id);
+                if (idx >= 0) programs[idx] = full;
+            }
+            return full;
         }
 
         // Enrich workout day exercises with fresh video URLs from the database
@@ -8019,9 +8042,18 @@
 
         // Select program
         async function selectProgram(programId) {
-            currentProgramId = programId;
-            const program = programs.find(p => p.id === programId);
+            let program;
+            try {
+                program = await getFullProgram(programId);
+            } catch (err) {
+                // Do NOT load an empty editor on a failed fetch — a later save
+                // could overwrite the real program with blank days.
+                console.error('Error loading program for editing:', err);
+                showToast('Could not load this program. Check your connection.', 'error');
+                return;
+            }
             if (program) {
+                currentProgramId = programId;
                 document.getElementById('programName').value = program.name || '';
                 document.getElementById('programType').value = program.program_type || 'strength';
                 document.getElementById('programDifficulty').value = program.difficulty || 'intermediate';
@@ -12113,7 +12145,13 @@
 
         // ============ DUPLICATE PROGRAM FUNCTIONS ============
         async function duplicateProgram(programId) {
-            const program = programs.find(p => p.id === programId);
+            let program;
+            try {
+                program = await getFullProgram(programId);
+            } catch (err) {
+                showToast('Program not found', 'error');
+                return;
+            }
             if (!program) {
                 showToast('Program not found', 'error');
                 return;

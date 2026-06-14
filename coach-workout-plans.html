@@ -1245,7 +1245,7 @@
         // Load programs
         async function loadPrograms() {
             try {
-                const result = await apiCall(`/.netlify/functions/workout-programs?coachId=${currentCoachId}`);
+                const result = await apiCall(`/.netlify/functions/workout-programs?coachId=${currentCoachId}&summary=1`);
                 programs = result.programs || [];
                 filterPlans();
             } catch (err) {
@@ -1308,11 +1308,11 @@
             }
 
             container.innerHTML = filtered.map(p => {
-                const imageUrl = p.hero_image_url || p.program_data?.image_url || '';
-                const days = p.program_data?.days?.length || p.days_per_week || 0;
+                const imageUrl = p.hero_image_url || p.image_url || p.program_data?.image_url || '';
+                const days = p.days_count ?? p.program_data?.days?.length ?? p.days_per_week ?? 0;
                 const difficulty = (p.difficulty || 'intermediate').toLowerCase();
                 const desc = p.description || '';
-                const exerciseCount = (p.program_data?.days || []).reduce((sum, d) => sum + (d.exercises?.length || 0), 0);
+                const exerciseCount = p.exercise_count ?? (p.program_data?.days || []).reduce((sum, d) => sum + (d.exercises?.length || 0), 0);
 
                 return `
                     <a href="coach-workouts.html?programId=${p.id}" class="plan-card">
@@ -1372,8 +1372,17 @@
             window.location.href = `coach-workouts.html?programId=${id}`;
         }
 
+        // The list payload is lightweight (no program_data) to stay under Netlify's
+        // 6MB response limit. Actions that need the full plan fetch it on demand.
+        async function getFullProgram(id) {
+            const cached = programs.find(p => p.id === id);
+            if (cached && cached.program_data) return cached;
+            const result = await apiCall(`/.netlify/functions/workout-programs?programId=${id}`);
+            return result.program;
+        }
+
         async function duplicatePlan(id) {
-            const program = programs.find(p => p.id === id);
+            const program = await getFullProgram(id);
             if (!program) return;
             try {
                 await apiCall('/.netlify/functions/workout-programs', {
@@ -1423,10 +1432,14 @@
             }
         }
 
-        function downloadPlanPDF(id) {
-            const program = programs.find(p => p.id === id);
-            if (!program) return;
-            openWorkoutPrintDialog(program);
+        async function downloadPlanPDF(id) {
+            try {
+                const program = await getFullProgram(id);
+                if (!program) return;
+                openWorkoutPrintDialog(program);
+            } catch (err) {
+                showToast('Failed to load plan for PDF', 'error');
+            }
         }
 
         // Share workout preview link
@@ -1460,7 +1473,7 @@
 
         async function confirmShare() {
             if (!pendingShareId) return;
-            const program = programs.find(p => p.id === pendingShareId);
+            const program = await getFullProgram(pendingShareId);
             if (!program) return;
 
             const expiry = document.getElementById('shareExpiry').value;
