@@ -346,6 +346,27 @@ A partial React rebuild exists in `src/` but is **not the primary codebase**. So
 - New Ziquecoach logo needs uploading to Supabase storage (current logo file has "zique fitness" in name)
 - Existing clients will be logged out during the 301 redirect (cookies don't cross domains) — heads-up message should include "Forgot Password?" reminder
 
+## Workout Programs for Fernando (Coach Account)
+
+When Fernando (contact@ziquefitness.com, coach_id ab3acf54-0499-46b7-b130-63e836e70503) asks
+for a workout program to be created for him, ALWAYS follow these rules without being asked:
+
+1. **Use only exercises from the Ziquecoach database** — both global exercises (coach_id IS NULL)
+   AND his custom exercises (coach_id = ab3acf54-0499-46b7-b130-63e836e70503). Query the DB
+   to verify exercise names before writing the program. Names must match exactly (case-insensitive
+   is fine — the seed enrichment corrects casing automatically).
+
+2. **Structure every workout day in this exact order:**
+   - Warm-up: start with a CARDIO MACHINE exercise (bike, treadmill, rowing machine, etc.),
+     then bodyweight dynamic movements (jumping jacks, high knees, arm circles, leg swings, etc.)
+   - Main workout
+   - Cool-down: static stretches only
+
+3. **No em dashes ( — ) anywhere in exercise notes.** Use a plain hyphen or nothing instead.
+
+4. **Add every new program to the seed file** (netlify/functions/seed-default-workouts.js)
+   so it is saved permanently. Do this every time, automatically.
+
 ## Default Workout Template Format
 
 ### File Location
