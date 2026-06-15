@@ -411,6 +411,7 @@ A partial React rebuild exists in `src/` but is **not the primary codebase**. So
 - `section: 'cool-down'` → Stretches at the bottom, notes prefixed with "COOL-DOWN —"
 
 ### Typical Day Layout
+0. **ALWAYS start every workout day with a cardio machine fitting for the day** (~5 min, first warm-up item, before any mobility work). Founder rule (June 2026). Pairing: rowing machine for upper/push/pull/full-body days; stationary bike for lower/leg days; treadmill or assault airbike for HIIT/cardio days. Exact library names: `Gym Rowing Machine Normal Speed`, `Stationary Exercise Bike`, `Treadmill Jogging`, `Assault Airbike Normal Speed`.
 1. **Warm-Up** (3-4 exercises, ~5-8 min): Jumping jacks, arm circles, high knees, dynamic stretches
 2. **Main Workout** (5-7 exercises): Compound lifts first → isolation exercises, 2-3 sets each
 3. **Cool-Down** (4-5 stretches, ~5 min): Static stretches, 1 set × 30s hold each, restSeconds: 0
