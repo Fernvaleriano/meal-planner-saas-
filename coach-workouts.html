@@ -8069,6 +8069,10 @@
                 workoutDays = program.program_data?.days || [];
                 // Enrich exercises with fresh video URLs from the database
                 await enrichWorkoutDaysWithVideos(workoutDays);
+                // Auto-load the coach's saved global reference links for every
+                // exercise so they show immediately on open — no manual "Load
+                // Saved Links" click needed. Mirrors the import path's behavior.
+                autoAttachGlobalRefs(workoutDays);
                 document.getElementById('isClubWorkout').checked = !!program.is_club_workout;
                 activeDayIndex = 0;
                 selectedExerciseIndex = null;
@@ -9524,6 +9528,25 @@
 
         function hasGlobalRefs(exerciseName) {
             return getGlobalRefsForExercise(exerciseName).length > 0;
+        }
+
+        // Merge each exercise's saved global reference links into a loaded program
+        // in-memory, so opening any program shows them without a manual "Load
+        // Saved Links" click. Same merge rules as the import path: add by URL,
+        // never duplicate, leave exercises without saved links untouched.
+        function autoAttachGlobalRefs(days) {
+            if (!globalRefsLoaded || !Array.isArray(days)) return;
+            days.forEach(day => {
+                (day.exercises || []).forEach(ex => {
+                    const globalRefs = getGlobalRefsForExercise(ex.name);
+                    if (globalRefs.length === 0) return;
+                    if (!Array.isArray(ex.reference_links)) ex.reference_links = [];
+                    const existingUrls = new Set(ex.reference_links.map(l => l.url));
+                    globalRefs.forEach(ref => {
+                        if (!existingUrls.has(ref.url)) ex.reference_links.push({ ...ref });
+                    });
+                });
+            });
         }
 
         async function saveRefsGlobally(dayIndex, exIndex) {
