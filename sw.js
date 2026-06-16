@@ -306,31 +306,40 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // For other assets - cache first, fallback to network
-  event.respondWith(
-    caches.match(request)
-      .then((cachedResponse) => {
-        if (cachedResponse) {
-          // Return cached version and update cache in background
-          fetch(request).then((response) => {
-            caches.open(CACHE_NAME).then((cache) => {
-              cache.put(request, response);
-            });
-          }).catch(() => {});
-          return cachedResponse;
-        }
-
-        // Not in cache - fetch from network
-        return fetch(request).then((response) => {
-          // Cache the response for next time
-          const responseClone = response.clone();
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put(request, responseClone);
-          });
-          return response;
-        });
-      })
-  );
+  // For other assets (JS/CSS bundles, etc.) - NETWORK FIRST with a short
+  // timeout, falling back to cache. This is the fix for the "installed
+  // home-screen app never updates" bug: cache-first pinned old hashed
+  // bundles forever, so deploys never reached users. Network-first picks
+  // up new code on the next launch.
+  //
+  // The 3s AbortController timeout is the critical safety valve (this was
+  // the #1 reason the previous attempt was reverted): on bad gym wifi the
+  // fetch can't hang indefinitely and white-screen the app — it aborts and
+  // falls back to whatever is cached, so offline / weak-signal still works.
+  event.respondWith((async () => {
+    const cache = await caches.open(CACHE_NAME);
+    try {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 3000);
+      let networkResponse;
+      try {
+        networkResponse = await fetch(request, { signal: controller.signal });
+      } finally {
+        clearTimeout(timer);
+      }
+      if (networkResponse && networkResponse.ok) {
+        // Best-effort cache update (unawaited, matches prior behaviour;
+        // a rejected put on e.g. a 206 must not break the response).
+        cache.put(request, networkResponse.clone()).catch(() => {});
+      }
+      return networkResponse;
+    } catch {
+      // Timeout / offline / network error — serve cache so offline and
+      // weak-signal launches still work.
+      const cachedResponse = await cache.match(request);
+      return cachedResponse || Response.error();
+    }
+  })());
 });
 
 // Handle messages from the app (e.g., cache warm-up requests)

@@ -45,9 +45,42 @@ ReactDOM.createRoot(document.getElementById('root')).render(
   </React.StrictMode>
 );
 
-// Register service worker for PWA support
+// Register service worker for PWA support + safe auto-update.
+// Without update handling an installed (home-screen) app stays pinned to
+// whatever code it first cached. We proactively check for a newer worker
+// on every launch, and reload ONCE when it takes control — but only when
+// it is completely safe to do so:
+//   - never on first install (no controller to replace)
+//   - never while a workout is active: the guided-workout overlay is open,
+//     OR the user is on the workouts route where normal set-logging happens
+//     (in those cases the update simply lands on the next cold launch — the
+//     service-worker change above makes that reliable on its own)
+//   - at most once per browsing session, via a persistent sessionStorage
+//     one-shot flag, so a misbehaving worker can never cause a reload loop
 if ('serviceWorker' in navigator) {
+  const hadController = !!navigator.serviceWorker.controller;
+  const RELOAD_FLAG = 'zq-sw-reloaded';
+  let refreshing = false;
+
+  const workoutActive = () =>
+    !!document.querySelector('.guided-workout-overlay') ||
+    /\/workouts(\/|$)/.test(window.location.pathname);
+
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (refreshing || !hadController) return;
+    if (workoutActive()) return;
+    try {
+      if (sessionStorage.getItem(RELOAD_FLAG)) return;
+      sessionStorage.setItem(RELOAD_FLAG, '1');
+    } catch { /* sessionStorage unavailable — fall through to single reload */ }
+    refreshing = true;
+    window.location.reload();
+  });
+
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js').catch(() => {});
+    navigator.serviceWorker.register('/sw.js').then((reg) => {
+      // Proactively check for a newer worker on every launch.
+      try { reg.update(); } catch { /* ignore */ }
+    }).catch(() => {});
   });
 }
