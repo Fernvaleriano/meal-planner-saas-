@@ -210,6 +210,50 @@
 
         .convo-search input::placeholder { color: var(--gray-400); }
 
+        .convo-filters {
+            display: flex;
+            gap: 8px;
+            margin: 0 16px 12px;
+        }
+
+        .filter-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 14px;
+            border: 1px solid var(--gray-200);
+            background: none;
+            border-radius: 999px;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--gray-600);
+            cursor: pointer;
+            font-family: inherit;
+            transition: all 0.15s;
+        }
+
+        .filter-chip:hover { background: var(--gray-100); }
+
+        .filter-chip.active {
+            background: rgba(13, 148, 136, 0.1);
+            border-color: rgba(13, 148, 136, 0.3);
+            color: var(--brand-600, #0d9488);
+        }
+
+        .filter-chip-count {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 18px;
+            height: 18px;
+            padding: 0 5px;
+            border-radius: 999px;
+            background: #ef4444;
+            color: #fff;
+            font-size: 11px;
+            font-weight: 700;
+        }
+
         .convo-list {
             flex: 1;
             overflow-y: auto;
@@ -702,6 +746,9 @@
         [data-theme="dark"] .convo-search { background: #1e293b; }
         [data-theme="dark"] .convo-search input { color: #e2e8f0; }
         [data-theme="dark"] .convo-search input::placeholder { color: #64748b; }
+        [data-theme="dark"] .filter-chip { border-color: #334155; color: #94a3b8; }
+        [data-theme="dark"] .filter-chip:hover { background: #1e293b; }
+        [data-theme="dark"] .filter-chip.active { background: rgba(13, 148, 136, 0.15); border-color: rgba(13, 148, 136, 0.4); color: #2dd4bf; }
         [data-theme="dark"] .convo-item { color: #e2e8f0; border-color: #1e293b; }
         [data-theme="dark"] .convo-item:hover { background: #1e293b; }
         [data-theme="dark"] .convo-item.active { background: rgba(13, 148, 136, 0.12); }
@@ -938,6 +985,12 @@
                 <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
                 <input type="text" placeholder="Search clients..." id="searchInput">
             </div>
+            <div class="convo-filters">
+                <button class="filter-chip active" id="filterAll" onclick="setUnreadFilter(false)">All</button>
+                <button class="filter-chip" id="filterUnread" onclick="setUnreadFilter(true)">
+                    Unread <span class="filter-chip-count" id="filterUnreadCount" style="display:none;">0</span>
+                </button>
+            </div>
             <div class="bulk-panel" id="bulkPanel">
                 <div class="bulk-row">
                     <span id="bulkSelectedCount">0 selected</span>
@@ -1077,6 +1130,7 @@
         let allMessages = []; // Track all messages including reactions
         let bulkMode = false;
         let selectedClientIds = new Set();
+        let unreadOnly = false;
         const REACTION_EMOJIS = ['❤️', '💪', '🔥', '👏', '😂', '👍'];
         const REACTION_PREFIX = '__REACTION__:';
         // Helpers
@@ -1183,9 +1237,12 @@
 
         function renderConversations(filter = '') {
             const list = document.getElementById('convoList');
-            const filtered = filter
+            let filtered = filter
                 ? conversations.filter(c => c.clientName.toLowerCase().includes(filter.toLowerCase()))
                 : conversations;
+            if (unreadOnly) {
+                filtered = filtered.filter(c => (c.unreadCount || 0) > 0);
+            }
 
             const totalUnread = conversations.reduce((s, c) => s + (c.unreadCount || 0), 0);
             const badge = document.getElementById('totalBadge');
@@ -1196,8 +1253,20 @@
                 badge.style.display = 'none';
             }
 
+            // Keep the Unread filter chip's count in sync
+            const chipCount = document.getElementById('filterUnreadCount');
+            if (chipCount) {
+                if (totalUnread > 0) {
+                    chipCount.textContent = totalUnread > 99 ? '99+' : totalUnread;
+                    chipCount.style.display = 'inline-flex';
+                } else {
+                    chipCount.style.display = 'none';
+                }
+            }
+
             if (filtered.length === 0) {
-                list.innerHTML = '<div class="convo-empty"><svg width="48" height="48" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg><p>No conversations</p></div>';
+                const emptyMsg = unreadOnly ? 'No unread messages' : 'No conversations';
+                list.innerHTML = `<div class="convo-empty"><svg width="48" height="48" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg><p>${emptyMsg}</p></div>`;
                 updateBulkPanelState();
                 return;
             }
@@ -1759,6 +1828,14 @@
             document.getElementById('searchInput').addEventListener('input', (e) => {
                 renderConversations(e.target.value);
             });
+        }
+
+        // Unread filter toggle
+        function setUnreadFilter(showUnread) {
+            unreadOnly = showUnread;
+            document.getElementById('filterAll').classList.toggle('active', !showUnread);
+            document.getElementById('filterUnread').classList.toggle('active', showUnread);
+            renderConversations(document.getElementById('searchInput').value);
         }
 
         function toggleBulkMode() {
