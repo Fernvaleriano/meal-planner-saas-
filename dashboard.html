@@ -7366,6 +7366,45 @@
         }
 
         function renderActivityTimeline(container) {
+            // Before we rebuild the list from scratch, remember which client
+            // cards the coach has opened — and whether they're part-way through
+            // typing a comment. A background refresh (coming back to the page,
+            // pull-to-refresh, etc.) re-renders this whole list, and without
+            // this the open card would snap shut and wipe the half-written
+            // comment. On the phone that kept collapsing the card mid-comment.
+            const prevExpanded = new Set(
+                Array.from(container.querySelectorAll('.activity-client-card.expanded')).map(el => el.id)
+            );
+            let openReply = null;
+            const openReplyRow = Array.from(container.querySelectorAll('.activity-item-reply-row'))
+                .find(r => r.style.display === 'flex');
+            if (openReplyRow) {
+                const input = openReplyRow.querySelector('input');
+                openReply = {
+                    id: openReplyRow.id,
+                    value: input ? input.value : '',
+                    focused: !!input && document.activeElement === input
+                };
+            }
+
+            const restoreOpenState = () => {
+                prevExpanded.forEach(id => {
+                    const card = document.getElementById(id);
+                    if (card) card.classList.add('expanded');
+                });
+                if (openReply) {
+                    const row = document.getElementById(openReply.id);
+                    if (row) {
+                        row.style.display = 'flex';
+                        const input = row.querySelector('input');
+                        if (input) {
+                            input.value = openReply.value;
+                            if (openReply.focused) input.focus();
+                        }
+                    }
+                }
+            };
+
             const clientIds = Object.keys(_activityGrouped);
             if (clientIds.length === 0) {
                 container.innerHTML = '<div class="activity-tl-empty">No client wins to celebrate this week yet.</div>';
@@ -7478,6 +7517,9 @@
 
             html += '</div>';
             container.innerHTML = html;
+
+            // Re-open whatever the coach had open before this refresh.
+            restoreOpenState();
         }
 
         // Cache the coach's brand logo so we don't hit the DB once per
