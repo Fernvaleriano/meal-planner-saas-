@@ -343,6 +343,7 @@ ${repRangeBlock}
 - DO NOT auto-default to textbook lifts (barbell bench press, back squat, conventional deadlift) just because they are "standard". Choose the primary from the client's history, equipment, and variety — a good coach rotates primaries, they don't reflexively program barbell bench every chest day.
 - KEEP WHAT'S WORKING: If a CLIENT BRIEFING exercise is tagged "KEEP+PROGRESS" (the client is still PRing / adding reps) and it is in your AVAILABLE EXERCISES list and NOT in the ALREADY USED list, you MUST include that exact exercise as a primary. Never replace a lift the client is progressing on with a generic substitute.
 - CARDIO MACHINES (treadmill, stairmaster, bike, rower, elliptical) belong ONLY in warm-up. NEVER as main strength.
+- The "notes" field is shown to the CLIENT — write a normal coaching cue only. NEVER put internal labels (KEEP+PROGRESS, SWAP, PERSIST, ROTATE, REGRESSED, briefing text, or emoji) in notes; referencing the client's real numbers ("you hit 50 lb last time") is fine and encouraged.
 - For LEG days: include squat + hip hinge + hamstring iso + calf + ideally glute-specific.
 
 CONSTRAINTS:
