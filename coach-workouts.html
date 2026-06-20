@@ -6249,6 +6249,17 @@
                     </div>
                 </div>
 
+                <!-- Coach note shown to the client on their program welcome screen -->
+                <div class="form-group">
+                    <label class="form-label">💬 Note to Client <span style="font-weight:400; color:var(--text-secondary);">— shown on their welcome screen when they open this program</span></label>
+                    <div style="display: flex; gap: 8px; align-items: flex-start;">
+                        <textarea class="form-textarea" id="programCoachNote" placeholder="A short, personal note. The AI writes one for you when you generate a program — edit it here anytime." style="flex:1;"></textarea>
+                        <button type="button" class="vtt-mic-btn vtt-mic-sm" title="Voice input" onclick="VoiceToText.toggle(document.getElementById('programCoachNote'), this)" style="margin-top:2px;">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+                        </button>
+                    </div>
+                </div>
+
                 <!-- Club Workout Toggle -->
                 <div class="form-group" style="display: flex; align-items: center; gap: 12px; padding: 12px 16px; background: rgba(139, 92, 246, 0.08); border: 1px solid rgba(139, 92, 246, 0.2); border-radius: 10px;">
                     <label class="toggle-switch" style="position: relative; width: 44px; height: 24px; flex-shrink: 0;">
@@ -8062,7 +8073,7 @@
                 document.getElementById('programStartDate').value = program.program_data?.start_date || '';
 
                 // Carry the saved coach note so re-saving an existing program keeps it
-                window._currentCoachNote = program.program_data?.coachNote || null;
+                document.getElementById('programCoachNote').value = program.program_data?.coachNote || '';
 
                 // Load hero image if exists (from program_data.image_url)
                 const heroUrl = program.program_data?.image_url || null;
@@ -8094,7 +8105,7 @@
             document.getElementById('programDescription').value = '';
             document.getElementById('programStartDate').value = '';
             document.getElementById('isClubWorkout').checked = false;
-            window._currentCoachNote = null;
+            document.getElementById('programCoachNote').value = '';
 
             // Reset hero image
             removeHeroImage();
@@ -11801,7 +11812,7 @@
                             name: programName,
                             workoutData: {
                                 days: clientDays,
-                                coachNote: window._currentCoachNote || null,
+                                coachNote: (document.getElementById('programCoachNote')?.value || '').trim() || null,
                                 image_url: heroImageUrl || null
                             },
                             schedule: {
@@ -11879,7 +11890,7 @@
                             programType: document.getElementById('programType').value,
                             difficulty: document.getElementById('programDifficulty').value,
                             daysPerWeek: parseInt(document.getElementById('daysPerWeek').value),
-                            programData: { days: workoutDays, coachNote: window._currentCoachNote || null, start_date: document.getElementById('programStartDate').value || null },
+                            programData: { days: workoutDays, coachNote: (document.getElementById('programCoachNote')?.value || '').trim() || null, start_date: document.getElementById('programStartDate').value || null },
                             heroImageUrl: heroImageUrl || undefined,
                             isClubWorkout: document.getElementById('isClubWorkout').checked
                         })
@@ -11899,7 +11910,7 @@
                             programType: document.getElementById('programType').value,
                             difficulty: document.getElementById('programDifficulty').value,
                             daysPerWeek: parseInt(document.getElementById('daysPerWeek').value),
-                            programData: { days: workoutDays, coachNote: window._currentCoachNote || null, start_date: document.getElementById('programStartDate').value || null },
+                            programData: { days: workoutDays, coachNote: (document.getElementById('programCoachNote')?.value || '').trim() || null, start_date: document.getElementById('programStartDate').value || null },
                             heroImageUrl: heroImageUrl || undefined,
                             isClubWorkout: document.getElementById('isClubWorkout').checked
                         })
@@ -12067,7 +12078,7 @@
                         programType: document.getElementById('programType').value,
                         difficulty: document.getElementById('programDifficulty').value,
                         daysPerWeek: parseInt(document.getElementById('daysPerWeek').value),
-                        programData: { days: workoutDays, coachNote: window._currentCoachNote || null },
+                        programData: { days: workoutDays, coachNote: (document.getElementById('programCoachNote')?.value || '').trim() || null },
                         heroImageUrl: heroImageUrl || undefined,
                         isClubWorkout: document.getElementById('isClubWorkout').checked,
                         updateClientAssignments: selectedAssignmentIds.length > 0,
@@ -14231,9 +14242,11 @@
             document.getElementById('daysPerWeek').value = req.daysPerWeek;
             document.getElementById('programDescription').value = program.description || '';
 
-            // Stash the AI's human coach note so the save paths persist it into
-            // program_data (→ shown to the client on the program welcome screen).
-            window._currentCoachNote = program.coachNote || null;
+            // Drop the AI's human coach note into the editable note box so the
+            // coach can tweak it before saving. Saves into program_data (→ shown
+            // to the client on the program welcome screen).
+            const coachNoteField = document.getElementById('programCoachNote');
+            if (coachNoteField) coachNoteField.value = program.coachNote || '';
 
             // Stash multi-week program data so the program editor can save it
             window._currentMultiWeekProgram = program.weeks && program.weeks.length > 1 ? program : null;
