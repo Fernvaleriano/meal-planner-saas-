@@ -676,7 +676,7 @@ exports.handler = async (event) => {
     let clientAnalysis = null;
     if (clientId) {
       try {
-        clientAnalysis = await analyzeClientHistory(supabase, clientId);
+        clientAnalysis = await analyzeClientHistory(supabase, clientId, { goal });
         if (clientAnalysis) {
           clientContextBlock = (clientContextBlock || '') + '\n' + formatAnalysisForPrompt(clientAnalysis);
         }

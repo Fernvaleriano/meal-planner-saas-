@@ -38,9 +38,46 @@ function applyMovementScreenExclusions(exercises, screenFlags) {
   });
 }
 
+// Reads the most-recent logged session's set-by-set data the way a coach
+// glances at a log: are they leaving reps in the tank (add weight), grinding
+// at the right effort (hold), or falling off (too heavy / fatigued)? Each set
+// carries reps + an effort tag ("moderate" | "hard" | "maxed").
+function readLastSession(sessions) {
+  for (let i = sessions.length - 1; i >= 0; i--) {
+    const sd = sessions[i].setsData;
+    if (!Array.isArray(sd) || sd.length === 0) continue;
+    const done = sd.filter(s => s && s.completed !== false && (Number(s.reps) || 0) > 0);
+    if (done.length < 2) continue;
+    const reps = done.map(s => Number(s.reps) || 0);
+    const efforts = done.map(s => (s.effort || '').toLowerCase());
+    const firstReps = reps[0];
+    const lastReps = reps[reps.length - 1];
+    const dropoff = firstReps - lastReps;
+    const anyHard = efforts.some(e => e === 'hard' || e === 'maxed');
+    const repsStr = reps.join('/');
+    let read, signal;
+    if (!anyHard && dropoff <= 0) {
+      signal = 'add_load';
+      read = `last time logged ${repsStr} reps and nothing was flagged hard — leaving reps in the tank, ready for more weight`;
+    } else if (efforts[0] === 'maxed' && dropoff >= 2) {
+      signal = 'too_heavy';
+      read = `last time logged ${repsStr} reps, maxed out on the first set and reps fell off — load is likely too heavy`;
+    } else if (dropoff >= Math.max(3, Math.ceil(firstReps * 0.4))) {
+      signal = 'fatigue_dropoff';
+      read = `last time reps fell off badly (${repsStr}) — fatigue or pacing issue, not just load`;
+    } else {
+      signal = 'on_target';
+      read = `last time logged ${repsStr} reps at the right effort — dialed in`;
+    }
+    return { read, signal, date: sessions[i].date };
+  }
+  return null;
+}
+
 // ─── Main analyzer ────────────────────────────────────────────────────────────
-async function analyzeClientHistory(supabase, clientId) {
+async function analyzeClientHistory(supabase, clientId, options = {}) {
   if (!clientId) return null;
+  const goal = options.goal || null; // used for cut/bulk (nutrition-phase) reasoning
 
   // Pull 60 days so we can detect plateaus that span multiple weeks
   const sixtyDaysAgo = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
@@ -54,8 +91,10 @@ async function analyzeClientHistory(supabase, clientId) {
         .eq('client_id', clientId)
         .gte('workout_date', sixtyDaysAgo)
         .order('workout_date', { ascending: true }),
+      // workout_data on the most recent assignment lets us see what was
+      // PRESCRIBED, so we can spot exercises the client quietly skips.
       supabase.from('client_workout_assignments')
-        .select('name, start_date, end_date, is_active, created_at')
+        .select('name, start_date, end_date, is_active, created_at, workout_data')
         .eq('client_id', clientId)
         .order('created_at', { ascending: false })
         .limit(5)
@@ -84,7 +123,7 @@ async function analyzeClientHistory(supabase, clientId) {
   let exLogs = [];
   try {
     const { data } = await supabase.from('exercise_logs')
-      .select('exercise_name, max_weight, total_volume, total_sets, total_reps, is_pr, workout_log_id, client_notes')
+      .select('exercise_name, max_weight, total_volume, total_sets, total_reps, is_pr, workout_log_id, client_notes, sets_data')
       .in('workout_log_id', logIds)
       .limit(500);
     exLogs = data || [];
@@ -133,7 +172,8 @@ async function analyzeClientHistory(supabase, clientId) {
       volume: Number(ex.total_volume) || 0,
       sets: Number(ex.total_sets) || 0,
       reps: Number(ex.total_reps) || 0,
-      isPr: !!ex.is_pr
+      isPr: !!ex.is_pr,
+      setsData: ex.sets_data || null
     });
   }
   for (const name in timelines) {
@@ -230,10 +270,37 @@ async function analyzeClientHistory(supabase, clientId) {
       repTrend,
       daysSinceLastPR,
       action,
-      reasoning
+      reasoning,
+      lastSetRead: readLastSession(sessions)
     });
   }
   exerciseAnalysis.sort((a, b) => b.sessions - a.sessions);
+
+  // ─── Skipped/avoided exercises (prescribed but never logged) ──────────────
+  // What a client DOESN'T do is as telling as what they do. If an exercise was
+  // in their most recent program but never shows up in the logs, they're
+  // dodging it — it hurts, bores them, or doesn't fit their setup. Forcing it
+  // again just tanks adherence. Better to give a variation they'll actually do.
+  const skippedExercises = [];
+  try {
+    const recentProgram = lastAssignments[0]?.workout_data;
+    const days = recentProgram?.days || recentProgram?.program_data?.days || [];
+    const prescribed = new Set();
+    for (const day of days) {
+      for (const ex of (day?.exercises || [])) {
+        const n = (ex?.name || '').trim();
+        // Skip warm-up/cool-down/stretch entries — only flag real work that's dodged
+        const isFiller = ex?.isWarmup || ex?.isStretch || /warm|cool|stretch/i.test(ex?.section || '');
+        if (n && !isFiller) prescribed.add(n);
+      }
+    }
+    const loggedNames = new Set(Object.keys(timelines).map(n => n.toLowerCase()));
+    for (const name of prescribed) {
+      if (!loggedNames.has(name.toLowerCase())) skippedExercises.push(name);
+    }
+  } catch (e) {
+    console.warn('skip detection failed:', e.message);
+  }
 
   // ─── Recent client comments (free-text the client wrote) ──────────────────
   // The client's own words about how training felt — the qualitative signal a
@@ -313,6 +380,28 @@ async function analyzeClientHistory(supabase, clientId) {
     };
   }
 
+  // ─── Nutrition phase (cut / bulk / maintain) — cross-reference goal vs scale ─
+  // A great coach programs differently depending on whether the client is
+  // eating in a deficit or a surplus. We infer the phase from their goal and
+  // whether the scale is actually moving, then hand the model a clear directive.
+  let nutritionPhase = null;
+  if (goal) {
+    const g = String(goal).toLowerCase();
+    const wChange = bodyTrend?.weightChange; // signed, in their unit
+    const cutGoal = /(fat|lean|weight loss|lose|cut|tone|definition)/.test(g);
+    const gainGoal = /(muscle|mass|bulk|gain|size|strength|grow)/.test(g);
+    if (cutGoal) {
+      if (wChange != null && wChange <= -0.5) nutritionPhase = { phase: 'cut', onTrack: true, note: `Client is in a cut and the scale is moving (${wChange}). Protect strength: keep intensity on the main lifts, add some conditioning/finishers, but don't bury them in junk volume while in a deficit.` };
+      else if (wChange != null && wChange >= 0.5) nutritionPhase = { phase: 'cut', onTrack: false, note: `Fat-loss goal but weight is UP (${wChange}) — the cut has stalled. Raise output: add conditioning finishers and density work to widen the deficit. Keep strength work to hold muscle.` };
+      else nutritionPhase = { phase: 'cut', onTrack: wChange == null ? null : false, note: `Fat-loss goal${wChange != null ? `, weight roughly flat (${wChange})` : ''}. Lean toward higher density / shorter rest and add conditioning to drive the deficit, while keeping the main lifts heavy enough to hold muscle.` };
+    } else if (gainGoal) {
+      if (wChange != null && wChange >= 0.5) nutritionPhase = { phase: 'bulk', onTrack: true, note: `Client is gaining and the scale is climbing (${wChange}) — surplus is working. Push progressive overload and weekly volume, recovery permitting.` };
+      else nutritionPhase = { phase: 'bulk', onTrack: wChange == null ? null : false, note: `Muscle/strength goal${wChange != null ? ` but weight is flat/down (${wChange})` : ''}. They likely need to eat more, but on the training side maximize the growth stimulus: prioritize volume and progressive overload on the big lifts.` };
+    } else {
+      nutritionPhase = { phase: 'maintain', onTrack: null, note: `Maintenance/general goal — keep a balanced stimulus and progress conservatively.` };
+    }
+  }
+
   // Deload detection
   const lastDeload = lastAssignments.find(p => /deload/i.test(p.name || ''));
   const weeksSinceDeload = lastDeload && lastDeload.created_at
@@ -352,9 +441,11 @@ async function analyzeClientHistory(supabase, clientId) {
     lastProgramName: lastAssignments[0]?.name || null,
     programHistory: lastAssignments.map(p => p.name),
     exerciseAnalysis: exerciseAnalysis.slice(0, 12),
+    skippedExercises: skippedExercises.slice(0, 8),
     clientComments: recentComments,
     recovery,
     bodyTrend,
+    nutritionPhase,
     overallRecommendation
   };
 }
@@ -388,7 +479,21 @@ function formatAnalysisForPrompt(analysis) {
         : '✓ PERSIST';
       const repPr = ex.repTrend === 'increasing' ? ', reps climbing 📊' : '';
       lines.push(`  ${tag} ${ex.name} (${ex.sessions} sessions, top ${ex.currentMax} lb${repPr}) — ${ex.reasoning}`);
+      if (ex.lastSetRead?.read) lines.push(`       ↳ set read: ${ex.lastSetRead.read}.`);
     }
+  }
+
+  if (analysis.skippedExercises && analysis.skippedExercises.length > 0) {
+    lines.push(`\n=== EXERCISES THE CLIENT IS AVOIDING (prescribed last program, never logged) ===`);
+    lines.push(analysis.skippedExercises.map(n => `  • ${n}`).join('\n'));
+    lines.push(`→ They keep skipping these. Don't just re-prescribe them — either swap for a variation that trains the same muscle (one they'll actually do), or if it's a key pattern, pick an easier/more accessible version. Forcing skipped exercises kills adherence.`);
+  }
+
+  if (analysis.nutritionPhase) {
+    const p = analysis.nutritionPhase;
+    lines.push(`\n=== NUTRITION PHASE (cross-referenced goal vs. scale) ===`);
+    lines.push(`Inferred phase: ${p.phase.toUpperCase()}${p.onTrack === true ? ' (on track)' : p.onTrack === false ? ' (NOT on track — adjust the stimulus)' : ''}.`);
+    lines.push(`→ ${p.note}`);
   }
 
   if (analysis.recovery) {
