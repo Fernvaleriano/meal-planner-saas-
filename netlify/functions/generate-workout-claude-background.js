@@ -222,7 +222,7 @@ async function generateOneDay(anthropic, params) {
     equipment, goal, experience, sessionDuration, trainingStyle, exerciseCount,
     injuries, injuryCodes, preferences, tempo, rpeTarget, rirTarget,
     unilateralPreference, conditioningStyle, clientContextBlock,
-    warmupSuitable, stretchExercises, avoidExercises = []
+    warmupSuitable, stretchExercises, avoidExercises = [], keepMandate = ''
   } = params;
 
   const targetMuscle = daySpec.targetMuscle;
@@ -319,6 +319,7 @@ ${exercisesList}
 
 Create a single ${muscleLabel} workout for an ${experience}-level trainee optimized for ${goal}.
 ${strictSplitConstraint}
+${keepMandate}
 ${availableExercisesPrompt}
 ${clientContextBlock}
 ${avoidBlock}
@@ -715,6 +716,20 @@ exports.handler = async (event) => {
       }
     }
 
+    // Sharp, top-of-prompt MANDATE for the lifts the client is actively PRing —
+    // a buried "keep what's working" bullet gets overridden by the model's own
+    // priors, an explicit non-negotiable block with real numbers does not.
+    let keepMandate = '';
+    if (clientAnalysis && Array.isArray(clientAnalysis.exerciseAnalysis)) {
+      const keepers = clientAnalysis.exerciseAnalysis.filter(e => e.action === 'progress_load');
+      if (keepers.length) {
+        keepMandate = `\n=== ⛔ NON-NEGOTIABLE — KEEP THESE EXACT LIFTS (client is actively PRing) ===
+The client is setting personal records on these EXACT exercises. For EACH one whose muscles belong to THIS day, you MUST include it by its EXACT name as a MAIN exercise. Do NOT substitute a different variation (e.g. never swap "Dumbbell Chest Press Flat" for an incline, decline, machine, or barbell press). Build the day AROUND these — they OVERRIDE exercise variety and your own preferences about which lift is "best":
+${keepers.map(k => `- ${k.name} — ${k.reasoning}`).join('\n')}
+If one does not fit today's muscle group, skip it (it belongs on another day). Otherwise it MUST appear.\n`;
+      }
+    }
+
     // Compute split days
     const splitDays = computeSplitDays(daysPerWeek, split);
     const totalDays = splitDays.length;
@@ -742,7 +757,7 @@ exports.handler = async (event) => {
         equipment, goal, experience, sessionDuration, trainingStyle, exerciseCount,
         injuries, injuryCodes, preferences, tempo, rpeTarget, rirTarget,
         unilateralPreference, conditioningStyle, clientContextBlock,
-        warmupSuitable, stretchExercises, avoidExercises
+        warmupSuitable, stretchExercises, avoidExercises, keepMandate
       });
       // Record this day's MAIN exercises so later same-type days avoid them
       const usedNow = (dayResult.exercises || [])
