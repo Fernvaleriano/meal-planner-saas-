@@ -681,6 +681,29 @@ exports.handler = async (event) => {
       }
     }
 
+    // Force the client's progressing/PR lifts into the candidate pool so the model
+    // can actually keep them. Random per-muscle sampling can drop a lift the client
+    // is PRing — and a lift you're progressing on must never be unavailable. (Names
+    // already in the exclude list were filtered out of equipmentFilteredExercises
+    // upstream, so same-type-day variety is preserved automatically.)
+    if (clientAnalysis && Array.isArray(clientAnalysis.exerciseAnalysis)) {
+      const keepNames = clientAnalysis.exerciseAnalysis
+        .filter(e => e.action === 'progress_load')
+        .map(e => e.name);
+      for (const keepName of keepNames) {
+        const match = equipmentFilteredExercises.find(ex => ex.name.toLowerCase() === String(keepName).toLowerCase());
+        if (!match) continue;
+        const group = (match.muscle_group || 'other').toLowerCase();
+        if (!exercisesByMuscleGroupSampled[group]) exercisesByMuscleGroupSampled[group] = [];
+        const equipLabel = match.equipment ? ` [${match.equipment}]` : '';
+        const customLabel = match.coach_id ? ' (custom)' : '';
+        const display = `${match.name}${equipLabel}${customLabel}`;
+        if (!exercisesByMuscleGroupSampled[group].some(s => s.toLowerCase().startsWith(match.name.toLowerCase()))) {
+          exercisesByMuscleGroupSampled[group].unshift(display);
+        }
+      }
+    }
+
     // Split / style / count instructions
     const splitMap = {
       'push_pull_legs': 'Use a Push/Pull/Legs split (Push: chest, shoulders, triceps; Pull: back, biceps; Legs: quads, hamstrings, glutes, calves)',

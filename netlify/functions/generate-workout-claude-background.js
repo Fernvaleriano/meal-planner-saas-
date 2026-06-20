@@ -694,6 +694,27 @@ exports.handler = async (event) => {
       }
     }
 
+    // Force the client's progressing/PR lifts into the candidate pool so the model
+    // can actually keep them — random sampling may otherwise drop a lift the client
+    // is PRing. (Cross-day variety is still handled by the per-day avoid list.)
+    if (clientAnalysis && Array.isArray(clientAnalysis.exerciseAnalysis)) {
+      const keepNames = clientAnalysis.exerciseAnalysis
+        .filter(e => e.action === 'progress_load')
+        .map(e => e.name);
+      for (const keepName of keepNames) {
+        const match = equipmentFiltered.find(ex => ex.name.toLowerCase() === String(keepName).toLowerCase());
+        if (!match) continue;
+        const g = (match.muscle_group || 'other').toLowerCase();
+        if (!sampled[g]) sampled[g] = [];
+        const eq = match.equipment ? ` [${match.equipment}]` : '';
+        const cu = match.coach_id ? ' (custom)' : '';
+        const display = `${match.name}${eq}${cu}`;
+        if (!sampled[g].some(s => s.toLowerCase().startsWith(match.name.toLowerCase()))) {
+          sampled[g].unshift(display);
+        }
+      }
+    }
+
     // Compute split days
     const splitDays = computeSplitDays(daysPerWeek, split);
     const totalDays = splitDays.length;

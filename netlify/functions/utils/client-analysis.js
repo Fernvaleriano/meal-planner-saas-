@@ -38,6 +38,15 @@ function applyMovementScreenExclusions(exercises, screenFlags) {
   });
 }
 
+// Cardio, conditioning, warm-up mobility and stretches: high-frequency but they
+// are NOT the strength lifts a coach decides to keep/swap/progress. We exclude
+// them from the per-exercise "most-trained lifts" ranking so real lifts (and the
+// ones the client is PRing) surface instead of being buried under "Arm circle".
+function isNonLift(name) {
+  const n = (name || '').toLowerCase();
+  return /stretch|elliptical|treadmill|stairmaster|stair master|stepmill|step mill|\bjog|jogging|running|\brun\b|rowing machine|stationary|exercise bike|spin bike|\bbike\b|cycling|jumping jack|battle rope|muay thai|bag work|shadow box|burpee|arm circle|leg swing|hip circle|world'?s greatest|90 to 90|inchworm|cat[- ]cow|foam roll|march in place|high knee|butt kick|push up plus|skipping|jump rope/.test(n);
+}
+
 // Reads the most-recent logged session's set-by-set data the way a coach
 // glances at a log: are they leaving reps in the tank (add weight), grinding
 // at the right effort (hold), or falling off (too heavy / fatigued)? Each set
@@ -184,6 +193,10 @@ async function analyzeClientHistory(supabase, clientId, options = {}) {
   const exerciseAnalysis = [];
   for (const [name, sessions] of Object.entries(timelines)) {
     if (sessions.length === 0) continue;
+    // Don't let cardio / warm-ups / mobility / stretches crowd the "most-trained
+    // lifts" ranking — they're high-frequency but they aren't the strength work a
+    // coach is deciding to keep/swap/progress. Skipping them surfaces real lifts.
+    if (isNonLift(name)) continue;
 
     const recent = sessions.slice(-4); // last 4 sessions
     const weights = recent.map(s => s.weight).filter(w => w > 0);
@@ -274,7 +287,13 @@ async function analyzeClientHistory(supabase, clientId, options = {}) {
       lastSetRead: readLastSession(sessions)
     });
   }
-  exerciseAnalysis.sort((a, b) => b.sessions - a.sessions);
+  // Rank so the actionable lifts come FIRST (and survive the top-N cut): the
+  // ones the client is progressing/PRing, then the ones that need swapping, then
+  // the rest — each tier ordered by how often it's trained.
+  const actionRank = e => e.action === 'progress_load' ? 3
+    : (e.action === 'swap_for_variety' || e.action === 'investigate_or_swap') ? 2
+    : e.action === 'optional_swap' ? 1 : 0;
+  exerciseAnalysis.sort((a, b) => (actionRank(b) - actionRank(a)) || (b.sessions - a.sessions));
 
   // ─── Skipped/avoided exercises (prescribed but never logged) ──────────────
   // What a client DOESN'T do is as telling as what they do. If an exercise was
@@ -440,7 +459,7 @@ async function analyzeClientHistory(supabase, clientId, options = {}) {
     weeksSinceDeload,
     lastProgramName: lastAssignments[0]?.name || null,
     programHistory: lastAssignments.map(p => p.name),
-    exerciseAnalysis: exerciseAnalysis.slice(0, 12),
+    exerciseAnalysis: exerciseAnalysis.slice(0, 15),
     skippedExercises: skippedExercises.slice(0, 8),
     clientComments: recentComments,
     recovery,
