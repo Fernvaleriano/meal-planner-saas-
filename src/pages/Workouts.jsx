@@ -728,6 +728,9 @@ function Workouts() {
   const [todayWorkout, setTodayWorkout] = useState(cachedWorkouts?.todayWorkout || null);
   const [todayWorkouts, setTodayWorkouts] = useState(cachedWorkouts?.todayWorkouts || []); // All workouts for selected day
   const [expandedWorkout, setExpandedWorkout] = useState(false); // true = detail view, false = cards view
+  // Program welcome screen: a "note from your coach" that pops the first time a
+  // client opens a new program. Shown once per program (tracked in localStorage).
+  const [programWelcome, setProgramWelcome] = useState(null); // { programId, seenKey, name, note }
   const [workoutLog, setWorkoutLog] = useState(cachedWorkouts?.workoutLog || null);
   // If we have cached data, skip the loading spinner — show cached data instantly
   const [loading, setLoading] = useState(!cachedWorkouts);
@@ -5203,6 +5206,37 @@ function Workouts() {
     }
   }, [toggleExerciseComplete]);
 
+  // When a new program (one that carries a coach note) first shows up, pop the
+  // welcome screen once. We mark it seen in localStorage keyed by program so it
+  // never nags again for the same program.
+  useEffect(() => {
+    try {
+      if (!todayWorkouts || todayWorkouts.length === 0) return;
+      const clientKey = clientData?.id || 'me';
+      for (const w of todayWorkouts) {
+        const note = w?.workout_data?.coachNote;
+        const pid = w?.program_id;
+        if (note && pid) {
+          const seenKey = `ziq_prog_welcome_${clientKey}_${pid}`;
+          if (!localStorage.getItem(seenKey)) {
+            setProgramWelcome({
+              programId: pid,
+              seenKey,
+              name: w.workout_data?.programName || w.name || 'your new program',
+              note
+            });
+            break;
+          }
+        }
+      }
+    } catch (e) { /* non-critical */ }
+  }, [todayWorkouts, clientData?.id]);
+
+  const dismissProgramWelcome = useCallback(() => {
+    try { if (programWelcome?.seenKey) localStorage.setItem(programWelcome.seenKey, '1'); } catch (e) { /* ignore */ }
+    setProgramWelcome(null);
+  }, [programWelcome]);
+
   return (
     <div className="workouts-page-v2" ref={bindToContainer}>
       {/* Pull-to-refresh indicator (DOM-driven, never re-renders parent) */}
@@ -5210,6 +5244,42 @@ function Workouts() {
         indicatorRef={indicatorRef}
         threshold={threshold}
       />
+
+      {/* ===== PROGRAM WELCOME SCREEN: note from your coach (first open of a new program) ===== */}
+      {programWelcome && (
+        <div
+          onClick={dismissProgramWelcome}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 4000,
+            background: '#0A1F2E',
+            display: 'flex', flexDirection: 'column', justifyContent: 'center',
+            padding: '28px 24px', overflowY: 'auto'
+          }}
+        >
+          <div onClick={(e) => e.stopPropagation()} style={{ maxWidth: 460, margin: '0 auto', width: '100%' }}>
+            <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: 1.5, textTransform: 'uppercase', color: '#2EC4B6', marginBottom: 10 }}>
+              {programWelcome.name}
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+              <span style={{ fontSize: 22 }}>💬</span>
+              <span style={{ fontSize: 15, fontWeight: 600, color: '#ffffff' }}>note from your coach</span>
+            </div>
+            <p style={{ fontSize: 18, lineHeight: 1.6, color: 'rgba(255,255,255,0.92)', whiteSpace: 'pre-wrap', margin: 0 }}>
+              {programWelcome.note}
+            </p>
+            <button
+              onClick={dismissProgramWelcome}
+              style={{
+                marginTop: 32, width: '100%', padding: '16px',
+                background: '#2EC4B6', color: '#0A1F2E', border: 'none', borderRadius: 12,
+                fontSize: 16, fontWeight: 700, cursor: 'pointer'
+              }}
+            >
+              let's go →
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* ===== CARDS VIEW: Calendar + Workout Cards ===== */}
       {!expandedWorkout && (

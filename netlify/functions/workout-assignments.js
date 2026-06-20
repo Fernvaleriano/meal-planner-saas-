@@ -305,6 +305,11 @@ exports.handler = withTimeout(async (event) => {
             // Resolve image_url: use assignment's image, or fall back to pre-fetched program image
             const resolvedImageUrl = workoutData.image_url || programImageMap.get(activeAssignment.program_id) || null;
 
+            // Program-level coach note + name to carry down to the client's
+            // program welcome screen (stored once at the assignment level).
+            const resolvedCoachNote = workoutData.coachNote || null;
+            const resolvedProgramName = activeAssignment.name || null;
+
             const selectedDays = schedule.selectedDays || ['mon', 'tue', 'wed', 'thu', 'fri'];
 
             // Compute assignment end date boundary (default 12 weeks if not set)
@@ -419,7 +424,9 @@ exports.handler = withTimeout(async (event) => {
                       exercises: (day.exercises || []).map(ex => { const { completed, ...rest } = ex; return rest; }),
                       estimatedMinutes: day.estimatedMinutes || estimateWorkoutMinutes(day.exercises) || 45,
                       estimatedCalories: day.estimatedCalories || estimateWorkoutCalories(day.exercises),
-                      image_url: resolvedImageUrl
+                      image_url: resolvedImageUrl,
+                      coachNote: resolvedCoachNote,
+                      programName: resolvedProgramName
                     },
                     program_id: activeAssignment.program_id,
                     coach_id: activeAssignment.coach_id,
@@ -447,7 +454,9 @@ exports.handler = withTimeout(async (event) => {
                     exercises: (natDay.exercises || []).map(ex => { const { completed, ...rest } = ex; return rest; }),
                     estimatedMinutes: natDay.estimatedMinutes || estimateWorkoutMinutes(natDay.exercises) || 45,
                     estimatedCalories: natDay.estimatedCalories || estimateWorkoutCalories(natDay.exercises),
-                    image_url: resolvedImageUrl
+                    image_url: resolvedImageUrl,
+                    coachNote: resolvedCoachNote,
+                    programName: resolvedProgramName
                   },
                   program_id: activeAssignment.program_id,
                   coach_id: activeAssignment.coach_id,
@@ -676,6 +685,13 @@ exports.handler = withTimeout(async (event) => {
 
         finalWorkoutData = finalWorkoutData || program.program_data;
         finalName = finalName || program.name;
+
+        // Make sure the coach note survives even if the caller didn't include it
+        // in workoutData (some assign paths only send days). Pull it from the
+        // program's saved program_data as a fallback.
+        if (finalWorkoutData && finalWorkoutData.coachNote == null && program.program_data?.coachNote) {
+          finalWorkoutData.coachNote = program.program_data.coachNote;
+        }
       }
 
       // Store schedule in workout_data to avoid needing a new column
