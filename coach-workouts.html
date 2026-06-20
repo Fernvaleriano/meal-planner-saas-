@@ -8061,6 +8061,9 @@
                 document.getElementById('programDescription').value = program.description || '';
                 document.getElementById('programStartDate').value = program.program_data?.start_date || '';
 
+                // Carry the saved coach note so re-saving an existing program keeps it
+                window._currentCoachNote = program.program_data?.coachNote || null;
+
                 // Load hero image if exists (from program_data.image_url)
                 const heroUrl = program.program_data?.image_url || null;
                 setHeroImage(heroUrl);
@@ -8091,6 +8094,7 @@
             document.getElementById('programDescription').value = '';
             document.getElementById('programStartDate').value = '';
             document.getElementById('isClubWorkout').checked = false;
+            window._currentCoachNote = null;
 
             // Reset hero image
             removeHeroImage();
@@ -11797,6 +11801,7 @@
                             name: programName,
                             workoutData: {
                                 days: clientDays,
+                                coachNote: window._currentCoachNote || null,
                                 image_url: heroImageUrl || null
                             },
                             schedule: {
@@ -11874,7 +11879,7 @@
                             programType: document.getElementById('programType').value,
                             difficulty: document.getElementById('programDifficulty').value,
                             daysPerWeek: parseInt(document.getElementById('daysPerWeek').value),
-                            programData: { days: workoutDays, start_date: document.getElementById('programStartDate').value || null },
+                            programData: { days: workoutDays, coachNote: window._currentCoachNote || null, start_date: document.getElementById('programStartDate').value || null },
                             heroImageUrl: heroImageUrl || undefined,
                             isClubWorkout: document.getElementById('isClubWorkout').checked
                         })
@@ -11894,7 +11899,7 @@
                             programType: document.getElementById('programType').value,
                             difficulty: document.getElementById('programDifficulty').value,
                             daysPerWeek: parseInt(document.getElementById('daysPerWeek').value),
-                            programData: { days: workoutDays, start_date: document.getElementById('programStartDate').value || null },
+                            programData: { days: workoutDays, coachNote: window._currentCoachNote || null, start_date: document.getElementById('programStartDate').value || null },
                             heroImageUrl: heroImageUrl || undefined,
                             isClubWorkout: document.getElementById('isClubWorkout').checked
                         })
@@ -12062,7 +12067,7 @@
                         programType: document.getElementById('programType').value,
                         difficulty: document.getElementById('programDifficulty').value,
                         daysPerWeek: parseInt(document.getElementById('daysPerWeek').value),
-                        programData: { days: workoutDays },
+                        programData: { days: workoutDays, coachNote: window._currentCoachNote || null },
                         heroImageUrl: heroImageUrl || undefined,
                         isClubWorkout: document.getElementById('isClubWorkout').checked,
                         updateClientAssignments: selectedAssignmentIds.length > 0,
@@ -13658,6 +13663,13 @@
                     }
                 }
 
+                // Personalize the program name + write a human, lowercase coach
+                // note (shown to the client on the program welcome screen).
+                // Best-effort: a failure here never blocks the program.
+                if (!isSingle && result && result.program) {
+                    await _attachProgramIntro(result, requestBody, btn);
+                }
+
                 window._lastAIResult = result;
                 window._lastAIRequest = requestBody;
                 _saveAIFormState();
@@ -13674,6 +13686,54 @@
                 btn.innerHTML = isSingle ? 'Generate Workout' : 'Generate Program';
                 if (cancelBtn) cancelBtn.disabled = false;
                 if (closeBtn) closeBtn.style.display = '';
+            }
+        }
+
+        // Calls generate-program-intro to get a personalized program name + a
+        // human, lowercase coach note, then attaches them to the AI result so the
+        // name flows into the editor and the note gets saved into program_data
+        // (→ carried to the client's program welcome screen). Non-blocking.
+        async function _attachProgramIntro(result, requestBody, btn) {
+            try {
+                if (btn && window._aiGenerating) {
+                    btn.innerHTML = '<span class="generating-text"><span class="spinner"></span>Writing your coach note...</span>';
+                }
+                const workouts = result.program?.weeks?.[0]?.workouts || [];
+                const programDays = workouts.map(w => ({
+                    name: w.name,
+                    exercises: (w.exercises || [])
+                        .filter(e => e && !e.isWarmup && !e.isStretch)
+                        .map(e => e.name)
+                }));
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 25000);
+                const resp = await fetch('/.netlify/functions/generate-program-intro', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...(currentAccessToken && { 'Authorization': `Bearer ${currentAccessToken}` })
+                    },
+                    body: JSON.stringify({
+                        clientId: requestBody.clientId || null,
+                        clientName: requestBody.clientName || '',
+                        goal: requestBody.goal,
+                        experience: requestBody.experience,
+                        daysPerWeek: requestBody.daysPerWeek,
+                        split: requestBody.split,
+                        programDays
+                    }),
+                    signal: controller.signal
+                });
+                clearTimeout(timeoutId);
+                if (!resp.ok) return;
+                const data = await resp.json();
+                if (data && data.success) {
+                    if (data.name) result.program.programName = data.name;
+                    if (data.coachNote) result.program.coachNote = data.coachNote;
+                    if (data.phase) result.program.phase = data.phase;
+                }
+            } catch (e) {
+                console.warn('program intro failed (non-blocking):', e.message);
             }
         }
 
@@ -14002,6 +14062,10 @@
                         ${customMatched > 0 ? `<span style="padding:3px 8px; background:rgba(168,85,247,0.1); border-radius:4px;">${customMatched} custom exercise${customMatched > 1 ? 's' : ''}</span>` : ''}
                         ${result.clientContextUsed ? '<span style="padding:3px 8px; background:rgba(16,185,129,0.1); border-radius:4px;">✓ Client history used</span>' : ''}
                     </div>
+                    ${program.coachNote ? `<div style="margin-top:12px; padding:10px 12px; background:rgba(46,196,182,0.08); border-left:3px solid #2EC4B6; border-radius:6px;">
+                        <div style="font-size:11px; font-weight:700; letter-spacing:0.5px; text-transform:uppercase; color:#2EC4B6; margin-bottom:4px;">💬 Note your client will see</div>
+                        <div style="font-size:13px; color:var(--text-primary); line-height:1.5; white-space:pre-wrap;">${program.coachNote.replace(/</g, '&lt;')}</div>
+                    </div>` : ''}
                 </div>`;
 
             // Client context details panel — surfaces exactly what was pulled
@@ -14166,6 +14230,10 @@
             document.getElementById('programDifficulty').value = req.experience;
             document.getElementById('daysPerWeek').value = req.daysPerWeek;
             document.getElementById('programDescription').value = program.description || '';
+
+            // Stash the AI's human coach note so the save paths persist it into
+            // program_data (→ shown to the client on the program welcome screen).
+            window._currentCoachNote = program.coachNote || null;
 
             // Stash multi-week program data so the program editor can save it
             window._currentMultiWeekProgram = program.weeks && program.weeks.length > 1 ? program : null;
