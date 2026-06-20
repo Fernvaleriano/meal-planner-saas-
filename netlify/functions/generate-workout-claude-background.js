@@ -222,7 +222,7 @@ async function generateOneDay(anthropic, params) {
     equipment, goal, experience, sessionDuration, trainingStyle, exerciseCount,
     injuries, injuryCodes, preferences, tempo, rpeTarget, rirTarget,
     unilateralPreference, conditioningStyle, clientContextBlock,
-    warmupSuitable, stretchExercises
+    warmupSuitable, stretchExercises, avoidExercises = []
   } = params;
 
   const targetMuscle = daySpec.targetMuscle;
@@ -309,13 +309,19 @@ ${exercisesList}
 
   const [minEx, maxEx] = exerciseCount.split('-').map(n => parseInt(n));
 
+  // Exercises already used on OTHER days of this program — so two same-type days
+  // (e.g. two push days) don't end up near-copies of each other.
+  const avoidBlock = (avoidExercises && avoidExercises.length)
+    ? `\n=== ALREADY USED ON OTHER DAYS (DO NOT REUSE) ===\nThese exercises are already in this program on other days: ${avoidExercises.join(', ')}.\n- Do NOT use any of them again. Pick DIFFERENT movements that train the same muscles.\n- Rotate equipment and angle (barbell ↔ dumbbell ↔ cable ↔ machine, flat ↔ incline) so this day looks clearly different from the others.\n`
+    : '';
+
   const systemPrompt = `You are an elite strength & conditioning coach with 20+ years of experience. Return ONLY valid JSON, no markdown.
 
 Create a single ${muscleLabel} workout for an ${experience}-level trainee optimized for ${goal}.
 ${strictSplitConstraint}
 ${availableExercisesPrompt}
 ${clientContextBlock}
-
+${avoidBlock}
 === MANDATORY WORKOUT PHASES ===
 PHASE 1 — WARM-UP (5-8 min): 1 cardio (3-5 min) + 1-2 dynamic prep. Mark "isWarmup": true, "phase": "warmup". Cardio reps in TIME format ("3 min", "5 min").
 PHASE 2 — MAIN WORKOUT: ${minEx}-${maxEx} main exercises. Mark "phase": "main".
@@ -332,6 +338,9 @@ ${repRangeBlock}
 === EXERCISE SELECTION ===
 - Use EXACT names from the AVAILABLE EXERCISES DATABASE.
 - NEVER invent or modify names.
+- CROSS-DAY VARIETY: Never reuse an exercise that appears on another day training the same muscles (see ALREADY USED list above). Two same-type days must look clearly different — different primary lift and different accessories — not copies. Rotate equipment and angle to spread stimulus and reduce joint wear.
+- DO NOT auto-default to textbook lifts (barbell bench press, back squat, conventional deadlift) just because they are "standard". Choose the primary from the client's history, equipment, and variety — a good coach rotates primaries, they don't reflexively program barbell bench every chest day.
+- KEEP WHAT'S WORKING: If a CLIENT BRIEFING exercise is tagged "KEEP+PROGRESS" (the client is still PRing / adding reps) and it is in your AVAILABLE EXERCISES list and NOT in the ALREADY USED list, you MUST include that exact exercise as a primary. Never replace a lift the client is progressing on with a generic substitute.
 - CARDIO MACHINES (treadmill, stairmaster, bike, rower, elliptical) belong ONLY in warm-up. NEVER as main strength.
 - For LEG days: include squat + hip hinge + hamstring iso + calf + ideally glute-specific.
 
@@ -700,15 +709,25 @@ exports.handler = async (event) => {
     // to report progress on.)
     const day1Workouts = [];
     const allViolations = [];
+    // Track main exercises already used PER muscle-group-type, so two push days
+    // (or two pull/leg days) don't end up as near-copies. Keyed by targetMuscle.
+    const usedByType = {};
     for (const daySpec of splitDays) {
+      const typeKey = daySpec.targetMuscle || daySpec.dayName;
+      const avoidExercises = usedByType[typeKey] || [];
       const dayResult = await generateOneDay(anthropic, {
         daySpec, exercisesByMuscleGroupSampled: sampled,
         exercisesAfterInjuries, exercisesWithVideos,
         equipment, goal, experience, sessionDuration, trainingStyle, exerciseCount,
         injuries, injuryCodes, preferences, tempo, rpeTarget, rirTarget,
         unilateralPreference, conditioningStyle, clientContextBlock,
-        warmupSuitable, stretchExercises
+        warmupSuitable, stretchExercises, avoidExercises
       });
+      // Record this day's MAIN exercises so later same-type days avoid them
+      const usedNow = (dayResult.exercises || [])
+        .filter(ex => ex && !ex.isWarmup && !ex.isStretch && ex.name)
+        .map(ex => ex.name);
+      usedByType[typeKey] = [...avoidExercises, ...usedNow];
       day1Workouts.push(dayResult);
       if (dayResult.violations?.length) {
         for (const v of dayResult.violations) allViolations.push({ ...v, day: daySpec.dayName });

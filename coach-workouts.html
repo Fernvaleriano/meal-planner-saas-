@@ -13528,7 +13528,9 @@
         }
 
         // Generate one day via the existing single-mode endpoint.
-        async function _generateOneDay(daySpec, sharedReq) {
+        // extraExcludes = main exercises already used by earlier same-type days,
+        // so two push days (etc.) don't come out as near-copies.
+        async function _generateOneDay(daySpec, sharedReq, extraExcludes = []) {
             // Expand push/pull into their constituent muscles for the focusAreas
             // hint, while keeping targetMuscle as 'push'/'pull' so the backend's
             // split-aware system prompt still kicks in.
@@ -13549,6 +13551,9 @@
                 split: 'auto',
                 focusAreas,
                 includeProgression: false,
+                // Hard-exclude exercises earlier same-type days already used, so
+                // the backend drops them from the candidate pool entirely.
+                excludeExerciseNames: [...(sharedReq.excludeExerciseNames || []), ...extraExcludes],
                 // Tag with day context so backend prompt is aware
                 clientName: sharedReq.clientName + ` — Day ${daySpec.dayNumber}`,
                 varietySeed: (sharedReq.varietySeed || Date.now()) + daySpec.dayNumber * 7919
@@ -13870,14 +13875,33 @@
             };
             updateProgress();
 
-            // Run with concurrency limit of 3 to avoid hammering the API and to be
-            // gentler on Anthropic rate limits.
-            const dayResults = await _withConcurrency(splitDays, 3, async (daySpec) => {
-                const r = await _generateOneDay(daySpec, requestBody);
-                completed++;
-                updateProgress();
-                return r;
-            });
+            // Group days by muscle-type so we can guarantee variety BETWEEN days
+            // that train the same muscles (two push days shouldn't be copies).
+            // Different types run in parallel; within a type we go sequentially and
+            // feed each day the exercises earlier same-type days already used, so
+            // the backend drops them and picks different movements.
+            const dayGroups = {};
+            for (const ds of splitDays) {
+                const key = ds.targetMuscle || ds.dayName;
+                (dayGroups[key] = dayGroups[key] || []).push(ds);
+            }
+            const groupResults = await Promise.all(Object.values(dayGroups).map(async (chain) => {
+                const out = [];
+                const usedInChain = [];
+                for (const daySpec of chain) {
+                    const r = await _generateOneDay(daySpec, requestBody, usedInChain);
+                    // collect this day's MAIN exercises to exclude on the next same-type day
+                    const dayWorkout = r.result?.program?.weeks?.[0]?.workouts?.[0];
+                    for (const ex of (dayWorkout?.exercises || [])) {
+                        if (ex && !ex.isWarmup && !ex.isStretch && ex.name) usedInChain.push(ex.name);
+                    }
+                    completed++;
+                    updateProgress();
+                    out.push(r);
+                }
+                return out;
+            }));
+            const dayResults = groupResults.flat();
 
             // Sort by day number to preserve order even with concurrent completion
             dayResults.sort((a, b) => a.daySpec.dayNumber - b.daySpec.dayNumber);
