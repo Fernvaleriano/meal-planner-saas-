@@ -851,7 +851,9 @@ ${repRangeBlock}
 === EXERCISE SELECTION ===
 - Use EXACT names from the AVAILABLE EXERCISES DATABASE (custom exercises are PREFERRED if they fit).
 - NEVER invent or modify names.
-- Don't repeat the same exercise across days unless it's a key compound.
+- CROSS-DAY VARIETY: Never reuse the same exercise on two days that train the same muscles. If there are two push days (or two pull/leg days), the primary lift AND the accessories must DIFFER — e.g. barbell bench press on one push day, dumbbell or incline press on the other. Rotate equipment (barbell ↔ dumbbell ↔ cable ↔ machine) and angle across same-type days to spread the stimulus and reduce joint wear. Two same-type days should look clearly different, not like copies. (Any exercise missing from your AVAILABLE list was already used on another day — pick something else.)
+- DO NOT auto-default to textbook lifts (barbell bench press, back squat, conventional deadlift) just because they are "standard". A good coach chooses the primary from the client's history, equipment, and variety — not reflex. Only feature barbell bench if it genuinely fits this client best.
+- KEEP WHAT'S WORKING: If a CLIENT BRIEFING exercise is tagged "KEEP+PROGRESS" (the client is still PRing / adding reps) and it appears in your AVAILABLE EXERCISES list, you MUST include that exact exercise as a primary. Never replace a lift the client is progressing on with a generic substitute.
 - Add brief, actionable form cues in "notes" for each main exercise. Don't repeat the exercise name in notes.
 - CARDIO MACHINES (treadmill, stairmaster, bike, rower, elliptical, jump rope) are CARDIO ONLY. They belong in WARM-UP (with "phase": "warmup", reps in time format like "5 min") or in a CONDITIONING FINISHER. They are NEVER main strength exercises with sets/reps like "3×12-15".
 - A "Push" day means ONLY chest, shoulders, triceps. A "Pull" day means ONLY back and biceps. NEVER mix them — putting a row on a push day or a chest press on a pull day is a programming error.
