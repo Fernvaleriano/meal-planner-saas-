@@ -295,7 +295,7 @@ async function fetchClientContext(supabase, clientId) {
     const [clientRes, logsRes, lastAssignmentRes] = await Promise.all([
       supabase
         .from('clients')
-        .select('id, client_name, age, gender, height_ft, height_in, weight, default_goal, fitness_level, health_concerns, equipment_access, exercise_frequency, notes, health_flags, fitness_goal_details, unavailable_equipment')
+        .select('id, client_name, age, gender, height_ft, height_in, weight, default_goal, fitness_level, health_concerns, equipment_access, exercise_frequency, notes, health_flags, fitness_goal_details, unavailable_equipment, unit_preference')
         .eq('id', clientId)
         .maybeSingle(),
       supabase
@@ -445,8 +445,12 @@ function computeVolumeSummary(programData) {
 // Given a generated week 1, produces week 2..N programmatically using a
 // double-progression model (alternate weeks add reps OR add sets/load) plus a
 // deload every 4th week.
-function generateMultiWeekProgression(week1Workouts, totalWeeks, goal) {
+function generateMultiWeekProgression(week1Workouts, totalWeeks, goal, weightUnit = 'lb') {
   if (totalWeeks <= 1) return [];
+  // Load-increment language in the client's unit (smaller steps for kg).
+  const smallBump = weightUnit === 'kg' ? '1-2.5 kg' : '2.5-5 lb';
+  const bigBump = weightUnit === 'kg' ? '2.5-5 kg' : '5-10 lb';
+  const repBumpLoad = weightUnit === 'kg' ? '2.5 kg' : '5 lb';
   const additionalWeeks = [];
   for (let w = 2; w <= totalWeeks; w++) {
     const isDeload = w % 4 === 0; // Deload every 4th week
@@ -471,7 +475,7 @@ function generateMultiWeekProgression(week1Workouts, totalWeeks, goal) {
           progressNote = `Week ${w} (DELOAD): drop 1 set, use ~70% of recent working weight, focus on form`;
         } else if (goal === 'strength') {
           // Strength: add load (suggested via notes), keep reps low
-          progressNote = `Week ${w}: add 2.5-5 lb to working weight; if all reps hit at top of range, increase 5-10 lb next week`;
+          progressNote = `Week ${w}: add ${smallBump} to working weight; if all reps hit at top of range, increase ${bigBump} next week`;
         } else if (goal === 'hypertrophy') {
           // Double progression: add reps until top of range, then add a set
           const range = baseReps.match(/(\d+)\s*[-–]\s*(\d+)/);
@@ -482,9 +486,9 @@ function generateMultiWeekProgression(week1Workouts, totalWeeks, goal) {
             const repBump = Math.min(highRep, lowRep + (weekIndex - 1));
             newReps = `${repBump}-${highRep}`;
             if (weekIndex >= 3) newSets = baseSets + 1;
-            progressNote = `Week ${w}: aim for ${newReps} reps. Once you hit ${highRep} on all sets, add 5 lb next week.`;
+            progressNote = `Week ${w}: aim for ${newReps} reps. Once you hit ${highRep} on all sets, add ${repBumpLoad} next week.`;
           } else {
-            progressNote = `Week ${w}: aim for 1-2 more reps than last week, or +2.5-5 lb if reps held`;
+            progressNote = `Week ${w}: aim for 1-2 more reps than last week, or +${smallBump} if reps held`;
           }
         } else {
           // fat_loss / general_fitness: increase density by trimming rest
@@ -668,11 +672,14 @@ exports.handler = async (event) => {
     const clientContext = await fetchClientContext(supabase, clientId);
     let clientContextBlock = formatClientContextForPrompt(clientContext);
 
+    // Client's weight unit — write all loads in THIS unit (kg for metric clients)
+    const weightUnit = clientContext?.profile?.unit_preference === 'metric' ? 'kg' : 'lb';
+
     // Run the coach-grade analyzer and append its briefing to the prompt
     let clientAnalysis = null;
     if (clientId) {
       try {
-        clientAnalysis = await analyzeClientHistory(supabase, clientId, { goal });
+        clientAnalysis = await analyzeClientHistory(supabase, clientId, { goal, weightUnit });
         if (clientAnalysis) {
           clientContextBlock = (clientContextBlock || '') + '\n' + formatAnalysisForPrompt(clientAnalysis);
         }
@@ -713,9 +720,9 @@ exports.handler = async (event) => {
       const keepers = clientAnalysis.exerciseAnalysis.filter(e => e.action === 'progress_load');
       if (keepers.length) {
         keepMandate = `\n=== ⛔ NON-NEGOTIABLE — KEEP THESE EXACT LIFTS (client is actively PRing) ===
-The client is setting personal records on these EXACT exercises. For EACH one whose muscles belong to THIS day, you MUST include it by its EXACT name as a MAIN exercise. Do NOT substitute a different variation (e.g. never swap "Dumbbell Chest Press Flat" for an incline, decline, machine, or barbell press). Build the day AROUND these — they OVERRIDE exercise variety and your own preferences about which lift is "best":
+The client is setting personal records on these EXACT exercises. For EACH one whose muscles belong to THIS day, you MUST include it COPYING THE NAME BELOW CHARACTER-FOR-CHARACTER as a MAIN exercise. Use the EXACT lift, not a cousin: if "Machine Lateral Raise" is listed, do NOT write "Dumbbell Lateral Raise"; if "Dumbbell Chest Press Flat" is listed, do NOT write an incline/decline/machine/barbell press. The ONLY acceptable reason to deviate is a logged injury that the exact lift would aggravate — otherwise the exact name MUST appear. Build the day AROUND these; they OVERRIDE variety and your own opinion about which lift is "best":
 ${keepers.map(k => `- ${k.name} — ${k.reasoning}`).join('\n')}
-If one of these does not fit today's muscle group, skip it (it belongs on another day). Otherwise it MUST appear.\n`;
+If one does not fit today's muscle group, skip it (it belongs on another day). Otherwise it MUST appear, spelled exactly.\n`;
       }
     }
 
@@ -870,6 +877,8 @@ If you include even ONE press, fly, or tricep movement, the workout is WRONG. 10
 ${modeBlock}
 ${strictSplitConstraint}
 ${keepMandate}
+=== UNITS (MANDATORY) ===
+This client trains in ${weightUnit === 'kg' ? 'KILOGRAMS (kg)' : 'POUNDS (lb)'}. EVERY weight or load you mention in any "notes" field MUST be written in ${weightUnit} (e.g. "${weightUnit === 'kg' ? 'start around 20 kg' : 'start around 45 lb'}"). NEVER write loads in ${weightUnit === 'kg' ? 'pounds/lb' : 'kilograms/kg'}.
 ${availableExercisesPrompt}
 ${clientContextBlock}
 
@@ -893,7 +902,7 @@ ${repRangeBlock}
 - CROSS-DAY VARIETY: Never reuse the same exercise on two days that train the same muscles. If there are two push days (or two pull/leg days), the primary lift AND the accessories must DIFFER — e.g. barbell bench press on one push day, dumbbell or incline press on the other. Rotate equipment (barbell ↔ dumbbell ↔ cable ↔ machine) and angle across same-type days to spread the stimulus and reduce joint wear. Two same-type days should look clearly different, not like copies. (Any exercise missing from your AVAILABLE list was already used on another day — pick something else.)
 - DO NOT auto-default to textbook lifts (barbell bench press, back squat, conventional deadlift) just because they are "standard". A good coach chooses the primary from the client's history, equipment, and variety — not reflex. Only feature barbell bench if it genuinely fits this client best.
 - KEEP WHAT'S WORKING: If a CLIENT BRIEFING exercise is tagged "KEEP+PROGRESS" (the client is still PRing / adding reps) and it appears in your AVAILABLE EXERCISES list, you MUST include that exact exercise as a primary. Never replace a lift the client is progressing on with a generic substitute.
-- Add brief, actionable form cues in "notes" for each main exercise. Don't repeat the exercise name in notes.
+- Add brief, actionable form cues in "notes" for each main exercise. Don't repeat the exercise name in notes. The "notes" field is shown to the CLIENT — write a normal coaching cue only. NEVER put internal labels (KEEP+PROGRESS, SWAP, PERSIST, ROTATE, REGRESSED, briefing text, or emoji) in notes; referencing the client's real numbers ("you hit 50 lb last time") is fine and encouraged.
 - CARDIO MACHINES (treadmill, stairmaster, bike, rower, elliptical, jump rope) are CARDIO ONLY. They belong in WARM-UP (with "phase": "warmup", reps in time format like "5 min") or in a CONDITIONING FINISHER. They are NEVER main strength exercises with sets/reps like "3×12-15".
 - A "Push" day means ONLY chest, shoulders, triceps. A "Pull" day means ONLY back and biceps. NEVER mix them — putting a row on a push day or a chest press on a pull day is a programming error.
 - For LEG days: include at least one squat pattern, one hip hinge (RDL/deadlift/hip thrust), one hamstring isolation, one calf exercise, and ideally one glute-specific movement.
@@ -1075,7 +1084,7 @@ Return this exact JSON structure:
     // Multi-week progression — generate weeks 2..N
     if (!isSingleWorkout && includeProgression && duration > 1 && programData.weeks.length === 1) {
       const week1Workouts = programData.weeks[0].workouts || [];
-      const additionalWeeks = generateMultiWeekProgression(week1Workouts, duration, goal);
+      const additionalWeeks = generateMultiWeekProgression(week1Workouts, duration, goal, weightUnit);
       programData.weeks = programData.weeks.concat(additionalWeeks);
     }
 

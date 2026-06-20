@@ -126,8 +126,9 @@ function sampleArray(arr, n, seed = Date.now()) {
 }
 
 // ─── Multi-week progression ───────────────────────────────────────────────────
-function generateMultiWeekProgression(week1Workouts, totalWeeks, goal) {
+function generateMultiWeekProgression(week1Workouts, totalWeeks, goal, weightUnit = 'lb') {
   if (totalWeeks <= 1) return [];
+  const smallBump = weightUnit === 'kg' ? '1-2.5 kg' : '2.5-5 lb';
   const out = [];
   for (let w = 2; w <= totalWeeks; w++) {
     const isDeload = w % 4 === 0;
@@ -144,7 +145,7 @@ function generateMultiWeekProgression(week1Workouts, totalWeeks, goal) {
           newSets = Math.max(2, baseSets - 1);
           progressNote = `Week ${w} (DELOAD): drop 1 set, use ~70% of recent working weight`;
         } else if (goal === 'strength') {
-          progressNote = `Week ${w}: add 2.5-5 lb to working weight`;
+          progressNote = `Week ${w}: add ${smallBump} to working weight`;
         } else if (goal === 'hypertrophy') {
           const range = baseReps.match(/(\d+)\s*[-–]\s*(\d+)/);
           if (range) {
@@ -222,7 +223,7 @@ async function generateOneDay(anthropic, params) {
     equipment, goal, experience, sessionDuration, trainingStyle, exerciseCount,
     injuries, injuryCodes, preferences, tempo, rpeTarget, rirTarget,
     unilateralPreference, conditioningStyle, clientContextBlock,
-    warmupSuitable, stretchExercises, avoidExercises = [], keepMandate = ''
+    warmupSuitable, stretchExercises, avoidExercises = [], keepMandate = '', weightUnit = 'lb'
   } = params;
 
   const targetMuscle = daySpec.targetMuscle;
@@ -320,6 +321,8 @@ ${exercisesList}
 Create a single ${muscleLabel} workout for an ${experience}-level trainee optimized for ${goal}.
 ${strictSplitConstraint}
 ${keepMandate}
+=== UNITS (MANDATORY) ===
+This client trains in ${weightUnit === 'kg' ? 'KILOGRAMS (kg)' : 'POUNDS (lb)'}. EVERY weight or load you mention in any "notes" field MUST be written in ${weightUnit} (e.g. "${weightUnit === 'kg' ? 'start around 20 kg' : 'start around 45 lb'}"). NEVER write loads in ${weightUnit === 'kg' ? 'pounds/lb' : 'kilograms/kg'}.
 ${availableExercisesPrompt}
 ${clientContextBlock}
 ${avoidBlock}
@@ -343,6 +346,7 @@ ${repRangeBlock}
 - DO NOT auto-default to textbook lifts (barbell bench press, back squat, conventional deadlift) just because they are "standard". Choose the primary from the client's history, equipment, and variety — a good coach rotates primaries, they don't reflexively program barbell bench every chest day.
 - KEEP WHAT'S WORKING: If a CLIENT BRIEFING exercise is tagged "KEEP+PROGRESS" (the client is still PRing / adding reps) and it is in your AVAILABLE EXERCISES list and NOT in the ALREADY USED list, you MUST include that exact exercise as a primary. Never replace a lift the client is progressing on with a generic substitute.
 - CARDIO MACHINES (treadmill, stairmaster, bike, rower, elliptical) belong ONLY in warm-up. NEVER as main strength.
+- The "notes" field is shown to the CLIENT — write a normal coaching cue only. NEVER put internal labels (KEEP+PROGRESS, SWAP, PERSIST, ROTATE, REGRESSED, briefing text, or emoji) in notes; referencing the client's real numbers ("you hit 50 lb last time") is fine and encouraged.
 - For LEG days: include squat + hip hinge + hamstring iso + calf + ideally glute-specific.
 
 CONSTRAINTS:
@@ -559,12 +563,13 @@ exports.handler = async (event) => {
     let clientContextBlock = '';
     let clientContextSummary = null;
     let clientHealthFlags = {};
+    let clientWeightUnit = 'lb'; // 'kg' for metric clients — all loads written in this
     if (clientId) {
       try {
         const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
         const [clientRes, logsRes, lastAssignmentRes] = await Promise.all([
           supabase.from('clients')
-            .select('id, client_name, age, gender, height_ft, height_in, weight, default_goal, fitness_level, health_concerns, equipment_access, exercise_frequency, notes, health_flags, fitness_goal_details')
+            .select('id, client_name, age, gender, height_ft, height_in, weight, default_goal, fitness_level, health_concerns, equipment_access, exercise_frequency, notes, health_flags, fitness_goal_details, unit_preference')
             .eq('id', clientId).maybeSingle(),
           supabase.from('workout_logs')
             .select('id, workout_date, duration_minutes, energy_level, workout_rating')
@@ -580,6 +585,7 @@ exports.handler = async (event) => {
         ]);
 
         const client = clientRes.data;
+        if (client?.unit_preference === 'metric') clientWeightUnit = 'kg';
         const recentLogs = logsRes.data || [];
         const intake = null;
         const lastProgram = lastAssignmentRes.data || null;
@@ -622,7 +628,7 @@ exports.handler = async (event) => {
           if (client.age) lines.push(`Age: ${client.age}`);
           if (client.gender) lines.push(`Gender: ${client.gender}`);
           if (client.height_ft) lines.push(`Height: ${client.height_ft}'${client.height_in || 0}"`);
-          if (client.weight) lines.push(`Weight: ${client.weight} lb`);
+          if (client.weight) lines.push(`Weight: ${client.weight} ${clientWeightUnit}`);
           if (client.default_goal) lines.push(`Stated goal: ${client.default_goal}`);
           if (client.fitness_goal_details) lines.push(`Goal details: ${client.fitness_goal_details}`);
           if (client.fitness_level) lines.push(`Fitness level: ${client.fitness_level}`);
@@ -642,9 +648,9 @@ exports.handler = async (event) => {
           if (exerciseHistory.length > 0) {
             lines.push(`\nRecent training history (last 30 days, top ${exerciseHistory.length} exercises):`);
             for (const [name, data] of exerciseHistory) {
-              lines.push(`  • ${name}: top ${data.topWeight} lb, ${data.sessions} sessions${data.prs ? `, ${data.prs} PR${data.prs > 1 ? 's' : ''}` : ''}`);
+              lines.push(`  • ${name}: top ${data.topWeight} ${clientWeightUnit}, ${data.sessions} sessions${data.prs ? `, ${data.prs} PR${data.prs > 1 ? 's' : ''}` : ''}`);
             }
-            lines.push(`  → Use these top weights to set realistic working-weight ranges in the notes (e.g. "start at ~85% of 225 lb top = 190 lb").`);
+            lines.push(`  → Use these top weights to set realistic working-weight ranges in the notes, expressed in ${clientWeightUnit} (e.g. "start around 85% of their top set").`);
             lines.push(`  → Avoid stale exercises: pick variations of these movements rather than repeating the exact same exercises.`);
           }
 
@@ -686,7 +692,7 @@ exports.handler = async (event) => {
     let clientAnalysis = null;
     if (clientId) {
       try {
-        clientAnalysis = await analyzeClientHistory(supabase, clientId, { goal });
+        clientAnalysis = await analyzeClientHistory(supabase, clientId, { goal, weightUnit: clientWeightUnit });
         if (clientAnalysis) {
           clientContextBlock = (clientContextBlock || '') + '\n' + formatAnalysisForPrompt(clientAnalysis);
         }
@@ -724,9 +730,9 @@ exports.handler = async (event) => {
       const keepers = clientAnalysis.exerciseAnalysis.filter(e => e.action === 'progress_load');
       if (keepers.length) {
         keepMandate = `\n=== ⛔ NON-NEGOTIABLE — KEEP THESE EXACT LIFTS (client is actively PRing) ===
-The client is setting personal records on these EXACT exercises. For EACH one whose muscles belong to THIS day, you MUST include it by its EXACT name as a MAIN exercise. Do NOT substitute a different variation (e.g. never swap "Dumbbell Chest Press Flat" for an incline, decline, machine, or barbell press). Build the day AROUND these — they OVERRIDE exercise variety and your own preferences about which lift is "best":
+The client is setting personal records on these EXACT exercises. For EACH one whose muscles belong to THIS day, you MUST include it COPYING THE NAME BELOW CHARACTER-FOR-CHARACTER as a MAIN exercise. Use the EXACT lift, not a cousin: if "Machine Lateral Raise" is listed, do NOT write "Dumbbell Lateral Raise"; if "Dumbbell Chest Press Flat" is listed, do NOT write an incline/decline/machine/barbell press. The ONLY acceptable reason to deviate is a logged injury that the exact lift would aggravate — otherwise the exact name MUST appear. Build the day AROUND these; they OVERRIDE variety and your own opinion about which lift is "best":
 ${keepers.map(k => `- ${k.name} — ${k.reasoning}`).join('\n')}
-If one does not fit today's muscle group, skip it (it belongs on another day). Otherwise it MUST appear.\n`;
+If one does not fit today's muscle group, skip it (it belongs on another day). Otherwise it MUST appear, spelled exactly.\n`;
       }
     }
 
@@ -757,7 +763,8 @@ If one does not fit today's muscle group, skip it (it belongs on another day). O
         equipment, goal, experience, sessionDuration, trainingStyle, exerciseCount,
         injuries, injuryCodes, preferences, tempo, rpeTarget, rirTarget,
         unilateralPreference, conditioningStyle, clientContextBlock,
-        warmupSuitable, stretchExercises, avoidExercises, keepMandate
+        warmupSuitable, stretchExercises, avoidExercises, keepMandate,
+        weightUnit: clientWeightUnit
       });
       // Record this day's MAIN exercises so later same-type days avoid them
       const usedNow = (dayResult.exercises || [])
@@ -786,7 +793,7 @@ If one does not fit today's muscle group, skip it (it belongs on another day). O
 
     // Multi-week progression
     if (includeProgression && duration > 1) {
-      const moreWeeks = generateMultiWeekProgression(day1Workouts, duration, goal);
+      const moreWeeks = generateMultiWeekProgression(day1Workouts, duration, goal, clientWeightUnit);
       program.weeks = program.weeks.concat(moreWeeks);
     }
 
