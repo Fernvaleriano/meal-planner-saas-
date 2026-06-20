@@ -27,6 +27,8 @@ export default {
   // ── METRIC_CONFIGS ────────────────────────────────────────────
   metricWeight: 'Peso',
   metricBodyFat: 'Grasa corporal',
+  metricMuscleMass: 'Masa muscular',
+  metricVisceralFat: 'Grasa visceral',
   metricWaist: 'Cintura',
   metricChest: 'Pecho',
   metricHips: 'Caderas',
@@ -39,6 +41,10 @@ export default {
 
   // ── Measurements tab ─────────────────────────────────────────
   logAllMeasurements: 'Registrar todas las medidas',
+  scanInbody: 'Escanear InBody',
+  inbodyScanning: 'Leyendo escaneo…',
+  inbodyScanned: '¡Escaneo leído! Revisa los valores y guarda.',
+  inbodyScanFailed: 'No se pudo leer ese escaneo. Prueba con una foto más clara o ingresa los números a mano.',
   loadingMeasurements: 'Cargando medidas...',
   noDataForTimeFrame: 'Sin datos para el período seleccionado',
   logValue: 'Registrar valor',
@@ -104,6 +110,8 @@ export default {
   formDate: 'Fecha',
   formWeightLabel: 'Peso ({unit})',
   formBodyFat: '% de grasa corporal',
+  formMuscleMass: 'Masa muscular ({unit})',
+  formVisceralFat: 'Nivel de grasa visceral',
   formChest: 'Pecho ({unit})',
   formWaist: 'Cintura ({unit})',
   formHips: 'Caderas ({unit})',
