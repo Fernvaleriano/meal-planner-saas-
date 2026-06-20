@@ -69,6 +69,8 @@ const TIME_FRAMES = [
 const METRIC_CONFIGS = [
   { key: 'weight',     labelKey: 'metricWeight',      dbField: 'weight',                   unitKey: 'weight' },
   { key: 'bodyFat',    labelKey: 'metricBodyFat',      dbField: 'body_fat_percentage',       unitKey: 'percent' },
+  { key: 'muscleMass', labelKey: 'metricMuscleMass',   dbField: 'skeletal_muscle_mass',      unitKey: 'weight' },
+  { key: 'visceralFat',labelKey: 'metricVisceralFat',  dbField: 'visceral_fat_level',        unitKey: 'level' },
   { key: 'waist',      labelKey: 'metricWaist',        dbField: 'waist',                     unitKey: 'circumference' },
   { key: 'chest',      labelKey: 'metricChest',        dbField: 'chest',                     unitKey: 'circumference' },
   { key: 'hips',       labelKey: 'metricHips',         dbField: 'hips',                      unitKey: 'circumference' },
@@ -208,11 +210,15 @@ function Progress() {
   const [showMeasurementModal, setShowMeasurementModal] = useState(false);
   const [measurementForm, setMeasurementForm] = useState({
     date: getLocalDateString(),
-    weight: '', bodyFat: '', chest: '', waist: '', hips: '',
+    weight: '', bodyFat: '', muscleMass: '', visceralFat: '', chest: '', waist: '', hips: '',
     leftArm: '', rightArm: '', leftThigh: '', rightThigh: '',
     bpSystolic: '', bpDiastolic: '', notes: ''
   });
   const [savingMeasurement, setSavingMeasurement] = useState(false);
+
+  // InBody scan auto-fill
+  const [scanningInbody, setScanningInbody] = useState(false);
+  const inbodyInputRef = useRef(null);
 
   // Photo modal
   const [showPhotoModal, setShowPhotoModal] = useState(false);
@@ -348,6 +354,7 @@ function Progress() {
     if (unitKey === 'weight') return weightUnit;
     if (unitKey === 'percent') return '%';
     if (unitKey === 'mmHg') return 'mmHg';
+    if (unitKey === 'level') return '';
     return circumUnit;
   };
 
@@ -373,6 +380,8 @@ function Progress() {
       const fieldMap = {
         weight: 'weight',
         bodyFat: 'bodyFatPercentage',
+        muscleMass: 'skeletalMuscleMass',
+        visceralFat: 'visceralFat',
         chest: 'chest',
         waist: 'waist',
         hips: 'hips',
@@ -421,6 +430,8 @@ function Progress() {
         measuredDate: measurementForm.date,
         weight: parseFloat(measurementForm.weight) || null,
         bodyFatPercentage: parseFloat(measurementForm.bodyFat) || null,
+        skeletalMuscleMass: parseFloat(measurementForm.muscleMass) || null,
+        visceralFat: parseFloat(measurementForm.visceralFat) || null,
         chest: parseFloat(measurementForm.chest) || null,
         waist: parseFloat(measurementForm.waist) || null,
         hips: parseFloat(measurementForm.hips) || null,
@@ -437,7 +448,7 @@ function Progress() {
       setShowMeasurementModal(false);
       setMeasurementForm({
         date: getLocalDateString(),
-        weight: '', bodyFat: '', chest: '', waist: '', hips: '',
+        weight: '', bodyFat: '', muscleMass: '', visceralFat: '', chest: '', waist: '', hips: '',
         leftArm: '', rightArm: '', leftThigh: '', rightThigh: '',
         bpSystolic: '', bpDiastolic: '', notes: ''
       });
@@ -447,6 +458,56 @@ function Progress() {
       showError(err.message || t('progressPage.errorSavingMeasurement'));
     } finally {
       setSavingMeasurement(false);
+    }
+  };
+
+  // ── InBody scan auto-fill ──
+  // Read a photo of an InBody printout with AI, then pre-fill the measurement
+  // form with whatever was read. Nothing is saved automatically — the client
+  // reviews the numbers and taps Save, so a misread can't silently log.
+  const handleInbodyScanSelect = async (e) => {
+    const file = e.target.files?.[0];
+    if (e.target) e.target.value = ''; // allow re-picking the same file later
+    if (!file) return;
+    if (!clientData?.id || !clientData?.coach_id) {
+      showError(t('progressPage.sessionMissing'));
+      return;
+    }
+    setScanningInbody(true);
+    try {
+      const compressed = await compressImage(file, 1600, 0.85);
+      const data = await apiPost('/.netlify/functions/extract-inbody-scan', { image: compressed });
+      const ex = data?.extracted || {};
+      if (!data?.readAnything) {
+        showError(t('progressPage.inbodyScanFailed'));
+        return;
+      }
+
+      // The app stores/shows weight in the CLIENT's preferred unit (it ignores
+      // the per-row stored unit), so convert the scan's numbers into that unit.
+      const scanUnit = ex.weightUnit || (isMetric ? 'kg' : 'lbs');
+      const toClientWeight = (val) => {
+        if (val == null) return '';
+        if (scanUnit === 'kg' && !isMetric) return (val * 2.20462).toFixed(1);
+        if (scanUnit === 'lbs' && isMetric) return (val / 2.20462).toFixed(1);
+        return String(val);
+      };
+
+      setMeasurementForm(prev => ({
+        ...prev,
+        date: ex.measuredDate || prev.date,
+        weight: toClientWeight(ex.weight),
+        bodyFat: ex.bodyFatPercentage != null ? String(ex.bodyFatPercentage) : '',
+        muscleMass: toClientWeight(ex.skeletalMuscleMass),
+        visceralFat: ex.visceralFat != null ? String(ex.visceralFat) : '',
+      }));
+      setShowMeasurementModal(true);
+      showSuccess(t('progressPage.inbodyScanned'));
+    } catch (err) {
+      console.error('Error reading InBody scan:', err);
+      showError(err.message || t('progressPage.inbodyScanFailed'));
+    } finally {
+      setScanningInbody(false);
     }
   };
 
@@ -818,6 +879,24 @@ function Progress() {
               <span>{t('progressPage.logAllMeasurements')}</span>
             </button>
 
+            {/* Scan InBody — AI reads a photo of the printout and pre-fills the form */}
+            <button
+              className="btn-log-all"
+              style={{ background: 'transparent', border: '1.5px solid #4ec5b7', color: '#4ec5b7', marginTop: '8px' }}
+              onClick={() => inbodyInputRef.current?.click()}
+              disabled={scanningInbody}
+            >
+              <Sparkles size={18} />
+              <span>{scanningInbody ? t('progressPage.inbodyScanning') : t('progressPage.scanInbody')}</span>
+            </button>
+            <input
+              ref={inbodyInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleInbodyScanSelect}
+              style={{ display: 'none' }}
+            />
+
             {loadingMeasurements ? (
               <div className="loading-state">
                 <div className="spinner"></div>
@@ -1160,6 +1239,21 @@ function Progress() {
                     <input type="number" inputMode="decimal" step="0.1" placeholder="20.0"
                       value={measurementForm.bodyFat}
                       onChange={(e) => handleMeasurementChange('bodyFat', e.target.value)} />
+                  </div>
+                </div>
+
+                <div className="form-row">
+                  <div className="form-group">
+                    <label>{t('progressPage.formMuscleMass', { unit: weightUnit })}</label>
+                    <input type="number" inputMode="decimal" step="0.1"
+                      value={measurementForm.muscleMass}
+                      onChange={(e) => handleMeasurementChange('muscleMass', e.target.value)} />
+                  </div>
+                  <div className="form-group">
+                    <label>{t('progressPage.formVisceralFat')}</label>
+                    <input type="number" inputMode="decimal" step="0.1" placeholder="10"
+                      value={measurementForm.visceralFat}
+                      onChange={(e) => handleMeasurementChange('visceralFat', e.target.value)} />
                   </div>
                 </div>
 

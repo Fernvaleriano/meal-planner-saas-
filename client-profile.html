@@ -9460,6 +9460,17 @@
                 <button class="close-btn" onclick="closeMeasurementModal()">&times;</button>
             </div>
 
+            <div style="margin-bottom: 16px;">
+                <button type="button" class="btn btn-secondary" id="scanInbodyBtn"
+                    onclick="document.getElementById('inbodyScanInput').click()" style="width: 100%;">
+                    ✨ Scan InBody photo
+                </button>
+                <input type="file" id="inbodyScanInput" accept="image/*" style="display: none" onchange="handleInbodyScanSelect(event)">
+                <div style="font-size: 12px; color: #888; margin-top: 6px; text-align: center;">
+                    Reads weight, body fat, muscle mass &amp; visceral fat from a scan photo. Check the values before saving.
+                </div>
+            </div>
+
             <div class="measurement-form-grid">
                 <div class="form-group full-width">
                     <label>Date</label>
@@ -9481,6 +9492,15 @@
                 <div class="form-group">
                     <label>Body Fat %</label>
                     <input type="number" id="measurementBodyFat" step="0.1" placeholder="e.g., 15.5">
+                </div>
+                <div class="form-group">
+                    <label>Muscle Mass</label>
+                    <input type="number" id="measurementMuscleMass" step="0.1" placeholder="skeletal muscle">
+                </div>
+
+                <div class="form-group">
+                    <label>Visceral Fat Level</label>
+                    <input type="number" id="measurementVisceralFat" step="0.1" placeholder="e.g., 8">
                 </div>
                 <div class="form-group">
                     <label>Waist</label>
@@ -9771,6 +9791,7 @@
         const DELETE_PHOTO_ENDPOINT = '/.netlify/functions/delete-progress-photo';
         const SAVE_MEASUREMENT_ENDPOINT = '/.netlify/functions/save-measurement';
         const GET_MEASUREMENTS_ENDPOINT = '/.netlify/functions/get-measurements';
+        const EXTRACT_INBODY_ENDPOINT = '/.netlify/functions/extract-inbody-scan';
         const CHECKIN_ENDPOINT = '/.netlify/functions/save-checkin';
         const RESPOND_CHECKIN_ENDPOINT = '/.netlify/functions/respond-checkin';
         const GYM_PROOF_ENDPOINT = '/.netlify/functions/save-gym-proof';
@@ -11788,6 +11809,8 @@
             const latestWithWeight = clientMeasurements.find(m => m.weight);
             const latestWithWaist = clientMeasurements.find(m => m.waist);
             const latestWithBodyFat = clientMeasurements.find(m => m.body_fat_percentage);
+            const latestWithMuscle = clientMeasurements.find(m => m.skeletal_muscle_mass);
+            const latestWithVisceral = clientMeasurements.find(m => m.visceral_fat_level);
             const latestWithChest = clientMeasurements.find(m => m.chest);
             const latestWithArms = clientMeasurements.find(m => m.left_arm || m.right_arm);
             const latestWithHips = clientMeasurements.find(m => m.hips);
@@ -11818,6 +11841,18 @@
                         <div class="measurement-card">
                             <div class="measurement-value">${latestWithBodyFat.body_fat_percentage}%</div>
                             <div class="measurement-label">Body Fat</div>
+                        </div>
+                    ` : ''}
+                    ${latestWithMuscle ? `
+                        <div class="measurement-card">
+                            <div class="measurement-value">${latestWithMuscle.skeletal_muscle_mass}</div>
+                            <div class="measurement-label">Muscle Mass (${latestWithMuscle.weight_unit || 'lbs'})</div>
+                        </div>
+                    ` : ''}
+                    ${latestWithVisceral ? `
+                        <div class="measurement-card">
+                            <div class="measurement-value">${latestWithVisceral.visceral_fat_level}</div>
+                            <div class="measurement-label">Visceral Fat</div>
                         </div>
                     ` : ''}
                     ${latestWithWaist ? `
@@ -11898,6 +11933,8 @@
                         if (m.weight) valuesHTML += `<span class="history-value">⚖️ ${m.weight} ${m.weight_unit || 'lbs'}</span>`;
                         if (m.waist) valuesHTML += `<span class="history-value">📏 ${m.waist}"</span>`;
                         if (m.body_fat_percentage) valuesHTML += `<span class="history-value">📊 ${m.body_fat_percentage}%</span>`;
+                        if (m.skeletal_muscle_mass) valuesHTML += `<span class="history-value">🥩 ${m.skeletal_muscle_mass} ${m.weight_unit || 'lbs'}</span>`;
+                        if (m.visceral_fat_level) valuesHTML += `<span class="history-value">🔥 VF ${m.visceral_fat_level}</span>`;
                         if (m.chest) valuesHTML += `<span class="history-value">👕 ${m.chest}"</span>`;
                         if (m.left_arm || m.right_arm) valuesHTML += `<span class="history-value">💪 ${m.left_arm || m.right_arm}"</span>`;
                         if (m.hips) valuesHTML += `<span class="history-value">🦵 ${m.hips}"</span>`;
@@ -12080,6 +12117,8 @@
             // Clear form
             document.getElementById('measurementWeight').value = '';
             document.getElementById('measurementBodyFat').value = '';
+            document.getElementById('measurementMuscleMass').value = '';
+            document.getElementById('measurementVisceralFat').value = '';
             document.getElementById('measurementWaist').value = '';
             document.getElementById('measurementChest').value = '';
             document.getElementById('measurementHips').value = '';
@@ -12110,6 +12149,8 @@
                         weight: document.getElementById('measurementWeight').value || null,
                         weightUnit: document.getElementById('weightUnit').value,
                         bodyFatPercentage: document.getElementById('measurementBodyFat').value || null,
+                        skeletalMuscleMass: document.getElementById('measurementMuscleMass').value || null,
+                        visceralFat: document.getElementById('measurementVisceralFat').value || null,
                         waist: document.getElementById('measurementWaist').value || null,
                         chest: document.getElementById('measurementChest').value || null,
                         hips: document.getElementById('measurementHips').value || null,
@@ -12135,6 +12176,68 @@
                 alert('Failed to save measurement: ' + error.message);
             } finally {
                 btn.textContent = 'Save Measurement';
+                btn.disabled = false;
+            }
+        }
+
+        // Read a photo of an InBody printout with AI and pre-fill the measurement
+        // form. Nothing is saved here — the coach reviews the numbers and taps
+        // "Save Measurement", so a misread can't silently log bad data.
+        async function handleInbodyScanSelect(event) {
+            const file = event.target.files && event.target.files[0];
+            if (event.target) event.target.value = ''; // allow re-picking the same file
+            if (!file) return;
+            if (!currentClient) { alert('No client selected'); return; }
+
+            const btn = document.getElementById('scanInbodyBtn');
+            const originalText = btn.textContent;
+            btn.textContent = 'Reading scan…';
+            btn.disabled = true;
+
+            try {
+                const base64Data = await new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = () => resolve(reader.result);
+                    reader.onerror = reject;
+                    reader.readAsDataURL(file);
+                });
+
+                const { data: { session } } = await supabaseClient.auth.getSession();
+                const token = session && session.access_token;
+                if (!token) { alert('Your session expired. Please refresh and try again.'); return; }
+
+                const response = await fetch(EXTRACT_INBODY_ENDPOINT, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ image: base64Data })
+                });
+
+                const result = await response.json();
+                if (!response.ok) throw new Error(result.error || 'Could not read the scan');
+
+                const ex = result.extracted || {};
+                if (!result.readAnything) {
+                    alert("Couldn't read that scan. Try a clearer photo, or enter the numbers by hand.");
+                    return;
+                }
+
+                // Coach modal stores its own weight unit, so set it from the scan
+                // and use the raw numbers (no conversion needed).
+                if (ex.weightUnit) document.getElementById('weightUnit').value = ex.weightUnit;
+                if (ex.measuredDate) document.getElementById('measurementDate').value = ex.measuredDate;
+                if (ex.weight != null) document.getElementById('measurementWeight').value = ex.weight;
+                if (ex.bodyFatPercentage != null) document.getElementById('measurementBodyFat').value = ex.bodyFatPercentage;
+                if (ex.skeletalMuscleMass != null) document.getElementById('measurementMuscleMass').value = ex.skeletalMuscleMass;
+                if (ex.visceralFat != null) document.getElementById('measurementVisceralFat').value = ex.visceralFat;
+
+            } catch (error) {
+                console.error('Error reading InBody scan:', error);
+                alert('Failed to read the scan: ' + error.message);
+            } finally {
+                btn.textContent = originalText;
                 btn.disabled = false;
             }
         }

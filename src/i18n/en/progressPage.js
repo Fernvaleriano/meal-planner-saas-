@@ -29,6 +29,8 @@ export default {
   // ── METRIC_CONFIGS — display labels ──────────────────────────
   metricWeight: 'Weight',
   metricBodyFat: 'Body Fat',
+  metricMuscleMass: 'Muscle Mass',
+  metricVisceralFat: 'Visceral Fat',
   metricWaist: 'Waist',
   metricChest: 'Chest',
   metricHips: 'Hips',
@@ -41,6 +43,10 @@ export default {
 
   // ── Measurements tab ─────────────────────────────────────────
   logAllMeasurements: 'Log All Measurements',
+  scanInbody: 'Scan InBody',
+  inbodyScanning: 'Reading scan…',
+  inbodyScanned: 'Scan read! Check the values, then save.',
+  inbodyScanFailed: "Couldn't read that scan. Try a clearer photo, or enter the numbers by hand.",
   loadingMeasurements: 'Loading measurements...',
   noDataForTimeFrame: 'No data for selected time frame',
   logValue: 'Log Value',
@@ -113,6 +119,8 @@ export default {
   // '{unit}' is the runtime weight/circumference abbreviation (kg, lbs, cm, in)
   formWeightLabel: 'Weight ({unit})',
   formBodyFat: 'Body Fat %',
+  formMuscleMass: 'Muscle Mass ({unit})',
+  formVisceralFat: 'Visceral Fat Level',
   formChest: 'Chest ({unit})',
   formWaist: 'Waist ({unit})',
   formHips: 'Hips ({unit})',
