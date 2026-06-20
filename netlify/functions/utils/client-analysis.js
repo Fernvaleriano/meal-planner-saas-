@@ -92,6 +92,35 @@ async function analyzeClientHistory(supabase, clientId) {
     console.warn('exercise_logs query failed:', e.message);
   }
 
+  // ─── Recovery, adherence & body-composition (what a real coach reviews) ─────
+  // A coach doesn't just look at the bar — they look at whether the client is
+  // recovering (sleep/stress/energy), whether they're actually completing the
+  // sessions (adherence), and whether the body is moving toward the goal
+  // (weight / body-fat / waist trend). All cleanly keyed by client_id.
+  const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+  let checkins = [];
+  let measurements = [];
+  try {
+    const [checkinRes, measurementRes] = await Promise.all([
+      supabase.from('client_checkins')
+        .select('checkin_date, weight, energy_level, sleep_quality, hunger_level, stress_level, meal_plan_adherence, workouts_completed, workouts_planned, wins, challenges, questions, notes, request_new_diet')
+        .eq('client_id', clientId)
+        .gte('checkin_date', sixtyDaysAgo)
+        .order('checkin_date', { ascending: false })
+        .limit(8),
+      supabase.from('client_measurements')
+        .select('measured_date, weight, weight_unit, body_fat_percentage, waist, chest, hips')
+        .eq('client_id', clientId)
+        .gte('measured_date', ninetyDaysAgo)
+        .order('measured_date', { ascending: true })
+        .limit(30)
+    ]);
+    checkins = checkinRes.data || [];
+    measurements = measurementRes.data || [];
+  } catch (e) {
+    console.warn('checkins/measurements query failed:', e.message);
+  }
+
   // Build per-exercise timeline (chronological)
   const logDateMap = Object.fromEntries(logs.map(l => [l.id, l.workout_date]));
   const timelines = {};
@@ -119,6 +148,9 @@ async function analyzeClientHistory(supabase, clientId) {
     const recent = sessions.slice(-4); // last 4 sessions
     const weights = recent.map(s => s.weight).filter(w => w > 0);
     const totalVolumes = recent.map(s => s.volume).filter(v => v > 0);
+    // Reps-per-set tells us about rep PRs: a client adding reps at the same
+    // weight IS progressing, even if the top weight on the bar hasn't moved.
+    const repsPerSet = recent.map(s => s.sets > 0 ? s.reps / s.sets : 0).filter(r => r > 0);
 
     // Trends
     let weightTrend = 'stable';
@@ -137,6 +169,16 @@ async function analyzeClientHistory(supabase, clientId) {
       if (first > 0) {
         if (last > first * 1.05) volumeTrend = 'increasing';
         else if (last < first * 0.95) volumeTrend = 'decreasing';
+      }
+    }
+    // Rep trend: are they adding reps at a stable load? (rep PRs)
+    let repTrend = 'stable';
+    if (repsPerSet.length >= 2) {
+      const first = repsPerSet[0];
+      const last = repsPerSet[repsPerSet.length - 1];
+      if (first > 0) {
+        if (last >= first + 1) repTrend = 'increasing';
+        else if (last <= first - 1) repTrend = 'decreasing';
       }
     }
 
@@ -159,9 +201,15 @@ async function analyzeClientHistory(supabase, clientId) {
     } else if (weightTrend === 'increasing') {
       action = 'progress_load';
       reasoning = `Progressing well (${weights[0]}→${currentMax} lb). Keep, suggest small load bump in notes.`;
-    } else if (sessions.length >= 6 && weightTrend === 'stable' && (daysSinceLastPR === null || daysSinceLastPR >= 21)) {
+    } else if (weightTrend === 'stable' && (repTrend === 'increasing' || volumeTrend === 'increasing')) {
+      // Weight on the bar is flat, but reps/volume are climbing — that's a rep
+      // PR. This is REAL progress; do NOT mistake it for a plateau. Keep the
+      // exercise and graduate them to load once they top out the rep range.
+      action = 'progress_load';
+      reasoning = `Adding reps/volume at a steady ~${currentMax} lb (rep PRs). Keep — once they hit the top of the rep range, bump the load.`;
+    } else if (sessions.length >= 6 && weightTrend === 'stable' && repTrend !== 'increasing' && volumeTrend !== 'increasing' && (daysSinceLastPR === null || daysSinceLastPR >= 21)) {
       action = 'swap_for_variety';
-      reasoning = `Stalled at ~${currentMax} lb across ${sessions.length} sessions, no PR in ${daysSinceLastPR ?? '21+'} days. Swap for a similar-pattern variation.`;
+      reasoning = `Truly stalled at ~${currentMax} lb across ${sessions.length} sessions — weight, reps, AND volume flat, no PR in ${daysSinceLastPR ?? '21+'} days. Swap for a similar-pattern variation to break the plateau.`;
     } else if (weightTrend === 'decreasing') {
       action = 'investigate_or_swap';
       reasoning = `Weight regressed (${weights[0]}→${currentMax} lb). Either client is fatigued (deload) or needs a fresh stimulus — swap for a variation.`;
@@ -179,6 +227,7 @@ async function analyzeClientHistory(supabase, clientId) {
       currentMax,
       weightTrend,
       volumeTrend,
+      repTrend,
       daysSinceLastPR,
       action,
       reasoning
@@ -216,6 +265,54 @@ async function analyzeClientHistory(supabase, clientId) {
   const daysSpan = Math.max(1, Math.floor((Date.now() - new Date(oldestDate).getTime()) / (24 * 60 * 60 * 1000)));
   const sessionsPerWeek = (logs.length / daysSpan) * 7;
 
+  // ─── Recovery & adherence summary (from check-ins) ────────────────────────
+  let recovery = null;
+  if (checkins.length > 0) {
+    const avgOf = key => {
+      const v = checkins.map(c => c[key]).filter(x => x != null);
+      return v.length ? +(v.reduce((s, x) => s + x, 0) / v.length).toFixed(1) : null;
+    };
+    const totalCompleted = checkins.reduce((s, c) => s + (c.workouts_completed || 0), 0);
+    const totalPlanned = checkins.reduce((s, c) => s + (c.workouts_planned || 0), 0);
+    const qualitative = [];
+    for (const c of checkins) {
+      ['wins', 'challenges', 'questions', 'notes'].forEach(k => {
+        const t = (c[k] || '').trim();
+        if (t) qualitative.push({ date: c.checkin_date, kind: k, text: t.length > 180 ? t.slice(0, 177) + '…' : t });
+      });
+    }
+    recovery = {
+      count: checkins.length,
+      avgSleep: avgOf('sleep_quality'),
+      avgEnergy: avgOf('energy_level'),
+      avgStress: avgOf('stress_level'),
+      avgHunger: avgOf('hunger_level'),
+      avgMealAdherence: avgOf('meal_plan_adherence'),
+      workoutAdherencePct: totalPlanned > 0 ? Math.round((totalCompleted / totalPlanned) * 100) : null,
+      requestedNewPlan: checkins.some(c => c.request_new_diet),
+      qualitative: qualitative.slice(0, 6)
+    };
+  }
+
+  // ─── Body-composition trend (from measurements) ───────────────────────────
+  let bodyTrend = null;
+  if (measurements.length >= 2) {
+    const first = measurements[0];
+    const last = measurements[measurements.length - 1];
+    const delta = (a, b) => (a != null && b != null) ? +(b - a).toFixed(1) : null;
+    bodyTrend = {
+      points: measurements.length,
+      fromDate: first.measured_date,
+      toDate: last.measured_date,
+      unit: last.weight_unit || 'lb',
+      weightChange: delta(first.weight, last.weight),
+      bodyFatChange: delta(first.body_fat_percentage, last.body_fat_percentage),
+      waistChange: delta(first.waist, last.waist),
+      latestWeight: last.weight,
+      latestBodyFat: last.body_fat_percentage
+    };
+  }
+
   // Deload detection
   const lastDeload = lastAssignments.find(p => /deload/i.test(p.name || ''));
   const weeksSinceDeload = lastDeload && lastDeload.created_at
@@ -234,6 +331,8 @@ async function analyzeClientHistory(supabase, clientId) {
   let overallRecommendation;
   if (deloadDue) {
     overallRecommendation = 'DELOAD recommended. Reduce volume by ~30%, drop intensity to RPE 6-7, focus on form and recovery for 1 week.';
+  } else if (recovery && recovery.workoutAdherencePct != null && recovery.workoutAdherencePct < 70) {
+    overallRecommendation = `Workout adherence is only ${recovery.workoutAdherencePct}% — the priority is a program the client will actually complete. Trim to fewer/shorter sessions and rebuild consistency before adding volume.`;
   } else if (avgRPE != null && avgRPE <= 6) {
     overallRecommendation = 'Client has capacity for more intensity. Push working sets harder, add a set on key compounds.';
   } else if (exerciseAnalysis.filter(e => e.action === 'swap_for_variety' || e.action === 'optional_swap').length >= 4) {
@@ -254,6 +353,8 @@ async function analyzeClientHistory(supabase, clientId) {
     programHistory: lastAssignments.map(p => p.name),
     exerciseAnalysis: exerciseAnalysis.slice(0, 12),
     clientComments: recentComments,
+    recovery,
+    bodyTrend,
     overallRecommendation
   };
 }
@@ -285,8 +386,41 @@ function formatAnalysisForPrompt(analysis) {
         : ex.action === 'optional_swap' ? '🔁 ROTATE'
         : ex.action === 'investigate_or_swap' ? '⚠ REGRESSED'
         : '✓ PERSIST';
-      lines.push(`  ${tag} ${ex.name} (${ex.sessions} sessions, top ${ex.currentMax} lb) — ${ex.reasoning}`);
+      const repPr = ex.repTrend === 'increasing' ? ', reps climbing 📊' : '';
+      lines.push(`  ${tag} ${ex.name} (${ex.sessions} sessions, top ${ex.currentMax} lb${repPr}) — ${ex.reasoning}`);
     }
+  }
+
+  if (analysis.recovery) {
+    const r = analysis.recovery;
+    lines.push(`\n=== RECOVERY & ADHERENCE (from ${r.count} recent check-in${r.count > 1 ? 's' : ''}) ===`);
+    const metrics = [];
+    if (r.avgSleep != null) metrics.push(`sleep ${r.avgSleep}/5`);
+    if (r.avgEnergy != null) metrics.push(`energy ${r.avgEnergy}/5`);
+    if (r.avgStress != null) metrics.push(`stress ${r.avgStress}/5`);
+    if (r.avgHunger != null) metrics.push(`hunger ${r.avgHunger}/5`);
+    if (r.avgMealAdherence != null) metrics.push(`meal adherence ${r.avgMealAdherence}/5`);
+    if (metrics.length) lines.push(`Averages: ${metrics.join(', ')}.`);
+    if (r.workoutAdherencePct != null) {
+      lines.push(`Workout adherence: ${r.workoutAdherencePct}% of planned sessions completed.${r.workoutAdherencePct < 70 ? ' ← LOW — the current program may be too long/hard or not fitting their schedule. Consider fewer days or shorter sessions.' : ''}`);
+    }
+    if (r.requestedNewPlan) lines.push(`⚠ Client has requested a change recently — they want something new.`);
+    lines.push(`→ Poor sleep / high stress = prioritize recovery: trim volume, avoid maxing out, keep RPE moderate. Good recovery = green light to push.`);
+    if (r.qualitative.length > 0) {
+      lines.push(`Check-in notes:`);
+      for (const q of r.qualitative) lines.push(`  • [${q.date || 'recent'}, ${q.kind}] "${q.text}"`);
+    }
+  }
+
+  if (analysis.bodyTrend) {
+    const b = analysis.bodyTrend;
+    lines.push(`\n=== BODY-COMPOSITION TREND (${b.points} measurements, ${b.fromDate} → ${b.toDate}) ===`);
+    const parts = [];
+    if (b.weightChange != null) parts.push(`weight ${b.weightChange > 0 ? '+' : ''}${b.weightChange} ${b.unit} (now ${b.latestWeight} ${b.unit})`);
+    if (b.bodyFatChange != null) parts.push(`body-fat ${b.bodyFatChange > 0 ? '+' : ''}${b.bodyFatChange}% (now ${b.latestBodyFat}%)`);
+    if (b.waistChange != null) parts.push(`waist ${b.waistChange > 0 ? '+' : ''}${b.waistChange}"`);
+    if (parts.length) lines.push(`Change over the window: ${parts.join(', ')}.`);
+    lines.push(`→ Check this against their goal. If the body isn't moving the right direction (e.g. fat-loss goal but weight/waist flat), adjust the stimulus — add conditioning/finishers, raise training density, or increase weekly volume. If it's moving well, stay the course.`);
   }
 
   if (analysis.clientComments && analysis.clientComments.length > 0) {
@@ -299,17 +433,23 @@ function formatAnalysisForPrompt(analysis) {
 
   lines.push(`\nOverall: ${analysis.overallRecommendation}`);
 
-  lines.push(`\n=== HOW TO ACT ON THIS BRIEFING ===
-- "🔄 SWAP" exercises: pick a NEW VARIATION of the SAME MOVEMENT PATTERN (e.g. Barbell Row → Pendlay Row or Dumbbell Row). Don't drop the muscle target.
-- "📈 KEEP+PROGRESS" exercises: include them again. In the notes, suggest +5-10 lb (hypertrophy) or +2.5-5 lb (strength). Reference the client's top weight.
-- "🔁 ROTATE" exercises: 50/50 — keep for consistency OR rotate for novelty, your call. Prefer keeping bread-and-butter compounds (squat, bench, deadlift, overhead press).
-- "⚠ REGRESSED" exercises: weight has dropped — either deload OR swap to a similar pattern with fresh stimulus.
-- "✓ PERSIST" exercises: keep them. Stable progress is GOOD.
-- DELOAD if flagged: drop 1 set per exercise, drop ~25% load, keep technique focus.
-- Sets/reps/rest schemes: follow the goal-appropriate ranges, but if RPE is high, lean toward fewer reps + more rest. If RPE is low, push more volume.
-- CLIENT COMMENTS: treat their words as priority signal. If they flagged pain or a joint issue on a movement, swap or regress it even if the numbers look fine. If something felt great or too easy, lean into it (keep it, progress it). If they mentioned time/energy constraints, respect them.
+  lines.push(`\n=== HOW TO ACT ON THIS BRIEFING (coach like a real human coach) ===
+Program for THIS client based on the evidence above — not a generic template. Walk through it the way a thoughtful online coach would:
 
-DO NOT change everything — that's not how good coaching works. Progressive overload + selective novelty is the goal.`);
+- "🔄 SWAP" exercises: truly plateaued (weight, reps AND volume flat). Pick a NEW VARIATION of the SAME MOVEMENT PATTERN that hits the same muscles (e.g. Barbell Row → Pendlay Row or Dumbbell Row). Don't drop the muscle target — change the stimulus to break the stall.
+- "📈 KEEP+PROGRESS" exercises: they're still climbing (load OR reps). KEEP them — never swap an exercise that's working. In the notes, prescribe the next step: +5-10 lb (hypertrophy) / +2.5-5 lb (strength) once they top the rep range, or "add a rep per set this block." Reference the client's actual top weight.
+- "📊 reps climbing": this is a rep PR — real progress with the same weight on the bar. Treat it as KEEP, not a plateau.
+- "🔁 ROTATE" exercises: 50/50 — keep for consistency OR rotate for novelty. Prefer keeping bread-and-butter compounds (squat, bench, deadlift, overhead press).
+- "⚠ REGRESSED" exercises: weight has dropped — read it WITH recovery: if recovery/adherence is poor, it's fatigue → deload it; if recovery is fine, it's a stale stimulus → swap to a similar pattern.
+- "✓ PERSIST" exercises: keep them. Stable, recent progress is GOOD — consistency beats novelty.
+- RECOVERY drives intensity: poor sleep / high stress / low energy → trim volume, keep RPE moderate, no maxing. Strong recovery + low RPE → green light to push volume and load.
+- ADHERENCE drives structure: if workout adherence is low, the program is too much — give fewer days or shorter sessions they'll actually complete. A program they finish beats a "perfect" one they skip.
+- BODY-COMP drives the goal: if the trend isn't matching their stated goal, adjust the stimulus (conditioning/finishers for fat loss, more volume for muscle gain).
+- DELOAD if flagged: drop 1 set per exercise, drop ~25% load, keep technique focus.
+- Sets/reps/rest: follow the goal-appropriate ranges, but bend them to the recovery/RPE picture above.
+- CLIENT COMMENTS & CHECK-IN NOTES: their own words are priority signal. Pain or a joint issue on a movement → swap or regress it even if the numbers look fine. Felt great / too easy → lean in. Time/energy constraints → respect them.
+
+DO NOT change everything — that's not how good coaching works. Keep what's working, progress what's ready, swap only what's truly stuck. Progressive overload + selective, justified novelty is the goal.`);
 
   return lines.join('\n');
 }
