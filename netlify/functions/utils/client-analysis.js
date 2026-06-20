@@ -87,6 +87,7 @@ function readLastSession(sessions) {
 async function analyzeClientHistory(supabase, clientId, options = {}) {
   if (!clientId) return null;
   const goal = options.goal || null; // used for cut/bulk (nutrition-phase) reasoning
+  const unit = options.weightUnit || 'lb'; // client's weight unit ('kg' | 'lb')
 
   // Pull 60 days so we can detect plateaus that span multiple weeks
   const sixtyDaysAgo = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
@@ -253,19 +254,19 @@ async function analyzeClientHistory(supabase, clientId, options = {}) {
       reasoning = `Only 1 session logged, not enough data — keep if it fits the new program.`;
     } else if (weightTrend === 'increasing') {
       action = 'progress_load';
-      reasoning = `Progressing well (${weights[0]}→${currentMax} lb). Keep, suggest small load bump in notes.`;
+      reasoning = `Progressing well (${weights[0]}→${currentMax} ${unit}). Keep, suggest small load bump in notes.`;
     } else if (weightTrend === 'stable' && (repTrend === 'increasing' || volumeTrend === 'increasing')) {
       // Weight on the bar is flat, but reps/volume are climbing — that's a rep
       // PR. This is REAL progress; do NOT mistake it for a plateau. Keep the
       // exercise and graduate them to load once they top out the rep range.
       action = 'progress_load';
-      reasoning = `Adding reps/volume at a steady ~${currentMax} lb (rep PRs). Keep — once they hit the top of the rep range, bump the load.`;
+      reasoning = `Adding reps/volume at a steady ~${currentMax} ${unit} (rep PRs). Keep — once they hit the top of the rep range, bump the load.`;
     } else if (sessions.length >= 6 && weightTrend === 'stable' && repTrend !== 'increasing' && volumeTrend !== 'increasing' && (daysSinceLastPR === null || daysSinceLastPR >= 21)) {
       action = 'swap_for_variety';
-      reasoning = `Truly stalled at ~${currentMax} lb across ${sessions.length} sessions — weight, reps, AND volume flat, no PR in ${daysSinceLastPR ?? '21+'} days. Swap for a similar-pattern variation to break the plateau.`;
+      reasoning = `Truly stalled at ~${currentMax} ${unit} across ${sessions.length} sessions — weight, reps, AND volume flat, no PR in ${daysSinceLastPR ?? '21+'} days. Swap for a similar-pattern variation to break the plateau.`;
     } else if (weightTrend === 'decreasing') {
       action = 'investigate_or_swap';
-      reasoning = `Weight regressed (${weights[0]}→${currentMax} lb). Either client is fatigued (deload) or needs a fresh stimulus — swap for a variation.`;
+      reasoning = `Weight regressed (${weights[0]}→${currentMax} ${unit}). Either client is fatigued (deload) or needs a fresh stimulus — swap for a variation.`;
     } else if (sessions.length >= 8) {
       action = 'optional_swap';
       reasoning = `Used ${sessions.length} times — solid, but consider a variation for novelty.`;
@@ -459,6 +460,7 @@ async function analyzeClientHistory(supabase, clientId, options = {}) {
     weeksSinceDeload,
     lastProgramName: lastAssignments[0]?.name || null,
     programHistory: lastAssignments.map(p => p.name),
+    weightUnit: unit,
     exerciseAnalysis: exerciseAnalysis.slice(0, 15),
     skippedExercises: skippedExercises.slice(0, 8),
     clientComments: recentComments,
@@ -497,7 +499,7 @@ function formatAnalysisForPrompt(analysis) {
         : ex.action === 'investigate_or_swap' ? '⚠ REGRESSED'
         : '✓ PERSIST';
       const repPr = ex.repTrend === 'increasing' ? ', reps climbing 📊' : '';
-      lines.push(`  ${tag} ${ex.name} (${ex.sessions} sessions, top ${ex.currentMax} lb${repPr}) — ${ex.reasoning}`);
+      lines.push(`  ${tag} ${ex.name} (${ex.sessions} sessions, top ${ex.currentMax} ${analysis.weightUnit || 'lb'}${repPr}) — ${ex.reasoning}`);
       if (ex.lastSetRead?.read) lines.push(`       ↳ set read: ${ex.lastSetRead.read}.`);
     }
   }
