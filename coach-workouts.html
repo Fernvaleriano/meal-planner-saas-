@@ -14016,7 +14016,16 @@
                             const numVal = parseInt(repsVal);
                             if (!isNaN(numVal)) {
                                 if (ex.isStretch) { trackingType = 'time'; duration = numVal; }
-                                else if (ex.isWarmup && String(repsVal).match(/^\d+$/) && numVal <= 10) { trackingType = 'time'; duration = numVal * 60; }
+                                else if (ex.isWarmup && String(repsVal).match(/^\d+$/)) {
+                                    // A bare number on a warm-up means MINUTES only for
+                                    // cardio (jog "5" = 5 min). For mobility / bodyweight
+                                    // warm-ups (arm circles, push-ups, lunges) it's REPS —
+                                    // do NOT multiply by 60 (that's the old "10 reps → 600s" bug).
+                                    const grp = (ex.muscleGroup || ex.muscle_group || '').toLowerCase();
+                                    const isCardio = grp === 'cardio' || /tread|elliptical|\bbike\b|cycl|rower|rowing|\bstair|\bjog|\brun|jump rope|skipping|sprint/i.test(ex.name || '');
+                                    if (isCardio) { trackingType = 'time'; duration = numVal * 60; }
+                                    // else: leave as reps
+                                }
                             }
                         }
                         return {
