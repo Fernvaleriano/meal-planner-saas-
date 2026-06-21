@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo, Fragment } from 'react';
 import { createPortal } from 'react-dom';
 import { ChevronLeft, Ruler, Camera, X, Plus, Minus, ChevronDown, Trash2, Columns2, Sparkles, TrendingDown, TrendingUp, ChevronRight, Calendar, Award, Share2 } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
@@ -80,6 +80,35 @@ const METRIC_CONFIGS = [
   { key: 'rightThigh', labelKey: 'metricRightThigh',   dbField: 'right_thigh',               unitKey: 'circumference' },
   { key: 'bpSystolic', labelKey: 'metricBpSystolic',   dbField: 'blood_pressure_systolic',   unitKey: 'mmHg' },
   { key: 'bpDiastolic',labelKey: 'metricBpDiastolic',  dbField: 'blood_pressure_diastolic',  unitKey: 'mmHg' },
+];
+
+// Extra InBody numbers shown only in the tucked-away "InBody details" panel
+// on scanned entries. Order = display order. Labels are technical terms kept
+// in English (they're standard across InBody machines worldwide).
+const INBODY_DETAIL_FIELDS = [
+  { key: 'inbodyScore',        label: 'InBody Score' },
+  { key: 'bmi',                label: 'BMI' },
+  { key: 'bmr',                label: 'BMR (kcal)' },
+  { key: 'leanBodyMass',       label: 'Lean Body Mass' },
+  { key: 'bodyFatMass',        label: 'Body Fat Mass' },
+  { key: 'smi',                label: 'Skeletal Muscle Index' },
+  { key: 'protein',            label: 'Protein' },
+  { key: 'minerals',           label: 'Minerals' },
+  { key: 'totalBodyWater',     label: 'Total Body Water' },
+  { key: 'intracellularWater', label: 'Intracellular Water' },
+  { key: 'extracellularWater', label: 'Extracellular Water' },
+  { key: 'ecwTbwRatio',        label: 'ECW/TBW Ratio' },
+  { key: 'visceralFatArea',    label: 'Visceral Fat Area (cm²)' },
+  { key: 'segLeanLeftArm',     label: 'Lean — Left Arm' },
+  { key: 'segLeanRightArm',    label: 'Lean — Right Arm' },
+  { key: 'segLeanTrunk',       label: 'Lean — Trunk' },
+  { key: 'segLeanLeftLeg',     label: 'Lean — Left Leg' },
+  { key: 'segLeanRightLeg',    label: 'Lean — Right Leg' },
+  { key: 'segFatLeftArm',      label: 'Fat — Left Arm' },
+  { key: 'segFatRightArm',     label: 'Fat — Right Arm' },
+  { key: 'segFatTrunk',        label: 'Fat — Trunk' },
+  { key: 'segFatLeftLeg',      label: 'Fat — Left Leg' },
+  { key: 'segFatRightLeg',     label: 'Fat — Right Leg' },
 ];
 
 // Mini line chart component (pure SVG)
@@ -216,8 +245,12 @@ function Progress() {
   });
   const [savingMeasurement, setSavingMeasurement] = useState(false);
 
-  // InBody scan auto-fill
+  // InBody scan auto-fill. When a scan is read, we hold its full detail bundle
+  // and the image until the user taps Save, then send them with the measurement.
   const [scanningInbody, setScanningInbody] = useState(false);
+  const [pendingInbodyData, setPendingInbodyData] = useState(null);
+  const [pendingInbodyImage, setPendingInbodyImage] = useState(null);
+  const [expandedScans, setExpandedScans] = useState({});
   const inbodyInputRef = useRef(null);
 
   // Photo modal
@@ -441,7 +474,9 @@ function Progress() {
         rightThigh: parseFloat(measurementForm.rightThigh) || null,
         bloodPressureSystolic: parseFloat(measurementForm.bpSystolic) || null,
         bloodPressureDiastolic: parseFloat(measurementForm.bpDiastolic) || null,
-        notes: measurementForm.notes || null
+        notes: measurementForm.notes || null,
+        inbodyData: pendingInbodyData,
+        inbodyScanImage: pendingInbodyImage
       });
 
       showSuccess(t('progressPage.measurementSaved'));
@@ -452,6 +487,8 @@ function Progress() {
         leftArm: '', rightArm: '', leftThigh: '', rightThigh: '',
         bpSystolic: '', bpDiastolic: '', notes: ''
       });
+      setPendingInbodyData(null);
+      setPendingInbodyImage(null);
       loadMeasurements();
     } catch (err) {
       console.error('Error saving measurement:', err);
@@ -482,6 +519,10 @@ function Progress() {
         showError(t('progressPage.inbodyScanFailed'));
         return;
       }
+
+      // Hold the full detail bundle + the scan image to send when the user saves.
+      setPendingInbodyData(data?.details && Object.keys(data.details).length ? data.details : null);
+      setPendingInbodyImage(compressed);
 
       // The app stores/shows weight in the CLIENT's preferred unit (it ignores
       // the per-row stored unit), so convert the scan's numbers into that unit.
@@ -874,7 +915,15 @@ function Progress() {
             </div>
 
             {/* Log All Button */}
-            <button className="btn-log-all" onClick={() => setShowMeasurementModal(true)}>
+            <button
+              className="btn-log-all"
+              onClick={() => {
+                // Manual entry — drop any held scan so it can't attach here.
+                setPendingInbodyData(null);
+                setPendingInbodyImage(null);
+                setShowMeasurementModal(true);
+              }}
+            >
               <Plus size={18} />
               <span>{t('progressPage.logAllMeasurements')}</span>
             </button>
@@ -935,6 +984,64 @@ function Progress() {
                     <div className="metric-no-data">{t('progressPage.noMeasurementsYet')}</div>
                   )}
                 </>
+              );
+            })()}
+
+            {/* InBody scans — the 4 headline numbers trend above; the full scan
+                (all extra numbers + the photo) lives here, expandable per entry. */}
+            {(() => {
+              const scans = filteredMeasurements.filter(
+                m => m.inbody_scan_url || (m.inbody_data && Object.keys(m.inbody_data).length > 0)
+              );
+              if (scans.length === 0) return null;
+              const fmt = (iso) => new Date(iso + 'T00:00:00').toLocaleDateString(getDateLocale(), {
+                month: 'short', day: 'numeric', year: 'numeric'
+              });
+              return (
+                <div className="inbody-scans-section" style={{ marginTop: 16 }}>
+                  <h3 className="section-title" style={{ marginBottom: 8 }}>{t('progressPage.inbodyScansTitle')}</h3>
+                  {scans.map(scan => {
+                    const open = !!expandedScans[scan.id];
+                    const fields = INBODY_DETAIL_FIELDS.filter(f => scan.inbody_data && scan.inbody_data[f.key] != null);
+                    return (
+                      <div key={scan.id} className="inbody-scan-card" style={{ border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, padding: 12, marginBottom: 8 }}>
+                        <button
+                          onClick={() => setExpandedScans(prev => ({ ...prev, [scan.id]: !open }))}
+                          style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', padding: 0 }}
+                        >
+                          <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <Sparkles size={16} color="#4ec5b7" />
+                            <strong>{fmt(scan.measured_date)}</strong>
+                          </span>
+                          <ChevronDown size={18} style={{ transition: 'transform 0.2s', transform: open ? 'rotate(180deg)' : 'rotate(0deg)' }} />
+                        </button>
+
+                        {open && (
+                          <div style={{ marginTop: 12 }}>
+                            {scan.inbody_scan_url && (
+                              <a href={scan.inbody_scan_url} target="_blank" rel="noopener noreferrer">
+                                <img src={scan.inbody_scan_url} alt="InBody scan" loading="lazy"
+                                  style={{ width: '100%', borderRadius: 8, marginBottom: 12 }} />
+                              </a>
+                            )}
+                            {fields.length > 0 ? (
+                              <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', rowGap: 6, columnGap: 12, fontSize: 14 }}>
+                                {fields.map(f => (
+                                  <Fragment key={f.key}>
+                                    <span style={{ color: 'var(--text-secondary, #94a3b8)' }}>{f.label}</span>
+                                    <span style={{ textAlign: 'right', fontWeight: 600 }}>{scan.inbody_data[f.key]}</span>
+                                  </Fragment>
+                                ))}
+                              </div>
+                            ) : (
+                              <div className="metric-no-data">{t('progressPage.inbodyNoDetails')}</div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
               );
             })()}
           </>
@@ -1251,7 +1358,7 @@ function Progress() {
                   </div>
                   <div className="form-group">
                     <label>{t('progressPage.formVisceralFat')}</label>
-                    <input type="number" inputMode="decimal" step="0.1" placeholder="10"
+                    <input type="number" inputMode="decimal" step="0.1" placeholder="e.g., 90"
                       value={measurementForm.visceralFat}
                       onChange={(e) => handleMeasurementChange('visceralFat', e.target.value)} />
                   </div>

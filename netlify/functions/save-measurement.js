@@ -5,6 +5,56 @@ const { getDefaultDate } = require('./utils/timezone');
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
 
+const INBODY_BUCKET = 'inbody-scans';
+
+// Ensure the inbody-scans bucket exists (created on first scan save). Mirrors
+// the pattern in upload-progress-photo.js.
+async function ensureInbodyBucket(supabase) {
+  try {
+    const { data: buckets, error: listError } = await supabase.storage.listBuckets();
+    if (listError) return { success: false, error: listError.message };
+    if (!buckets.some(b => b.name === INBODY_BUCKET)) {
+      const { error: createError } = await supabase.storage.createBucket(INBODY_BUCKET, {
+        public: true,
+        fileSizeLimit: 5242880 // 5MB
+      });
+      if (createError) return { success: false, error: createError.message };
+    }
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+}
+
+// Upload an InBody scan image (base64 data URL) and return its public URL.
+// Best-effort: any failure returns null so the measurement still saves.
+async function uploadInbodyScan(supabase, clientId, dataUrl) {
+  try {
+    const ensured = await ensureInbodyBucket(supabase);
+    if (!ensured.success) {
+      console.error('inbody-scans bucket unavailable:', ensured.error);
+      return null;
+    }
+    const mimeMatch = dataUrl.match(/^data:image\/(\w+);base64,/);
+    const extension = mimeMatch ? mimeMatch[1] : 'jpg';
+    const base64 = dataUrl.replace(/^data:image\/\w+;base64,/, '');
+    const buffer = Buffer.from(base64, 'base64');
+    const filename = `${clientId}/${Date.now()}_inbody.${extension}`;
+    const { error: uploadError } = await supabase.storage
+      .from(INBODY_BUCKET)
+      .upload(filename, buffer, { contentType: `image/${extension}`, upsert: false });
+    if (uploadError) {
+      console.error('InBody scan upload error:', uploadError);
+      return null;
+    }
+    const { data: urlData } = supabase.storage.from(INBODY_BUCKET).getPublicUrl(filename);
+    return urlData?.publicUrl || null;
+  } catch (err) {
+    console.error('Non-critical: InBody scan upload failed:', err);
+    return null;
+  }
+}
+
 exports.handler = async (event, context) => {
   // Handle CORS preflight
   if (event.httpMethod === 'OPTIONS') {
@@ -59,6 +109,8 @@ exports.handler = async (event, context) => {
       bloodPressureSystolic,
       bloodPressureDiastolic,
       notes,
+      inbodyData,
+      inbodyScanImage,
       timezone
     } = body;
 
@@ -83,6 +135,16 @@ exports.handler = async (event, context) => {
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
+    // If this save came from an InBody scan, store the scan image (best-effort)
+    // and keep the full bundle of extra numbers.
+    let inbodyScanUrl = null;
+    if (inbodyScanImage && typeof inbodyScanImage === 'string' && inbodyScanImage.startsWith('data:image/')) {
+      inbodyScanUrl = await uploadInbodyScan(supabase, clientId, inbodyScanImage);
+    }
+    const inbodyDataToStore = (inbodyData && typeof inbodyData === 'object' && Object.keys(inbodyData).length > 0)
+      ? inbodyData
+      : null;
+
     const { data, error } = await supabase
       .from('client_measurements')
       .insert([{
@@ -104,7 +166,9 @@ exports.handler = async (event, context) => {
         measurement_unit: measurementUnit || 'in',
         blood_pressure_systolic: bloodPressureSystolic || null,
         blood_pressure_diastolic: bloodPressureDiastolic || null,
-        notes: notes || null
+        notes: notes || null,
+        inbody_data: inbodyDataToStore,
+        inbody_scan_url: inbodyScanUrl
       }])
       .select()
       .single();
