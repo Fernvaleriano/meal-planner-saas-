@@ -9792,6 +9792,30 @@
         const SAVE_MEASUREMENT_ENDPOINT = '/.netlify/functions/save-measurement';
         const GET_MEASUREMENTS_ENDPOINT = '/.netlify/functions/get-measurements';
         const EXTRACT_INBODY_ENDPOINT = '/.netlify/functions/extract-inbody-scan';
+        // Held between a scan read and the Save tap, then sent with the measurement.
+        let pendingInbodyData = null;
+        let pendingInbodyImage = null;
+
+        // Extra InBody numbers shown only in the expandable "InBody details"
+        // panel on scanned history entries. Order = display order.
+        const INBODY_DETAIL_FIELDS = [
+            ['inbodyScore', 'InBody Score'], ['bmi', 'BMI'], ['bmr', 'BMR (kcal)'],
+            ['leanBodyMass', 'Lean Body Mass'], ['bodyFatMass', 'Body Fat Mass'],
+            ['smi', 'Skeletal Muscle Index'], ['protein', 'Protein'], ['minerals', 'Minerals'],
+            ['totalBodyWater', 'Total Body Water'], ['intracellularWater', 'Intracellular Water'],
+            ['extracellularWater', 'Extracellular Water'], ['ecwTbwRatio', 'ECW/TBW Ratio'],
+            ['visceralFatArea', 'Visceral Fat Area (cm²)'],
+            ['segLeanLeftArm', 'Lean — Left Arm'], ['segLeanRightArm', 'Lean — Right Arm'],
+            ['segLeanTrunk', 'Lean — Trunk'], ['segLeanLeftLeg', 'Lean — Left Leg'],
+            ['segLeanRightLeg', 'Lean — Right Leg'], ['segFatLeftArm', 'Fat — Left Arm'],
+            ['segFatRightArm', 'Fat — Right Arm'], ['segFatTrunk', 'Fat — Trunk'],
+            ['segFatLeftLeg', 'Fat — Left Leg'], ['segFatRightLeg', 'Fat — Right Leg']
+        ];
+
+        function toggleInbodyDetails(id) {
+            const panel = document.getElementById('inbodyDetails-' + id);
+            if (panel) panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+        }
         const CHECKIN_ENDPOINT = '/.netlify/functions/save-checkin';
         const RESPOND_CHECKIN_ENDPOINT = '/.netlify/functions/respond-checkin';
         const GYM_PROOF_ENDPOINT = '/.netlify/functions/save-gym-proof';
@@ -11944,10 +11968,31 @@
                             valuesHTML = '<span class="history-value" style="color: #94a3b8; font-style: italic;">No data recorded</span>';
                         }
 
+                        // InBody scan entries: expandable details panel + scan photo.
+                        let inbodyHTML = '';
+                        const hasInbody = m.inbody_scan_url || (m.inbody_data && Object.keys(m.inbody_data).length > 0);
+                        if (hasInbody) {
+                            const rows = INBODY_DETAIL_FIELDS
+                                .filter(([k]) => m.inbody_data && m.inbody_data[k] != null)
+                                .map(([k, label]) => `<div style="display:flex;justify-content:space-between;gap:12px;padding:3px 0;font-size:13px;"><span style="color:#94a3b8;">${label}</span><span style="font-weight:600;">${m.inbody_data[k]}</span></div>`)
+                                .join('');
+                            const photoHTML = m.inbody_scan_url
+                                ? `<a href="${m.inbody_scan_url}" target="_blank" rel="noopener"><img src="${m.inbody_scan_url}" alt="InBody scan" loading="lazy" style="width:100%;border-radius:8px;margin-bottom:10px;"></a>`
+                                : '';
+                            inbodyHTML = `
+                                <button type="button" onclick="toggleInbodyDetails(${m.id})" style="margin-top:8px;background:none;border:none;color:#4ec5b7;font-size:13px;font-weight:600;cursor:pointer;padding:0;">✨ InBody details</button>
+                                <div id="inbodyDetails-${m.id}" style="display:none;margin-top:8px;">
+                                    ${photoHTML}
+                                    ${rows || '<span style="color:#94a3b8;font-size:13px;">No extra details were read from this scan.</span>'}
+                                </div>
+                            `;
+                        }
+
                         return `
                             <div class="history-entry">
                                 <span class="history-date">${new Date(m.measured_date).toLocaleDateString()}</span>
                                 <div class="history-values">${valuesHTML}</div>
+                                ${inbodyHTML}
                             </div>
                         `;
                     }).join('')}
@@ -12127,6 +12172,10 @@
             document.getElementById('measurementLeftThigh').value = '';
             document.getElementById('measurementRightThigh').value = '';
             document.getElementById('measurementNotes').value = '';
+
+            // Manual open — drop any held scan so it can't attach to this entry.
+            pendingInbodyData = null;
+            pendingInbodyImage = null;
         }
 
         function closeMeasurementModal() {
@@ -12158,7 +12207,9 @@
                         rightArm: document.getElementById('measurementRightArm').value || null,
                         leftThigh: document.getElementById('measurementLeftThigh').value || null,
                         rightThigh: document.getElementById('measurementRightThigh').value || null,
-                        notes: document.getElementById('measurementNotes').value || null
+                        notes: document.getElementById('measurementNotes').value || null,
+                        inbodyData: pendingInbodyData,
+                        inbodyScanImage: pendingInbodyImage
                     })
                 });
 
@@ -12168,6 +12219,8 @@
                 }
 
                 console.log('Measurement saved successfully');
+                pendingInbodyData = null;
+                pendingInbodyImage = null;
                 closeMeasurementModal();
                 await loadMeasurements(currentClient.id);
 
@@ -12223,6 +12276,10 @@
                     alert("Couldn't read that scan. Try a clearer photo, or enter the numbers by hand.");
                     return;
                 }
+
+                // Hold the full detail bundle + image to send when the coach saves.
+                pendingInbodyData = (result.details && Object.keys(result.details).length) ? result.details : null;
+                pendingInbodyImage = base64Data;
 
                 // Coach modal stores its own weight unit, so set it from the scan
                 // and use the raw numbers (no conversion needed).

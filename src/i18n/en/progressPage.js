@@ -47,6 +47,8 @@ export default {
   inbodyScanning: 'Reading scan…',
   inbodyScanned: 'Scan read! Check the values, then save.',
   inbodyScanFailed: "Couldn't read that scan. Try a clearer photo, or enter the numbers by hand.",
+  inbodyScansTitle: 'InBody Scans',
+  inbodyNoDetails: 'No extra details were read from this scan.',
   loadingMeasurements: 'Loading measurements...',
   noDataForTimeFrame: 'No data for selected time frame',
   logValue: 'Log Value',

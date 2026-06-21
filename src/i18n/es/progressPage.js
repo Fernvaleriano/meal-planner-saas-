@@ -45,6 +45,8 @@ export default {
   inbodyScanning: 'Leyendo escaneo…',
   inbodyScanned: '¡Escaneo leído! Revisa los valores y guarda.',
   inbodyScanFailed: 'No se pudo leer ese escaneo. Prueba con una foto más clara o ingresa los números a mano.',
+  inbodyScansTitle: 'Escaneos InBody',
+  inbodyNoDetails: 'No se leyeron detalles adicionales de este escaneo.',
   loadingMeasurements: 'Cargando medidas...',
   noDataForTimeFrame: 'Sin datos para el período seleccionado',
   logValue: 'Registrar valor',
