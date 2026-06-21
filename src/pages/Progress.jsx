@@ -1251,7 +1251,7 @@ function Progress() {
                   </div>
                   <div className="form-group">
                     <label>{t('progressPage.formVisceralFat')}</label>
-                    <input type="number" inputMode="decimal" step="0.1" placeholder="10"
+                    <input type="number" inputMode="decimal" step="0.1" placeholder="e.g., 90"
                       value={measurementForm.visceralFat}
                       onChange={(e) => handleMeasurementChange('visceralFat', e.target.value)} />
                   </div>

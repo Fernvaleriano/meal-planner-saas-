@@ -94,7 +94,7 @@ exports.handler = async (event, context) => {
 - weightUnit: the unit shown for weight — "lbs" or "kg" (InBody sheets are usually kg; report exactly what the sheet uses)
 - bodyFatPercentage: "Percent Body Fat" / "PBF" (a percentage)
 - skeletalMuscleMass: "Skeletal Muscle Mass" / "SMM" — IMPORTANT: this is NOT "Lean Body Mass" and NOT "Body Fat Mass". Use the SMM value, in the same unit as weight.
-- visceralFat: the "Visceral Fat Level" number (a unitless level, usually 1-20). If only a "Visceral Fat Area" in cm² is shown and no level, return null for visceralFat.
+- visceralFat: the visceral fat number. Prefer the "Visceral Fat Level" (a unitless number, usually 1-20) if the sheet shows one. If it does NOT show a Level but shows a "Visceral Fat Area" in cm² (common on InBody 570/770), return that Area number instead. Return null only if neither is shown.
 - measuredDate: the test date printed on the sheet, formatted strictly as YYYY-MM-DD. If you cannot read it confidently, return null.
 
 Rules:
@@ -196,7 +196,9 @@ Return EXACTLY this shape:
             weightUnit: unit,
             bodyFatPercentage: saneNumber(parsed.bodyFatPercentage, 1, 75),
             skeletalMuscleMass: saneNumber(parsed.skeletalMuscleMass, 1, muscleMax),
-            visceralFat: saneNumber(parsed.visceralFat, 1, 60),
+            // Accept either a Level (~1-20) or an Area in cm² (can run 50-300+),
+            // so use a wide upper bound.
+            visceralFat: saneNumber(parsed.visceralFat, 1, 500),
             measuredDate: null
         };
 

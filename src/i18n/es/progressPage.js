@@ -111,7 +111,7 @@ export default {
   formWeightLabel: 'Peso ({unit})',
   formBodyFat: '% de grasa corporal',
   formMuscleMass: 'Masa muscular ({unit})',
-  formVisceralFat: 'Nivel de grasa visceral',
+  formVisceralFat: 'Grasa visceral',
   formChest: 'Pecho ({unit})',
   formWaist: 'Cintura ({unit})',
   formHips: 'Caderas ({unit})',
