@@ -15,6 +15,7 @@ const Anthropic = require('@anthropic-ai/sdk');
 const { createClient } = require('@supabase/supabase-js');
 const { corsHeaders, handleCors } = require('./utils/auth');
 const { analyzeClientHistory, formatAnalysisForPrompt, applyMovementScreenExclusions } = require('./utils/client-analysis');
+const { resolveClientEquipment } = require('./utils/client-equipment');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -220,7 +221,7 @@ function computeSplitDays(daysPerWeek, split) {
 async function generateOneDay(anthropic, params) {
   const {
     daySpec, exercisesByMuscleGroupSampled, exercisesAfterInjuries, exercisesWithVideos,
-    equipment, goal, experience, sessionDuration, trainingStyle, exerciseCount,
+    equipment, equipmentDetailText = '', goal, experience, sessionDuration, trainingStyle, exerciseCount,
     injuries, injuryCodes, preferences, tempo, rpeTarget, rirTarget,
     unilateralPreference, conditioningStyle, clientContextBlock,
     warmupSuitable, stretchExercises, avoidExercises = [], keepMandate = '', weightUnit = 'lb'
@@ -351,6 +352,7 @@ ${repRangeBlock}
 
 CONSTRAINTS:
 - Equipment: ${equipment.join(', ')}
+${equipmentDetailText}
 ${injuries ? `- Client injuries: ${injuries} — substitute safe alternatives.` : ''}
 ${preferences ? `- Client preferences: ${preferences} — strictly follow.` : ''}
 ${warmupStretchInstructions}
@@ -523,11 +525,18 @@ exports.handler = async (event) => {
     let exercisesAfterInjuries = applyInjuryExclusions(exercisesWithVideos, mergedInjuryCodes);
     exercisesAfterInjuries = applyMovementScreenExclusions(exercisesAfterInjuries, mergedMovementFlags);
 
+    // Resolve the client's effective equipment. An APPROVED photo-derived
+    // equipment list ("Their Gym") overrides the passed-in equipment so the
+    // background path behaves identically to the foreground generator.
+    const equipmentResolution = await resolveClientEquipment(supabase, clientId, equipment);
+    const effectiveEquipment = equipmentResolution.categories;
+    const equipmentDetailText = equipmentResolution.detailText || '';
+
     // Equipment filter
     const matchesEquipment = (ex) => {
       const e = (ex.equipment || '').toLowerCase();
-      if (!equipment || equipment.length === 0) return true;
-      return equipment.some(eq => {
+      if (!effectiveEquipment || effectiveEquipment.length === 0) return true;
+      return effectiveEquipment.some(eq => {
         const x = eq.toLowerCase();
         if (x === 'bodyweight') return !e || e === 'none' || e === 'bodyweight' || e === 'body weight';
         if (x === 'bands') return e.includes('band');
@@ -760,7 +769,8 @@ If one does not fit today's muscle group, skip it (it belongs on another day). O
       const dayResult = await generateOneDay(anthropic, {
         daySpec, exercisesByMuscleGroupSampled: sampled,
         exercisesAfterInjuries, exercisesWithVideos,
-        equipment, goal, experience, sessionDuration, trainingStyle, exerciseCount,
+        equipment: effectiveEquipment, equipmentDetailText,
+        goal, experience, sessionDuration, trainingStyle, exerciseCount,
         injuries, injuryCodes, preferences, tempo, rpeTarget, rirTarget,
         unilateralPreference, conditioningStyle, clientContextBlock,
         warmupSuitable, stretchExercises, avoidExercises, keepMandate,

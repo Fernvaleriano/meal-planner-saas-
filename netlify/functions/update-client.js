@@ -33,6 +33,8 @@ exports.handler = async (event, context) => {
       canChangeMeals, canReviseMeals, canCustomMeals, canRequestNewPlan,
       // Equipment restrictions
       unavailableEquipment,
+      // Photo-derived gym equipment ("Their Gym" area)
+      gymEquipment,
       // Health & Limitations (workout AI)
       healthConcerns, healthFlags
     } = body;
@@ -100,6 +102,25 @@ exports.handler = async (event, context) => {
 
     // Equipment restrictions
     if (unavailableEquipment !== undefined) updateData.unavailable_equipment = unavailableEquipment;
+
+    // Photo-derived gym equipment. Merge with what's already stored so saving
+    // the equipment list (items/categories/status) never wipes out the uploaded
+    // photos array, which is managed by the upload/delete-gym-photo endpoints.
+    if (gymEquipment !== undefined && gymEquipment !== null && typeof gymEquipment === 'object') {
+      const { data: existingGym } = await supabase
+        .from('clients')
+        .select('gym_equipment')
+        .eq('id', clientId)
+        .eq('coach_id', coachId)
+        .maybeSingle();
+      const current = (existingGym?.gym_equipment && typeof existingGym.gym_equipment === 'object')
+        ? existingGym.gym_equipment
+        : {};
+      const merged = { ...current, ...gymEquipment };
+      // Preserve photos unless the caller explicitly sent a photos array.
+      if (gymEquipment.photos === undefined) merged.photos = current.photos || [];
+      updateData.gym_equipment = merged;
+    }
 
     // Health & Limitations (workout AI personalization)
     if (healthConcerns !== undefined) updateData.health_concerns = healthConcerns;

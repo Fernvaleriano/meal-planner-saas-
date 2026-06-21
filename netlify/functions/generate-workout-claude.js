@@ -12,6 +12,7 @@ const Anthropic = require('@anthropic-ai/sdk');
 const { createClient } = require('@supabase/supabase-js');
 const { corsHeaders, handleCors, authenticateRequest } = require('./utils/auth');
 const { analyzeClientHistory, formatAnalysisForPrompt, applyMovementScreenExclusions } = require('./utils/client-analysis');
+const { resolveClientEquipment } = require('./utils/client-equipment');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -613,11 +614,18 @@ exports.handler = async (event) => {
     let exercisesAfterInjuries = applyInjuryExclusions(exercisesWithVideos, mergedInjuryCodes);
     exercisesAfterInjuries = applyMovementScreenExclusions(exercisesAfterInjuries, mergedMovementFlags);
 
+    // Resolve the client's effective equipment. If the coach has APPROVED a
+    // photo-derived equipment list for this client ("Their Gym"), it overrides
+    // whatever equipment was passed in — the approved list wins. Otherwise this
+    // returns the passed-in equipment unchanged.
+    const equipmentResolution = await resolveClientEquipment(supabase, clientId, equipment);
+    const effectiveEquipment = equipmentResolution.categories;
+
     // Equipment filter
     const matchesSelectedEquipment = (ex) => {
       const exEquipment = (ex.equipment || '').toLowerCase();
-      if (!equipment || equipment.length === 0) return true;
-      return equipment.some(eq => {
+      if (!effectiveEquipment || effectiveEquipment.length === 0) return true;
+      return effectiveEquipment.some(eq => {
         const eqLower = eq.toLowerCase();
         if (eqLower === 'bodyweight') {
           return !exEquipment || exEquipment === 'none' || exEquipment === 'bodyweight' || exEquipment === 'body weight';
@@ -908,7 +916,8 @@ ${repRangeBlock}
 - For LEG days: include at least one squat pattern, one hip hinge (RDL/deadlift/hip thrust), one hamstring isolation, one calf exercise, and ideally one glute-specific movement.
 
 CONSTRAINTS:
-- Equipment available: ${equipment.join(', ')}. Do NOT include exercises requiring other equipment.
+- Equipment available: ${effectiveEquipment.join(', ')}. Do NOT include exercises requiring other equipment.
+${equipmentResolution.detailText || ''}
 ${mergedInjuryCodes && mergedInjuryCodes.length ? `- Structured injury exclusions ALREADY APPLIED: ${mergedInjuryCodes.join(', ')}. Continue to avoid movements that would aggravate these.` : ''}
 ${mergedMovementFlags && mergedMovementFlags.length ? `- Structured movement-screen exclusions ALREADY APPLIED: ${mergedMovementFlags.join(', ')}. Avoid contraindicated patterns.` : ''}
 ${injuries ? `\n=== INJURY/LIMITATION RESTRICTIONS (MANDATORY — NEVER VIOLATE) ===\nClient has: ${injuries}\n- DO NOT include any exercise that could aggravate these.\n- This overrides ALL other selection guidance — substitute a safe alternative.\n` : ''}
@@ -1037,7 +1046,7 @@ Return this exact JSON structure:
           const exercisesToMatch = isWarmupOrStretch ? exercisesWithVideos : exercisesAfterInjuries;
           const match = isWarmupOrStretch
             ? findBestExerciseMatch(aiEx.name, aiEx.muscleGroup, exercisesToMatch)
-            : findBestExerciseMatchWithEquipment(aiEx.name, aiEx.muscleGroup, exercisesToMatch, equipment);
+            : findBestExerciseMatchWithEquipment(aiEx.name, aiEx.muscleGroup, exercisesToMatch, effectiveEquipment);
 
           const baseFields = {
             sets: aiEx.isWarmup ? (aiEx.sets || 1) : aiEx.isStretch ? (aiEx.sets || 1) : (aiEx.sets || 3),

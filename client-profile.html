@@ -8501,6 +8501,10 @@
                 <span class="action-bar-icon">🚫</span>
                 Equipment
             </button>
+            <button class="action-bar-btn" onclick="openDrawer('their-gym')">
+                <span class="action-bar-icon">🏋️</span>
+                Their Gym
+            </button>
             <button class="action-bar-btn" onclick="openDrawer('programs')">
                 <span class="action-bar-icon">📋</span>
                 Programs
@@ -9101,6 +9105,67 @@
                 </div>
                 <div style="margin-top: 6px;">
                     <button onclick="toggleCustomEquipInput()" style="background: none; border: none; color: #2dd4bf; cursor: pointer; font-size: 12px; padding: 0;">Not in list? Add custom equipment</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Their Gym (photo-derived equipment) Section -->
+        <div class="their-gym-section" data-drawer="their-gym">
+            <div class="section-header collapsible-header" onclick="toggleSection('theirGym')" style="cursor: pointer;">
+                <h2 class="section-title">🏋️ Their Gym</h2>
+                <button class="section-toggle-btn" type="button">
+                    <span class="toggle-icon collapsed" id="theirGymToggleIcon">▼</span>
+                </button>
+            </div>
+            <div id="theirGymContent" class="collapsible-content collapsed">
+                <p style="font-size: 13px; color: var(--text-secondary, #64748b); margin: 0 0 12px;">
+                    Upload photos of this client's gym. The AI reads them into an equipment list — including breaking an
+                    all-in-one machine into its stations (lat pulldown, chest press, leg extension, etc.). Once you
+                    <strong>approve</strong> it, every workout plan you generate for this client sticks to this gear automatically.
+                </p>
+
+                <!-- Status banner -->
+                <div id="gymStatusBanner" style="display:none; padding:10px 12px; border-radius:10px; font-size:13px; font-weight:600; margin-bottom:14px;"></div>
+
+                <!-- Photos -->
+                <div style="margin-bottom:16px;">
+                    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
+                        <h3 style="font-size:13px; font-weight:700; color:#475569; text-transform:uppercase; letter-spacing:0.5px; margin:0;">Gym photos</h3>
+                        <label class="gym-upload-btn" style="background:#2dd4bf; color:#fff; padding:7px 14px; border-radius:8px; font-size:13px; font-weight:600; cursor:pointer;">
+                            + Add photos
+                            <input type="file" id="gymPhotoInput" accept="image/*" multiple style="display:none;" onchange="handleGymFileSelect(this)">
+                        </label>
+                    </div>
+                    <div id="gymPhotosGrid" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(90px, 1fr)); gap:8px;"></div>
+                    <div id="gymUploadStatus" style="font-size:12px; color:#64748b; margin-top:8px;"></div>
+                </div>
+
+                <!-- Read button -->
+                <button id="gymAnalyzeBtn" onclick="analyzeGymPhotos()" disabled
+                    style="width:100%; background:#0f172a; color:#fff; border:none; padding:11px; border-radius:10px; font-size:14px; font-weight:600; cursor:pointer; margin-bottom:16px;">
+                    🔍 Read equipment from photos
+                </button>
+
+                <!-- Results -->
+                <div id="gymResults" style="display:none;">
+                    <h3 style="font-size:13px; font-weight:700; color:#475569; text-transform:uppercase; letter-spacing:0.5px; margin:0 0 8px;">What they have</h3>
+                    <p style="font-size:12px; color:#64748b; margin:0 0 8px;">Edit anything that's wrong — add or remove items.</p>
+                    <div id="gymItemsList" style="display:flex; flex-direction:column; gap:6px; margin-bottom:10px;"></div>
+                    <div style="display:flex; gap:6px; margin-bottom:18px;">
+                        <input type="text" id="gymItemInput" placeholder="Add equipment (e.g. Adjustable dumbbells)" style="flex:1; padding:8px 12px; border-radius:8px; border:1px solid #e2e8f0; font-size:13px;" onkeydown="if(event.key==='Enter'){event.preventDefault();addGymItem();}">
+                        <button onclick="addGymItem()" style="background:#e2e8f0; border:none; padding:8px 14px; border-radius:8px; font-size:13px; font-weight:600; cursor:pointer;">+ Add</button>
+                    </div>
+
+                    <h3 style="font-size:13px; font-weight:700; color:#475569; text-transform:uppercase; letter-spacing:0.5px; margin:0 0 4px;">Equipment types plans can use</h3>
+                    <p style="font-size:12px; color:#64748b; margin:0 0 8px;">These are what the AI actually filters exercises by. Toggle any that are wrong.</p>
+                    <div id="gymCategoryChips" style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:14px;"></div>
+
+                    <div id="gymNotes" style="font-size:12px; color:#92400e; background:#fffbeb; border:1px solid #fde68a; border-radius:8px; padding:8px 10px; margin-bottom:16px; display:none;"></div>
+
+                    <button id="gymApproveBtn" onclick="approveGymEquipment()"
+                        style="width:100%; background:#16a34a; color:#fff; border:none; padding:12px; border-radius:10px; font-size:14px; font-weight:700; cursor:pointer;">
+                        ✅ Approve &amp; use for this client's plans
+                    </button>
                 </div>
             </div>
         </div>
@@ -10133,6 +10198,7 @@
                 currentClientName = data.name || '';
                 displayClient(data);
                 loadEquipmentRestrictions();
+                loadGymEquipment();
 
                 console.log('Client data loaded:', data);
 
@@ -17225,6 +17291,330 @@
             } else {
                 custom.style.display = 'none';
                 select.style.display = '';
+            }
+        }
+
+        // ============ THEIR GYM (photo-derived equipment) ============
+        // The category tokens here MUST stay in sync with the workout generator's
+        // equipment filter and netlify/functions/utils/client-equipment.js.
+        const GYM_CATEGORY_LABELS = {
+            barbell: 'Barbell',
+            dumbbell: 'Dumbbells',
+            cable: 'Cable / functional trainer',
+            machine: 'Machines',
+            bodyweight: 'Bodyweight',
+            kettlebell: 'Kettlebells',
+            bands: 'Resistance bands',
+            pullup_bar: 'Pull-up bar'
+        };
+        let gymState = { items: [], categories: [], status: null, photos: [], notes: '' };
+        // Base64 of photos uploaded THIS session, keyed by storage path, so the
+        // AI read doesn't have to re-download them.
+        const gymSessionBase64 = {};
+
+        function gymEscape(s) {
+            return String(s == null ? '' : s)
+                .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+        }
+
+        function loadGymEquipment() {
+            gymState = { items: [], categories: [], status: null, photos: [], notes: '' };
+            Object.keys(gymSessionBase64).forEach(k => delete gymSessionBase64[k]);
+            let raw = currentClient && currentClient.gym_equipment;
+            if (typeof raw === 'string') { try { raw = JSON.parse(raw); } catch (e) { raw = null; } }
+            if (raw && typeof raw === 'object') {
+                gymState.items = Array.isArray(raw.items) ? raw.items.slice() : [];
+                gymState.categories = Array.isArray(raw.categories) ? raw.categories.slice() : [];
+                gymState.status = raw.status || null;
+                gymState.photos = Array.isArray(raw.photos) ? raw.photos.slice() : [];
+                gymState.notes = raw.notes || '';
+            }
+            renderGym();
+        }
+
+        function renderGym() {
+            renderGymPhotos();
+            renderGymStatusBanner();
+            renderGymResults();
+            const analyzeBtn = document.getElementById('gymAnalyzeBtn');
+            if (analyzeBtn) analyzeBtn.disabled = gymState.photos.length === 0;
+        }
+
+        function renderGymStatusBanner() {
+            const banner = document.getElementById('gymStatusBanner');
+            if (!banner) return;
+            if (gymState.status === 'approved') {
+                banner.style.display = 'block';
+                banner.style.background = '#dcfce7'; banner.style.color = '#166534';
+                banner.textContent = '✅ Approved — every plan you generate for this client uses this equipment.';
+            } else if (gymState.status === 'pending') {
+                banner.style.display = 'block';
+                banner.style.background = '#fef9c3'; banner.style.color = '#854d0e';
+                banner.textContent = '⏳ Not approved yet — review the list below and tap Approve so plans start using it.';
+            } else {
+                banner.style.display = 'none';
+            }
+        }
+
+        function renderGymPhotos() {
+            const grid = document.getElementById('gymPhotosGrid');
+            if (!grid) return;
+            if (!gymState.photos.length) {
+                grid.innerHTML = '<div style="grid-column:1/-1; font-size:13px; color:#94a3b8; padding:14px; text-align:center; border:1px dashed #cbd5e1; border-radius:10px;">No photos yet. Tap “Add photos”.</div>';
+                return;
+            }
+            grid.innerHTML = gymState.photos.map(p => `
+                <div style="position:relative; aspect-ratio:1; border-radius:10px; overflow:hidden; border:1px solid #e2e8f0;">
+                    <img src="${gymEscape(p.url)}" style="width:100%; height:100%; object-fit:cover;" loading="lazy">
+                    <button onclick="deleteGymPhoto('${gymEscape(p.path)}')" title="Remove photo"
+                        style="position:absolute; top:3px; right:3px; width:22px; height:22px; border-radius:50%; border:none; background:rgba(15,23,42,0.75); color:#fff; font-size:13px; line-height:1; cursor:pointer;">&times;</button>
+                </div>
+            `).join('');
+        }
+
+        function renderGymResults() {
+            const results = document.getElementById('gymResults');
+            if (!results) return;
+            const hasResults = gymState.items.length > 0 || gymState.categories.length > 0 || gymState.status;
+            results.style.display = hasResults ? 'block' : 'none';
+            if (!hasResults) return;
+
+            // Items
+            const itemsList = document.getElementById('gymItemsList');
+            if (itemsList) {
+                itemsList.innerHTML = gymState.items.length
+                    ? gymState.items.map((it, i) => `
+                        <div style="display:flex; align-items:center; gap:8px; background:#f1f5f9; border-radius:8px; padding:7px 10px;">
+                            <span style="flex:1; font-size:13px; color:#0f172a;">${gymEscape(it)}</span>
+                            <button onclick="removeGymItem(${i})" style="background:none; border:none; color:#ef4444; cursor:pointer; font-size:16px; line-height:1;">&times;</button>
+                        </div>`).join('')
+                    : '<div style="font-size:13px; color:#94a3b8;">No items yet.</div>';
+            }
+
+            // Category toggle chips (always show all 8)
+            const chips = document.getElementById('gymCategoryChips');
+            if (chips) {
+                chips.innerHTML = Object.keys(GYM_CATEGORY_LABELS).map(tok => {
+                    const on = gymState.categories.includes(tok);
+                    return `<button onclick="toggleGymCategory('${tok}')"
+                        style="padding:6px 12px; border-radius:999px; font-size:12px; font-weight:600; cursor:pointer; border:1.5px solid ${on ? '#2dd4bf' : '#e2e8f0'}; background:${on ? '#2dd4bf' : '#fff'}; color:${on ? '#fff' : '#64748b'};">
+                        ${on ? '✓ ' : ''}${gymEscape(GYM_CATEGORY_LABELS[tok])}</button>`;
+                }).join('');
+            }
+
+            // Notes
+            const notesEl = document.getElementById('gymNotes');
+            if (notesEl) {
+                if (gymState.notes) { notesEl.style.display = 'block'; notesEl.textContent = '⚠️ ' + gymState.notes; }
+                else notesEl.style.display = 'none';
+            }
+        }
+
+        // Resize an image File to a JPEG data URL (max dimension) to keep
+        // uploads and AI payloads small.
+        function gymResizeImage(file, maxDim) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => {
+                    const img = new Image();
+                    img.onload = () => {
+                        let { width, height } = img;
+                        if (width > maxDim || height > maxDim) {
+                            if (width >= height) { height = Math.round(height * maxDim / width); width = maxDim; }
+                            else { width = Math.round(width * maxDim / height); height = maxDim; }
+                        }
+                        const canvas = document.createElement('canvas');
+                        canvas.width = width; canvas.height = height;
+                        canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+                        resolve(canvas.toDataURL('image/jpeg', 0.85));
+                    };
+                    img.onerror = reject;
+                    img.src = reader.result;
+                };
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+        }
+
+        async function gymAuthHeaders() {
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            if (!session || !session.access_token) throw new Error('Your session expired. Please refresh and sign in again.');
+            return { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` };
+        }
+
+        async function handleGymFileSelect(input) {
+            if (!input.files || !input.files.length || !currentClient || !currentUser) return;
+            const files = Array.from(input.files);
+            input.value = ''; // allow re-selecting same file later
+            const statusEl = document.getElementById('gymUploadStatus');
+            let done = 0;
+            for (const file of files) {
+                if (!file.type.startsWith('image/')) continue;
+                if (statusEl) statusEl.textContent = `Uploading ${done + 1} of ${files.length}…`;
+                try {
+                    const dataUrl = await gymResizeImage(file, 1200);
+                    const headers = await gymAuthHeaders();
+                    const res = await fetch('/.netlify/functions/upload-gym-photo', {
+                        method: 'POST', headers,
+                        body: JSON.stringify({ clientId: currentClient.id, coachId: currentUser.id, photoData: dataUrl })
+                    });
+                    const out = await res.json();
+                    if (!res.ok) throw new Error(out.error || 'Upload failed');
+                    if (out.photo && out.photo.path) gymSessionBase64[out.photo.path] = dataUrl;
+                    gymState.photos = out.photos || gymState.photos;
+                    if (currentClient.gym_equipment && typeof currentClient.gym_equipment === 'object') {
+                        currentClient.gym_equipment.photos = gymState.photos;
+                    } else {
+                        currentClient.gym_equipment = { photos: gymState.photos };
+                    }
+                    renderGym();
+                } catch (err) {
+                    console.error('Gym photo upload failed:', err);
+                    if (statusEl) { statusEl.textContent = '❌ ' + err.message; }
+                    renderGym();
+                    return;
+                }
+                done++;
+            }
+            if (statusEl) statusEl.textContent = done ? `Added ${done} photo${done > 1 ? 's' : ''}.` : '';
+        }
+
+        async function deleteGymPhoto(path) {
+            if (!currentClient || !currentUser) return;
+            if (!confirm('Remove this photo?')) return;
+            try {
+                const headers = await gymAuthHeaders();
+                const res = await fetch('/.netlify/functions/delete-gym-photo', {
+                    method: 'POST', headers,
+                    body: JSON.stringify({ clientId: currentClient.id, coachId: currentUser.id, path })
+                });
+                const out = await res.json();
+                if (!res.ok) throw new Error(out.error || 'Delete failed');
+                delete gymSessionBase64[path];
+                gymState.photos = out.photos || [];
+                if (currentClient.gym_equipment && typeof currentClient.gym_equipment === 'object') {
+                    currentClient.gym_equipment.photos = gymState.photos;
+                }
+                renderGym();
+            } catch (err) {
+                console.error('Gym photo delete failed:', err);
+                alert('Could not remove photo: ' + err.message);
+            }
+        }
+
+        async function gymUrlToDataUrl(url) {
+            const r = await fetch(url);
+            if (!r.ok) throw new Error('Could not load a stored photo');
+            const blob = await r.blob();
+            return await new Promise((resolve, reject) => {
+                const fr = new FileReader();
+                fr.onload = () => resolve(fr.result);
+                fr.onerror = reject;
+                fr.readAsDataURL(blob);
+            });
+        }
+
+        async function analyzeGymPhotos() {
+            if (!gymState.photos.length) return;
+            const btn = document.getElementById('gymAnalyzeBtn');
+            const original = btn ? btn.textContent : '';
+            if (btn) { btn.disabled = true; btn.textContent = '🔍 Reading photos…'; }
+            try {
+                // Gather base64 for each photo: prefer this-session cache, else fetch.
+                const images = [];
+                for (const p of gymState.photos) {
+                    if (gymSessionBase64[p.path]) { images.push(gymSessionBase64[p.path]); continue; }
+                    try { images.push(await gymUrlToDataUrl(p.url)); }
+                    catch (e) { console.warn('Skipping a photo that could not be loaded:', e); }
+                }
+                if (!images.length) throw new Error('Could not load the photos to read.');
+
+                const headers = await gymAuthHeaders();
+                const res = await fetch('/.netlify/functions/analyze-gym-photos', {
+                    method: 'POST', headers, body: JSON.stringify({ images })
+                });
+                const out = await res.json();
+                if (!res.ok) throw new Error(out.error || 'Could not read the photos');
+
+                if (!out.readAnything) {
+                    alert("The AI couldn't make out any equipment in these photos. Try clearer, well-lit shots that show the whole machine.");
+                    return;
+                }
+                // Merge with anything already there (don't wipe coach edits).
+                const existing = new Set(gymState.items.map(i => i.toLowerCase()));
+                (out.items || []).forEach(it => { if (!existing.has(it.toLowerCase())) gymState.items.push(it); });
+                gymState.categories = [...new Set([...gymState.categories, ...(out.categories || [])])];
+                gymState.notes = out.notes || '';
+                gymState.status = 'pending';
+                renderGym();
+                await saveGymEquipment('pending');
+            } catch (err) {
+                console.error('Analyze gym photos failed:', err);
+                alert('Could not read the photos: ' + err.message);
+            } finally {
+                if (btn) { btn.textContent = original; btn.disabled = gymState.photos.length === 0; }
+            }
+        }
+
+        function addGymItem() {
+            const input = document.getElementById('gymItemInput');
+            if (!input) return;
+            const val = input.value.trim();
+            if (!val) return;
+            if (gymState.items.some(i => i.toLowerCase() === val.toLowerCase())) { input.value = ''; return; }
+            gymState.items.push(val);
+            input.value = '';
+            markGymPendingAndSave();
+        }
+
+        function removeGymItem(i) {
+            gymState.items.splice(i, 1);
+            markGymPendingAndSave();
+        }
+
+        function toggleGymCategory(tok) {
+            if (gymState.categories.includes(tok)) gymState.categories = gymState.categories.filter(c => c !== tok);
+            else gymState.categories.push(tok);
+            markGymPendingAndSave();
+        }
+
+        // Any manual edit drops the list back to "pending" so it won't silently
+        // change live plans until the coach re-approves.
+        function markGymPendingAndSave() {
+            gymState.status = 'pending';
+            renderGym();
+            saveGymEquipment('pending');
+        }
+
+        async function approveGymEquipment() {
+            if (!gymState.categories.length) { alert('Pick at least one equipment type before approving.'); return; }
+            gymState.status = 'approved';
+            renderGym();
+            await saveGymEquipment('approved');
+        }
+
+        async function saveGymEquipment(status) {
+            if (!currentClient || !currentUser) return;
+            const payload = {
+                items: gymState.items,
+                categories: gymState.categories,
+                notes: gymState.notes || '',
+                status: status
+            };
+            if (status === 'approved') payload.approvedAt = new Date().toISOString();
+            else payload.analyzedAt = new Date().toISOString();
+            try {
+                const headers = await gymAuthHeaders();
+                await fetch('/.netlify/functions/update-client', {
+                    method: 'PUT', headers,
+                    body: JSON.stringify({ clientId: currentClient.id, coachId: currentUser.id, gymEquipment: payload })
+                });
+                // Keep local copy in sync (photos preserved server-side).
+                const photos = (currentClient.gym_equipment && currentClient.gym_equipment.photos) || gymState.photos;
+                currentClient.gym_equipment = { ...payload, photos };
+            } catch (err) {
+                console.error('Failed to save gym equipment:', err);
             }
         }
 
