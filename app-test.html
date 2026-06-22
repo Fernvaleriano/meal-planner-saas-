@@ -157,8 +157,44 @@
                       '<div style="font-size:14px;font-weight:600;color:' + brandColor + ';margin-bottom:6px">&#10003; Exercise complete</div>' +
                       '<div style="font-size:18px;font-weight:700;color:' + textPrimary + ';margin-bottom:14px;word-break:break-word">' + esc(data.completedName || 'Exercise') + '</div>' +
                       nextHtml +
-                      '<button type="button" style="width:100%;margin-top:6px;padding:14px;background:' + brandColor + ';color:white;border:none;border-radius:10px;font-size:16px;font-weight:700;cursor:pointer">Load Next Exercise</button>' +
+                      '<button id="soft-reset-splash-btn" type="button" style="width:100%;margin-top:6px;padding:14px;background:' + brandColor + ';color:white;border:none;border-radius:10px;font-size:16px;font-weight:700;cursor:pointer">Load Next Exercise</button>' +
                     '</div>';
+                // Fade the bridge card out and remove it. Shared by the tap
+                // handler and the 12s safety timeout so they can't double-run.
+                var fading = false;
+                var fadeOutOverlay = function() {
+                    if (fading) return;
+                    fading = true;
+                    var el = document.getElementById('soft-reset-splash-overlay');
+                    if (!el) return;
+                    el.style.transition = 'opacity 250ms ease';
+                    el.style.opacity = '0';
+                    setTimeout(function() {
+                        var el2 = document.getElementById('soft-reset-splash-overlay');
+                        if (el2 && el2.parentNode) el2.parentNode.removeChild(el2);
+                    }, 300);
+                };
+                // Make the button actually respond to a tap. Normally the
+                // GuidedWorkoutModal removes this overlay the instant it
+                // remounts after the reload (~1-2s), so the user never needs
+                // to touch it. But if they DO tap "Load Next Exercise" while
+                // React is still booting (or if the modal never comes back —
+                // e.g. the post-reload workout match fails), an unwired
+                // button looks broken. On tap: show "Loading..." feedback,
+                // then fade the bridge so the reloaded workout screen
+                // underneath shows through. Whichever happens first — this
+                // tap or the modal's own mount-time removal — the user is no
+                // longer staring at a dead card.
+                overlay.addEventListener('click', function() {
+                    var btn = document.getElementById('soft-reset-splash-btn');
+                    if (btn) {
+                        btn.textContent = 'Loading...';
+                        btn.style.opacity = '0.7';
+                    }
+                    // Give a freshly-mounted modal a beat to take over (it
+                    // removes this overlay itself); otherwise reveal the app.
+                    setTimeout(fadeOutOverlay, 400);
+                });
                 if (document.body) {
                     document.body.appendChild(overlay);
                 } else {
@@ -169,16 +205,7 @@
                 // Safety: if something goes wrong and the modal never mounts
                 // to remove the overlay, fade it out after 12s so the user
                 // isn't stuck staring at the card forever.
-                setTimeout(function() {
-                    var el = document.getElementById('soft-reset-splash-overlay');
-                    if (!el) return;
-                    el.style.transition = 'opacity 250ms ease';
-                    el.style.opacity = '0';
-                    setTimeout(function() {
-                        var el2 = document.getElementById('soft-reset-splash-overlay');
-                        if (el2 && el2.parentNode) el2.parentNode.removeChild(el2);
-                    }, 300);
-                }, 12000);
+                setTimeout(fadeOutOverlay, 12000);
                 // One-shot: clear so a future un-related reload doesn't pick
                 // it up. The overlay element is the only thing that needs
                 // to live on from here.
