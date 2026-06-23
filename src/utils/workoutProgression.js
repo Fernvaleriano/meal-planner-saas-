@@ -53,6 +53,31 @@ export const parseSetsData = (session) => {
 // Get max weight from a set array
 export const getMaxWeight = (sets) => sets.reduce((max, s) => Math.max(max, s.weight || 0), 0);
 
+// Pick the "anchor" (top working) set to base progression on: the heaviest set
+// actually performed, paired with the reps done AT that weight.
+//
+// Why this exists: taking the max weight and the max reps INDEPENDENTLY across
+// all sets pairs numbers from two different sets. On a ramp-up like
+// 15@30 / 8@35 / 3@45 / 4@50 that produces a phantom "15 reps @ 50kg" — a set
+// the client never did — and then tells them to add weight when at 50kg they
+// only managed 4 reps. Anchoring on the heaviest set keeps weight and reps from
+// the SAME set. For straight sets (same weight every set) this returns exactly
+// what the old max/max logic did, so existing behavior is unchanged.
+export const getAnchorSet = (sets) => {
+  if (!Array.isArray(sets) || sets.length === 0) return { weight: 0, reps: 0 };
+  const maxWeight = getMaxWeight(sets);
+  if (maxWeight > 0) {
+    // Reps from the heaviest set(s); if multiple sets share the top weight, take the best reps there.
+    const reps = sets
+      .filter(s => (s.weight || 0) === maxWeight)
+      .reduce((max, s) => Math.max(max, s.reps || 0), 0);
+    return { weight: maxWeight, reps };
+  }
+  // Bodyweight / time-based (no weighted set): fall back to best rep count.
+  const reps = sets.reduce((max, s) => Math.max(max, s.reps || 0), 0);
+  return { weight: 0, reps };
+};
+
 // Normalize free-form weight unit strings (e.g. 'lb', 'lbs', 'LB', 'kg') to canonical 'lbs' | 'kg'
 export const normalizeWeightUnit = (u) => {
   const s = (u || '').toString().toLowerCase();
@@ -178,7 +203,10 @@ export const generateProgression = ({ previousSessions, exercise, weightUnit, la
     }
   }
 
-  const lastMaxReps = lastSets.reduce((max, s) => Math.max(max, s.reps || 0), 0);
+  // Reps must come from the SAME set as lastMaxWeight (the heaviest set), not the
+  // best reps across all sets — otherwise a warm-up ramp pairs light-set reps with
+  // the top weight (see getAnchorSet). anchor.weight === lastMaxWeight by construction.
+  const lastMaxReps = getAnchorSet(lastSets).reps;
   const lastNumSets = lastSets.length || 3;
 
   if (lastMaxWeight <= 0 && lastMaxReps <= 0) return null;

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { X, Bot, Send, Check, Loader2 } from 'lucide-react';
 import { apiPost, apiGet } from '../../utils/api';
+import { getAnchorSet } from '../../utils/workoutProgression';
 import { useLanguage } from '../../context/LanguageContext';
 
 /**
@@ -75,9 +76,10 @@ export default function AskAIChatModal({
             sets = typeof latest.setsData === 'string' ? JSON.parse(latest.setsData) : (latest.setsData || []);
           } catch { sets = []; }
           if (Array.isArray(sets) && sets.length > 0) {
-            const maxWeight = sets.reduce((max, s) => Math.max(max, s.weight || 0), 0);
-            const maxReps = sets.reduce((max, s) => Math.max(max, s.reps || 0), 0);
-            const session = { reps: maxReps, weight: maxWeight };
+            // Anchor on the heaviest set so weight and reps come from the SAME set
+            // (a warm-up ramp must not read as "best reps @ heaviest weight").
+            const anchor = getAnchorSet(sets);
+            const session = { reps: anchor.reps, weight: anchor.weight };
             setLastSession(session);
             // Update initial message with fetched data
             setMessages([buildInitialMessage(session)]);
