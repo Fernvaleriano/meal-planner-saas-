@@ -9243,7 +9243,7 @@
                                            <option value="km" ${exercise.distanceUnit === 'km' ? 'selected' : ''}>km</option>
                                            <option value="meters" ${exercise.distanceUnit === 'meters' ? 'selected' : ''}>m</option>
                                        </select>`
-                                    : `<input type="text" class="config-input" value="${exercise.reps || '10'}" onchange="updateExercise(${dayIndex}, ${exIndex}, 'reps', this.value)" style="width:70px">`
+                                    : renderRepRangeInputs(exercise, dayIndex, exIndex)
                                 }
                                 <button class="tracking-toggle-btn ${exercise.trackingType === 'time' ? 'time-active' : ''} ${exercise.trackingType === 'distance' ? 'distance-active' : ''}" onclick="toggleTrackingType(${dayIndex}, ${exIndex})" title="Toggle between reps, time, and distance">
                                     <span class="toggle-icon">${exercise.trackingType === 'time' ? '⏱' : exercise.trackingType === 'distance' ? '📏' : '#'}</span>
@@ -9401,6 +9401,37 @@
         // Update functions
         function updateDayName(dayIndex, name) {
             workoutDays[dayIndex].name = name;
+        }
+
+        // --- Rep-range (double progression) helpers ---
+        // The rep target is stored in the single `exercise.reps` string (e.g. "8-12"),
+        // so there is no schema change — two boxes just compose/parse that one string.
+        function parseRepRangeParts(reps) {
+            const str = (reps == null ? '' : reps).toString();
+            const m = str.match(/(\d+)\s*[-–—]\s*(\d+)/);
+            if (m) return { min: m[1], max: m[2] };
+            const s = str.match(/(\d+)/);
+            if (s) return { min: s[1], max: '' };
+            return { min: '', max: '' };
+        }
+        function renderRepRangeInputs(exercise, dayIndex, exIndex) {
+            const { min, max } = parseRepRangeParts(exercise.reps != null ? exercise.reps : '10');
+            return `<input type="number" min="1" class="config-input" value="${min}" placeholder="min" title="Lowest reps — what the client rebuilds to right after the weight goes up" onchange="updateRepRange(${dayIndex}, ${exIndex}, 'min', this.value)" style="width:44px">`
+                + `<span class="config-label" style="margin:0 3px">to</span>`
+                + `<input type="number" min="1" class="config-input" value="${max}" placeholder="max" title="Top reps — hit this and the app adds weight next session" onchange="updateRepRange(${dayIndex}, ${exIndex}, 'max', this.value)" style="width:44px">`;
+        }
+        function updateRepRange(dayIndex, exIndex, part, value) {
+            const exercise = workoutDays[dayIndex].exercises[exIndex];
+            const cur = parseRepRangeParts(exercise.reps);
+            let min = part === 'min' ? value : cur.min;
+            let max = part === 'max' ? value : cur.max;
+            min = (min === '' || min == null) ? '' : (parseInt(min) || '');
+            max = (max === '' || max == null) ? '' : (parseInt(max) || '');
+            let composed;
+            if (min !== '' && max !== '' && Number(max) > Number(min)) composed = `${min}-${max}`;
+            else if (min !== '' && max !== '') composed = `${Math.max(Number(min), Number(max))}`; // equal or inverted → single
+            else composed = `${min || max || ''}`;
+            updateExercise(dayIndex, exIndex, 'reps', composed);
         }
 
         function updateExercise(dayIndex, exIndex, field, value) {

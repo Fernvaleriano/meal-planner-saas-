@@ -41,6 +41,30 @@ export const parseReps = (reps) => {
   return 12;
 };
 
+// Parse a coach-prescribed rep target into a { min, max } range for double progression.
+// Accepts "8-12", "8–12" (en/em dash), "8 to 12", a bare number ("12"), or "12+".
+// A bare number returns min === max (a fixed target — add weight once you hit it).
+// min = the floor to rebuild from after a weight bump; max = the ceiling that
+// triggers the next weight increase. Returns null when no number is present
+// (e.g. "30s hold" / time-based), so callers can fall back to actual performance.
+export const parseRepRange = (reps) => {
+  if (reps == null) return null;
+  const str = reps.toString();
+  const range = str.match(/(\d+(?:\.\d+)?)\s*(?:-|–|—|to)\s*(\d+(?:\.\d+)?)/i);
+  if (range) {
+    let min = parseFloat(range[1]);
+    let max = parseFloat(range[2]);
+    if (min > max) [min, max] = [max, min];
+    return { min, max };
+  }
+  const single = str.match(/(\d+(?:\.\d+)?)/);
+  if (single) {
+    const n = parseFloat(single[1]);
+    return { min: n, max: n };
+  }
+  return null;
+};
+
 // Parse sets data safely
 export const parseSetsData = (session) => {
   try {
@@ -237,10 +261,21 @@ export const generateProgression = ({ previousSessions, exercise, weightUnit, la
 
   // --- Exercise properties ---
   const weightIncrement = getWeightIncrement(exercise, weightUnit);
-  // Use coach-prescribed reps if available, otherwise base range on what client actually did
+  // Use coach-prescribed reps if available, otherwise base range on what client actually did.
+  // The prescription can be a RANGE ("8-12"): min is the floor to rebuild from after a
+  // weight bump, max is the ceiling that triggers the next weight increase (double
+  // progression). A bare number ("12") is a fixed target (min === max). When nothing is
+  // prescribed we fall back to what they actually did, with a +2 ceiling (legacy behavior).
   const hasPrescribedReps = exercise?.reps != null && exercise.reps !== '' && exercise.reps !== 0;
-  const prescribedReps = hasPrescribedReps ? parseReps(exercise.reps) : lastMaxReps;
-  const repRangeTop = prescribedReps + 2;
+  const prescribedRange = hasPrescribedReps ? parseRepRange(exercise.reps) : null;
+  const prescribedRepsMin = prescribedRange ? prescribedRange.min : lastMaxReps;
+  const prescribedRepsMax = prescribedRange ? prescribedRange.max : lastMaxReps + 2;
+  // Backward-compatible alias used by deload/layoff math below.
+  const prescribedReps = prescribedRepsMin;
+  const repRangeTop = prescribedRepsMax;
+  const rangeLabel = prescribedRepsMin === prescribedRepsMax
+    ? `${prescribedRepsMax}`
+    : `${prescribedRepsMin}–${prescribedRepsMax}`;
 
   // --- Plateau detection ---
   const plateauDetected = detectPlateau(previousSessions, parseSetsData);
@@ -278,9 +313,9 @@ export const generateProgression = ({ previousSessions, exercise, weightUnit, la
       reasoning = `Plateau detected — time to deload. Drop to ${recommendedWeight}${weightUnit} and rebuild.`;
     }
   } else if (effectiveEffort === 'easy') {
-    // 4+ RIR — weight is too light. Bump weight, keep rep target open.
+    // 4+ RIR — weight is too light. Bump weight and rebuild from the bottom of the range.
     recommendedWeight = lastMaxWeight + weightIncrement;
-    recommendedReps = lastMaxReps;
+    recommendedReps = prescribedRepsMin;
 
     // Count trailing Easy sessions so we can nudge honest reporters to self-escalate.
     let easyStreak = 1;
@@ -289,7 +324,7 @@ export const generateProgression = ({ previousSessions, exercise, weightUnit, la
       else break;
     }
 
-    reasoning = `Felt easy at ${lastMaxWeight}${weightUnit} — bumping to ${recommendedWeight}${weightUnit}. Aim for ${recommendedReps}+ reps.`;
+    reasoning = `Felt easy at ${lastMaxWeight}${weightUnit} — bumping to ${recommendedWeight}${weightUnit}. Aim for ${recommendedReps}+ and build back to ${repRangeTop}.`;
     if (easyStreak >= 3) {
       reasoning += ` ${easyStreak} easy sessions in a row — tap Adjust to skip ahead if you're ready.`;
     } else if (easyStreak >= 2) {
@@ -299,18 +334,18 @@ export const generateProgression = ({ previousSessions, exercise, weightUnit, la
     // 2-3 RIR — steady progress
     if (lastMaxReps >= repRangeTop) {
       recommendedWeight = lastMaxWeight + weightIncrement;
-      recommendedReps = Math.max(lastMaxReps - 2, prescribedReps - 2);
-      reasoning = `Hit ${lastMaxReps} reps with room to spare. Time to add +${weightIncrement}${weightUnit} and aim for ${recommendedReps} reps.`;
+      recommendedReps = prescribedRepsMin;
+      reasoning = `Hit the top of your ${rangeLabel} range (${lastMaxReps} reps) with room to spare. Adding +${weightIncrement}${weightUnit} — drop to ${recommendedReps} and build back up.`;
     } else {
-      recommendedReps = lastMaxReps + 1;
+      recommendedReps = Math.min(lastMaxReps + 1, repRangeTop);
       reasoning = `Solid effort. Add one more rep — aiming for ${recommendedReps}. Top of range is ${repRangeTop}.`;
     }
   } else if (effectiveEffort === 'hard') {
     // 1 RIR — near limit
     if (lastMaxReps >= repRangeTop) {
       recommendedWeight = lastMaxWeight + weightIncrement;
-      recommendedReps = Math.max(lastMaxReps - 2, prescribedReps - 2);
-      reasoning = `Tough but you hit ${repRangeTop}+ reps. Ready for +${weightIncrement}${weightUnit} at ${recommendedReps} reps.`;
+      recommendedReps = prescribedRepsMin;
+      reasoning = `Tough, but you hit the top of your ${rangeLabel} range. Ready for +${weightIncrement}${weightUnit} — drop to ${recommendedReps} and rebuild.`;
     } else {
       recommendedReps = lastMaxReps;
       reasoning = `That was challenging. Match ${lastMaxReps} reps and focus on form before pushing further.`;
@@ -326,15 +361,15 @@ export const generateProgression = ({ previousSessions, exercise, weightUnit, la
       reasoning = `You pushed to the max. Hold at ${lastMaxReps} reps until it feels more manageable.`;
     }
   } else {
-    // No effort data at all — simple conservative progression
+    // No effort data at all — double progression off the rep range
     if (lastMaxReps >= repRangeTop) {
       recommendedWeight = lastMaxWeight + weightIncrement;
-      // Practical: drop by 2 reps, not to range bottom
-      recommendedReps = Math.max(lastMaxReps - 2, prescribedReps - 2);
-      reasoning = `You hit ${lastMaxReps} reps — time to increase weight by +${weightIncrement}${weightUnit} and aim for ${recommendedReps} reps.`;
+      // Hit the top of the range → add weight and rebuild from the bottom.
+      recommendedReps = prescribedRepsMin;
+      reasoning = `You hit the top of your ${rangeLabel} range (${lastMaxReps} reps) — adding +${weightIncrement}${weightUnit}. Aim for ${recommendedReps} and build back up.`;
     } else {
-      recommendedReps = lastMaxReps + 1;
-      reasoning = `Aim for ${recommendedReps} reps. Once you reach ${repRangeTop}, we'll bump the weight.`;
+      recommendedReps = Math.min(lastMaxReps + 1, repRangeTop);
+      reasoning = `Aim for ${recommendedReps} reps. Once you reach ${repRangeTop}, we'll add weight.`;
     }
   }
 
