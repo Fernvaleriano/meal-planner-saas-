@@ -15,6 +15,7 @@ const Anthropic = require('@anthropic-ai/sdk');
 const { createClient } = require('@supabase/supabase-js');
 const { corsHeaders, handleCors } = require('./utils/auth');
 const { analyzeClientHistory, formatAnalysisForPrompt, applyMovementScreenExclusions } = require('./utils/client-analysis');
+const { exerciseMatchesEquipment } = require('./utils/equipment-filter');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -397,7 +398,13 @@ Return this exact JSON structure:
     if (!ex.reps) ex.reps = '8-12';
     if (typeof ex.restSeconds !== 'number') ex.restSeconds = 60;
     const isWarmStretch = ex.isWarmup || ex.isStretch;
-    const pool = isWarmStretch ? exercisesWithVideos : exercisesAfterInjuries;
+    // Main exercises must resolve only to equipment the coach allows — matching
+    // against the full library is how mislabeled gear leaked into the result
+    // even after the candidate pool was filtered. Warm-ups/stretches still match
+    // the full pool (they're bodyweight by nature and detected by name).
+    const pool = isWarmStretch
+      ? exercisesWithVideos
+      : exercisesAfterInjuries.filter(candidate => exerciseMatchesEquipment(candidate, equipment));
     const m = findBestMatch(ex.name, pool);
     if (m) {
       return {
@@ -523,19 +530,10 @@ exports.handler = async (event) => {
     let exercisesAfterInjuries = applyInjuryExclusions(exercisesWithVideos, mergedInjuryCodes);
     exercisesAfterInjuries = applyMovementScreenExclusions(exercisesAfterInjuries, mergedMovementFlags);
 
-    // Equipment filter
-    const matchesEquipment = (ex) => {
-      const e = (ex.equipment || '').toLowerCase();
-      if (!equipment || equipment.length === 0) return true;
-      return equipment.some(eq => {
-        const x = eq.toLowerCase();
-        if (x === 'bodyweight') return !e || e === 'none' || e === 'bodyweight' || e === 'body weight';
-        if (x === 'bands') return e.includes('band');
-        if (x === 'pullup_bar') return e.includes('pull-up') || e.includes('pullup') || e.includes('pull up');
-        return e.includes(x);
-      });
-    };
-    const equipmentFiltered = exercisesAfterInjuries.filter(matchesEquipment);
+    // Equipment filter — name-aware (the equipment column is unreliable; see
+    // utils/equipment-filter.js). Keeps mislabeled gear out of the candidate
+    // pool the AI sees.
+    const equipmentFiltered = exercisesAfterInjuries.filter(ex => exerciseMatchesEquipment(ex, equipment));
 
     // Group + sample 25 per group
     const byGroup = {};

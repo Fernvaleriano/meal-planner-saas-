@@ -12,6 +12,7 @@ const Anthropic = require('@anthropic-ai/sdk');
 const { createClient } = require('@supabase/supabase-js');
 const { corsHeaders, handleCors, authenticateRequest } = require('./utils/auth');
 const { analyzeClientHistory, formatAnalysisForPrompt, applyMovementScreenExclusions } = require('./utils/client-analysis');
+const { exerciseMatchesEquipment } = require('./utils/equipment-filter');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -205,16 +206,13 @@ function findBestExerciseMatchWithEquipment(aiName, aiMuscleGroup, exercises, se
   if (!selectedEquipment || selectedEquipment.length === 0) {
     return findBestExerciseMatch(aiName, aiMuscleGroup, exercises);
   }
-  const filtered = exercises.filter(ex => {
-    const eq = (ex.equipment || '').toLowerCase();
-    if (!eq || eq === 'none' || eq === 'bodyweight' || eq === 'body weight') {
-      return selectedEquipment.some(e => e.toLowerCase() === 'bodyweight');
-    }
-    return selectedEquipment.some(e => eq.includes(e.toLowerCase()));
-  });
-  const match = findBestExerciseMatch(aiName, aiMuscleGroup, filtered);
-  if (match) return match;
-  return findBestExerciseMatch(aiName, aiMuscleGroup, exercises);
+  const filtered = exercises.filter(ex => exerciseMatchesEquipment(ex, selectedEquipment));
+  // Match ONLY within the equipment-allowed set. Deliberately do NOT fall back
+  // to the full library: a near-miss name must never resolve to an exercise the
+  // coach's equipment selection excludes (that was how trap-bar / band / pull-up
+  // moves leaked into "Bodyweight only" plans). No match → returns null and the
+  // exercise is kept unmatched rather than silently swapped for the wrong gear.
+  return findBestExerciseMatch(aiName, aiMuscleGroup, filtered);
 }
 
 // ─── Structured injury → contraindicated movement patterns ────────────────────
@@ -613,21 +611,11 @@ exports.handler = async (event) => {
     let exercisesAfterInjuries = applyInjuryExclusions(exercisesWithVideos, mergedInjuryCodes);
     exercisesAfterInjuries = applyMovementScreenExclusions(exercisesAfterInjuries, mergedMovementFlags);
 
-    // Equipment filter
-    const matchesSelectedEquipment = (ex) => {
-      const exEquipment = (ex.equipment || '').toLowerCase();
-      if (!equipment || equipment.length === 0) return true;
-      return equipment.some(eq => {
-        const eqLower = eq.toLowerCase();
-        if (eqLower === 'bodyweight') {
-          return !exEquipment || exEquipment === 'none' || exEquipment === 'bodyweight' || exEquipment === 'body weight';
-        }
-        if (eqLower === 'bands') return exEquipment.includes('band');
-        if (eqLower === 'pullup_bar') return exEquipment.includes('pull-up') || exEquipment.includes('pullup') || exEquipment.includes('pull up');
-        return exEquipment.includes(eqLower);
-      });
-    };
-    let equipmentFilteredExercises = exercisesAfterInjuries.filter(matchesSelectedEquipment);
+    // Equipment filter — name-aware (the equipment column is unreliable; see
+    // utils/equipment-filter.js). This keeps mislabeled gear out of the
+    // candidate pool the AI sees, so e.g. "Bodyweight only" never offers
+    // barbell / band / suspension-trainer / pull-up moves.
+    let equipmentFilteredExercises = exercisesAfterInjuries.filter(ex => exerciseMatchesEquipment(ex, equipment));
 
     // Apply user-supplied "exclude these recently used" list
     if (excludeExerciseNames.length > 0) {
