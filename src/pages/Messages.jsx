@@ -76,19 +76,31 @@ const translateReactionMessage = (text, t) => {
   return t('messagesPage.reactedTo', { emoji: m[1], subject: translateReactionSubject(m[2], t) });
 };
 
-// Coach replies are sent in the format:
-//   Re: <subject> — "<quoted excerpt>" — <reply text>
-// using U+2014 em-dashes. Parse the structure so it can render as a proper
-// quote block instead of one long run-on line.
+// Coach replies are sent in two formats, both using U+2014 em-dashes:
+//   Re: <subject> — "<quoted excerpt>" — <reply text>   (with a quoted detail)
+//   Re: <subject> — <reply text>                        (no detail to quote)
+// Parse the structure so it renders as a proper quote block instead of one
+// long run-on line. The quoted form is tried first; the quote-less form
+// covers activity wins that have no detail (e.g. a gym check-in).
 const parseReplyMessage = (text) => {
   if (!text) return null;
-  const match = text.match(/^Re:\s+(.+?)\s+—\s+["“](.+?)["”]\s+—\s+([\s\S]+)$/);
-  if (!match) return null;
-  return {
-    subject: match[1].trim(),
-    quote: match[2].trim(),
-    reply: match[3].trim(),
-  };
+  const quoted = text.match(/^Re:\s+(.+?)\s+—\s+["“](.+?)["”]\s+—\s+([\s\S]+)$/);
+  if (quoted) {
+    return {
+      subject: quoted[1].trim(),
+      quote: quoted[2].trim(),
+      reply: quoted[3].trim(),
+    };
+  }
+  const plain = text.match(/^Re:\s+(.+?)\s+—\s+([\s\S]+)$/);
+  if (plain) {
+    return {
+      subject: plain[1].trim(),
+      quote: '',
+      reply: plain[2].trim(),
+    };
+  }
+  return null;
 };
 
 // Detect emoji-only messages (up to ~3 emoji, no other text) so we can
@@ -1130,7 +1142,7 @@ function Messages() {
                       <>
                         <div className="chat-reply-quote">
                           <span className="chat-reply-subject">{parsedReply.subject}</span>
-                          <span className="chat-reply-quote-text">{parsedReply.quote}</span>
+                          {parsedReply.quote && <span className="chat-reply-quote-text">{parsedReply.quote}</span>}
                         </div>
                         <p className="chat-reply-text">{parsedReply.reply}</p>
                       </>
