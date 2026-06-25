@@ -5913,7 +5913,7 @@ function Workouts() {
                 const isSectionEnd = nextPhase === null || nextPhase !== phase;
 
                 return (
-                  <ErrorBoundary key={exercise.id || `exercise-${index}`} compact>
+                  <ErrorBoundary key={`${exercise.id ?? 'exercise'}-${index}`} compact>
                     {showPhaseHeader && phase === 'warmup' && (
                       <div className="workout-phase-divider warmup">
                         <span className="phase-divider-icon">&#x1F525;</span>
