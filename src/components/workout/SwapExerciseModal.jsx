@@ -1,6 +1,7 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { X, Loader2, Sparkles, ArrowRight, RefreshCw, ChevronDown, Dumbbell, Search, Star, Eye } from 'lucide-react';
 import { apiPost, apiGet } from '../../utils/api';
+import { fuzzyScore } from '../../utils/exerciseSearch';
 import SmartThumbnail from './SmartThumbnail';
 import { useLanguage } from '../../context/LanguageContext';
 
@@ -189,14 +190,17 @@ function SwapExerciseModal({ exercise, workoutExercises = [], onSwap, onClose, g
     setBrowseLoading(true);
 
     try {
-      // Build query params
-      let url = '/.netlify/functions/exercises?limit=100';
+      // Build query params.
+      // "Browse All Exercises" must search the WHOLE library — NOT just the
+      // original exercise's muscle group — otherwise a search like "jumping
+      // jacks" while swapping a cardio move turns up nothing. The AI section
+      // above already provides muscle-relevant alternatives; this section is
+      // the escape hatch for finding anything. (limit=3000 mirrors the
+      // Add-Activity modal, which is why search worked there but not here.)
+      let url = '/.netlify/functions/exercises?limit=3000';
       // Include coachId to show coach's custom exercises alongside global exercises
       if (coachId) {
         url += `&coachId=${coachId}`;
-      }
-      if (muscleGroup) {
-        url += `&muscleGroup=${encodeURIComponent(muscleGroup)}&includeSecondary=false`;
       }
       if (equipment) {
         url += `&equipment=${encodeURIComponent(equipment)}`;
@@ -261,25 +265,44 @@ function SwapExerciseModal({ exercise, workoutExercises = [], onSwap, onClose, g
     // Suggestions will be refetched by the effect above
   }, []);
 
-  // Filter browse exercises by search query + stretch/strength boundary
-  const filteredBrowseExercises = browseExercises.filter(ex => {
-    const exName = (ex.name || '').toLowerCase();
-
+  // Filter browse exercises by search query + stretch/strength boundary.
+  // Memoized because the pool is now the full library (~3000 rows) and we
+  // re-rank on every keystroke. Uses the same fuzzy engine as the
+  // Add-Activity search so "jumping jacks" finds "Jumping jack", typos are
+  // tolerated, etc. With no query, same-muscle-group exercises sort first so
+  // the default view still shows relevant alternatives.
+  const filteredBrowseExercises = useMemo(() => {
     // Enforce stretch ↔ strength boundary: stretches only swap with stretches
     const isStretchKeyword = (n) => n.includes('stretch') || n.includes('mobility') || n.includes('foam roll') || n.includes('warmup') || n.includes('warm up') || n.includes('cool down') || n.includes('cooldown');
     const origName = (exercise?.name || '').toLowerCase();
     const originalIsStretch = isStretchKeyword(origName);
-    const altIsStretch = isStretchKeyword(exName);
-    if (originalIsStretch && !altIsStretch) return false;
-    if (!originalIsStretch && altIsStretch) return false;
 
-    if (!searchQuery.trim()) return true;
-    const query = searchQuery.toLowerCase();
-    return (
-      (ex.name && exName.includes(query)) ||
-      (ex.equipment && ex.equipment.toLowerCase().includes(query))
-    );
-  });
+    const eligible = browseExercises.filter(ex => {
+      const altIsStretch = isStretchKeyword((ex.name || '').toLowerCase());
+      if (originalIsStretch && !altIsStretch) return false;
+      if (!originalIsStretch && altIsStretch) return false;
+      return true;
+    });
+
+    const query = searchQuery.trim();
+    if (!query) {
+      // No search — keep all eligible, but surface same-muscle-group first.
+      const origMuscle = (muscleGroup || '').toLowerCase();
+      if (!origMuscle) return eligible;
+      return [...eligible].sort((a, b) => {
+        const aMatch = (a.muscle_group || a.muscleGroup || '').toLowerCase() === origMuscle ? 0 : 1;
+        const bMatch = (b.muscle_group || b.muscleGroup || '').toLowerCase() === origMuscle ? 0 : 1;
+        return aMatch - bMatch;
+      });
+    }
+
+    // Fuzzy search across the whole library, ranked by score.
+    return eligible
+      .map(ex => ({ ex, score: fuzzyScore(ex, query) }))
+      .filter(item => item.score > 0)
+      .sort((a, b) => b.score - a.score)
+      .map(item => item.ex);
+  }, [browseExercises, searchQuery, exercise?.name, muscleGroup]);
 
   // Handle exercise selection - with mobile Safari protection
   const handleSelect = useCallback((e, newExercise) => {
