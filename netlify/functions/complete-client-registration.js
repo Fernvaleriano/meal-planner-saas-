@@ -3,9 +3,125 @@
  * Creates the auth user and updates the client record with profile data
  */
 const { createClient } = require('@supabase/supabase-js');
+// Handle both CommonJS and ES module exports of the Anthropic SDK
+const AnthropicModule = require('@anthropic-ai/sdk');
+const Anthropic = AnthropicModule.default || AnthropicModule;
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
+const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
+
+/**
+ * Pull the first JSON object out of a model response, tolerating
+ * markdown code fences or stray prose around it.
+ */
+function extractJSON(text) {
+    if (!text) return null;
+    try {
+        return JSON.parse(text);
+    } catch (_) { /* fall through to brace extraction */ }
+    const start = text.indexOf('{');
+    const end = text.lastIndexOf('}');
+    if (start === -1 || end === -1 || end <= start) return null;
+    try {
+        return JSON.parse(text.slice(start, end + 1));
+    } catch (_) {
+        return null;
+    }
+}
+
+/**
+ * Use Claude to set daily calorie + macro targets from the WHOLE intake
+ * profile (goal, training style, diet type, macro preference, health
+ * notes, free-text goals), not just height/weight/age. The Mifflin-St
+ * Jeor result is passed in as a sanity anchor.
+ *
+ * Returns a validated goals object, or null if the AI is unavailable or
+ * returns anything out of safe bounds — in which case the caller keeps
+ * the deterministic formula result.
+ */
+async function calculateGoalsWithAI(profile) {
+    if (!ANTHROPIC_API_KEY) return null;
+
+    const anthropic = new Anthropic({ apiKey: ANTHROPIC_API_KEY });
+
+    const exerciseTypesStr = Array.isArray(profile.exerciseTypes)
+        ? profile.exerciseTypes.join(', ')
+        : (profile.exerciseTypes || 'not specified');
+
+    const goalLabel = profile.goal === 'lose' ? 'lose weight / fat loss'
+        : profile.goal === 'gain' ? 'gain weight / build muscle'
+        : 'maintain weight';
+
+    const systemPrompt = `You are a certified sports nutritionist setting a new coaching client's daily nutrition targets.
+
+Use the Mifflin-St Jeor BMR × activity-level result you are given as your baseline TDEE anchor, then tailor the final numbers to the FULL profile:
+- Goal: a fat-loss client gets a sensible deficit (typically 15-25% below TDEE), a muscle-gain client a modest surplus (~5-15% above), maintenance stays near TDEE. Be more conservative if the client is a beginner or notes health concerns.
+- Protein: scale to bodyweight and training (roughly 1.6-2.2 g/kg for active clients or anyone in a deficit to preserve muscle; lower for sedentary maintenance).
+- Diet type & macro preference: honor them. keto/low-carb => low carbs, higher fat; high-carb/endurance => more carbs; high-protein => push protein up; balanced => even split.
+- Health concerns are context only — never give medical advice or diagnose. Stay within normal, safe ranges.
+
+Constraints:
+- protein_goal*4 + carbs_goal*4 + fat_goal*9 must come within ~50 kcal of calorie_goal.
+- Never prescribe below 1200 kcal for women or 1500 kcal for men.
+- Round calories to the nearest 10 and macros to whole grams.
+
+Respond with ONLY a JSON object, no prose, no markdown:
+{"calorie_goal": int, "protein_goal": int, "carbs_goal": int, "fat_goal": int, "fiber_goal": int, "sugar_goal": int, "sodium_goal": int, "rationale": "one short sentence"}`;
+
+    const userContent = `Mifflin-St Jeor baseline (TDEE adjusted for goal): ${profile.baseline.calorie_goal} kcal.
+
+Client intake profile:
+- Sex: ${profile.gender}
+- Age: ${profile.age}
+- Weight: ${profile.weight} lb
+- Height: ${profile.heightFt}ft ${profile.heightIn}in
+- Activity multiplier: ${profile.activityLevel}
+- Primary goal: ${goalLabel}
+- Diet type: ${profile.dietType || 'standard / no preference'}
+- Macro preference: ${profile.macroPreference || 'balanced'}
+- Fitness level: ${profile.fitnessLevel || 'not specified'}
+- Exercise frequency: ${profile.exerciseFrequency || 'not specified'}
+- Typical workout duration: ${profile.workoutDuration || 'not specified'}
+- Exercise types: ${exerciseTypesStr}
+- Health concerns: ${profile.healthConcerns || 'none stated'}
+- Client's stated goals: ${profile.fitnessGoalDetails || 'none stated'}
+
+Set the daily targets.`;
+
+    const message = await anthropic.messages.create({
+        model: 'claude-3-5-sonnet-20241022',
+        max_tokens: 1024,
+        temperature: 0.2,
+        system: systemPrompt,
+        messages: [{ role: 'user', content: userContent }]
+    });
+
+    const text = message?.content?.[0]?.text || '';
+    const data = extractJSON(text);
+    if (!data) return null;
+
+    const cal = Math.round(Number(data.calorie_goal));
+    const protein = Math.round(Number(data.protein_goal));
+    const carbs = Math.round(Number(data.carbs_goal));
+    const fat = Math.round(Number(data.fat_goal));
+
+    // Safety bounds — reject anything implausible and fall back to the formula
+    if (!Number.isFinite(cal) || cal < 1000 || cal > 6000) return null;
+    if (![protein, carbs, fat].every(v => Number.isFinite(v) && v > 0 && v < 1000)) return null;
+
+    const result = {
+        calorie_goal: cal,
+        protein_goal: protein,
+        carbs_goal: carbs,
+        fat_goal: fat,
+        rationale: typeof data.rationale === 'string' ? data.rationale : null
+    };
+    if (Number.isFinite(Number(data.fiber_goal))) result.fiber_goal = Math.round(Number(data.fiber_goal));
+    if (Number.isFinite(Number(data.sugar_goal))) result.sugar_goal = Math.round(Number(data.sugar_goal));
+    if (Number.isFinite(Number(data.sodium_goal))) result.sodium_goal = Math.round(Number(data.sodium_goal));
+    return result;
+}
 
 const headers = {
     'Content-Type': 'application/json',
@@ -297,12 +413,16 @@ exports.handler = async (event, context) => {
             };
         }
 
-        // Calculate personalized nutrition goals using Mifflin-St Jeor formula
-        // Only calculate if we have the required physical stats
+        // Calculate personalized nutrition goals.
+        // Claude reads the whole intake profile and sets calories + macros;
+        // the Mifflin-St Jeor formula is the deterministic fallback so signup
+        // never breaks if the AI is unavailable. The coach can edit either way.
+        // Only calculate if we have the required physical stats.
         try {
             if (!weight || !heightFt || !activityLevel || !age || !gender) {
                 console.log('Skipping nutrition goal calculation — missing physical stats (section may be disabled)');
             } else {
+            // --- Deterministic baseline (Mifflin-St Jeor) — also the fallback ---
             // Convert to metric for BMR calculation
             const weightKg = weight * 0.453592;
             const totalInches = (heightFt * 12) + (heightIn || 0);
@@ -327,12 +447,36 @@ exports.handler = async (event, context) => {
             }
             // 'maintain' keeps tdee as is
 
-            const calories = Math.round(tdee);
+            const baselineCalories = Math.round(tdee);
 
-            // Calculate macros using 30/40/30 split (Protein/Carbs/Fat)
-            const protein = Math.round((calories * 0.30) / 4);  // 4 cal per gram
-            const carbs = Math.round((calories * 0.40) / 4);    // 4 cal per gram
-            const fat = Math.round((calories * 0.30) / 9);      // 9 cal per gram
+            // Macros using 30/40/30 split (Protein/Carbs/Fat)
+            const baseline = {
+                calorie_goal: baselineCalories,
+                protein_goal: Math.round((baselineCalories * 0.30) / 4),  // 4 cal per gram
+                carbs_goal: Math.round((baselineCalories * 0.40) / 4),    // 4 cal per gram
+                fat_goal: Math.round((baselineCalories * 0.30) / 9)       // 9 cal per gram
+            };
+
+            // --- AI-driven goals (holistic) with formula fallback ---
+            let goals = baseline;
+            try {
+                const aiGoals = await calculateGoalsWithAI({
+                    age, gender, weight, heightFt, heightIn: heightIn || 0,
+                    activityLevel, goal,
+                    dietType, macroPreference,
+                    fitnessLevel, exerciseFrequency, workoutDuration,
+                    exerciseTypes, healthConcerns, fitnessGoalDetails,
+                    baseline
+                });
+                if (aiGoals) {
+                    goals = aiGoals;
+                    console.log('Nutrition goals set by AI:', goals.rationale || '(no rationale)');
+                } else {
+                    console.log('AI goals unavailable — using Mifflin-St Jeor baseline');
+                }
+            } catch (aiErr) {
+                console.error('AI macro calculation failed, using formula baseline:', aiErr);
+            }
 
             // Insert calculated goals into calorie_goals table
             const { error: goalsError } = await supabase
@@ -340,13 +484,13 @@ exports.handler = async (event, context) => {
                 .insert([{
                     client_id: client.id,
                     coach_id: client.coach_id,
-                    calorie_goal: calories,
-                    protein_goal: protein,
-                    carbs_goal: carbs,
-                    fat_goal: fat,
-                    fiber_goal: 25,
-                    sugar_goal: 50,
-                    sodium_goal: 2300,
+                    calorie_goal: goals.calorie_goal,
+                    protein_goal: goals.protein_goal,
+                    carbs_goal: goals.carbs_goal,
+                    fat_goal: goals.fat_goal,
+                    fiber_goal: goals.fiber_goal ?? 25,
+                    sugar_goal: goals.sugar_goal ?? 50,
+                    sodium_goal: goals.sodium_goal ?? 2300,
                     potassium_goal: 3500,
                     calcium_goal: 1000,
                     iron_goal: 18,
