@@ -7292,7 +7292,7 @@
             }
         }
 
-        async function sendItemReply(clientId, itemType, itemId, context, inputEl) {
+        async function sendItemReply(clientId, itemType, itemId, quote, inputEl) {
             if (!inputEl || !inputEl.value.trim()) return;
             const row = inputEl.closest('.activity-item-reply-row');
             const itemEl = inputEl.closest('.activity-detail-item');
@@ -7300,7 +7300,27 @@
             const sendBtn = row.querySelector('button');
             if (sendBtn) { sendBtn.disabled = true; sendBtn.textContent = 'Sending...'; }
 
-            const message = inputEl.value.trim();
+            const replyText = inputEl.value.trim();
+
+            // Prefix the reply with what the coach is responding to so the
+            // client sees the win they hit and THEN the message — rendered as
+            // a quote block in their chat (parseReplyMessage in
+            // src/pages/Messages.jsx). Without this the client only received
+            // the bare "nice jump" with no context.
+            const ITEM_SUBJECTS = {
+                workout: 'your workout',
+                client_pr: 'your new PR',
+                checkin: 'your check-in',
+                photo: 'your progress photo',
+                measurement: 'your measurements',
+                gym_checkin: 'your gym check-in',
+                badge_earned: 'your new badge',
+            };
+            const subject = ITEM_SUBJECTS[itemType] || 'your activity';
+            const cleanQuote = (quote || '').trim();
+            const message = cleanQuote
+                ? `Re: ${subject} — "${cleanQuote}" — ${replyText}`
+                : `Re: ${subject} — ${replyText}`;
 
             try {
                 const res = await fetch('/.netlify/functions/chat', {
@@ -7463,7 +7483,9 @@
                     const existingReaction = _activityReactionsMap[evKey] || '';
                     const hasCommented = !!_activityCommentsMap[evKey];
                     const itemUid = safeClientId + '-' + ev.itemType + '-' + ev.itemId;
-                    const escapedDetail = (ev.label + (ev.detail ? ' — ' + ev.detail : '')).replace(/'/g, "\\'");
+                    // The detail (e.g. "Bench Press: 100kg × 5") becomes the
+                    // quoted line the client sees above the coach's reply.
+                    const escapedQuote = (ev.detail || '').replace(/'/g, "\\'");
                     // Badge events get an extra "Share" pill so the
                     // coach can drop their client's milestone straight
                     // into a story. Only shown when we matched a tier
@@ -7491,8 +7513,8 @@
                                 ${shareBtnHtml}
                             </div>
                             <div class="activity-item-reply-row" id="activity-item-reply-${itemUid}" onclick="event.stopPropagation()">
-                                <input type="text" placeholder="Comment on this..." maxlength="500" onkeydown="if(event.key==='Enter'){event.preventDefault();sendItemReply('${ev.clientId}','${ev.itemType}','${ev.itemId}','${escapedDetail}',this)}">
-                                <button onclick="sendItemReply('${ev.clientId}','${ev.itemType}','${ev.itemId}','${escapedDetail}',this.previousElementSibling)">Send</button>
+                                <input type="text" placeholder="Comment on this..." maxlength="500" onkeydown="if(event.key==='Enter'){event.preventDefault();sendItemReply('${ev.clientId}','${ev.itemType}','${ev.itemId}','${escapedQuote}',this)}">
+                                <button onclick="sendItemReply('${ev.clientId}','${ev.itemType}','${ev.itemId}','${escapedQuote}',this.previousElementSibling)">Send</button>
                             </div>
                         </div>
                     </div>`;
