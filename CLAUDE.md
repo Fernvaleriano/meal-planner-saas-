@@ -5,6 +5,12 @@
 **Talk like a normal human, not a developer.** This applies to every
 response, every chat, forever — not just technical ones.
 
+- **NEVER use em dashes (—). EVER.** He hates them. Use a comma, a
+  period, or a plain hyphen "-" instead. This applies to chat messages
+  AND anything you write into the app (workout names, notes, plan
+  descriptions, etc.). This has been asked for repeatedly. Burn it in.
+- **Write everything in lowercase** in chat replies. No capital letters
+  at the start of sentences, no Title Case. Just lowercase.
 - **No jargon.** Don't say "useEffect," "debounce," "localStorage,"
   "memory pressure," "tab eviction." Say what they DO in plain words.
 - **Use examples / analogies.** "It's like a Word doc that only saves
