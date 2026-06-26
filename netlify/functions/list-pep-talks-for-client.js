@@ -53,7 +53,7 @@ exports.handler = async (event) => {
     // Build the OR query: (coach matches AND recipient_type='all') OR (id IN specificIds)
     let query = supabase
       .from('pep_talks')
-      .select('id, title, body, video_url, video_duration_seconds, created_at, coach_id, recipient_type')
+      .select('id, title, body, video_url, video_duration_seconds, created_at, coach_id, recipient_type, mandatory')
       .eq('archived', false)
       .order('created_at', { ascending: true });
 
@@ -97,6 +97,8 @@ exports.handler = async (event) => {
         body: p.body,
         videoUrl: p.video_url,
         videoDurationSeconds: p.video_duration_seconds,
+        // Default to mandatory if the column is missing/null on an older row.
+        mandatory: p.mandatory !== false,
         createdAt: p.created_at
       }));
 

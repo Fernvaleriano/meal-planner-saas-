@@ -19,6 +19,10 @@ function PepTalkModal() {
   const { pepTalks, refresh, dismissLocal } = useUnviewedPepTalks(isCoach ? null : clientId);
 
   const current = pepTalks[0] || null;
+  // Mandatory pep talks (the default) can't be closed — the client must read /
+  // watch and tap "Got it" before they can use the app. Coaches can toggle this
+  // off per pep talk, which makes it a dismissible popup (X + tap-outside).
+  const isMandatory = current ? current.mandatory !== false : false;
   const [videoWatched, setVideoWatched] = useState(false);
   const videoRef = useRef(null);
   const openedRef = useRef(null);                // tracks which pep talk we've already logged "opened" for
@@ -75,6 +79,8 @@ function PepTalkModal() {
 
   const handleDismiss = useCallback(() => {
     if (!current || !clientId) return;
+    // Mandatory pep talks can't be soft-dismissed — the only way out is "Got it".
+    if (isMandatory) return;
     // Soft dismiss: hide it locally for this session so the user can use the
     // app. It still comes back on the next app resume / page reload because
     // viewed_at stays null on the server. Fire-and-forget the analytics call
@@ -86,20 +92,22 @@ function PepTalkModal() {
       pepTalkId: dismissedId,
       action: 'dismissed'
     }).catch(() => { /* swallow — local hide is what matters */ });
-  }, [current, clientId, dismissLocal]);
+  }, [current, clientId, dismissLocal, isMandatory]);
 
   if (!current) return null;
 
   return (
-    <div style={overlayStyle} onClick={handleDismiss}>
+    <div style={overlayStyle} onClick={isMandatory ? undefined : handleDismiss}>
       <div style={dialogStyle} onClick={(e) => e.stopPropagation()}>
-        <button
-          aria-label={t('pepTalk.dismissAriaLabel')}
-          onClick={handleDismiss}
-          style={closeBtnStyle}
-        >
-          <X size={20} />
-        </button>
+        {!isMandatory && (
+          <button
+            aria-label={t('pepTalk.dismissAriaLabel')}
+            onClick={handleDismiss}
+            style={closeBtnStyle}
+          >
+            <X size={20} />
+          </button>
+        )}
 
         <div style={titleStyle}>{current.title}</div>
 
