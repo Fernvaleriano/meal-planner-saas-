@@ -22,6 +22,10 @@ CREATE TABLE IF NOT EXISTS pep_talks (
     recipient_type VARCHAR(10) NOT NULL DEFAULT 'all'
         CHECK (recipient_type IN ('all', 'specific')),
 
+    -- mandatory = client must read/watch and tap "Got it" before they can close
+    -- the popup. FALSE = dismissible (X + tap-outside). Default TRUE.
+    mandatory BOOLEAN NOT NULL DEFAULT TRUE,
+
     archived BOOLEAN NOT NULL DEFAULT FALSE,    -- coach archives -> stops popping up
     archived_at TIMESTAMP WITH TIME ZONE,
 

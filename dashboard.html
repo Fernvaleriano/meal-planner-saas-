@@ -5914,6 +5914,16 @@
                                     <div style="color:var(--gray-400);padding:12px;text-align:center;">Loading clients...</div>
                                 </div>
                             </div>
+
+                            <div class="form-group" style="margin-top: 16px;">
+                                <label style="display:flex; align-items:flex-start; gap:10px; cursor:pointer;">
+                                    <input type="checkbox" id="pepTalkMandatory" checked style="margin-top:3px; width:18px; height:18px; flex-shrink:0;">
+                                    <span>
+                                        <span style="display:block; font-size:0.875rem; color: var(--gray-800); font-weight:600;">Require clients to read/watch first</span>
+                                        <span style="display:block; font-size:0.8rem; color: var(--gray-500); margin-top:2px;">They can't close it or use the app until they tap "Got it" (and finish the video, if there is one). Uncheck to let them dismiss it.</span>
+                                    </span>
+                                </label>
+                            </div>
                         </div>
                     </div>
                     <div class="story-creator-footer">
@@ -10425,6 +10435,7 @@
             document.getElementById('pepTalkTitle').value = '';
             document.getElementById('pepTalkBody').value = '';
             document.getElementById('pepTalkRecipientType').value = 'all';
+            document.getElementById('pepTalkMandatory').checked = true;
             document.getElementById('pepTalkRecipientGroup').style.display = 'none';
             document.getElementById('pepTalkVideoStatus').style.display = 'none';
             document.getElementById('pepTalkVideoStatus').textContent = '';
@@ -10544,6 +10555,7 @@
             const title = document.getElementById('pepTalkTitle').value.trim();
             const body = document.getElementById('pepTalkBody').value.trim();
             const recipientType = document.getElementById('pepTalkRecipientType').value;
+            const mandatory = document.getElementById('pepTalkMandatory').checked;
 
             if (!title) {
                 alert('Please add a title.');
@@ -10578,7 +10590,8 @@
                         videoUrl: pepTalkUploadedVideo?.url || null,
                         videoDurationSeconds: pepTalkUploadedVideo?.durationSeconds || null,
                         recipientType,
-                        clientIds
+                        clientIds,
+                        mandatory
                     })
                 });
                 const result = await response.json();

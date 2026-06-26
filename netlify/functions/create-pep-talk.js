@@ -30,7 +30,8 @@ exports.handler = async (event) => {
       videoUrl,
       videoDurationSeconds,
       recipientType,                          // 'all' | 'specific'
-      clientIds                               // required when recipientType === 'specific'
+      clientIds,                              // required when recipientType === 'specific'
+      mandatory                               // true (default) = client must read/watch before they can dismiss
     } = JSON.parse(event.body || '{}');
 
     if (!coachId) {
@@ -58,7 +59,9 @@ exports.handler = async (event) => {
         body: body ? String(body).trim() : null,
         video_url: videoUrl || null,
         video_duration_seconds: videoDurationSeconds ? Math.round(Number(videoDurationSeconds)) : null,
-        recipient_type: finalRecipientType
+        recipient_type: finalRecipientType,
+        // Default to mandatory unless the coach explicitly toggled it off.
+        mandatory: mandatory !== false
       })
       .select()
       .single();
