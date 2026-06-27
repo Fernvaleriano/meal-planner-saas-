@@ -915,7 +915,7 @@ If one does not fit today's muscle group, skip it (it belongs on another day). O
     // Assemble program
     const program = {
       programName: `${daysPerWeek}-Day ${goal.charAt(0).toUpperCase() + goal.slice(1)} Program`,
-      description: `${daysPerWeek} days/week, ${duration} weeks, ${experience} level — Sonnet quality`,
+      description: `${daysPerWeek} days/week, ${duration} weeks, ${experience} level — ${genModel === 'claude-opus-4-8' ? 'Opus' : 'Sonnet'} quality`,
       goal, difficulty: experience, daysPerWeek,
       weeks: [{ weekNumber: 1, workouts: day1Workouts }]
     };
