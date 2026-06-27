@@ -214,43 +214,77 @@
         })();
     </script>
     <script>
-        // Apply cached coach branding to splash screen instantly (no network calls)
-        // Also point the manifest link to the dynamic manifest for branded homescreen saves
+        // Apply cached coach branding instantly, BEFORE React boots, so the very
+        // first frame is already in the coach's brand colors — no default-teal
+        // flash on cold start. Two sources, in order of completeness:
+        //   1. zique_branding_preload (localStorage) — survives full app close,
+        //      and carries the exact computed brand CSS variables to replay onto
+        //      :root so the whole app (buttons, banners, rings, tiles) is branded
+        //      on first paint, not just the splash spinner.
+        //   2. zique_branding (sessionStorage) — legacy, current-tab only.
+        // No network calls here; React's BrandingContext still fetches fresh
+        // branding and corrects anything stale a moment later.
         (function() {
             try {
-                var cached = sessionStorage.getItem('zique_branding');
-                if (!cached) return;
-                var parsed = JSON.parse(cached);
-                var b = parsed && parsed.branding;
-                if (!b) return;
-                // Apply custom logo
-                if (b.brand_logo_url) {
-                    var logo = document.getElementById('splash-logo');
-                    if (logo) logo.src = b.brand_logo_url;
+                var root = document.documentElement;
+
+                // 1. Replay the full brand CSS-variable snapshot onto :root.
+                var preloadRaw = localStorage.getItem('zique_branding_preload');
+                var preload = preloadRaw ? JSON.parse(preloadRaw) : null;
+                if (preload && preload.cssVars) {
+                    for (var name in preload.cssVars) {
+                        if (Object.prototype.hasOwnProperty.call(preload.cssVars, name)) {
+                            root.style.setProperty(name, preload.cssVars[name]);
+                        }
+                    }
                 }
-                // Apply custom primary color to spinner
-                if (b.brand_primary_color) {
+
+                // 2. Resolve splash assets (prefer the persistent preload, fall
+                //    back to the per-tab sessionStorage cache).
+                var logoUrl = preload && preload.logo;
+                var primary = preload && preload.primary;
+                var coachId = preload && preload.coachId;
+                var brandName = preload && preload.brandName;
+                if (!logoUrl || !primary) {
+                    var cached = sessionStorage.getItem('zique_branding');
+                    var b = cached ? (JSON.parse(cached).branding || null) : null;
+                    if (b) {
+                        logoUrl = logoUrl || b.brand_logo_url;
+                        primary = primary || b.brand_primary_color;
+                        coachId = coachId || b.coach_id;
+                        brandName = brandName || b.brand_name;
+                    }
+                }
+
+                // Apply custom logo to the splash
+                if (logoUrl) {
+                    var logo = document.getElementById('splash-logo');
+                    if (logo) logo.src = logoUrl;
+                }
+                // Apply custom primary color to the splash spinner
+                if (primary) {
                     var spinner = document.getElementById('splash-spinner');
                     if (spinner) {
-                        spinner.style.borderColor = b.brand_primary_color + '33';
-                        spinner.style.borderTopColor = b.brand_primary_color;
+                        spinner.style.borderColor = primary + '33';
+                        spinner.style.borderTopColor = primary;
                     }
+                    // Keep the browser/PWA status bar in brand color too
+                    var themeMeta = document.querySelector('meta[name="theme-color"]');
+                    if (themeMeta) themeMeta.content = primary;
                 }
-                // Update manifest link for branded PWA homescreen saves
-                if (b.coach_id) {
+                // Update manifest link + title + icon for branded PWA homescreen saves
+                if (coachId) {
                     var manifestLink = document.getElementById('manifest-link');
                     if (manifestLink) {
-                        manifestLink.href = '/.netlify/functions/dynamic-manifest?coachId=' + b.coach_id;
+                        manifestLink.href = '/.netlify/functions/dynamic-manifest?coachId=' + coachId;
                     }
-                    // Update page title
-                    if (b.brand_name) document.title = b.brand_name;
-                    // Update apple-touch-icon
-                    if (b.brand_logo_url) {
+                    if (brandName) document.title = brandName;
+                    if (logoUrl) {
                         var touchIcon = document.querySelector('link[rel="apple-touch-icon"]');
-                        if (touchIcon) touchIcon.href = b.brand_logo_url;
+                        if (touchIcon) touchIcon.href = logoUrl;
                     }
                 }
-            } catch (e) { /* silent fail */ }
+            } catch (e) { /* silent fail — fall back to default branding */ }
         })();
     </script>
     <script type="module" src="/src/main.jsx"></script>
