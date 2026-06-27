@@ -82,6 +82,30 @@ export const BUTTON_STYLES = {
 const CACHE_KEY = 'coach_branding_v4';
 const CACHE_TTL = 30 * 60 * 1000; // 30 minutes
 
+// The complete list of CSS custom properties applyBrandingCSS may set.
+// Shared by clearBrandingCSS (to reset them) and the persisted-snapshot
+// writer below (so the pre-React inline script in app-test.html can replay
+// them before first paint — eliminating the brand-color flash on cold start).
+// Keep this in sync with every root.style.setProperty('--brand-...') call.
+const BRAND_CSS_PROPS = [
+  '--brand-primary', '--brand-primary-dark', '--brand-secondary', '--brand-accent',
+  '--brand-gradient', '--bg-primary', '--bg-secondary', '--bg-card',
+  '--text-primary', '--text-secondary', '--btn-radius', '--font-family',
+  // Derived rebrand variables — clear so CSS fallbacks (default teal) reapply
+  '--brand-meal-active-start', '--brand-meal-active-end', '--brand-meal-active-shadow',
+  '--brand-tile-bg-dark', '--brand-tile-bg-light', '--brand-tile-border', '--brand-tile-icon-color',
+  '--brand-banner-gradient', '--brand-banner-shadow',
+  '--brand-banner-card-bg-light', '--brand-banner-card-bg-dark', '--brand-banner-card-shadow',
+  '--brand-rest-day-bg-light', '--brand-rest-day-bg-dark',
+  '--brand-shadow-soft', '--brand-shadow-soft-strong', '--brand-macro-protein',
+];
+
+// Persistent key the pre-React inline script reads to apply brand colors and
+// splash assets before the bundle boots. Unlike the per-coach localStorage
+// cache (which the inline script can't read — it doesn't know coachId before
+// auth), this is a single "last applied branding" snapshot.
+const PRELOAD_KEY = 'zique_branding_preload';
+
 function getCachedBranding(coachId) {
   try {
     const cached = localStorage.getItem(`${CACHE_KEY}_${coachId}`);
@@ -342,6 +366,28 @@ function applyBrandingCSS(branding) {
       timestamp: Date.now(),
     }));
   } catch { /* ignore */ }
+
+  // Persist a snapshot to localStorage (survives full app close, unlike
+  // sessionStorage) so the pre-React inline script in app-test.html can paint
+  // the exact same brand colors + splash assets on the very first frame of a
+  // cold start — no more default-teal flash before React fetches branding.
+  // We snapshot the *computed* CSS variables straight off :root so there's
+  // zero logic to keep in sync — whatever applyBrandingCSS set is what gets
+  // replayed.
+  try {
+    const cssVars = {};
+    BRAND_CSS_PROPS.forEach((p) => {
+      const v = root.style.getPropertyValue(p);
+      if (v) cssVars[p] = v;
+    });
+    localStorage.setItem(PRELOAD_KEY, JSON.stringify({
+      cssVars,
+      logo: branding.brand_logo_url || null,
+      primary: branding.brand_primary_color || null,
+      coachId: branding.coach_id || null,
+      brandName: branding.brand_name || null,
+    }));
+  } catch { /* ignore */ }
 }
 
 /**
@@ -349,20 +395,11 @@ function applyBrandingCSS(branding) {
  */
 function clearBrandingCSS() {
   const root = document.documentElement;
-  const props = [
-    '--brand-primary', '--brand-primary-dark', '--brand-secondary', '--brand-accent',
-    '--brand-gradient', '--bg-primary', '--bg-secondary', '--bg-card',
-    '--text-primary', '--text-secondary', '--btn-radius', '--font-family',
-    // Derived rebrand variables — clear so CSS fallbacks (default teal) reapply
-    '--brand-meal-active-start', '--brand-meal-active-end', '--brand-meal-active-shadow',
-    '--brand-tile-bg-dark', '--brand-tile-bg-light', '--brand-tile-border', '--brand-tile-icon-color',
-    '--brand-banner-gradient', '--brand-banner-shadow',
-    '--brand-banner-card-bg-light', '--brand-banner-card-bg-dark', '--brand-banner-card-shadow',
-    '--brand-rest-day-bg-light', '--brand-rest-day-bg-dark',
-    '--brand-shadow-soft', '--brand-shadow-soft-strong', '--brand-macro-protein',
-  ];
-  props.forEach(p => root.style.removeProperty(p));
+  BRAND_CSS_PROPS.forEach(p => root.style.removeProperty(p));
   document.body.style.fontFamily = '';
+  // Drop the cold-start snapshot too, so a logged-out / reset device doesn't
+  // replay a stale brand's colors before the next login fetches fresh ones.
+  try { localStorage.removeItem(PRELOAD_KEY); } catch { /* ignore */ }
 }
 
 export function BrandingProvider({ children }) {
@@ -562,8 +599,17 @@ export function BrandingProvider({ children }) {
 
   // Apply CSS whenever branding changes — always apply what the API returned.
   // has_branding_access controls editing, not display.
+  //
+  // Skip the DEFAULT_BRANDING *placeholder* (the initial state before auth
+  // resolves a coachId). Applying it here would paint default teal over the
+  // colors the pre-React inline script already set from the cold-start
+  // snapshot — re-introducing the very flash this is meant to prevent. The
+  // defaults live in global.css :root, so a genuine no-coach user still shows
+  // default colors without us setting them. Real branding (custom or a fresh
+  // default fetched for a coach) is always a different object and applies
+  // normally — both here and directly inside fetchBranding.
   useEffect(() => {
-    if (branding) {
+    if (branding && branding !== DEFAULT_BRANDING) {
       applyBrandingCSS(branding);
     }
   }, [branding]);
