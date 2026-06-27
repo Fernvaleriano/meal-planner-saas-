@@ -511,6 +511,22 @@ function generateMultiWeekProgression(week1Workouts, totalWeeks, goal, weightUni
   return additionalWeeks;
 }
 
+// ─── Cue voice scrubber ───────────────────────────────────────────────────────
+// Client-facing cues must read like the coach texted them: all lowercase, no
+// em/en dashes, no AI tells. The prompt asks for this; this enforces it on output.
+function humanizeCue(note) {
+  if (!note || typeof note !== 'string') return note || '';
+  let t = note
+    .replace(/[—–]/g, ', ')
+    .replace(/\s+,/g, ',')
+    .replace(/\s*,\s*,\s*/g, ', ')
+    .replace(/\s{2,}/g, ' ')
+    .trim()
+    .toLowerCase();
+  t = t.replace(/,\s*\./g, '.').replace(/^[,\s]+/, '').trim();
+  return t;
+}
+
 // ─── Main handler ─────────────────────────────────────────────────────────────
 exports.handler = async (event) => {
   const corsResponse = handleCors(event);
@@ -890,6 +906,9 @@ ${repRangeBlock}
 - DO NOT auto-default to textbook lifts (barbell bench press, back squat, conventional deadlift) just because they are "standard". A good coach chooses the primary from the client's history, equipment, and variety — not reflex. Only feature barbell bench if it genuinely fits this client best.
 - KEEP WHAT'S WORKING: If a CLIENT BRIEFING exercise is tagged "KEEP+PROGRESS" (the client is still PRing / adding reps) and it appears in your AVAILABLE EXERCISES list, you MUST include that exact exercise as a primary. Never replace a lift the client is progressing on with a generic substitute.
 - Add brief, actionable form cues in "notes" for each main exercise. Don't repeat the exercise name in notes. The "notes" field is shown to the CLIENT — write a normal coaching cue only. NEVER put internal labels (KEEP+PROGRESS, SWAP, PERSIST, ROTATE, REGRESSED, briefing text, or emoji) in notes, and NEVER put weights/loads in notes (e.g. "you hit 50 lb last time", "start around 45 lb") — the app tracks weights for the client.
+- VOICE — write each cue like the coach texted it on his phone, NOT like AI: ALL LOWERCASE (every letter, including the start of each sentence, no capitals ever); NO em dashes or en dashes (use commas/periods); short, warm, contractions are good; no AI filler ("engage your core", "ensure proper form", "maintain", "throughout the movement", "optimal", "focus on").
+- MAKE EVERY NOTE DIFFERENT. Do not reuse one formula ("control the eccentric, squeeze at the top, no swinging") with the nouns swapped, coaches hate that. For each exercise pick a DIFFERENT angle: setup/positioning, breathing/bracing, tempo, the one common mistake on THAT lift, what muscle it should feel like, range of motion, or effort target. Don't start consecutive notes with the same word, and make each cue specific enough that it couldn't be pasted onto a different exercise. Use phrases like "control the eccentric", "squeeze at the top", "no swinging", "full range of motion" at most ONCE in the whole workout.
+- PERSONAL TOUCH (only when natural, never forced): if the client profile tells you something specific (an injury, a lift they're progressing on), let the relevant cue quietly reflect it so they feel remembered. never invent details, never put numbers in a cue, and don't make every note personal.
 - CARDIO MACHINES (treadmill, stairmaster, bike, rower, elliptical, jump rope) are CARDIO ONLY. They belong in WARM-UP (with "phase": "warmup", reps in time format like "5 min") or in a CONDITIONING FINISHER. They are NEVER main strength exercises with sets/reps like "3×12-15".
 - A "Push" day means ONLY chest, shoulders, triceps. A "Pull" day means ONLY back and biceps. NEVER mix them — putting a row on a push day or a chest press on a pull day is a programming error.
 - For LEG days: include at least one squat pattern, one hip hinge (RDL/deadlift/hip thrust), one hamstring isolation, one calf exercise, and ideally one glute-specific movement.
@@ -926,7 +945,7 @@ Return this exact JSON structure:
       "targetMuscles": ${JSON.stringify(targetMuscle === 'upper_body' ? ['chest', 'back', 'shoulders', 'arms'] : targetMuscle === 'lower_body' ? ['quads', 'hamstrings', 'glutes', 'calves'] : targetMuscle === 'full_body' ? ['chest', 'back', 'legs', 'shoulders'] : [targetMuscle])},
       "exercises": [
         {"name": "Cardio Warm-up", "muscleGroup": "cardio", "sets": 1, "reps": "5 min", "restSeconds": 0, "notes": "", "isSuperset": false, "supersetGroup": null, "isWarmup": true, "isStretch": false, "phase": "warmup"},
-        {"name": "Main Exercise", "muscleGroup": "${targetMuscle}", "sets": 4, "reps": "8-10", "restSeconds": 90, "notes": "Form cue", "isSuperset": false, "supersetGroup": null, "isWarmup": false, "isStretch": false, "phase": "main"},
+        {"name": "Main Exercise", "muscleGroup": "${targetMuscle}", "sets": 4, "reps": "8-10", "restSeconds": 90, "notes": "drive through your heels and keep your chest tall", "isSuperset": false, "supersetGroup": null, "isWarmup": false, "isStretch": false, "phase": "main"},
         {"name": "Static Stretch", "muscleGroup": "stretching", "sets": 1, "reps": "30s hold", "restSeconds": 0, "notes": "", "isSuperset": false, "supersetGroup": null, "isWarmup": false, "isStretch": true, "phase": "cooldown"}
       ]
     }]
@@ -953,7 +972,7 @@ Return this exact JSON structure:
       "targetMuscles": ["muscle1"],
       "exercises": [
         {"name": "Cardio Warm-up", "muscleGroup": "cardio", "sets": 1, "reps": "5 min", "restSeconds": 0, "notes": "", "isSuperset": false, "supersetGroup": null, "isWarmup": true, "isStretch": false, "phase": "warmup"},
-        {"name": "Main Exercise", "muscleGroup": "primary", "sets": 4, "reps": "8-10", "restSeconds": 90, "notes": "Form cue", "isSuperset": false, "supersetGroup": null, "isWarmup": false, "isStretch": false, "phase": "main"},
+        {"name": "Main Exercise", "muscleGroup": "primary", "sets": 4, "reps": "8-10", "restSeconds": 90, "notes": "drive through your heels and keep your chest tall", "isSuperset": false, "supersetGroup": null, "isWarmup": false, "isStretch": false, "phase": "main"},
         {"name": "Static Stretch", "muscleGroup": "stretching", "sets": 1, "reps": "30s hold", "restSeconds": 0, "notes": "", "isSuperset": false, "supersetGroup": null, "isWarmup": false, "isStretch": true, "phase": "cooldown"}
       ]
     }]
@@ -1030,7 +1049,7 @@ Return this exact JSON structure:
             sets: aiEx.isWarmup ? (aiEx.sets || 1) : aiEx.isStretch ? (aiEx.sets || 1) : (aiEx.sets || 3),
             reps: aiEx.isWarmup ? (aiEx.reps || '10-15') : aiEx.isStretch ? (aiEx.reps || '30s hold') : (aiEx.reps || '8-12'),
             restSeconds: aiEx.isWarmup ? (aiEx.restSeconds != null ? aiEx.restSeconds : 30) : aiEx.isStretch ? (aiEx.restSeconds != null ? aiEx.restSeconds : 0) : (aiEx.restSeconds || 90),
-            notes: aiEx.notes || '',
+            notes: humanizeCue(aiEx.notes),
             isWarmup: aiEx.isWarmup || false,
             isStretch: aiEx.isStretch || false,
             isSuperset: aiEx.isSuperset || false,

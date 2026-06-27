@@ -113,6 +113,25 @@ function findBestMatch(aiName, exercises) {
   }) || null;
 }
 
+// ─── Cue voice scrubber ───────────────────────────────────────────────────────
+// The coach wants client-facing cues to read like he texted them: all lowercase,
+// no em/en dashes, no AI tells. The prompt asks for this, but models slip — so we
+// enforce it on the output as a safety net (same idea as the welcome note's
+// humanizer). Only touches the visible note text; never the exercise data.
+function humanizeCue(note) {
+  if (!note || typeof note !== 'string') return note || '';
+  let t = note
+    .replace(/[—–]/g, ', ')        // em/en dash → comma (keeps regular hyphens like "mid-back")
+    .replace(/\s+,/g, ',')          // drop space before comma (from " — " → " , ")
+    .replace(/\s*,\s*,\s*/g, ', ')  // collapse doubled commas
+    .replace(/\s{2,}/g, ' ')
+    .trim()
+    .toLowerCase();
+  // tidy any ", ." the dash swap may have created
+  t = t.replace(/,\s*\./g, '.').replace(/^[,\s]+/, '').trim();
+  return t;
+}
+
 // ─── Random sampling for variety ──────────────────────────────────────────────
 function sampleArray(arr, n, seed = Date.now()) {
   if (arr.length <= n) return arr.slice();
@@ -362,6 +381,17 @@ ${repRangeBlock}
 - The "notes" field is shown to the CLIENT — write a normal coaching cue only. NEVER put internal labels (KEEP+PROGRESS, SWAP, PERSIST, ROTATE, REGRESSED, briefing text, or emoji) in notes, and NEVER put weights/loads in notes (e.g. "you hit 50 lb last time", "start around 45 lb") — the app tracks weights for the client.
 - For LEG days: include squat + hip hinge + hamstring iso + calf + ideally glute-specific.
 
+=== COACHING NOTES — WRITE THEM LIKE THE COACH TEXTED THEM (NOT AI) ===
+The "notes" cue is shown to the CLIENT. It must read like their real coach typed it on their phone, not like AI. Voice rules (NON-NEGOTIABLE):
+- ALL LOWERCASE. every letter, including the first word of every sentence. no capital letters at all, ever.
+- NO em dashes or en dashes (the "—" or "–" character). use commas, periods, or just shorter sentences.
+- short, warm, human. contractions are good ("don't", "you'll", "it's"). NO corporate/AI filler: never write "engage your core", "ensure proper form", "maintain", "throughout the movement", "optimal", "elevate", "focus on".
+EVERY CUE MUST BE DIFFERENT — coaches hate AI reusing one formula ("control the eccentric, squeeze at the top, no swinging") with the nouns swapped:
+- Rotate WHAT each cue is about: setup / foot or hand position, breathing or bracing, tempo, the single most common mistake on THIS lift, what it should FEEL like or which muscle to feel, range of motion, effort target ("last couple reps should be a grind"), or a quick mindset line. Don't use the same angle twice in a row, and don't start two notes with the same word.
+- Make each cue SPECIFIC to that exact movement. a split squat cue should not be swappable onto a row. if a note could be pasted onto another exercise unnoticed, rewrite it.
+- Use auto-pilot phrases ("control the eccentric", "squeeze at the top", "no swinging", "full range of motion") at most ONCE in the whole day, and only when it's genuinely the key point.
+PERSONAL TOUCH (only when it's natural — never forced): if the CLIENT PROFILE above tells you something specific about this person (an injury or limitation, a lift they're clearly progressing on), let the relevant cue quietly reflect it so they feel remembered, e.g. "keeping these neutral grip so that wrist stays happy" or "this one's been moving for you, stay greedy". Never invent details, never put weights/numbers in a cue, and don't make EVERY note personal — most stay clean coaching cues.
+
 CONSTRAINTS:
 - Equipment: ${equipment.join(', ')}
 ${injuries ? `- Remember the coach's NOTES/LIMITATIONS above — apply them here.` : ''}
@@ -374,7 +404,7 @@ Return this exact JSON structure:
   "targetMuscles": ["muscle1"],
   "exercises": [
     {"name": "Cardio Warm-up", "muscleGroup": "cardio", "sets": 1, "reps": "5 min", "restSeconds": 0, "notes": "", "isSuperset": false, "supersetGroup": null, "isWarmup": true, "isStretch": false, "phase": "warmup"},
-    {"name": "Main Exercise", "muscleGroup": "primary", "sets": 4, "reps": "8-10", "restSeconds": 90, "notes": "Form cue", "isSuperset": false, "supersetGroup": null, "isWarmup": false, "isStretch": false, "phase": "main"},
+    {"name": "Main Exercise", "muscleGroup": "primary", "sets": 4, "reps": "8-10", "restSeconds": 90, "notes": "drive through your heels and keep your chest tall coming up", "isSuperset": false, "supersetGroup": null, "isWarmup": false, "isStretch": false, "phase": "main"},
     {"name": "Static Stretch", "muscleGroup": "stretching", "sets": 1, "reps": "30s hold", "restSeconds": 0, "notes": "", "isSuperset": false, "supersetGroup": null, "isWarmup": false, "isStretch": true, "phase": "cooldown"}
   ]
 }`;
@@ -410,6 +440,7 @@ Return this exact JSON structure:
     if (typeof ex.sets !== 'number' || ex.sets < 1) ex.sets = 3;
     if (!ex.reps) ex.reps = '8-12';
     if (typeof ex.restSeconds !== 'number') ex.restSeconds = 60;
+    ex.notes = humanizeCue(ex.notes); // coach voice: lowercase, no em dashes
     const isWarmStretch = ex.isWarmup || ex.isStretch;
     // Main exercises must resolve only to equipment the coach allows — matching
     // against the full library is how mislabeled gear leaked into the result
@@ -516,7 +547,7 @@ function buildKeeperExercise(lib, template) {
     sets: typeof t.sets === 'number' ? t.sets : 4,
     reps: t.reps || '8-10',
     restSeconds: typeof t.restSeconds === 'number' ? t.restSeconds : 90,
-    notes: 'Keep adding a little each week — you\'ve been making steady progress here.',
+    notes: 'you\'ve been making real progress here, so keep chasing a little more each week.',
     isSuperset: false, supersetGroup: null, isWarmup: false, isStretch: false, phase: 'main',
     id: lib.id, video_url: lib.video_url, animation_url: lib.animation_url,
     thumbnail_url: lib.thumbnail_url, muscle_group: lib.muscle_group, equipment: lib.equipment,

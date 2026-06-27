@@ -13774,7 +13774,8 @@
                         experience: requestBody.experience,
                         daysPerWeek: requestBody.daysPerWeek,
                         split: requestBody.split,
-                        programDays
+                        programDays,
+                        model: requestBody.model   // match the note's writer to the workout's tier
                     }),
                     signal: controller.signal
                 });
@@ -13948,7 +13949,7 @@
                 sets: typeof t.sets === 'number' ? t.sets : 4,
                 reps: t.reps || '8-10',
                 restSeconds: typeof t.restSeconds === 'number' ? t.restSeconds : 90,
-                notes: 'Keep adding a little each week — you\'ve been making steady progress here.',
+                notes: 'you\'ve been making real progress here, so keep chasing a little more each week.',
                 isSuperset: false, supersetGroup: null, isWarmup: false, isStretch: false, phase: 'main',
                 id: lib.id, video_url: lib.video_url, animation_url: lib.animation_url,
                 thumbnail_url: lib.thumbnail_url, muscle_group: lib.muscle_group, equipment: lib.equipment,
