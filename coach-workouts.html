@@ -13894,6 +13894,102 @@
             throw new Error('Job is taking too long (>13 min). Check back later or try a smaller program.');
         }
 
+        // ── Keep-what's-working enforcement (fan-out / Haiku path) ──────────────
+        // Mirror of the server-side guarantee in
+        // generate-workout-claude-background.js: a lift the client is actively
+        // progressing on MUST survive into the program even if the model dropped it
+        // for variety. Keep both copies in sync if you change the logic.
+        function _keeperNorm(name) {
+            return (name || '').toLowerCase().replace(/\s*\(\d+\)\s*/g, '').replace(/[^a-z0-9\s]/g, '').replace(/\s+/g, ' ').trim();
+        }
+        function _keeperExCategory(mg, name) {
+            const g = (mg || '').toLowerCase();
+            const n = (name || '').toLowerCase();
+            if (/\bcurl\b/.test(n) && !/leg curl/.test(n)) return 'biceps';
+            if (/tricep|push ?down|skull|kickback|close grip|\bdip\b|overhead extension|french press/.test(n)) return 'triceps';
+            if (/bicep/.test(g)) return 'biceps';
+            if (/tricep/.test(g)) return 'triceps';
+            if (/chest|pec/.test(g)) return 'chest';
+            if (/back|lat|trap|rhomboid|rear delt/.test(g)) return 'back';
+            if (/shoulder|delt/.test(g)) return 'shoulders';
+            if (/glute/.test(g)) return 'glutes';
+            if (/quad|hamstring|calf|calves|\bleg|adductor|abductor/.test(g)) return 'legs';
+            if (/core|\bab\b|abs|oblique/.test(g)) return 'core';
+            if (/arm|forearm/.test(g)) return 'biceps';
+            return 'other';
+        }
+        function _keeperDayAccepts(target, cat) {
+            const t = (target || '').toLowerCase();
+            if (t === 'full_body' || t === 'full') return cat !== 'other';
+            if (t === 'upper_body' || t === 'upper') return ['chest', 'back', 'shoulders', 'biceps', 'triceps'].includes(cat);
+            if (t === 'lower_body' || t === 'lower' || t === 'legs') return ['legs', 'glutes'].includes(cat);
+            if (t === 'push') return ['chest', 'shoulders', 'triceps'].includes(cat);
+            if (t === 'pull') return ['back', 'biceps'].includes(cat);
+            if (t === 'arms') return ['biceps', 'triceps'].includes(cat);
+            return t === cat;
+        }
+        function _keeperEquipOk(lib, equipment) {
+            if (!Array.isArray(equipment) || equipment.length === 0) return true;
+            const e = (lib.equipment || '').toLowerCase().trim();
+            if (!e) return true;
+            return equipment.map(x => String(x).toLowerCase()).includes(e);
+        }
+        function _keeperBuildExercise(lib, template) {
+            const t = template || {};
+            return {
+                name: lib.name, muscleGroup: lib.muscle_group,
+                sets: typeof t.sets === 'number' ? t.sets : 4,
+                reps: t.reps || '8-10',
+                restSeconds: typeof t.restSeconds === 'number' ? t.restSeconds : 90,
+                notes: 'Keep adding a little each week — you\'ve been making steady progress here.',
+                isSuperset: false, supersetGroup: null, isWarmup: false, isStretch: false, phase: 'main',
+                id: lib.id, video_url: lib.video_url, animation_url: lib.animation_url,
+                thumbnail_url: lib.thumbnail_url, muscle_group: lib.muscle_group, equipment: lib.equipment,
+                instructions: lib.instructions, isCustom: !!lib.coach_id, matched: true, isKeeper: true
+            };
+        }
+        function _enforceProgressKeepersLocal(keepers, days, splitDays, pool) {
+            if (!Array.isArray(keepers) || keepers.length === 0) return [];
+            const injected = [];
+            const targetByDay = {};
+            splitDays.forEach(sd => { targetByDay[sd.dayNumber] = sd.targetMuscle; });
+            const present = new Set();
+            for (const d of days) for (const ex of (d.exercises || [])) if (ex && ex.name) present.add(_keeperNorm(ex.name));
+            const keeperNames = new Set(keepers.map(k => _keeperNorm(k.name)));
+            for (const keeper of keepers) {
+                const lib = pool.find(e => _keeperNorm(e.name) === _keeperNorm(keeper.name));
+                if (!lib) continue;
+                if (present.has(_keeperNorm(lib.name))) continue;
+                const cat = _keeperExCategory(lib.muscle_group, lib.name);
+                const candidates = days
+                    .map(d => ({ d, target: targetByDay[d.dayNumber] }))
+                    .filter(c => _keeperDayAccepts(c.target, cat))
+                    .sort((a, b) => a.d.exercises.filter(e => e.isKeeper).length - b.d.exercises.filter(e => e.isKeeper).length);
+                if (candidates.length === 0) continue;
+                const mains = candidates[0].d.exercises;
+                let victimIdx = -1;
+                for (let i = mains.length - 1; i >= 0; i--) {
+                    const ex = mains[i];
+                    if (ex.isWarmup || ex.isStretch || ex.isKeeper) continue;
+                    if (keeperNames.has(_keeperNorm(ex.name))) continue;
+                    if (_keeperExCategory(ex.muscle_group || ex.muscleGroup, ex.name) === cat) { victimIdx = i; break; }
+                }
+                const tmpl = victimIdx >= 0 ? mains[victimIdx] : mains.find(e => !e.isWarmup && !e.isStretch) || {};
+                const keeperEx = _keeperBuildExercise(lib, tmpl);
+                if (victimIdx >= 0) {
+                    injected.push({ kept: lib.name, day: candidates[0].d.name, replaced: mains[victimIdx].name });
+                    mains[victimIdx] = keeperEx;
+                } else {
+                    let insertAt = mains.findIndex(e => e.isStretch);
+                    if (insertAt < 0) insertAt = mains.length;
+                    mains.splice(insertAt, 0, keeperEx);
+                    injected.push({ kept: lib.name, day: candidates[0].d.name, replaced: null });
+                }
+                present.add(_keeperNorm(lib.name));
+            }
+            return injected;
+        }
+
         // Program-mode generation: fan out one call per day, then assemble + apply
         // multi-week progression locally.
         async function _generateProgramByFanout(btn, requestBody) {
@@ -13938,6 +14034,7 @@
 
             // Sort by day number to preserve order even with concurrent completion
             dayResults.sort((a, b) => a.daySpec.dayNumber - b.daySpec.dayNumber);
+            const clientAnalysis = dayResults.find(d => d.result.clientAnalysis)?.result.clientAnalysis || null;
 
             // Aggregate match stats and exercises
             const aggMatchStats = { total: 0, matched: 0, unmatched: 0, unmatchedNames: [], databaseExercises: 0, customExerciseCount: 0, exercisesWithVideos: 0 };
@@ -13965,6 +14062,18 @@
                     exercises: dayWorkout.exercises || []
                 };
             });
+
+            // Deterministic guarantee (mirrors the server quality path): keep the
+            // lifts the client is actively progressing on, even if the fast model
+            // dropped them for variety.
+            let keeperInjections = [];
+            if (clientAnalysis && Array.isArray(clientAnalysis.exerciseAnalysis)) {
+                const keepers = clientAnalysis.exerciseAnalysis.filter(e => e.action === 'progress_load');
+                const pool = (typeof exercises !== 'undefined' ? exercises : [])
+                    .filter(e => (e.video_url || e.animation_url) && _keeperEquipOk(e, requestBody.equipment));
+                keeperInjections = _enforceProgressKeepersLocal(keepers, week1Workouts, splitDays, pool);
+                if (keeperInjections.length) console.log('Keeper enforcement (fan-out):', keeperInjections);
+            }
 
             // Assemble the multi-day program
             const program = {
@@ -14018,7 +14127,8 @@
                 splitViolations: allSplitViolations,
                 clientContextUsed: dayResults.some(d => d.result.clientContextUsed),
                 clientContextSummary: dayResults.find(d => d.result.clientContextSummary)?.result.clientContextSummary || null,
-                clientAnalysis: dayResults.find(d => d.result.clientAnalysis)?.result.clientAnalysis || null,
+                clientAnalysis,
+                keeperInjections,
                 generatedWeeks: program.weeks.length,
                 fannedOut: true
             };
