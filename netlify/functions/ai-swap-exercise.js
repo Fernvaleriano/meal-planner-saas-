@@ -397,12 +397,18 @@ function scoreAlternative(original, alt, origMovement, altMovement) {
     reasons.push('same_type');
   }
 
-  // 5. EQUIPMENT MATCH (+15)
-  if (original.equipment && alt.equipment) {
-    if (alt.equipment.toLowerCase() === original.equipment.toLowerCase()) {
-      score += 15;
-      reasons.push('same_equipment');
-    }
+  // 5. EQUIPMENT MATCH — light tie-breaker only (+10). We deliberately do NOT
+  // weight this heavily: the goal is to give the user a VARIETY of swap options
+  // across different equipment, not to lock them to the original's equipment.
+  // The small bump just means the closest same-equipment variant tends to show
+  // up first; the equipment-diversity pass at selection time then spreads the
+  // remaining slots across other equipment families. Family-aware so "band"
+  // matches "resistance band", "kettlebell" matches "kettlebells", etc.
+  const origEquip = normalizeEquipment(original.equipment);
+  const altEquip = normalizeEquipment(alt.equipment);
+  if (origEquip && altEquip && origEquip === altEquip) {
+    score += 10;
+    reasons.push('same_equipment');
   }
 
   // 6. DIFFICULTY MATCH (+5)
@@ -412,6 +418,30 @@ function scoreAlternative(original, alt, origMovement, altMovement) {
   }
 
   return { score, reasons };
+}
+
+// Collapse the library's messy equipment labels into broad families so swaps
+// can prefer "the same kind of equipment". The exercises table has values like
+// "band" vs "resistance band", "kettlebell" vs "kettlebells", "ez bar",
+// "cable pulley machine", "none" vs null, etc. — all of which should be treated
+// as the same family for swap purposes.
+function normalizeEquipment(equip) {
+  const e = (equip || '').toLowerCase().trim();
+  if (!e || e === 'none' || e === 'n/a' || e === 'bodyweight' || e === 'body weight' ||
+      e === 'chair' || e === 'yoga mat' || e === 'mat' || e === 'bench' ||
+      e === 'pull up bar' || e === 'pull-up bar' || e.includes('dip pull up') ||
+      e === 'trx' || e.includes('suspension')) {
+    return 'bodyweight';
+  }
+  if (e.includes('dumbbell')) return 'dumbbell';
+  if (e.includes('barbell') || e.includes('ez bar') || e.includes('ez-bar') ||
+      e === 'plate' || e.includes('trap bar') || e.includes('hex bar')) return 'barbell';
+  if (e.includes('kettlebell')) return 'kettlebell';
+  if (e.includes('band')) return 'band';
+  if (e.includes('cable') || e.includes('pulley') || e.includes('crossover') ||
+      e.includes('pec deck')) return 'cable';
+  if (e.includes('machine')) return 'machine';
+  return e; // unknown/one-off equipment keeps its own label
 }
 
 function parseSecondaryMuscles(secondary) {
@@ -751,7 +781,7 @@ RANKING RULES (strict priority):
 1. SAME MOVEMENT PATTERN is NON-NEGOTIABLE — A squat must swap with another squat variation. A row with another row. A curl with another curl. A press with another press. If the candidate doesn't match the movement pattern, DO NOT select it.
 2. SIMILAR BIOMECHANICS — Prefer same joint angles and planes of motion. Incline press → incline dumbbell press > flat press > decline press. Barbell squat → goblet squat > leg press > lunge.
 3. SIMILAR TRAINING STIMULUS — Compound ↔ compound, isolation ↔ isolation. Don't replace a squat with a leg extension.
-4. EQUIPMENT is the LOWEST priority — Different equipment is fine if the movement pattern matches.
+4. OFFER A VARIETY OF EQUIPMENT — the user wants real choice, so the 5 picks should span DIFFERENT equipment where possible (e.g. a dumbbell option, a cable option, a machine option, a bodyweight option) as long as every pick still matches the movement pattern. Do NOT return five near-identical swaps that all use the same equipment. Equipment is NOT a tie-breaker toward the original — diversity is the goal.
 
 HARD RULES:
 - NEVER suggest an antagonist muscle exercise (no bicep curl for a tricep exercise)
@@ -821,41 +851,70 @@ Select exactly 5.${languageInstruction(language)}`;
       }
     }
 
-    // If AI completely failed, use rule-based fallback
-    if (aiSuggestions.length === 0) {
-      aiSuggestions = rankingPool.slice(0, 5).map(ex => ({
-        id: ex.id,
-        name: ex.name,
-        reason: ex._reasons.includes('same_movement') ?
-          `Same ${origMovement.pattern?.replace(/_/g, ' ').toLowerCase() || 'movement'} pattern` :
-          `Similar ${ex.muscle_group} exercise${ex.equipment ? ` with ${ex.equipment}` : ""}`
-      }));
+    // ─── Final selection: best matches, diversified by equipment ──────────────
+    // Build one ranked list: the AI's chosen order first (it picked the best
+    // candidates and wrote the coaching reasons), then any remaining candidates
+    // by algorithmic score. Everything is drawn from rankingPool, so the
+    // movement pattern is already guaranteed correct. If the AI returned nothing
+    // (both models failed), this gracefully falls back to pure score order.
+    const aiReasonById = new Map();
+    const aiOrderById = new Map();
+    aiSuggestions.forEach((s, i) => {
+      const match = rankingPool.find(ex =>
+        String(ex.id) === String(s.id) ||
+        (s.name && ex.name && ex.name.toLowerCase() === s.name.toLowerCase())
+      );
+      if (match) {
+        const key = String(match.id);
+        if (!aiOrderById.has(key)) aiOrderById.set(key, i);
+        if (s.reason && !aiReasonById.has(key)) aiReasonById.set(key, s.reason);
+      }
+    });
+
+    const ranked = [...rankingPool].sort((a, b) => {
+      const ao = aiOrderById.has(String(a.id)) ? aiOrderById.get(String(a.id)) : Infinity;
+      const bo = aiOrderById.has(String(b.id)) ? aiOrderById.get(String(b.id)) : Infinity;
+      if (ao !== bo) return ao - bo;
+      return b._score - a._score;
+    });
+
+    // Diversify by equipment family so the user gets MULTIPLE kinds of options
+    // to choose from instead of five near-identical swaps. First pass: take the
+    // best candidate of each distinct equipment family in ranked order. Second
+    // pass: fill any leftover slots with the next best regardless of family.
+    const DESIRED = 5;
+    const picked = [];
+    const pickedIds = new Set();
+    const usedFamilies = new Set();
+    for (const ex of ranked) {
+      if (picked.length >= DESIRED) break;
+      const fam = normalizeEquipment(ex.equipment) || 'other';
+      if (usedFamilies.has(fam)) continue;
+      usedFamilies.add(fam);
+      picked.push(ex);
+      pickedIds.add(String(ex.id));
+    }
+    for (const ex of ranked) {
+      if (picked.length >= DESIRED) break;
+      if (pickedIds.has(String(ex.id))) continue;
+      picked.push(ex);
+      pickedIds.add(String(ex.id));
     }
 
-    // Enrich suggestions with full exercise data
-    const enrichedSuggestions = aiSuggestions.map(suggestion => {
-      const fullExercise = sortedAlternatives.find(
-        ex => String(ex.id) === String(suggestion.id) ||
-              ex.name.toLowerCase() === (suggestion.name || '').toLowerCase()
+    // Attach the coaching reason (AI's where available, else a generated one)
+    // and strip internal scoring fields.
+    const enrichedSuggestions = picked.map(ex => {
+      const { _score, _reasons, _altMovement, ...rest } = ex;
+      const reason = aiReasonById.get(String(ex.id)) || (
+        (_reasons || []).includes('same_movement')
+          ? `Same ${origMovement.pattern?.replace(/_/g, ' ').toLowerCase() || 'movement'} pattern`
+          : `Alternative ${ex.muscle_group || 'exercise'}${ex.equipment ? ` (${ex.equipment})` : ''}`
       );
-      if (fullExercise) {
-        return { ...fullExercise, ai_reason: suggestion.reason };
-      }
-      return null;
-    }).filter(Boolean);
+      return { ...rest, ai_reason: reason };
+    });
 
-    // If enrichment failed, use scored fallback
     if (enrichedSuggestions.length === 0) {
-      const fallbackSuggestions = sortedAlternatives.slice(0, 5).map(ex => ({
-        ...ex,
-        ai_reason: `Alternative ${ex.muscle_group} exercise${ex.equipment ? ` using ${ex.equipment}` : ""}`
-      }));
-
-      return {
-        statusCode: 200,
-        headers,
-        body: JSON.stringify({ suggestions: fallbackSuggestions, message: `Found ${fallbackSuggestions.length} alternatives` }),
-      };
+      return { statusCode: 200, headers, body: JSON.stringify({ suggestions: [], message: "No alternative exercises available" }) };
     }
 
     return {
