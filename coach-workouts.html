@@ -6476,6 +6476,7 @@
                 <div class="schedule-row">
                     <label class="schedule-label">Start date</label>
                     <input type="date" class="form-input" id="startDate">
+                    <div id="assignStartHint" style="font-size:12px; color:#2EC4B6; margin-top:6px;"></div>
                 </div>
                 <div class="schedule-row">
                     <label class="schedule-label">Amount of weeks</label>
@@ -6484,13 +6485,13 @@
                 <div class="schedule-row">
                     <label class="schedule-label">Select days</label>
                     <div class="days-selector">
-                        <label class="day-checkbox"><input type="checkbox" value="mon" checked><span>Mon</span></label>
-                        <label class="day-checkbox"><input type="checkbox" value="tue" checked><span>Tue</span></label>
-                        <label class="day-checkbox"><input type="checkbox" value="wed"><span>Wed</span></label>
-                        <label class="day-checkbox"><input type="checkbox" value="thu" checked><span>Thu</span></label>
-                        <label class="day-checkbox"><input type="checkbox" value="fri" checked><span>Fri</span></label>
-                        <label class="day-checkbox"><input type="checkbox" value="sat"><span>Sat</span></label>
-                        <label class="day-checkbox"><input type="checkbox" value="sun"><span>Sun</span></label>
+                        <label class="day-checkbox"><input type="checkbox" value="mon" checked onchange="_applySmartStartDate()"><span>Mon</span></label>
+                        <label class="day-checkbox"><input type="checkbox" value="tue" checked onchange="_applySmartStartDate()"><span>Tue</span></label>
+                        <label class="day-checkbox"><input type="checkbox" value="wed" onchange="_applySmartStartDate()"><span>Wed</span></label>
+                        <label class="day-checkbox"><input type="checkbox" value="thu" checked onchange="_applySmartStartDate()"><span>Thu</span></label>
+                        <label class="day-checkbox"><input type="checkbox" value="fri" checked onchange="_applySmartStartDate()"><span>Fri</span></label>
+                        <label class="day-checkbox"><input type="checkbox" value="sat" onchange="_applySmartStartDate()"><span>Sat</span></label>
+                        <label class="day-checkbox"><input type="checkbox" value="sun" onchange="_applySmartStartDate()"><span>Sun</span></label>
                     </div>
                 </div>
             </div>
@@ -11549,14 +11550,76 @@
                 `;
             }).join('');
 
-            // Set default start date to today
-            const today = new Date().toISOString().split('T')[0];
-            document.getElementById('startDate').value = today;
+            // Smart start date: land on the client's next chosen training day AFTER
+            // their current plan ends (no overlap, no mid-week guessing). Falls back
+            // to today if there's no current plan / end date.
+            document.getElementById('startDate').value = new Date().toISOString().split('T')[0];
+            _assignEndCache = null;        // refresh end dates each time the modal opens
+            _applySmartStartDate();
 
             // Check equipment conflicts for selected clients
             checkAndDisplayEquipmentAlerts();
 
             document.getElementById('scheduleModal').style.display = 'flex';
+        }
+
+        // ── Smart assign start date ───────────────────────────────────────────────
+        // Auto-fills the assign "Start date" with the client's next selected training
+        // weekday on/after the day their current plan ends, so a new block picks up
+        // exactly where the old one left off (e.g. plan ends Fri + they train M/T/Th/F
+        // → starts Mon). Recomputes when the day checkboxes change.
+        let _assignEndCache = null;   // clientId(string) -> current active plan end_date 'YYYY-MM-DD'
+        async function _loadAssignEndDates() {
+            if (_assignEndCache) return;
+            _assignEndCache = {};
+            try {
+                const res = await apiCall(`/.netlify/functions/workout-assignments?coachId=${encodeURIComponent(currentCoachId)}&activeOnly=true&summary=true`);
+                for (const a of (res.assignments || [])) {
+                    const cid = String(a.client_id);
+                    if (a.end_date && !_assignEndCache[cid]) _assignEndCache[cid] = a.end_date; // newest-first → keep current
+                }
+            } catch (e) { /* no end dates available; we'll just default to today */ }
+        }
+        function _assignParseYmd(s) { const p = String(s).split('-').map(Number); return new Date(p[0], p[1] - 1, p[2]); }
+        function _assignYmd(d) { return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; }
+        function _nextTrainingDay(base, days) {
+            const map = { sun: 0, mon: 1, tue: 2, wed: 3, thu: 4, fri: 5, sat: 6 };
+            const allowed = new Set(days.map(d => map[d]).filter(n => n !== undefined));
+            const d = new Date(base);
+            if (!allowed.size) return d;
+            for (let i = 0; i < 14; i++) { if (allowed.has(d.getDay())) return new Date(d); d.setDate(d.getDate() + 1); }
+            return new Date(base);
+        }
+        async function _applySmartStartDate() {
+            const hint = document.getElementById('assignStartHint');
+            const days = Array.from(document.querySelectorAll('#scheduleModal .day-checkbox input:checked')).map(cb => cb.value);
+            await _loadAssignEndDates();
+            const ids = Array.from(selectedClients);
+            let latestEnd = null;
+            ids.forEach(id => {
+                const e = _assignEndCache[String(id)];
+                if (e) { const d = _assignParseYmd(e); if (!latestEnd || d > latestEnd) latestEnd = d; }
+            });
+            const today = new Date(); today.setHours(0, 0, 0, 0);
+            let base;
+            if (latestEnd) { base = new Date(latestEnd); base.setDate(base.getDate() + 1); if (base < today) base = today; }
+            else base = today;
+            const start = _nextTrainingDay(base, days);
+            const input = document.getElementById('startDate');
+            if (input) input.value = _assignYmd(start);
+            if (hint) {
+                const fmt = d => d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+                if (!days.length) { hint.textContent = 'Pick at least one training day above.'; hint.style.color = '#f59e0b'; return; }
+                hint.style.color = '#2EC4B6';
+                if (ids.length === 1 && latestEnd) {
+                    const c = clients.find(x => String(x.id) === String(ids[0]));
+                    hint.textContent = `${(c?.client_name || 'Their')}'s current plan ends ${fmt(latestEnd)} — starts on their next training day, ${fmt(start)}.`;
+                } else if (latestEnd) {
+                    hint.textContent = `Starts after the latest current plan ends (${fmt(latestEnd)}) → ${fmt(start)}. Assign one client at a time for exact per-client timing.`;
+                } else {
+                    hint.textContent = `No end date on the current plan — starting the next training day from today (${fmt(start)}).`;
+                }
+            }
         }
 
         /**
