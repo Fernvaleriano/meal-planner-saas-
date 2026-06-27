@@ -139,7 +139,7 @@ exports.handler = withTimeout(async (event) => {
   try {
     // GET - Fetch workout assignments
     if (event.httpMethod === 'GET') {
-      const { clientId, coachId, assignmentId, activeOnly, date, programId } = event.queryStringParameters || {};
+      const { clientId, coachId, assignmentId, activeOnly, date, programId, summary } = event.queryStringParameters || {};
 
       // Get single assignment by ID
       if (assignmentId) {
@@ -613,7 +613,7 @@ exports.handler = withTimeout(async (event) => {
         // When filtering by programId, return only minimal fields to keep the
         // response small (full workout_data per row can blow past Netlify's
         // 6MB response limit for coaches with many assignments).
-        const selectColumns = programId
+        const selectColumns = (programId || summary === 'true')
           ? 'id, client_id, coach_id, program_id, name, is_active, start_date, end_date, created_at, clients!inner(id, client_name, email)'
           : '*, clients!inner(id, client_name, email)';
 

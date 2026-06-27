@@ -6365,6 +6365,12 @@
                             </svg>
                             AI Generate
                         </button>
+                        <button class="wb-panel-add-btn" onclick="openBulkAiModal()" style="background: rgba(46, 196, 182, 0.12); border-color: rgba(46, 196, 182, 0.35); color: #2EC4B6;" title="Generate programs for several clients at once (saved as drafts)">
+                            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m6-1.13a4 4 0 10-4-4 4 4 0 004 4zm6 0a3 3 0 10-3-3"/>
+                            </svg>
+                            Bulk AI
+                        </button>
                         <button class="wb-panel-add-btn" onclick="addWorkoutDay()">
                             <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
@@ -6846,6 +6852,50 @@
                 </div>
             </div>
         </div>
+    </div>
+
+    <!-- Bulk AI Generate Modal -->
+    <div id="bulkAiModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.72); z-index:10050; align-items:center; justify-content:center; padding:14px;">
+      <div style="background:#0A1F2E; border:1px solid rgba(255,255,255,0.08); border-radius:16px; width:100%; max-width:660px; max-height:92vh; display:flex; flex-direction:column; box-shadow:0 20px 60px rgba(0,0,0,0.55);">
+        <div style="display:flex; align-items:center; justify-content:space-between; padding:16px 20px; border-bottom:1px solid rgba(255,255,255,0.06);">
+          <div style="display:flex; align-items:center; gap:10px;"><span style="color:#2EC4B6; font-size:18px;">⚡</span><strong style="font-size:16px; color:#fff;">Bulk AI — Generate for Multiple Clients</strong></div>
+          <button onclick="closeBulkAiModal()" style="background:none; border:none; color:#94a3b8; font-size:24px; line-height:1; cursor:pointer;">&times;</button>
+        </div>
+        <div style="padding:16px 20px; overflow:auto;">
+          <div id="bulkStepPick">
+            <div style="font-size:13px; color:#94a3b8; margin-bottom:6px;">1. Pick clients</div>
+            <div style="display:flex; gap:6px; margin-bottom:8px; flex-wrap:wrap;">
+              <input id="bulkClientSearch" oninput="renderBulkClientList()" placeholder="Search clients…" style="flex:1; min-width:150px; box-sizing:border-box; padding:9px 12px; background:#0a1018; border:1px solid rgba(255,255,255,0.1); border-radius:10px; color:#fff;">
+              <select id="bulkClientFilter" onchange="renderBulkClientList()" style="padding:9px 10px; background:#0a1018; border:1px solid rgba(255,255,255,0.12); border-radius:10px; color:#fff; font-size:13px;">
+                <option value="all">All clients</option>
+                <option value="ending">Ending soon</option>
+                <option value="none">No active plan</option>
+              </select>
+              <select id="bulkClientSort" onchange="renderBulkClientList()" style="padding:9px 10px; background:#0a1018; border:1px solid rgba(255,255,255,0.12); border-radius:10px; color:#fff; font-size:13px;">
+                <option value="az">A–Z</option>
+                <option value="ending">Ending soonest</option>
+              </select>
+            </div>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+              <button type="button" onclick="bulkSelectVisible()" style="background:none; border:none; color:#2EC4B6; font-size:12px; cursor:pointer; padding:0;">select all shown</button>
+              <span id="bulkSelCount" style="font-size:12px; color:#64748b;"></span>
+            </div>
+            <div id="bulkClientList" style="max-height:230px; overflow:auto; display:flex; flex-direction:column; gap:6px;"></div>
+          </div>
+          <div id="bulkStepSettings" style="margin-top:18px; display:none;">
+            <div style="font-size:13px; color:#94a3b8; margin-bottom:6px;">2. Settings per client <span style="color:#64748b;">— prefilled from each profile, tweak as needed</span></div>
+            <div id="bulkSettingsList" style="display:flex; flex-direction:column; gap:10px;"></div>
+          </div>
+          <div id="bulkProgress" style="margin-top:18px; display:none;">
+            <div style="font-size:13px; color:#94a3b8; margin-bottom:6px;">Generating drafts… you can leave this open.</div>
+            <div id="bulkProgressList" style="display:flex; flex-direction:column; gap:6px;"></div>
+          </div>
+        </div>
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; padding:14px 20px; border-top:1px solid rgba(255,255,255,0.06);">
+          <button onclick="closeBulkAiModal()" style="padding:10px 16px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12); border-radius:10px; color:#cbd5e1; cursor:pointer;">Close</button>
+          <button id="bulkGenerateBtn" onclick="startBulkGenerate()" disabled style="padding:10px 18px; background:#2EC4B6; border:none; border-radius:10px; color:#06251f; font-weight:600; cursor:pointer; opacity:0.5;">Generate 0 drafts</button>
+        </div>
+      </div>
     </div>
 
     <!-- AI Generate Modal -->
@@ -14149,6 +14199,287 @@
         // Convert AI program JSON → workoutDays[] format used by the editor.
         // When weekIndex is null, only week 1 is populated (program editor renders
         // a single week; multi-week progression is stored as program-level metadata).
+        // ============================================
+        // Bulk AI — generate programs for many clients at once (saved as DRAFTS).
+        // Self-contained: reuses the same background generator, intro, converter and
+        // draft-save path as the single flow. NEVER assigns to a client — finished
+        // programs land in the plans list as drafts for the coach to review + assign.
+        // ============================================
+        const _bulkState = { selected: new Set(), settings: {}, running: false };
+
+        function openBulkAiModal() {
+            if (!Array.isArray(clients) || clients.length === 0) {
+                if (typeof loadClients === 'function') { loadClients().then(() => openBulkAiModal()); return; }
+            }
+            _bulkState.selected = new Set();
+            _bulkState.settings = {};
+            _bulkState.running = false;
+            const search = document.getElementById('bulkClientSearch'); if (search) search.value = '';
+            const filt = document.getElementById('bulkClientFilter'); if (filt) filt.value = 'all';
+            const srt = document.getElementById('bulkClientSort'); if (srt) srt.value = 'az';
+            document.getElementById('bulkProgress').style.display = 'none';
+            document.getElementById('bulkProgressList').innerHTML = '';
+            document.getElementById('bulkStepPick').style.display = '';
+            renderBulkClientList();
+            renderBulkSettings();
+            document.getElementById('bulkAiModal').style.display = 'flex';
+            // Pull each client's current plan end-date in the background, then re-render
+            // so the "ending soon" filter / badges populate.
+            _bulkLoadAssignments().then(renderBulkClientList);
+        }
+        function closeBulkAiModal() {
+            if (_bulkState.running && !confirm('Still generating. Close anyway? Drafts already finished are saved.')) return;
+            document.getElementById('bulkAiModal').style.display = 'none';
+        }
+        function _bulkGoalDefault(c) {
+            const g = String(c.default_goal || '').toLowerCase();
+            if (/lose|fat|lean|cut|weight loss/.test(g)) return 'weight_loss';
+            if (/strength|strong/.test(g)) return 'strength';
+            if (/endur|condition|cardio/.test(g)) return 'endurance';
+            if (/gain|muscle|hyper|build|mass|size|tone/.test(g)) return 'hypertrophy';
+            return 'hypertrophy';
+        }
+        function _bulkExpDefault(c) {
+            const e = String(c.fitness_level || '').toLowerCase();
+            if (/begin|new|novice/.test(e)) return 'beginner';
+            if (/adv|elite|expert/.test(e)) return 'advanced';
+            return 'intermediate';
+        }
+        // clientId(string) -> { endDate: 'YYYY-MM-DD'|null, name } for the client's current active plan
+        let _bulkAssignments = {};
+        async function _bulkLoadAssignments() {
+            _bulkAssignments = {};
+            try {
+                const res = await apiCall(`/.netlify/functions/workout-assignments?coachId=${encodeURIComponent(currentCoachId)}&activeOnly=true&summary=true`);
+                // ordered newest-first by the API, so the first row per client is their current plan
+                for (const a of (res.assignments || [])) {
+                    const cid = String(a.client_id);
+                    if (!_bulkAssignments[cid]) _bulkAssignments[cid] = { endDate: a.end_date || null, name: a.name || '' };
+                }
+            } catch (e) { /* no end-date info; filters just won't have it */ }
+        }
+        function _bulkDaysLeft(id) {
+            const a = _bulkAssignments[String(id)];
+            if (!a || !a.endDate) return null;
+            const end = new Date(a.endDate + 'T23:59:59');
+            if (isNaN(end.getTime())) return null;
+            return Math.ceil((end.getTime() - Date.now()) / 86400000);
+        }
+        function _bulkEndBadge(id) {
+            const a = _bulkAssignments[String(id)];
+            if (!a) return { text: 'no active plan', color: '#64748b' };
+            const d = _bulkDaysLeft(id);
+            if (d === null) return { text: 'active plan', color: '#64748b' };
+            if (d < 0) return { text: 'ended', color: '#f87171' };
+            if (d === 0) return { text: 'ends today', color: '#f59e0b' };
+            if (d <= 14) return { text: `ends in ${d}d`, color: '#f59e0b' };
+            return { text: `ends in ${d}d`, color: '#64748b' };
+        }
+        function _bulkVisibleClients() {
+            const q = (document.getElementById('bulkClientSearch').value || '').toLowerCase().trim();
+            const filter = document.getElementById('bulkClientFilter')?.value || 'all';
+            const sort = document.getElementById('bulkClientSort')?.value || 'az';
+            let list = (clients || []).filter(c => !q || (c.client_name || '').toLowerCase().includes(q) || (c.email || '').toLowerCase().includes(q));
+            if (filter === 'ending') list = list.filter(c => { const d = _bulkDaysLeft(c.id); return d !== null && d <= 14; });
+            else if (filter === 'none') list = list.filter(c => !_bulkAssignments[String(c.id)]);
+            if (sort === 'ending') {
+                list = list.slice().sort((a, b) => {
+                    const da = _bulkDaysLeft(a.id), db = _bulkDaysLeft(b.id);
+                    const va = da === null ? Infinity : da, vb = db === null ? Infinity : db;
+                    return va - vb || (a.client_name || '').localeCompare(b.client_name || '');
+                });
+            } else {
+                list = list.slice().sort((a, b) => (a.client_name || '').localeCompare(b.client_name || '', undefined, { sensitivity: 'base' }));
+            }
+            return list;
+        }
+        function renderBulkClientList() {
+            const list = document.getElementById('bulkClientList');
+            const esc = s => String(s || '').replace(/</g, '&lt;');
+            const rows = _bulkVisibleClients().map(c => {
+                const id = String(c.id);
+                const on = _bulkState.selected.has(id);
+                const badge = _bulkEndBadge(id);
+                return `<label style="display:flex; align-items:center; gap:10px; padding:9px 11px; background:${on ? 'rgba(46,196,182,0.12)' : '#0a1018'}; border:1px solid ${on ? 'rgba(46,196,182,0.4)' : 'rgba(255,255,255,0.08)'}; border-radius:10px; cursor:pointer;">
+                        <input type="checkbox" ${on ? 'checked' : ''} onchange="toggleBulkClient('${id}')" style="width:16px; height:16px; accent-color:#2EC4B6;">
+                        <span style="font-weight:600; color:#fff;">${esc(c.client_name || 'Unnamed')}</span>
+                        <span style="color:${badge.color}; font-size:11px; margin-left:auto; white-space:nowrap;">${badge.text}</span>
+                    </label>`;
+            }).join('');
+            list.innerHTML = rows || '<div style="color:#64748b; font-size:13px; padding:8px;">No clients match.</div>';
+            const cnt = document.getElementById('bulkSelCount');
+            if (cnt) cnt.textContent = _bulkState.selected.size ? `${_bulkState.selected.size} selected` : '';
+        }
+        function bulkSelectVisible() {
+            const visible = _bulkVisibleClients();
+            const allOn = visible.length > 0 && visible.every(c => _bulkState.selected.has(String(c.id)));
+            visible.forEach(c => {
+                const id = String(c.id);
+                if (allOn) { _bulkState.selected.delete(id); delete _bulkState.settings[id]; }
+                else if (!_bulkState.selected.has(id)) {
+                    _bulkState.selected.add(id);
+                    _bulkState.settings[id] = { goal: _bulkGoalDefault(c), experience: _bulkExpDefault(c), daysPerWeek: 4, duration: 4, split: 'auto', tier: 'quality' };
+                }
+            });
+            renderBulkClientList();
+            renderBulkSettings();
+        }
+        function toggleBulkClient(id) {
+            if (_bulkState.selected.has(id)) { _bulkState.selected.delete(id); delete _bulkState.settings[id]; }
+            else {
+                _bulkState.selected.add(id);
+                const c = (clients || []).find(x => String(x.id) === id) || {};
+                _bulkState.settings[id] = { goal: _bulkGoalDefault(c), experience: _bulkExpDefault(c), daysPerWeek: 4, duration: 4, split: 'auto', tier: 'quality' };
+            }
+            renderBulkClientList();
+            renderBulkSettings();
+        }
+        function _bulkSettingField(id, field, value) {
+            if (_bulkState.settings[id]) _bulkState.settings[id][field] = (field === 'daysPerWeek' || field === 'duration') ? parseInt(value) : value;
+        }
+        function renderBulkSettings() {
+            const wrap = document.getElementById('bulkStepSettings');
+            const listEl = document.getElementById('bulkSettingsList');
+            const btn = document.getElementById('bulkGenerateBtn');
+            const ids = [..._bulkState.selected];
+            if (ids.length === 0) { wrap.style.display = 'none'; btn.disabled = true; btn.style.opacity = '0.5'; btn.textContent = 'Generate 0 drafts'; return; }
+            wrap.style.display = '';
+            btn.disabled = false; btn.style.opacity = '1'; btn.textContent = `Generate ${ids.length} draft${ids.length > 1 ? 's' : ''}`;
+            const esc = s => String(s || '').replace(/</g, '&lt;');
+            const sel = (id, field, opts, val) => `<select onchange="_bulkSettingField('${id}','${field}',this.value)" style="background:#0a1018; border:1px solid rgba(255,255,255,0.12); border-radius:8px; color:#fff; padding:6px 8px; font-size:12px;">${opts.map(([v, l]) => `<option value="${v}" ${String(v) === String(val) ? 'selected' : ''}>${l}</option>`).join('')}</select>`;
+            listEl.innerHTML = ids.map(id => {
+                const c = (clients || []).find(x => String(x.id) === id) || {};
+                const s = _bulkState.settings[id];
+                return `<div style="background:#0a1018; border:1px solid rgba(255,255,255,0.08); border-radius:12px; padding:10px 12px;">
+                    <div style="font-weight:600; color:#fff; margin-bottom:8px;">${esc(c.client_name || 'Unnamed')}</div>
+                    <div style="display:flex; flex-wrap:wrap; gap:6px;">
+                        ${sel(id, 'goal', [['hypertrophy', 'Hypertrophy'], ['strength', 'Strength'], ['weight_loss', 'Fat Loss'], ['endurance', 'Endurance'], ['general', 'General']], s.goal)}
+                        ${sel(id, 'experience', [['beginner', 'Beginner'], ['intermediate', 'Intermediate'], ['advanced', 'Advanced']], s.experience)}
+                        ${sel(id, 'daysPerWeek', [[2, '2 days'], [3, '3 days'], [4, '4 days'], [5, '5 days'], [6, '6 days']], s.daysPerWeek)}
+                        ${sel(id, 'duration', [[1, '1 wk'], [4, '4 wks'], [6, '6 wks'], [8, '8 wks'], [12, '12 wks']], s.duration)}
+                        ${sel(id, 'split', [['auto', 'Auto split'], ['push_pull_legs', 'PPL'], ['upper_lower', 'Upper/Lower'], ['full_body', 'Full Body'], ['bro_split', 'Bro Split']], s.split)}
+                        ${sel(id, 'tier', [['quality', 'Quality (Sonnet)'], ['best', 'Best (Opus)']], s.tier)}
+                    </div>
+                </div>`;
+            }).join('');
+        }
+        function _bulkBuildRequestBody(client, s) {
+            return {
+                coachId: currentCoachId, clientId: client.id, clientName: client.client_name || '',
+                goal: s.goal, experience: s.experience, daysPerWeek: s.daysPerWeek, duration: s.duration, split: s.split,
+                sessionDuration: 60, trainingStyle: 'straight_sets', exerciseCount: '5-6', focusAreas: [],
+                equipment: ['barbell', 'dumbbell', 'cable', 'machine', 'bodyweight', 'kettlebell'],
+                injuries: '', injuryCodes: [], movementScreenFlags: [], preferences: '',
+                tempo: 'standard', unilateralPreference: 'mixed', conditioningStyle: 'none',
+                includeProgression: true, varietySeed: Date.now() + Math.floor(Math.random() * 100000),
+                model: s.tier === 'best' ? 'claude-opus-4-8' : 'claude-sonnet-4-5'
+            };
+        }
+        // Submit one background job + poll it to completion. onProgress(text). Returns result.
+        async function _bulkRunJob(requestBody, onProgress) {
+            const jobId = (crypto.randomUUID ? crypto.randomUUID() : `job-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`).replace(/-/g, '').slice(0, 32);
+            requestBody.jobId = jobId;
+            const submitResp = await fetch('/.netlify/functions/generate-workout-claude-background', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', ...(currentAccessToken && { 'Authorization': `Bearer ${currentAccessToken}` }) },
+                body: JSON.stringify(requestBody)
+            });
+            if (!submitResp.ok && submitResp.status !== 202) {
+                const txt = await submitResp.text().catch(() => '');
+                throw new Error(`submit failed (${submitResp.status}) ${txt.slice(0, 80)}`);
+            }
+            const startTime = Date.now();
+            const maxWaitMs = 13 * 60 * 1000;
+            while (Date.now() - startTime < maxWaitMs) {
+                await new Promise(r => setTimeout(r, 3000));
+                let statusResp;
+                try {
+                    statusResp = await fetch(`/.netlify/functions/get-workout-job?coachId=${encodeURIComponent(currentCoachId)}&jobId=${encodeURIComponent(jobId)}`, {
+                        headers: { ...(currentAccessToken && { 'Authorization': `Bearer ${currentAccessToken}` }) }
+                    });
+                } catch { continue; }
+                if (!statusResp.ok) continue;
+                let status;
+                try { status = JSON.parse(await statusResp.text()); } catch { continue; }
+                if (status.status === 'running') {
+                    const d = status.progress?.completedDays ?? 0;
+                    const t = status.progress?.totalDays ?? '?';
+                    onProgress(`building day ${d + 1}/${t}`);
+                } else if (status.status === 'queued' || status.status === 'pending') {
+                    onProgress('queued…');
+                } else if (status.status === 'completed') {
+                    if (!status.result) throw new Error('completed but no result');
+                    return status.result;
+                } else if (status.status === 'failed') {
+                    throw new Error(status.error || 'job failed');
+                }
+            }
+            throw new Error('timed out (>13 min)');
+        }
+        async function _bulkSaveDraft(result, requestBody, client, s) {
+            try { await _attachProgramIntro(result, requestBody, null); } catch (e) { /* note is best-effort */ }
+            const program = result.program || {};
+            const days = (typeof _aiResultToWorkoutDays === 'function') ? _aiResultToWorkoutDays(program) : (program.weeks?.[0]?.workouts || []);
+            const name = program.programName || `${client.client_name || 'Client'} — AI Program`;
+            await apiCall('/.netlify/functions/workout-programs', {
+                method: 'POST',
+                body: JSON.stringify({
+                    coachId: currentCoachId, name,
+                    description: program.description || `${s.daysPerWeek} days/week, ${s.duration} weeks, ${s.experience} level`,
+                    programType: s.goal, difficulty: s.experience, durationWeeks: s.duration, daysPerWeek: s.daysPerWeek,
+                    programData: { days, coachNote: program.coachNote || null, start_date: null },
+                    isTemplate: true, isPublished: false
+                })
+            });
+        }
+        async function startBulkGenerate() {
+            const ids = [..._bulkState.selected];
+            if (ids.length === 0 || _bulkState.running) return;
+            _bulkState.running = true;
+            document.getElementById('bulkStepPick').style.display = 'none';
+            document.getElementById('bulkStepSettings').style.display = 'none';
+            document.getElementById('bulkProgress').style.display = '';
+            const genBtn = document.getElementById('bulkGenerateBtn');
+            genBtn.disabled = true; genBtn.style.opacity = '0.5'; genBtn.textContent = 'Generating…';
+            const esc = s => String(s || '').replace(/</g, '&lt;');
+            const listEl = document.getElementById('bulkProgressList');
+            listEl.innerHTML = ids.map(id => {
+                const c = (clients || []).find(x => String(x.id) === id) || {};
+                return `<div style="display:flex; align-items:center; gap:10px; padding:9px 11px; background:#0a1018; border:1px solid rgba(255,255,255,0.08); border-radius:10px;">
+                    <span style="font-weight:600; color:#fff;">${esc(c.client_name || 'Unnamed')}</span>
+                    <span id="bulkRowStatus-${id}" style="margin-left:auto; font-size:12px; color:#94a3b8;">queued…</span>
+                </div>`;
+            }).join('');
+            const setStatus = (id, text, color) => {
+                const el = document.getElementById(`bulkRowStatus-${id}`);
+                if (el) { el.textContent = text; el.style.color = color || '#94a3b8'; }
+            };
+            let done = 0, failed = 0, cursor = 0;
+            const CONCURRENCY = 2;
+            async function worker() {
+                while (cursor < ids.length) {
+                    const id = ids[cursor++];
+                    const client = (clients || []).find(x => String(x.id) === id) || {};
+                    const s = _bulkState.settings[id];
+                    try {
+                        const requestBody = _bulkBuildRequestBody(client, s);
+                        const result = await _bulkRunJob(requestBody, (t) => setStatus(id, t, '#2EC4B6'));
+                        setStatus(id, 'saving…', '#2EC4B6');
+                        await _bulkSaveDraft(result, requestBody, client, s);
+                        done++; setStatus(id, '✓ draft saved', '#10b981');
+                    } catch (e) {
+                        failed++; setStatus(id, '✕ ' + (e.message || 'failed').slice(0, 40), '#f87171');
+                    }
+                }
+            }
+            await Promise.all(Array.from({ length: Math.min(CONCURRENCY, ids.length) }, () => worker()));
+            _bulkState.running = false;
+            genBtn.textContent = `Done — ${done} saved`;
+            genBtn.style.opacity = '1';
+            if (typeof loadPrograms === 'function') { try { await loadPrograms(); } catch (e) {} }
+            showToast(`${done} draft${done !== 1 ? 's' : ''} created${failed ? `, ${failed} failed` : ''}. Review them in your plans.`, failed ? 'warning' : 'success');
+        }
+
         function _aiResultToWorkoutDays(program) {
             const days = [];
             if (!program?.weeks?.[0]?.workouts) return days;
