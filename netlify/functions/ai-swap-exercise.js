@@ -397,12 +397,19 @@ function scoreAlternative(original, alt, origMovement, altMovement) {
     reasons.push('same_type');
   }
 
-  // 5. EQUIPMENT MATCH (+15)
-  if (original.equipment && alt.equipment) {
-    if (alt.equipment.toLowerCase() === original.equipment.toLowerCase()) {
-      score += 15;
-      reasons.push('same_equipment');
-    }
+  // 5. EQUIPMENT MATCH — strong secondary preference (only the movement pattern
+  // outranks it). Coaches expect a dumbbell move to swap for another dumbbell
+  // move by default — it's about what the client actually has available — so
+  // same equipment FAMILY is weighted heavily. Family-aware so "band" matches
+  // "resistance band", "kettlebell" matches "kettlebells", "none"/null matches
+  // "bodyweight", etc. (+35: beats biomechanics/secondary tweaks, but a related
+  // movement (60) + same equipment (35) = 95 still stays below a true
+  // same-pattern match (100), so the movement pattern is never overridden.)
+  const origEquip = normalizeEquipment(original.equipment);
+  const altEquip = normalizeEquipment(alt.equipment);
+  if (origEquip && altEquip && origEquip === altEquip) {
+    score += 35;
+    reasons.push('same_equipment');
   }
 
   // 6. DIFFICULTY MATCH (+5)
@@ -412,6 +419,30 @@ function scoreAlternative(original, alt, origMovement, altMovement) {
   }
 
   return { score, reasons };
+}
+
+// Collapse the library's messy equipment labels into broad families so swaps
+// can prefer "the same kind of equipment". The exercises table has values like
+// "band" vs "resistance band", "kettlebell" vs "kettlebells", "ez bar",
+// "cable pulley machine", "none" vs null, etc. — all of which should be treated
+// as the same family for swap purposes.
+function normalizeEquipment(equip) {
+  const e = (equip || '').toLowerCase().trim();
+  if (!e || e === 'none' || e === 'n/a' || e === 'bodyweight' || e === 'body weight' ||
+      e === 'chair' || e === 'yoga mat' || e === 'mat' || e === 'bench' ||
+      e === 'pull up bar' || e === 'pull-up bar' || e.includes('dip pull up') ||
+      e === 'trx' || e.includes('suspension')) {
+    return 'bodyweight';
+  }
+  if (e.includes('dumbbell')) return 'dumbbell';
+  if (e.includes('barbell') || e.includes('ez bar') || e.includes('ez-bar') ||
+      e === 'plate' || e.includes('trap bar') || e.includes('hex bar')) return 'barbell';
+  if (e.includes('kettlebell')) return 'kettlebell';
+  if (e.includes('band')) return 'band';
+  if (e.includes('cable') || e.includes('pulley') || e.includes('crossover') ||
+      e.includes('pec deck')) return 'cable';
+  if (e.includes('machine')) return 'machine';
+  return e; // unknown/one-off equipment keeps its own label
 }
 
 function parseSecondaryMuscles(secondary) {
@@ -751,7 +782,7 @@ RANKING RULES (strict priority):
 1. SAME MOVEMENT PATTERN is NON-NEGOTIABLE — A squat must swap with another squat variation. A row with another row. A curl with another curl. A press with another press. If the candidate doesn't match the movement pattern, DO NOT select it.
 2. SIMILAR BIOMECHANICS — Prefer same joint angles and planes of motion. Incline press → incline dumbbell press > flat press > decline press. Barbell squat → goblet squat > leg press > lunge.
 3. SIMILAR TRAINING STIMULUS — Compound ↔ compound, isolation ↔ isolation. Don't replace a squat with a leg extension.
-4. EQUIPMENT is the LOWEST priority — Different equipment is fine if the movement pattern matches.
+4. PREFER THE SAME EQUIPMENT — once the movement pattern matches, strongly favour the SAME equipment family (dumbbell→dumbbell, barbell→barbell, cable→cable, machine→machine, bodyweight→bodyweight, kettlebell→kettlebell, band→band). Only switch equipment when there is no good same-equipment option with the right movement. The pre-scoring already rewards this — respect it.
 
 HARD RULES:
 - NEVER suggest an antagonist muscle exercise (no bicep curl for a tricep exercise)
