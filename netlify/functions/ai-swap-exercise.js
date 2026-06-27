@@ -605,15 +605,32 @@ exports.handler = async (event) => {
     // (e.g. sumo deadlift stored as "arms" but detected as "legs")
     const effectiveMuscleGroup = detectedMuscleGroup || muscleGroup;
 
-    // Fetch potential alternatives from database - increased limit for better candidates
+    // Fetch potential alternatives from database.
+    // NOTE on the limit: single muscle groups can be large (e.g. "legs" ~ 650
+    // rows) and the whole library holds ~260 stretches. The old limit of 200 —
+    // with no ORDER BY — truncated the pool arbitrarily, so the genuinely best
+    // matches (e.g. the real calf stretches when swapping a calf stretch) were
+    // often never fetched and the ranker only ever saw second-rate candidates.
+    // 1000 comfortably covers the largest single pool so scoring sees them all.
     let query = supabase
       .from("exercises")
       .select("id, name, muscle_group, secondary_muscles, equipment, difficulty, exercise_type, description, thumbnail_url, animation_url, video_url, is_compound, is_unilateral")
-      .limit(200);
+      .limit(1000);
 
     // Apply muscle group filter — if user explicitly selected a muscle group, use that;
     // otherwise fall back to the detected/stored muscle group logic
-    if (muscleFilter) {
+    if (origMovement.isStretch) {
+      // Stretches / mobility / warm-up moves are labelled inconsistently in the
+      // library — the same calf stretch shows up tagged "legs", "flexibility",
+      // "general", "stretching" or even "back". Filtering by muscle_group drops
+      // most of the relevant alternatives, which is why a calf stretch was
+      // returning hamstring stretches. Pull the whole stretch/mobility pool by
+      // NAME instead and let the movement-pattern scorer surface same-region
+      // stretches (calf↔calf = +100) above nearby-region ones (calf↔hamstring = +60).
+      query = query.or(
+        "name.ilike.%stretch%,name.ilike.%mobility%,name.ilike.%foam roll%,name.ilike.%warm up%,name.ilike.%warmup%,name.ilike.%cool down%,name.ilike.%cooldown%"
+      );
+    } else if (muscleFilter) {
       query = query.ilike("muscle_group", `%${muscleFilter}%`);
     } else if (detectedMuscleGroup && detectedMuscleGroup !== muscleGroup) {
       // Stored and detected differ — query BOTH to catch correctly and incorrectly categorized exercises
@@ -693,7 +710,19 @@ exports.handler = async (event) => {
     // ─── AI-Powered Ranking with GPT-4o-mini ──────────────────────────────────
     let aiSuggestions = [];
 
-    const topCandidates = scored.slice(0, 20).map(ex => ({
+    // Lock the ranking pool to the best available movement tier.
+    // The deterministic scorer already knows a calf stretch ↔ calf stretch is a
+    // perfect match (+100) and a calf ↔ hamstring stretch is only "nearby" (+60).
+    // If we have enough EXACT same-pattern matches to fill the 5 suggestions,
+    // hand ONLY those to the AI so it physically cannot demote a perfect swap in
+    // favour of a merely-related one. We only widen to related movements when
+    // there aren't enough same-pattern options to choose from.
+    const samePatternMatches = origMovement.pattern
+      ? scored.filter(ex => ex._altMovement?.pattern === origMovement.pattern)
+      : [];
+    const rankingPool = samePatternMatches.length >= 5 ? samePatternMatches : scored;
+
+    const topCandidates = rankingPool.slice(0, 20).map(ex => ({
       id: ex.id,
       name: ex.name,
       muscle_group: ex.muscle_group,
@@ -729,6 +758,7 @@ HARD RULES:
 - NEVER suggest a completely different movement pattern (no pulldown for a row, no fly for a press)
 - NEVER suggest an isolation exercise to replace a compound (unless no compounds available)
 - For CARDIO MACHINES: suggest a DIFFERENT type of machine, not the same machine. If swapping an elliptical, suggest treadmill, bike, rowing machine, etc. — never another elliptical variant.
+- For STRETCHES / MOBILITY: match the SAME body region — a calf stretch must swap with another calf stretch, NOT a hamstring, quad or generic stretch. Only widen to a neighbouring region if no same-region stretch is in the candidates.
 - Prefer candidates with HIGHER algorithmic scores — they were pre-scored for movement pattern match
 
 CANDIDATES (pre-scored by algorithm, best matches first):
@@ -774,7 +804,7 @@ Select exactly 5.${languageInstruction(language)}`;
 
         const anthropic = new Anthropic({ apiKey: ANTHROPIC_API_KEY });
         const message = await anthropic.messages.create({
-          model: 'claude-haiku-4-20250414',
+          model: 'claude-haiku-4-5-20251001',
           max_tokens: 512,
           temperature: aiTemperature,
           messages: [{ role: 'user', content: rankingPrompt }],
@@ -793,7 +823,7 @@ Select exactly 5.${languageInstruction(language)}`;
 
     // If AI completely failed, use rule-based fallback
     if (aiSuggestions.length === 0) {
-      aiSuggestions = scored.slice(0, 5).map(ex => ({
+      aiSuggestions = rankingPool.slice(0, 5).map(ex => ({
         id: ex.id,
         name: ex.name,
         reason: ex._reasons.includes('same_movement') ?
