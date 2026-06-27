@@ -44,6 +44,15 @@ const MOVEMENT_PATTERNS = [
   { pattern: 'ROW', muscle: 'BACK', test: (n) =>
     n.includes('row') && !n.includes('upright') // upright row already caught above
   },
+  // Spinal/back extension (lower-back). Superman, hyperextensions, etc. — these
+  // were previously unclassified and got lumped in with all "back" work, so a
+  // Superman would return chin-ups and rows. Must come before TRICEP/LEG
+  // extension patterns (those already exclude "back").
+  { pattern: 'BACK_EXTENSION', muscle: 'BACK', test: (n) =>
+    n.includes('superman') || n.includes('hyperextension') || n.includes('hyper extension') ||
+    n.includes('back extension') || n.includes('reverse hyper') || n.includes('reverse-hyper') ||
+    n.includes('locust') || n.includes('prone cobra')
+  },
 
   // === CHEST (check specific press types before generic) ===
   { pattern: 'CHEST_PRESS', muscle: 'CHEST', isTricepRelated: true, test: (n) =>
@@ -493,7 +502,8 @@ function getRelatedPatterns(pattern) {
     'HIP_ABDUCTION': ['HIP_ADDUCTION', 'GLUTE'],
     // Cardio / HIIT
     'STAIR_CLIMB': ['CYCLE', 'ELLIPTICAL', 'JUMP', 'HIIT_MOVEMENT', 'RUN'],
-    'CYCLE': ['STAIR_CLIMB', 'ELLIPTICAL', 'RUN', 'ROW_CARDIO'],
+    'CYCLE': ['STAIR_CLIMB', 'ELLIPTICAL', 'RUN', 'ROW_CARDIO', 'JUMP', 'HIIT_MOVEMENT'],
+    'BACK_EXTENSION': ['DEADLIFT', 'GLUTE'],
     'ROW_CARDIO': ['CYCLE', 'ELLIPTICAL', 'SWIM', 'HIIT_MOVEMENT'],
     'RUN': ['CYCLE', 'STAIR_CLIMB', 'JUMP', 'ELLIPTICAL', 'HIIT_MOVEMENT'],
     'JUMP': ['STAIR_CLIMB', 'RUN', 'HIIT_MOVEMENT', 'CYCLE'],
@@ -878,15 +888,32 @@ Select exactly 5.${languageInstruction(language)}`;
       return b._score - a._score;
     });
 
+    // RELEVANCE GATE — only show candidates that are a real movement match (same
+    // or closely related pattern). Without this, the equipment-diversity pass
+    // below pads the list with same-muscle-group but wrong-movement exercises:
+    // a biceps curl / crunch for a stationary bike, a chin-up for a back
+    // extension. If the original movement couldn't be classified at all (no
+    // pattern), we have no movement signal, so we fall back to score order
+    // rather than show nothing.
+    const isMovementMatch = (ex) => {
+      const r = ex._reasons || [];
+      return r.includes('same_movement') || r.includes('related_movement');
+    };
+    const movementMatches = ranked.filter(isMovementMatch);
+    const poolForPicks = (origMovement.pattern && movementMatches.length > 0)
+      ? movementMatches
+      : ranked;
+
     // Diversify by equipment family so the user gets MULTIPLE kinds of options
     // to choose from instead of five near-identical swaps. First pass: take the
     // best candidate of each distinct equipment family in ranked order. Second
-    // pass: fill any leftover slots with the next best regardless of family.
+    // pass: fill any leftover slots with the next best — but still only from the
+    // relevant pool, so we never pad with wrong-movement exercises.
     const DESIRED = 5;
     const picked = [];
     const pickedIds = new Set();
     const usedFamilies = new Set();
-    for (const ex of ranked) {
+    for (const ex of poolForPicks) {
       if (picked.length >= DESIRED) break;
       const fam = normalizeEquipment(ex.equipment) || 'other';
       if (usedFamilies.has(fam)) continue;
@@ -894,7 +921,7 @@ Select exactly 5.${languageInstruction(language)}`;
       picked.push(ex);
       pickedIds.add(String(ex.id));
     }
-    for (const ex of ranked) {
+    for (const ex of poolForPicks) {
       if (picked.length >= DESIRED) break;
       if (pickedIds.has(String(ex.id))) continue;
       picked.push(ex);
