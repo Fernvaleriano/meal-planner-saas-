@@ -362,6 +362,13 @@ ${repRangeBlock}
 - The "notes" field is shown to the CLIENT — write a normal coaching cue only. NEVER put internal labels (KEEP+PROGRESS, SWAP, PERSIST, ROTATE, REGRESSED, briefing text, or emoji) in notes, and NEVER put weights/loads in notes (e.g. "you hit 50 lb last time", "start around 45 lb") — the app tracks weights for the client.
 - For LEG days: include squat + hip hinge + hamstring iso + calf + ideally glute-specific.
 
+=== COACHING NOTES — EVERY ONE MUST BE DIFFERENT (IMPORTANT) ===
+Coaches HATE that AI writes the same cue over and over. Most exercises end up with the same formula — "control the eccentric, squeeze at the top, no swinging" — just with the nouns swapped. DO NOT do this. Each note must feel like a different sentence a real coach said, not a template.
+- Rotate WHAT the cue is about across the exercises. Pick a DIFFERENT angle for each: setup/foot or hand position · breathing/bracing · tempo · the single most common mistake on THIS lift · what it should FEEL like / which muscle to feel · range of motion · effort target (e.g. "last 2 reps should be hard") · a quick mindset/intent line. Do not use the same angle twice in a row.
+- Vary sentence shape and length. Some short and punchy, some a touch longer. Don't start consecutive notes with the same word ("Keep…", "Control…", "Squeeze…").
+- Make the cue SPECIFIC to that exact movement — a goblet squat cue should not be interchangeable with a row cue. If a note could be pasted onto a different exercise without anyone noticing, rewrite it.
+- Hard ban on auto-pilot phrases appearing on more than ONE exercise in the whole day: "control the eccentric", "squeeze at the top", "no swinging", "2-second eccentric", "full range of motion". Use each at most once, and only when it's genuinely the key point.
+
 CONSTRAINTS:
 - Equipment: ${equipment.join(', ')}
 ${injuries ? `- Remember the coach's NOTES/LIMITATIONS above — apply them here.` : ''}

@@ -13774,7 +13774,8 @@
                         experience: requestBody.experience,
                         daysPerWeek: requestBody.daysPerWeek,
                         split: requestBody.split,
-                        programDays
+                        programDays,
+                        model: requestBody.model   // match the note's writer to the workout's tier
                     }),
                     signal: controller.signal
                 });

@@ -75,8 +75,14 @@ exports.handler = async (event) => {
     experience = 'intermediate',
     daysPerWeek = null,
     split = '',
-    programDays = []   // [{ name, exercises: ['Barbell Bench Press', ...] }]
+    programDays = [],   // [{ name, exercises: ['Barbell Bench Press', ...] }]
+    model = 'claude-haiku-4-5-20251001'
   } = body;
+
+  // Write the note with the same tier the workout used, so an Opus program gets
+  // an Opus-written (more varied, more human) note. Allowlist + fall back to Haiku.
+  const noteModel = ['claude-opus-4-8', 'claude-sonnet-4-5', 'claude-haiku-4-5-20251001'].includes(model)
+    ? model : 'claude-haiku-4-5-20251001';
 
   // Best-effort auth (matches the generators — accept unauthed for back-compat)
   try { await authenticateRequest(event); } catch (e) { /* keep going */ }
@@ -131,8 +137,8 @@ exports.handler = async (event) => {
 Return ONLY valid JSON: {"name": "...", "coachNote": "..."}
 
 THE NAME:
-- Format: "${first || 'Client'} · Phase ${phase} — <2-3 word focus>" (e.g. "${first || 'Alex'} · Phase ${phase} — Upper/Lower Build").
-- Make the focus specific to this program's actual structure and the client's goal. Normal title case.
+- Format: "${first || 'Client'} · Phase ${phase} — <2-3 word focus>".
+- Derive the focus from the ACTUAL day structure below. Read the day names: if they're Push/Pull/Legs, call it that (e.g. "Push Pull Legs"); if they're Upper/Lower, call it that; otherwise name it by the goal (e.g. "Strength Block", "Hypertrophy Build"). Do NOT default to "Upper/Lower" — only use it if the days are actually upper/lower. Normal title case.
 
 THE NOTE — this is the important part. It must sound like a REAL human coach texted it, not an AI:
 - ALL LOWERCASE. every letter. no capital letters at all, not even names or the start of sentences.
@@ -140,7 +146,7 @@ THE NOTE — this is the important part. It must sound like a REAL human coach t
 - 2 to 4 short sentences. warm, direct, personal. like you actually know them.
 - reference the SPECIFIC coaching decisions below (what you kept, what you swapped and why, the focus this block). make them feel seen.
 - no corporate or AI filler. do not say "elevate", "journey", "crush it", "let's dive in", "designed to", "tailored". just talk normal.
-- end with light encouragement and a nudge to log their sets so you can keep adjusting.`;
+- VARIETY IS CRITICAL — these notes must NOT all sound the same across clients. Do NOT open every note the same way (never start them all with "hey, we're keeping you..."). Do NOT end every note the same way — telling them to log their sets is ONE option, not a requirement; just as often end on the focus, a bit of encouragement, what you're watching for, or nothing extra. Vary the opener, the rhythm, and the closer so two different clients' notes never read like the same template.`;
 
     const userMsg = `Client: ${first || 'the client'}
 Goal: ${goal}. Experience: ${experience}.${daysPerWeek ? ` Days/week: ${daysPerWeek}.` : ''}${split ? ` Split: ${split}.` : ''}
@@ -155,7 +161,7 @@ ${coachingContext || '(new client, no prior history — welcome them and set exp
 Write the name and the lowercase note now. Return ONLY the JSON.`;
 
     const message = await anthropic.messages.create({
-      model: 'claude-haiku-4-5-20251001',
+      model: noteModel,
       max_tokens: 600,
       system,
       messages: [{ role: 'user', content: userMsg }]
