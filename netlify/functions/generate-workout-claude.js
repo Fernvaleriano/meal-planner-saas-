@@ -384,7 +384,7 @@ function formatClientContextForPrompt(ctx) {
   }
   if (ctx.exerciseHistory && ctx.exerciseHistory.length > 0) {
     lines.push(`\nRecent training history (last 30 days, top 10):\n  ${ctx.exerciseHistory.join('\n  ')}`);
-    lines.push('  → Use these top weights to set realistic working-weight ranges in the notes.');
+    lines.push('  → Use these top weights to calibrate exercise selection and difficulty. Do NOT write weight/load numbers in the notes — the client logs and progresses their own weights in the app.');
     lines.push('  → Avoid stale exercises: prefer variations rather than repeating the exact same lifts.');
   }
   if (ctx.recentSessionCount > 0) {
@@ -445,10 +445,9 @@ function computeVolumeSummary(programData) {
 // deload every 4th week.
 function generateMultiWeekProgression(week1Workouts, totalWeeks, goal, weightUnit = 'lb') {
   if (totalWeeks <= 1) return [];
-  // Load-increment language in the client's unit (smaller steps for kg).
-  const smallBump = weightUnit === 'kg' ? '1-2.5 kg' : '2.5-5 lb';
-  const bigBump = weightUnit === 'kg' ? '2.5-5 kg' : '5-10 lb';
-  const repBumpLoad = weightUnit === 'kg' ? '2.5 kg' : '5 lb';
+  // NOTE: weight/load numbers are intentionally NOT written into notes — the
+  // app's built-in weight tracker suggests and logs working weights. Progression
+  // notes describe sets/reps/rest/effort intent only.
   const additionalWeeks = [];
   for (let w = 2; w <= totalWeeks; w++) {
     const isDeload = w % 4 === 0; // Deload every 4th week
@@ -468,12 +467,12 @@ function generateMultiWeekProgression(week1Workouts, totalWeeks, goal, weightUni
         let progressNote = '';
 
         if (isDeload) {
-          // Deload: -1 set, same reps, lighter load
+          // Deload: -1 set, same reps, back off intensity
           newSets = Math.max(2, baseSets - 1);
-          progressNote = `Week ${w} (DELOAD): drop 1 set, use ~70% of recent working weight, focus on form`;
+          progressNote = `Week ${w} (DELOAD): drop 1 set, ease off the intensity, focus on clean form and recovery`;
         } else if (goal === 'strength') {
-          // Strength: add load (suggested via notes), keep reps low
-          progressNote = `Week ${w}: add ${smallBump} to working weight; if all reps hit at top of range, increase ${bigBump} next week`;
+          // Strength: progressive overload — the app suggests the actual load
+          progressNote = `Week ${w}: progressive overload — aim to beat last week`;
         } else if (goal === 'hypertrophy') {
           // Double progression: add reps until top of range, then add a set
           const range = baseReps.match(/(\d+)\s*[-–]\s*(\d+)/);
@@ -484,9 +483,9 @@ function generateMultiWeekProgression(week1Workouts, totalWeeks, goal, weightUni
             const repBump = Math.min(highRep, lowRep + (weekIndex - 1));
             newReps = `${repBump}-${highRep}`;
             if (weekIndex >= 3) newSets = baseSets + 1;
-            progressNote = `Week ${w}: aim for ${newReps} reps. Once you hit ${highRep} on all sets, add ${repBumpLoad} next week.`;
+            progressNote = `Week ${w}: aim for ${newReps} reps. Once you hit ${highRep} on all sets, progress next week.`;
           } else {
-            progressNote = `Week ${w}: aim for 1-2 more reps than last week, or +${smallBump} if reps held`;
+            progressNote = `Week ${w}: aim for 1-2 more reps than last week`;
           }
         } else {
           // fat_loss / general_fitness: increase density by trimming rest
@@ -865,8 +864,8 @@ If you include even ONE press, fly, or tricep movement, the workout is WRONG. 10
 ${modeBlock}
 ${strictSplitConstraint}
 ${keepMandate}
-=== UNITS (MANDATORY) ===
-This client trains in ${weightUnit === 'kg' ? 'KILOGRAMS (kg)' : 'POUNDS (lb)'}. EVERY weight or load you mention in any "notes" field MUST be written in ${weightUnit} (e.g. "${weightUnit === 'kg' ? 'start around 20 kg' : 'start around 45 lb'}"). NEVER write loads in ${weightUnit === 'kg' ? 'pounds/lb' : 'kilograms/kg'}.
+=== WEIGHTS / LOADS (MANDATORY) ===
+NEVER write specific weights or loads (e.g. "45 lb", "20 kg", "use 70%", "you hit 50 lb last time") in any "notes" field. The app has a built-in weight tracker that suggests and logs the client's working weights — duplicating numbers in notes conflicts with it. Notes are for form cues, tempo, RPE/RIR and rep targets only.
 ${availableExercisesPrompt}
 ${clientContextBlock}
 
@@ -890,7 +889,7 @@ ${repRangeBlock}
 - CROSS-DAY VARIETY: Never reuse the same exercise on two days that train the same muscles. If there are two push days (or two pull/leg days), the primary lift AND the accessories must DIFFER — e.g. barbell bench press on one push day, dumbbell or incline press on the other. Rotate equipment (barbell ↔ dumbbell ↔ cable ↔ machine) and angle across same-type days to spread the stimulus and reduce joint wear. Two same-type days should look clearly different, not like copies. (Any exercise missing from your AVAILABLE list was already used on another day — pick something else.)
 - DO NOT auto-default to textbook lifts (barbell bench press, back squat, conventional deadlift) just because they are "standard". A good coach chooses the primary from the client's history, equipment, and variety — not reflex. Only feature barbell bench if it genuinely fits this client best.
 - KEEP WHAT'S WORKING: If a CLIENT BRIEFING exercise is tagged "KEEP+PROGRESS" (the client is still PRing / adding reps) and it appears in your AVAILABLE EXERCISES list, you MUST include that exact exercise as a primary. Never replace a lift the client is progressing on with a generic substitute.
-- Add brief, actionable form cues in "notes" for each main exercise. Don't repeat the exercise name in notes. The "notes" field is shown to the CLIENT — write a normal coaching cue only. NEVER put internal labels (KEEP+PROGRESS, SWAP, PERSIST, ROTATE, REGRESSED, briefing text, or emoji) in notes; referencing the client's real numbers ("you hit 50 lb last time") is fine and encouraged.
+- Add brief, actionable form cues in "notes" for each main exercise. Don't repeat the exercise name in notes. The "notes" field is shown to the CLIENT — write a normal coaching cue only. NEVER put internal labels (KEEP+PROGRESS, SWAP, PERSIST, ROTATE, REGRESSED, briefing text, or emoji) in notes, and NEVER put weights/loads in notes (e.g. "you hit 50 lb last time", "start around 45 lb") — the app tracks weights for the client.
 - CARDIO MACHINES (treadmill, stairmaster, bike, rower, elliptical, jump rope) are CARDIO ONLY. They belong in WARM-UP (with "phase": "warmup", reps in time format like "5 min") or in a CONDITIONING FINISHER. They are NEVER main strength exercises with sets/reps like "3×12-15".
 - A "Push" day means ONLY chest, shoulders, triceps. A "Pull" day means ONLY back and biceps. NEVER mix them — putting a row on a push day or a chest press on a pull day is a programming error.
 - For LEG days: include at least one squat pattern, one hip hinge (RDL/deadlift/hip thrust), one hamstring isolation, one calf exercise, and ideally one glute-specific movement.
