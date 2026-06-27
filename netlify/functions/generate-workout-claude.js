@@ -891,6 +891,16 @@ PHASE 2 — MAIN WORKOUT: ${exerciseCountInstruction}. ${styleInstruction}. ${fo
 PHASE 3 — COOL-DOWN (5-7 min): 2-3 static stretches matching the day's muscles. Mark "isStretch": true, "phase": "cooldown". Reps must be "30s hold".
 ${conditioningInstruction}
 
+=== EXERCISE ORDER WITHIN THE MAIN BLOCK (MANDATORY — this is what separates a real coach from a list of exercises) ===
+Order the MAIN exercises by how heavy and technically demanding they are, HARDEST FIRST while the client is freshest. The sequence must be:
+1. Heaviest compound first (e.g. barbell/dumbbell press BEFORE any fly; squat/deadlift/hip-hinge BEFORE leg curl/extension; row/pulldown BEFORE rear-delt or biceps work).
+2. Secondary compounds next.
+3. Machine and isolation work after the free-weight compounds.
+4. Flyes, raises, cable/pump work, and any finisher LAST.
+NEVER place an isolation or fly movement before a compound that trains the same muscle. A fly before the press, or a leg extension before the squat, is a programming error — re-order before returning. When supersetting, the heaviest compound may stay as a straight set at the front; pair the lighter accessories.
+- VARIETY OF MOVEMENT, NOT REPETITION: do NOT program more than 2 of the same movement pattern in one session (e.g. never incline fly + pec deck + flat fly together — two flye variations is the max; same for three different presses or three different curls).
+- KEEP VOLUME SANE: aim for roughly 12-18 hard working sets for any single muscle in one focused session, not 20+. More sets is not better; quality over pile-on.
+
 === INTENSITY & TEMPO ===
 ${tempoInstruction}
 ${intensityInstruction}
