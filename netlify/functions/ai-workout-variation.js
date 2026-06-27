@@ -83,6 +83,7 @@ Rules:
 - "easier": cut total sets ~25%, drop intensifiers, regress to machine versions of free-weight movements when present.
 - "harder": add 10–15% volume on main lifts, or one finisher; tighten rest 10–15s; suggest tempo cues.
 - "swap": keep movement patterns and target muscles, swap implements (e.g. barbell → dumbbell, machine → cable). Honour equipment constraint.
+- NEVER write specific weights or loads (e.g. "45 lb", "20 kg", "use 70%") in any "notes" field — the app tracks the client's weights. Notes are for form cues, tempo and rep targets only.
 - Keep day count and section ordering identical to input. Keep warm-up and cool-down sections unless equipment would make them impossible.`;
 
     const resp = await claude.messages.create({

@@ -254,7 +254,7 @@ async function analyzeClientHistory(supabase, clientId, options = {}) {
       reasoning = `Only 1 session logged, not enough data — keep if it fits the new program.`;
     } else if (weightTrend === 'increasing') {
       action = 'progress_load';
-      reasoning = `Progressing well (${weights[0]}→${currentMax} ${unit}). Keep, suggest small load bump in notes.`;
+      reasoning = `Progressing well (${weights[0]}→${currentMax} ${unit}). Keep and keep them progressing.`;
     } else if (weightTrend === 'stable' && (repTrend === 'increasing' || volumeTrend === 'increasing')) {
       // Weight on the bar is flat, but reps/volume are climbing — that's a rep
       // PR. This is REAL progress; do NOT mistake it for a plateau. Keep the
@@ -563,7 +563,7 @@ function formatAnalysisForPrompt(analysis) {
 Program for THIS client based on the evidence above — not a generic template. Walk through it the way a thoughtful online coach would:
 
 - "🔄 SWAP" exercises: truly plateaued (weight, reps AND volume flat). Pick a NEW VARIATION of the SAME MOVEMENT PATTERN that hits the same muscles (e.g. Barbell Row → Pendlay Row or Dumbbell Row). Don't drop the muscle target — change the stimulus to break the stall.
-- "📈 KEEP+PROGRESS" exercises: they're still climbing (load OR reps). KEEP them — never swap an exercise that's working. In the notes, prescribe the next step: +5-10 lb (hypertrophy) / +2.5-5 lb (strength) once they top the rep range, or "add a rep per set this block." Reference the client's actual top weight.
+- "📈 KEEP+PROGRESS" exercises: they're still climbing (load OR reps). KEEP them — never swap an exercise that's working. Keep the progressive-overload trajectory going (the app's built-in weight tracker handles the actual load/weight suggestions for the client). Do NOT write weight/load numbers into the exercise notes.
 - "📊 reps climbing": this is a rep PR — real progress with the same weight on the bar. Treat it as KEEP, not a plateau.
 - "🔁 ROTATE" exercises: 50/50 — keep for consistency OR rotate for novelty. Prefer keeping bread-and-butter compounds (squat, bench, deadlift, overhead press).
 - "⚠ REGRESSED" exercises: weight has dropped — read it WITH recovery: if recovery/adherence is poor, it's fatigue → deload it; if recovery is fine, it's a stale stimulus → swap to a similar pattern.

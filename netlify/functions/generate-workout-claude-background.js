@@ -129,7 +129,9 @@ function sampleArray(arr, n, seed = Date.now()) {
 // ─── Multi-week progression ───────────────────────────────────────────────────
 function generateMultiWeekProgression(week1Workouts, totalWeeks, goal, weightUnit = 'lb') {
   if (totalWeeks <= 1) return [];
-  const smallBump = weightUnit === 'kg' ? '1-2.5 kg' : '2.5-5 lb';
+  // Weight/load numbers are intentionally NOT written into notes — the app's
+  // built-in weight tracker handles working weights. Notes describe
+  // sets/reps/rest/effort intent only.
   const out = [];
   for (let w = 2; w <= totalWeeks; w++) {
     const isDeload = w % 4 === 0;
@@ -144,9 +146,9 @@ function generateMultiWeekProgression(week1Workouts, totalWeeks, goal, weightUni
         let progressNote = '';
         if (isDeload) {
           newSets = Math.max(2, baseSets - 1);
-          progressNote = `Week ${w} (DELOAD): drop 1 set, use ~70% of recent working weight`;
+          progressNote = `Week ${w} (DELOAD): drop 1 set, ease off the intensity, focus on recovery`;
         } else if (goal === 'strength') {
-          progressNote = `Week ${w}: add ${smallBump} to working weight`;
+          progressNote = `Week ${w}: progressive overload — aim to beat last week`;
         } else if (goal === 'hypertrophy') {
           const range = baseReps.match(/(\d+)\s*[-–]\s*(\d+)/);
           if (range) {
@@ -322,8 +324,8 @@ ${exercisesList}
 Create a single ${muscleLabel} workout for an ${experience}-level trainee optimized for ${goal}.
 ${strictSplitConstraint}
 ${keepMandate}
-=== UNITS (MANDATORY) ===
-This client trains in ${weightUnit === 'kg' ? 'KILOGRAMS (kg)' : 'POUNDS (lb)'}. EVERY weight or load you mention in any "notes" field MUST be written in ${weightUnit} (e.g. "${weightUnit === 'kg' ? 'start around 20 kg' : 'start around 45 lb'}"). NEVER write loads in ${weightUnit === 'kg' ? 'pounds/lb' : 'kilograms/kg'}.
+=== WEIGHTS / LOADS (MANDATORY) ===
+NEVER write specific weights or loads (e.g. "45 lb", "20 kg", "use 70%", "you hit 50 lb last time") in any "notes" field. The app has a built-in weight tracker that suggests and logs the client's working weights — duplicating numbers in notes conflicts with it. Notes are for form cues, tempo, RPE/RIR and rep targets only.
 ${availableExercisesPrompt}
 ${clientContextBlock}
 ${avoidBlock}
@@ -347,7 +349,7 @@ ${repRangeBlock}
 - DO NOT auto-default to textbook lifts (barbell bench press, back squat, conventional deadlift) just because they are "standard". Choose the primary from the client's history, equipment, and variety — a good coach rotates primaries, they don't reflexively program barbell bench every chest day.
 - KEEP WHAT'S WORKING: If a CLIENT BRIEFING exercise is tagged "KEEP+PROGRESS" (the client is still PRing / adding reps) and it is in your AVAILABLE EXERCISES list and NOT in the ALREADY USED list, you MUST include that exact exercise as a primary. Never replace a lift the client is progressing on with a generic substitute.
 - CARDIO MACHINES (treadmill, stairmaster, bike, rower, elliptical) belong ONLY in warm-up. NEVER as main strength.
-- The "notes" field is shown to the CLIENT — write a normal coaching cue only. NEVER put internal labels (KEEP+PROGRESS, SWAP, PERSIST, ROTATE, REGRESSED, briefing text, or emoji) in notes; referencing the client's real numbers ("you hit 50 lb last time") is fine and encouraged.
+- The "notes" field is shown to the CLIENT — write a normal coaching cue only. NEVER put internal labels (KEEP+PROGRESS, SWAP, PERSIST, ROTATE, REGRESSED, briefing text, or emoji) in notes, and NEVER put weights/loads in notes (e.g. "you hit 50 lb last time", "start around 45 lb") — the app tracks weights for the client.
 - For LEG days: include squat + hip hinge + hamstring iso + calf + ideally glute-specific.
 
 CONSTRAINTS:
@@ -648,7 +650,7 @@ exports.handler = async (event) => {
             for (const [name, data] of exerciseHistory) {
               lines.push(`  • ${name}: top ${data.topWeight} ${clientWeightUnit}, ${data.sessions} sessions${data.prs ? `, ${data.prs} PR${data.prs > 1 ? 's' : ''}` : ''}`);
             }
-            lines.push(`  → Use these top weights to set realistic working-weight ranges in the notes, expressed in ${clientWeightUnit} (e.g. "start around 85% of their top set").`);
+            lines.push(`  → Use these top weights to calibrate exercise selection and difficulty. Do NOT write weight/load numbers in the notes — the client logs and progresses their own weights in the app.`);
             lines.push(`  → Avoid stale exercises: pick variations of these movements rather than repeating the exact same exercises.`);
           }
 

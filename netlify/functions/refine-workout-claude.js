@@ -71,9 +71,9 @@ function generateMultiWeekProgression(week1Workouts, totalWeeks, goal) {
         let progressNote = '';
         if (isDeload) {
           newSets = Math.max(2, baseSets - 1);
-          progressNote = `Week ${w} (DELOAD): drop 1 set, use ~70% of recent working weight, focus on form`;
+          progressNote = `Week ${w} (DELOAD): drop 1 set, ease off the intensity, focus on clean form and recovery`;
         } else if (goal === 'strength') {
-          progressNote = `Week ${w}: add 2.5-5 lb to working weight; if all reps hit at top of range, increase 5-10 lb next week`;
+          progressNote = `Week ${w}: progressive overload — aim to beat last week`;
         } else if (goal === 'hypertrophy') {
           const range = baseReps.match(/(\d+)\s*[-–]\s*(\d+)/);
           if (range) {
@@ -82,9 +82,9 @@ function generateMultiWeekProgression(week1Workouts, totalWeeks, goal) {
             const repBump = Math.min(highRep, lowRep + (weekIndex - 1));
             newReps = `${repBump}-${highRep}`;
             if (weekIndex >= 3) newSets = baseSets + 1;
-            progressNote = `Week ${w}: aim for ${newReps} reps. Once you hit ${highRep} on all sets, add 5 lb next week.`;
+            progressNote = `Week ${w}: aim for ${newReps} reps. Once you hit ${highRep} on all sets, progress next week.`;
           } else {
-            progressNote = `Week ${w}: aim for 1-2 more reps than last week, or +2.5-5 lb if reps held`;
+            progressNote = `Week ${w}: aim for 1-2 more reps than last week`;
           }
         } else {
           const baseRest = Number(ex.restSeconds) || 60;
