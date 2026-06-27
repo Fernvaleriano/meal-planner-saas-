@@ -14038,9 +14038,11 @@
                 days.push({
                     name: workout.name,
                     exercises: (workout.exercises || []).map(ex => {
-                        const repsVal = ex.isWarmup ? (ex.reps || '10-15') : ex.isStretch ? (ex.reps || '30s hold') : (ex.reps || '8-12');
+                        let repsVal = ex.isWarmup ? (ex.reps || '10-15') : ex.isStretch ? (ex.reps || '30s hold') : (ex.reps || '8-12');
                         let trackingType = 'reps';
                         let duration = null;
+                        const grp = (ex.muscleGroup || ex.muscle_group || '').toLowerCase();
+                        const isCardio = grp === 'cardio' || /tread|elliptical|\bbike\b|cycl|rower|rowing|\bstair|\bjog|\brun|jump rope|skipping|sprint/i.test(ex.name || '');
                         const timedCheck = (typeof detectTimedRepsValue === 'function') ? detectTimedRepsValue(String(repsVal)) : { isTime: false };
                         if (timedCheck.isTime) {
                             trackingType = 'time';
@@ -14054,11 +14056,22 @@
                                     // cardio (jog "5" = 5 min). For mobility / bodyweight
                                     // warm-ups (arm circles, push-ups, lunges) it's REPS —
                                     // do NOT multiply by 60 (that's the old "10 reps → 600s" bug).
-                                    const grp = (ex.muscleGroup || ex.muscle_group || '').toLowerCase();
-                                    const isCardio = grp === 'cardio' || /tread|elliptical|\bbike\b|cycl|rower|rowing|\bstair|\bjog|\brun|jump rope|skipping|sprint/i.test(ex.name || '');
                                     if (isCardio) { trackingType = 'time'; duration = numVal * 60; }
                                     // else: leave as reps
                                 }
+                            }
+                        }
+                        // Sanity cap: the model occasionally emits an absurd warm-up/stretch
+                        // time (e.g. Sonnet wrote "20 min" arm circles → 1200s, "15 min"
+                        // jumping knees → 900s). Never let a wild duration reach the client.
+                        // A cardio pulse-raiser can legitimately run up to 10 min; mobility
+                        // warm-ups and static stretches are seconds, so cap them tighter.
+                        if (trackingType === 'time' && duration != null && (ex.isWarmup || ex.isStretch)) {
+                            const cap = (ex.isWarmup && isCardio) ? 600 : 120;
+                            if (duration > cap) {
+                                duration = cap;
+                                // Keep the displayed reps string consistent with the cap.
+                                repsVal = ex.isStretch ? `${cap}s hold` : `${cap}s`;
                             }
                         }
                         return {
