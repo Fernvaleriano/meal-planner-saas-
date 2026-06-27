@@ -13850,9 +13850,11 @@
                 throw new Error(`Failed to submit job (HTTP ${submitResp.status}): ${txt.slice(0, 120)}`);
             }
 
-            // Poll for status (every 3s, up to 5 min)
+            // Poll for status (every 3s, up to 13 min — must match the background
+            // function's ~15 min server budget so a slow Sonnet program isn't
+            // abandoned by the page while the job is still finishing).
             const startTime = Date.now();
-            const maxWaitMs = 5 * 60 * 1000;
+            const maxWaitMs = 13 * 60 * 1000;
             const pollIntervalMs = 3000;
             let lastProgress = -1;
 
@@ -13889,7 +13891,7 @@
                     throw new Error(status.error || 'Background job failed');
                 }
             }
-            throw new Error('Job is taking too long (>5 min). Check back later or try a smaller program.');
+            throw new Error('Job is taking too long (>13 min). Check back later or try a smaller program.');
         }
 
         // Program-mode generation: fan out one call per day, then assemble + apply
