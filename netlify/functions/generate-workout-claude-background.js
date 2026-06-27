@@ -226,7 +226,8 @@ async function generateOneDay(anthropic, params) {
     equipment, goal, experience, sessionDuration, trainingStyle, exerciseCount,
     injuries, injuryCodes, preferences, tempo, rpeTarget, rirTarget,
     unilateralPreference, conditioningStyle, clientContextBlock,
-    warmupSuitable, stretchExercises, avoidExercises = [], keepMandate = '', weightUnit = 'lb'
+    warmupSuitable, stretchExercises, avoidExercises = [], keepMandate = '', weightUnit = 'lb',
+    model = 'claude-sonnet-4-5'
   } = params;
 
   const targetMuscle = daySpec.targetMuscle;
@@ -319,11 +320,20 @@ ${exercisesList}
     ? `\n=== ALREADY USED ON OTHER DAYS (DO NOT REUSE) ===\nThese exercises are already in this program on other days: ${avoidExercises.join(', ')}.\n- Do NOT use any of them again. Pick DIFFERENT movements that train the same muscles.\n- Rotate equipment and angle (barbell ↔ dumbbell ↔ cable ↔ machine, flat ↔ incline) so this day looks clearly different from the others.\n`
     : '';
 
+  // The coach's free-text notes + preferences from the AI modal. These were
+  // buried at the bottom of the prompt and got ignored on some days — surface
+  // them as a hard, top-of-prompt mandate so they're honored on EVERY day.
+  const clientRequestsBlock = (injuries || preferences)
+    ? `\n=== ⛔ COACH'S EXPLICIT INSTRUCTIONS — APPLY TO EVERY DAY (MANDATORY) ===
+The coach typed these for THIS client. They are non-negotiable and override variety, defaults, and your own opinion. They apply to this day and every other day of the program, not just day 1.${injuries ? `\n- NOTES / LIMITATIONS: "${injuries}"\n  → Treat as hard constraints. NEVER include an exercise that conflicts with or could aggravate these; substitute a safe alternative.` : ''}${preferences ? `\n- PREFERENCES: "${preferences}"\n  → Follow exactly. If a preference names a movement, style, or thing to include or avoid, honor it on this day too.` : ''}\n`
+    : '';
+
   const systemPrompt = `You are an elite strength & conditioning coach with 20+ years of experience. Return ONLY valid JSON, no markdown.
 
 Create a single ${muscleLabel} workout for an ${experience}-level trainee optimized for ${goal}.
 ${strictSplitConstraint}
 ${keepMandate}
+${clientRequestsBlock}
 === WEIGHTS / LOADS (MANDATORY) ===
 NEVER write specific weights or loads (e.g. "45 lb", "20 kg", "use 70%", "you hit 50 lb last time") in any "notes" field. The app has a built-in weight tracker that suggests and logs the client's working weights — duplicating numbers in notes conflicts with it. Notes are for form cues, tempo, RPE/RIR and rep targets only.
 ${availableExercisesPrompt}
@@ -354,8 +364,8 @@ ${repRangeBlock}
 
 CONSTRAINTS:
 - Equipment: ${equipment.join(', ')}
-${injuries ? `- Client injuries: ${injuries} — substitute safe alternatives.` : ''}
-${preferences ? `- Client preferences: ${preferences} — strictly follow.` : ''}
+${injuries ? `- Remember the coach's NOTES/LIMITATIONS above — apply them here.` : ''}
+${preferences ? `- Remember the coach's PREFERENCES above — apply them here.` : ''}
 ${warmupStretchInstructions}
 
 Return this exact JSON structure:
@@ -369,11 +379,12 @@ Return this exact JSON structure:
   ]
 }`;
 
-  const userMessage = `Create a single ${muscleLabel} workout. Return ONLY the day JSON.`;
+  const userMessage = `Create a single ${muscleLabel} workout. Return ONLY the day JSON.${injuries ? ` Honor the coach's notes/limitations: "${injuries}".` : ''}${preferences ? ` Honor the coach's preferences: "${preferences}".` : ''}`;
 
-  // Sonnet 4.5 — slow but accurate. Background function gives us up to 15 min total.
+  // Quality tier model (Sonnet by default, Opus for the "Best" tier). Slow but
+  // accurate — the background function gives us up to 15 min total.
   const message = await anthropic.messages.create({
-    model: 'claude-sonnet-4-5',
+    model: model || 'claude-sonnet-4-5',
     max_tokens: 4096,
     messages: [{ role: 'user', content: userMessage }],
     system: systemPrompt
@@ -589,12 +600,18 @@ exports.handler = async (event) => {
     injuries = '', injuryCodes = [], movementScreenFlags = [], preferences = '',
     tempo = 'standard', rpeTarget = null, rirTarget = null,
     unilateralPreference = 'mixed', conditioningStyle = 'none',
-    includeProgression = true, varietySeed = Date.now()
+    includeProgression = true, varietySeed = Date.now(),
+    model = 'claude-sonnet-4-5'
   } = body;
 
   if (!jobId || !coachId) {
     return { statusCode: 400, headers, body: JSON.stringify({ error: 'jobId and coachId are required' }) };
   }
+
+  // Allowlist the generation model — only the two tiers the UI offers. Anything
+  // else (or a typo) falls back to Sonnet rather than erroring or hitting an
+  // unexpected/unbilled model.
+  const genModel = ['claude-opus-4-8', 'claude-sonnet-4-5'].includes(model) ? model : 'claude-sonnet-4-5';
 
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
   await ensureBucket(supabase);
@@ -866,7 +883,7 @@ If one does not fit today's muscle group, skip it (it belongs on another day). O
         injuries, injuryCodes, preferences, tempo, rpeTarget, rirTarget,
         unilateralPreference, conditioningStyle, clientContextBlock,
         warmupSuitable, stretchExercises, avoidExercises, keepMandate,
-        weightUnit: clientWeightUnit
+        weightUnit: clientWeightUnit, model: genModel
       });
       // Record this day's MAIN exercises so later same-type days avoid them
       const usedNow = (dayResult.exercises || [])
@@ -965,7 +982,7 @@ If one does not fit today's muscle group, skip it (it belongs on another day). O
         clientAnalysis,
         generatedWeeks: program.weeks.length,
         backgroundJob: true,
-        modelUsed: 'claude-sonnet-4-5'
+        modelUsed: genModel
       }
     });
 
