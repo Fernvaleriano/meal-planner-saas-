@@ -463,6 +463,108 @@ Return this exact JSON structure:
   };
 }
 
+// ─── Keep-what's-working enforcement (deterministic) ──────────────────────────
+// The prompt ASKS the model to keep lifts the client is actively progressing on,
+// but a soft instruction loses to the model's "rotate for variety" instinct — it
+// dropped a client's only two progressing lifts even when explicitly mandated.
+// This pass GUARANTEES it: after generation, any progress_load lift that fits a
+// day's muscle target but is missing gets injected, replacing a same-muscle
+// accessory the client is NOT progressing on. Runs before multi-week progression
+// so kept lifts propagate to every week.
+function exCategory(mg, name) {
+  const g = (mg || '').toLowerCase();
+  const n = (name || '').toLowerCase();
+  if (/\bcurl\b/.test(n) && !/leg curl/.test(n)) return 'biceps';
+  if (/tricep|push ?down|skull|kickback|close grip|\bdip\b|overhead extension|french press/.test(n)) return 'triceps';
+  if (/bicep/.test(g)) return 'biceps';
+  if (/tricep/.test(g)) return 'triceps';
+  if (/chest|pec/.test(g)) return 'chest';
+  if (/back|lat|trap|rhomboid|rear delt/.test(g)) return 'back';
+  if (/shoulder|delt/.test(g)) return 'shoulders';
+  if (/glute/.test(g)) return 'glutes';
+  if (/quad|hamstring|calf|calves|\bleg|adductor|abductor/.test(g)) return 'legs';
+  if (/core|\bab\b|abs|oblique/.test(g)) return 'core';
+  if (/arm|forearm/.test(g)) return 'biceps'; // generic 'arms' w/o a triceps cue → curls
+  return 'other';
+}
+function dayAcceptsCategory(targetMuscle, cat) {
+  const t = (targetMuscle || '').toLowerCase();
+  if (t === 'full_body' || t === 'full') return cat !== 'other';
+  if (t === 'upper_body' || t === 'upper') return ['chest', 'back', 'shoulders', 'biceps', 'triceps'].includes(cat);
+  if (t === 'lower_body' || t === 'lower' || t === 'legs') return ['legs', 'glutes'].includes(cat);
+  if (t === 'push') return ['chest', 'shoulders', 'triceps'].includes(cat);
+  if (t === 'pull') return ['back', 'biceps'].includes(cat);
+  if (t === 'arms') return ['biceps', 'triceps'].includes(cat);
+  return t === cat; // bro-split single-muscle days (chest/back/shoulders/legs/core)
+}
+function buildKeeperExercise(lib, template) {
+  const t = template || {};
+  return {
+    name: lib.name,
+    muscleGroup: lib.muscle_group,
+    sets: typeof t.sets === 'number' ? t.sets : 4,
+    reps: t.reps || '8-10',
+    restSeconds: typeof t.restSeconds === 'number' ? t.restSeconds : 90,
+    notes: 'Keep adding a little each week — you\'ve been making steady progress here.',
+    isSuperset: false, supersetGroup: null, isWarmup: false, isStretch: false, phase: 'main',
+    id: lib.id, video_url: lib.video_url, animation_url: lib.animation_url,
+    thumbnail_url: lib.thumbnail_url, muscle_group: lib.muscle_group, equipment: lib.equipment,
+    instructions: lib.instructions, isCustom: !!lib.coach_id, matched: true, isKeeper: true
+  };
+}
+function enforceProgressKeepers(keepers, days, splitDays, pool) {
+  if (!Array.isArray(keepers) || keepers.length === 0) return [];
+  const injected = [];
+  const targetByDayNumber = {};
+  splitDays.forEach(sd => { targetByDayNumber[sd.dayNumber] = sd.targetMuscle; });
+  const present = new Set();
+  for (const d of days) for (const ex of (d.exercises || [])) if (ex?.name) present.add(normalizeName(ex.name));
+  // Never let one keeper evict another lift the client is also progressing on.
+  const keeperNames = new Set(keepers.map(k => normalizeName(k.name)));
+
+  for (const keeper of keepers) {
+    const lib = pool.find(e => normalizeName(e.name) === normalizeName(keeper.name));
+    if (!lib) continue;                                   // not in the equipment/injury-safe, has-video pool
+    if (present.has(normalizeName(lib.name))) continue;   // model already kept it — nothing to do
+    const cat = exCategory(lib.muscle_group, lib.name);
+
+    // Days whose target accepts this muscle. Fewest keepers first so two keepers
+    // for the same region spread across the two same-type days instead of stacking.
+    const candidates = days
+      .map(d => ({ d, target: targetByDayNumber[d.dayNumber] }))
+      .filter(c => dayAcceptsCategory(c.target, cat))
+      .sort((a, b) => a.d.exercises.filter(e => e.isKeeper).length - b.d.exercises.filter(e => e.isKeeper).length);
+    if (candidates.length === 0) continue;
+    const targetDay = candidates[0].d;
+    const mains = targetDay.exercises;
+
+    // Victim: the last same-category MAIN exercise the client is NOT progressing on
+    // (accessories sit later in the day, so last = most expendable).
+    let victimIdx = -1;
+    for (let i = mains.length - 1; i >= 0; i--) {
+      const ex = mains[i];
+      if (ex.isWarmup || ex.isStretch || ex.isKeeper) continue;
+      if (keeperNames.has(normalizeName(ex.name))) continue;
+      if (exCategory(ex.muscle_group || ex.muscleGroup, ex.name) === cat) { victimIdx = i; break; }
+    }
+    const tmpl = victimIdx >= 0 ? mains[victimIdx] : mains.find(e => !e.isWarmup && !e.isStretch) || {};
+    const keeperEx = buildKeeperExercise(lib, tmpl);
+
+    if (victimIdx >= 0) {
+      injected.push({ kept: lib.name, day: targetDay.name, replaced: mains[victimIdx].name });
+      mains[victimIdx] = keeperEx;
+    } else {
+      // No same-muscle accessory to swap — add it as main work, before the stretches.
+      let insertAt = mains.findIndex(e => e.isStretch);
+      if (insertAt < 0) insertAt = mains.length;
+      mains.splice(insertAt, 0, keeperEx);
+      injected.push({ kept: lib.name, day: targetDay.name, replaced: null });
+    }
+    present.add(normalizeName(lib.name));
+  }
+  return injected;
+}
+
 // ─── Main background handler ──────────────────────────────────────────────────
 exports.handler = async (event) => {
   const corsResponse = handleCors(event);
@@ -783,6 +885,16 @@ If one does not fit today's muscle group, skip it (it belongs on another day). O
       });
     }
 
+    // Deterministic guarantee: keep the lifts the client is actively progressing
+    // on. The prompt mandate alone isn't reliable (the model's variety instinct
+    // drops them), so force them into the right day here, before progression.
+    let keeperInjections = [];
+    if (clientAnalysis && Array.isArray(clientAnalysis.exerciseAnalysis)) {
+      const keepers = clientAnalysis.exerciseAnalysis.filter(e => e.action === 'progress_load');
+      keeperInjections = enforceProgressKeepers(keepers, day1Workouts, splitDays, equipmentFiltered);
+      if (keeperInjections.length) console.log('Keeper enforcement applied:', JSON.stringify(keeperInjections));
+    }
+
     // Assemble program
     const program = {
       programName: `${daysPerWeek}-Day ${goal.charAt(0).toUpperCase() + goal.slice(1)} Program`,
@@ -847,6 +959,7 @@ If one does not fit today's muscle group, skip it (it belongs on another day). O
         },
         volumeSummary: { setsByMuscle, warnings },
         splitViolations: allViolations,
+        keeperInjections,
         clientContextUsed: !!clientContextBlock,
         clientContextSummary,
         clientAnalysis,
