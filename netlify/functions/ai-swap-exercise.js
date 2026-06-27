@@ -710,7 +710,19 @@ exports.handler = async (event) => {
     // ─── AI-Powered Ranking with GPT-4o-mini ──────────────────────────────────
     let aiSuggestions = [];
 
-    const topCandidates = scored.slice(0, 20).map(ex => ({
+    // Lock the ranking pool to the best available movement tier.
+    // The deterministic scorer already knows a calf stretch ↔ calf stretch is a
+    // perfect match (+100) and a calf ↔ hamstring stretch is only "nearby" (+60).
+    // If we have enough EXACT same-pattern matches to fill the 5 suggestions,
+    // hand ONLY those to the AI so it physically cannot demote a perfect swap in
+    // favour of a merely-related one. We only widen to related movements when
+    // there aren't enough same-pattern options to choose from.
+    const samePatternMatches = origMovement.pattern
+      ? scored.filter(ex => ex._altMovement?.pattern === origMovement.pattern)
+      : [];
+    const rankingPool = samePatternMatches.length >= 5 ? samePatternMatches : scored;
+
+    const topCandidates = rankingPool.slice(0, 20).map(ex => ({
       id: ex.id,
       name: ex.name,
       muscle_group: ex.muscle_group,
@@ -811,7 +823,7 @@ Select exactly 5.${languageInstruction(language)}`;
 
     // If AI completely failed, use rule-based fallback
     if (aiSuggestions.length === 0) {
-      aiSuggestions = scored.slice(0, 5).map(ex => ({
+      aiSuggestions = rankingPool.slice(0, 5).map(ex => ({
         id: ex.id,
         name: ex.name,
         reason: ex._reasons.includes('same_movement') ?
