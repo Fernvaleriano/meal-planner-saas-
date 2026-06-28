@@ -797,9 +797,14 @@ If one does not fit today's muscle group, skip it (it belongs on another day). O
 
     // Build warmup/stretch references from full unfiltered DB so we always have these
     const allExerciseNames = exercisesWithVideos.map(e => e.name);
-    const warmupSuitable = allExerciseNames
-      .filter(n => /jump|jack|burpee|mountain climber|high knee|butt kick|arm circle|leg swing|hip circle|torso twist|march|skip|jog|run in place/i.test(n))
-      .slice(0, 6);
+    const warmupAll = allExerciseNames
+      .filter(n => /jump|jack|burpee|mountain climber|high knee|butt kick|arm circle|leg swing|hip circle|torso twist|march|skip|jog|run in place/i.test(n));
+    // Rotate the offered list each generation so the model isn't anchored to the
+    // same first few names (it was defaulting to "Jogging" on every workout).
+    const warmupRotateStart = warmupAll.length > 0 ? Math.floor(Math.random() * warmupAll.length) : 0;
+    const warmupSuitable = warmupAll.length <= 6
+      ? warmupAll
+      : warmupAll.slice(warmupRotateStart).concat(warmupAll.slice(0, warmupRotateStart)).slice(0, 6);
     const stretchExercises = allExerciseNames.filter(n => /stretch/i.test(n)).slice(0, 15);
 
     let warmupStretchInstructions = '';
@@ -808,6 +813,10 @@ If one does not fit today's muscle group, skip it (it belongs on another day). O
       if (warmupSuitable.length > 0) {
         warmupStretchInstructions += `\n\nAVAILABLE WARM-UPS (copy name EXACTLY):\n${warmupSuitable.map(n => `"${n}"`).join(', ')}`;
         warmupStretchInstructions += '\n\nInclude 2-3 warm-up exercises at the START. Mark with "isWarmup": true. Use 1-2 sets, 10-15 reps, 0-30 seconds rest.';
+        warmupStretchInstructions += '\n\nWARM-UP SELECTION (IMPORTANT — do NOT default to the same warm-up every time):';
+        warmupStretchInstructions += '\n- Pick warm-ups that prepare THE MUSCLES TRAINED THAT DAY. Upper-body days → arm circles, arm swings, torso twists, band/shoulder prep. Lower-body / leg days → leg swings, hip circles, bodyweight squats, marches, high knees. Full-body days → mix.';
+        warmupStretchInstructions += '\n- Do NOT use "Jogging" / "Jog in place" / "Running in place" as the warm-up on every workout. General running-in-place is fine occasionally for leg or full-body days, but it is a poor warm-up for an upper-body day and must NOT be the automatic first pick.';
+        warmupStretchInstructions += '\n- VARY the warm-up across days in a program — a 4-day program should not open all 4 days with the same cardio move.';
       }
       if (stretchExercises.length > 0) {
         warmupStretchInstructions += `\n\nAVAILABLE STRETCHES (copy name EXACTLY):\n${stretchExercises.map(n => `"${n}"`).join(', ')}`;
@@ -977,7 +986,7 @@ Return this exact JSON structure:
       "name": "${(targetMuscle || 'workout').charAt(0).toUpperCase() + (targetMuscle || 'workout').slice(1)} Day",
       "targetMuscles": ${JSON.stringify(targetMuscle === 'upper_body' ? ['chest', 'back', 'shoulders', 'arms'] : targetMuscle === 'lower_body' ? ['quads', 'hamstrings', 'glutes', 'calves'] : targetMuscle === 'full_body' ? ['chest', 'back', 'legs', 'shoulders'] : [targetMuscle])},
       "exercises": [
-        {"name": "Cardio Warm-up", "muscleGroup": "cardio", "sets": 1, "reps": "5 min", "restSeconds": 0, "notes": "", "isSuperset": false, "supersetGroup": null, "isWarmup": true, "isStretch": false, "phase": "warmup"},
+        {"name": "Dynamic Warm-up (pick one that preps today's muscles)", "muscleGroup": "warmup", "sets": 1, "reps": "5 min", "restSeconds": 0, "notes": "", "isSuperset": false, "supersetGroup": null, "isWarmup": true, "isStretch": false, "phase": "warmup"},
         {"name": "Main Exercise", "muscleGroup": "${targetMuscle}", "sets": 4, "reps": "8-10", "restSeconds": 90, "notes": "drive through your heels and keep your chest tall", "isSuperset": false, "supersetGroup": null, "isWarmup": false, "isStretch": false, "phase": "main"},
         {"name": "Static Stretch", "muscleGroup": "stretching", "sets": 1, "reps": "30s hold", "restSeconds": 0, "notes": "", "isSuperset": false, "supersetGroup": null, "isWarmup": false, "isStretch": true, "phase": "cooldown"}
       ]
@@ -1004,7 +1013,7 @@ Return this exact JSON structure:
       "name": "Day Name",
       "targetMuscles": ["muscle1"],
       "exercises": [
-        {"name": "Cardio Warm-up", "muscleGroup": "cardio", "sets": 1, "reps": "5 min", "restSeconds": 0, "notes": "", "isSuperset": false, "supersetGroup": null, "isWarmup": true, "isStretch": false, "phase": "warmup"},
+        {"name": "Dynamic Warm-up (pick one that preps today's muscles)", "muscleGroup": "warmup", "sets": 1, "reps": "5 min", "restSeconds": 0, "notes": "", "isSuperset": false, "supersetGroup": null, "isWarmup": true, "isStretch": false, "phase": "warmup"},
         {"name": "Main Exercise", "muscleGroup": "primary", "sets": 4, "reps": "8-10", "restSeconds": 90, "notes": "drive through your heels and keep your chest tall", "isSuperset": false, "supersetGroup": null, "isWarmup": false, "isStretch": false, "phase": "main"},
         {"name": "Static Stretch", "muscleGroup": "stretching", "sets": 1, "reps": "30s hold", "restSeconds": 0, "notes": "", "isSuperset": false, "supersetGroup": null, "isWarmup": false, "isStretch": true, "phase": "cooldown"}
       ]
