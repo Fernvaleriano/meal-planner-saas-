@@ -14385,7 +14385,7 @@
                 if (allOn) { _bulkState.selected.delete(id); delete _bulkState.settings[id]; }
                 else if (!_bulkState.selected.has(id)) {
                     _bulkState.selected.add(id);
-                    _bulkState.settings[id] = { goal: _bulkGoalDefault(c), experience: _bulkExpDefault(c), daysPerWeek: 4, duration: 4, split: 'auto', tier: 'quality' };
+                    _bulkState.settings[id] = { goal: _bulkGoalDefault(c), experience: _bulkExpDefault(c), daysPerWeek: 4, duration: 4, split: 'auto', tier: 'quality', sessionDuration: 60, exerciseCount: '5-6', trainingStyle: 'straight_sets', conditioningStyle: 'none', tempo: 'standard', intensity: '', unilateral: 'mixed' };
                 }
             });
             renderBulkClientList();
@@ -14396,13 +14396,13 @@
             else {
                 _bulkState.selected.add(id);
                 const c = (clients || []).find(x => String(x.id) === id) || {};
-                _bulkState.settings[id] = { goal: _bulkGoalDefault(c), experience: _bulkExpDefault(c), daysPerWeek: 4, duration: 4, split: 'auto', tier: 'quality' };
+                _bulkState.settings[id] = { goal: _bulkGoalDefault(c), experience: _bulkExpDefault(c), daysPerWeek: 4, duration: 4, split: 'auto', tier: 'quality', sessionDuration: 60, exerciseCount: '5-6', trainingStyle: 'straight_sets', conditioningStyle: 'none', tempo: 'standard', intensity: '', unilateral: 'mixed' };
             }
             renderBulkClientList();
             renderBulkSettings();
         }
         function _bulkSettingField(id, field, value) {
-            if (_bulkState.settings[id]) _bulkState.settings[id][field] = (field === 'daysPerWeek' || field === 'duration') ? parseInt(value) : value;
+            if (_bulkState.settings[id]) _bulkState.settings[id][field] = (field === 'daysPerWeek' || field === 'duration' || field === 'sessionDuration') ? parseInt(value) : value;
         }
         function renderBulkSettings() {
             const wrap = document.getElementById('bulkStepSettings');
@@ -14425,19 +14425,34 @@
                         ${sel(id, 'daysPerWeek', [[2, '2 days'], [3, '3 days'], [4, '4 days'], [5, '5 days'], [6, '6 days']], s.daysPerWeek)}
                         ${sel(id, 'duration', [[1, '1 wk'], [4, '4 wks'], [6, '6 wks'], [8, '8 wks'], [12, '12 wks']], s.duration)}
                         ${sel(id, 'split', [['auto', 'Auto split'], ['push_pull_legs', 'PPL'], ['upper_lower', 'Upper/Lower'], ['full_body', 'Full Body'], ['bro_split', 'Bro Split']], s.split)}
+                        ${sel(id, 'sessionDuration', [[15, '15 min'], [20, '20 min'], [30, '30 min'], [45, '45 min'], [60, '60 min'], [90, '90 min']], s.sessionDuration)}
+                        ${sel(id, 'exerciseCount', [['4-5', '4-5 ex'], ['5-6', '5-6 ex'], ['6-8', '6-8 ex'], ['8-10', '8-10 ex']], s.exerciseCount)}
+                        ${sel(id, 'trainingStyle', [['straight_sets', 'Straight sets'], ['supersets', 'Supersets'], ['circuits', 'Circuits'], ['mixed', 'Mixed style']], s.trainingStyle)}
+                        ${sel(id, 'conditioningStyle', [['none', 'No finisher'], ['hiit', 'HIIT finisher'], ['liss', 'LISS cardio'], ['mixed', 'HIIT/LISS mix']], s.conditioningStyle)}
+                        ${sel(id, 'tempo', [['standard', 'Std tempo'], ['controlled', 'Controlled 3-1-1'], ['explosive', 'Explosive'], ['tempo_3010', 'Tempo 3-0-1-0'], ['tempo_4020', 'Tempo 4-0-2-0']], s.tempo)}
+                        ${sel(id, 'intensity', [['', 'Default intensity'], ['rpe:6', 'RPE 6'], ['rpe:7', 'RPE 7'], ['rpe:8', 'RPE 8'], ['rpe:9', 'RPE 9'], ['rir:0', '0 RIR'], ['rir:1', '1 RIR'], ['rir:2', '2 RIR'], ['rir:3', '3 RIR']], s.intensity)}
+                        ${sel(id, 'unilateral', [['mixed', 'Mixed uni/bi'], ['prefer_unilateral', 'Prefer unilateral'], ['bilateral_only', 'Bilateral only']], s.unilateral)}
                         ${sel(id, 'tier', [['quality', 'Quality (Sonnet)'], ['best', 'Best (Opus)']], s.tier)}
                     </div>
                 </div>`;
             }).join('');
         }
         function _bulkBuildRequestBody(client, s) {
+            const intensity = s.intensity || '';
             return {
                 coachId: currentCoachId, clientId: client.id, clientName: client.client_name || '',
                 goal: s.goal, experience: s.experience, daysPerWeek: s.daysPerWeek, duration: s.duration, split: s.split,
-                sessionDuration: 60, trainingStyle: 'straight_sets', exerciseCount: '5-6', focusAreas: [],
+                sessionDuration: parseInt(s.sessionDuration) || 60,
+                trainingStyle: s.trainingStyle || 'straight_sets',
+                exerciseCount: s.exerciseCount || '5-6',
+                conditioningStyle: s.conditioningStyle || 'none',
+                tempo: s.tempo || 'standard',
+                rpeTarget: intensity.startsWith('rpe:') ? parseInt(intensity.split(':')[1]) : null,
+                rirTarget: intensity.startsWith('rir:') ? parseInt(intensity.split(':')[1]) : null,
+                unilateralPreference: s.unilateral || 'mixed',
+                focusAreas: [],
                 equipment: ['barbell', 'dumbbell', 'cable', 'machine', 'bodyweight', 'kettlebell'],
                 injuries: '', injuryCodes: [], movementScreenFlags: [], preferences: '',
-                tempo: 'standard', unilateralPreference: 'mixed', conditioningStyle: 'none',
                 includeProgression: true, varietySeed: Date.now() + Math.floor(Math.random() * 100000),
                 model: s.tier === 'best' ? 'claude-opus-4-8' : 'claude-sonnet-4-5'
             };
