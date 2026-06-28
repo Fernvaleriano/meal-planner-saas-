@@ -439,11 +439,17 @@ function WorkoutReadyConfirmation({ readinessData, workoutName, exerciseCount, o
 }
 
 // Extract completed exercise IDs from workout_data's exercise objects + localStorage fallback
-// Build a localStorage key that is unique per workout + day so completion
-// state from one day doesn't bleed into another day of the same program.
-function completionStorageKey(workoutId, dayIndex) {
+// Build a localStorage key that is unique per workout + day + calendar date.
+// The date is essential: a recurring program reuses the SAME assignment id and
+// the SAME day_index on every occurrence (e.g. week 1 day 1 and week 2 day 1),
+// so without the date the checkmarks from one week would bleed onto the next —
+// exercises showing up pre-checked on a future date the user never touched.
+// workoutDate is optional for backward-compat call sites; when omitted the key
+// falls back to the old (un-dated) format.
+function completionStorageKey(workoutId, dayIndex, workoutDate = null) {
   if (!workoutId) return null;
-  return `completedExercises_${workoutId}_day${dayIndex ?? 0}`;
+  const base = `completedExercises_${workoutId}_day${dayIndex ?? 0}`;
+  return workoutDate ? `${base}_${workoutDate}` : base;
 }
 
 // Stable completion store keyed by client + calendar date. The per-(workout,
@@ -542,7 +548,7 @@ function getCompletedFromWorkoutData(workoutData, dayIndex = 0, workoutId = null
     exercises.filter(ex => ex?.id && ex.completed).map(ex => ex.id)
   );
   // Merge with localStorage fallback (covers cases where API save was in-flight during app close)
-  const key = completionStorageKey(workoutId, dayIndex);
+  const key = completionStorageKey(workoutId, dayIndex, workoutDate);
   if (key) {
     try {
       const stored = localStorage.getItem(key);
@@ -560,12 +566,16 @@ function getCompletedFromWorkoutData(workoutData, dayIndex = 0, workoutId = null
       }
       // Rebuilt-from-log workouts can't know the original day_index, so the
       // exact key above misses. Recover by merging every day bucket for this
-      // workout id; activeIds filtering below scopes it back to this day.
+      // workout id ON THE SAME DATE; activeIds filtering below scopes it back
+      // to this day. The date suffix restriction is what keeps completion from
+      // one occurrence of a recurring program off another occurrence's card.
       if (allowDayFallback && workoutId) {
         const prefix = `completedExercises_${workoutId}_day`;
+        const dateSuffix = workoutDate ? `_${workoutDate}` : null;
         for (let i = 0; i < localStorage.length; i++) {
           const k = localStorage.key(i);
           if (!k || k === key || !k.startsWith(prefix)) continue;
+          if (dateSuffix && !k.endsWith(dateSuffix)) continue;
           try {
             const ids = JSON.parse(localStorage.getItem(k));
             if (Array.isArray(ids)) ids.forEach(id => fromData.add(id));
@@ -2356,9 +2366,10 @@ function Workouts() {
       }
       const workout = todayWorkoutRef.current;
       const dayIdx = workout?.day_index;
+      const opDate = formatDate(selectedDateRef.current || new Date());
       // Save to localStorage immediately so it survives app close
       try {
-        const key = completionStorageKey(workout?.id, dayIdx);
+        const key = completionStorageKey(workout?.id, dayIdx, opDate);
         if (key) {
           if (newCompleted.size > 0) {
             localStorage.setItem(key, JSON.stringify([...newCompleted]));
@@ -2407,7 +2418,10 @@ function Workouts() {
 
     // Clear localStorage cache
     try {
-      const key = completionStorageKey(workoutForOverride?.id, dayIdxForOverride);
+      const key = completionStorageKey(
+        workoutForOverride?.id, dayIdxForOverride,
+        formatDate(selectedDateRef.current || new Date())
+      );
       if (key) localStorage.removeItem(key);
     } catch (e) { /* ignore */ }
 
@@ -3082,7 +3096,7 @@ function Workouts() {
           next.add(updatedExercise.id);
           // Persist to localStorage
           try {
-            const key = completionStorageKey(workout?.id, workout?.day_index);
+            const key = completionStorageKey(workout?.id, workout?.day_index, operationDateStr);
             if (key) localStorage.setItem(key, JSON.stringify([...next]));
           } catch (e) { /* ignore */ }
           // Stable client+date mirror — this is what keeps play-mode-completed
@@ -4210,7 +4224,10 @@ function Workouts() {
       // Clear localStorage completion cache since workout is done
       try {
         const workout = todayWorkoutRef.current;
-        const key = completionStorageKey(workout?.id, workout?.day_index);
+        const key = completionStorageKey(
+          workout?.id, workout?.day_index,
+          formatDate(selectedDateRef.current || new Date())
+        );
         if (key) localStorage.removeItem(key);
       } catch (e) { /* ignore */ }
       // Show summary modal
@@ -4409,7 +4426,10 @@ function Workouts() {
       setTodayWorkout(remaining.length > 0 ? remaining[0] : null);
       setWorkoutLog(null);
       setCompletedExercises(remaining.length > 0
-        ? getCompletedFromWorkoutData(remaining[0].workout_data, remaining[0].day_index || 0, remaining[0].id)
+        ? getCompletedFromWorkoutData(
+            remaining[0].workout_data, remaining[0].day_index || 0, remaining[0].id,
+            false, clientData?.id, formatDate(selectedDateRef.current || new Date())
+          )
         : new Set()
       );
       setShowHeroMenu(false);
@@ -4495,7 +4515,10 @@ function Workouts() {
         setTodayWorkout(remaining.length > 0 ? remaining[0] : null);
         setWorkoutLog(null);
         setCompletedExercises(remaining.length > 0
-          ? getCompletedFromWorkoutData(remaining[0].workout_data, remaining[0].day_index || 0, remaining[0].id)
+          ? getCompletedFromWorkoutData(
+              remaining[0].workout_data, remaining[0].day_index || 0, remaining[0].id,
+              false, clientData?.id, formatDate(selectedDateRef.current || new Date())
+            )
           : new Set()
         );
       }
@@ -4541,7 +4564,10 @@ function Workouts() {
         setTodayWorkout(remaining.length > 0 ? remaining[0] : null);
         setWorkoutLog(null);
         setCompletedExercises(remaining.length > 0
-          ? getCompletedFromWorkoutData(remaining[0].workout_data, remaining[0].day_index || 0, remaining[0].id)
+          ? getCompletedFromWorkoutData(
+              remaining[0].workout_data, remaining[0].day_index || 0, remaining[0].id,
+              false, clientData?.id, formatDate(selectedDateRef.current || new Date())
+            )
           : new Set()
         );
         setWorkoutStarted(false);
@@ -4875,7 +4901,7 @@ function Workouts() {
     const dateStr = formatDate(selectedDateRef.current || new Date());
     // Save to the per-(workout,day) cache (survives app close mid-session)...
     try {
-      const key = completionStorageKey(workout?.id, dayIdx);
+      const key = completionStorageKey(workout?.id, dayIdx, dateStr);
       if (key && allIds.length > 0) localStorage.setItem(key, JSON.stringify(allIds));
     } catch (e) { /* ignore */ }
     // ...and the stable client+date store, which is what the dashboard card
@@ -5821,7 +5847,10 @@ function Workouts() {
                         setWorkoutStartTime(null);
                         try {
                           const w = todayWorkoutRef.current;
-                          const k = completionStorageKey(w?.id, w?.day_index);
+                          const k = completionStorageKey(
+                            w?.id, w?.day_index,
+                            formatDate(selectedDateRef.current || new Date())
+                          );
                           if (k) localStorage.removeItem(k);
                         } catch (ex) { /* ignore */ }
                       }}
