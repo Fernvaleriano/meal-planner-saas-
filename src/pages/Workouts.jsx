@@ -732,6 +732,14 @@ function Workouts() {
   const calorieOpts = useMemo(() => ({ weightKg: bodyWeightKg }), [bodyWeightKg]);
   const [selectedDate, setSelectedDate] = useState(() => new Date());
   const [weekDates, setWeekDates] = useState(() => getWeekDates(new Date()));
+  // Map of exercise id -> per-set weights ([{ weight, weightUnit }]) from the
+  // MOST RECENT prior logged session of that exercise. Used as the starting
+  // default on a not-yet-done day so e.g. Romanian Deadlift in week 3 pre-fills
+  // what she actually lifted last time instead of the static weight baked into
+  // the recurring plan. Layered in by the `exercises` merge below — only when
+  // the day has no log yet and the coach hasn't set an explicit prescribed
+  // weight, and it is never auto-saved on its own.
+  const [previousWeightsByExercise, setPreviousWeightsByExercise] = useState({});
 
   // Load cached workout data for instant display (same pattern as Dashboard)
   const cachedWorkouts = clientData?.id ? getCache(`workouts_${clientData.id}_${formatDate(new Date())}`) : null;
@@ -4674,6 +4682,30 @@ function Workouts() {
         };
       });
 
+      // Apply the client's most-recently-logged weight as the starting default
+      // for a set the coach hasn't pinned to an explicit target. Carries the
+      // logged value + its unit through so the existing kg<->lbs conversion in
+      // ExerciseCard / ExerciseDetailModal handles display unchanged. Only
+      // touches the weight default — reps, rest, prescriptions are untouched —
+      // and only when there IS a real prior weight (>0).
+      const applyPreviousWeights = (ex) => {
+        const prev = previousWeightsByExercise[ex.id];
+        if (!Array.isArray(prev) || prev.length === 0) return ex;
+        const fillSets = (arr) => arr.map((set, i) => {
+          if (!set) return set;
+          // Respect an explicit coach prescription — never mask a real target.
+          if ((Number(set.prescribedWeight) || 0) > 0) return set;
+          const p = prev[i] || prev[prev.length - 1];
+          const w = Number(p?.weight) || 0;
+          if (!(w > 0)) return set;
+          return { ...set, weight: w, weightUnit: p.weightUnit || set.weightUnit };
+        });
+        const next = { ...ex };
+        if (Array.isArray(ex.setsData) && ex.setsData.length > 0) next.setsData = fillSets(ex.setsData);
+        if (Array.isArray(ex.sets) && ex.sets.length > 0) next.sets = fillSets(ex.sets);
+        return next;
+      };
+
       // Merge exercise_logs data (client notes, voice notes, logged sets) from workoutLog
       const loggedExercises = workoutLog?.exercises || [];
       const merged = normalized.map(ex => {
@@ -4752,7 +4784,10 @@ function Workouts() {
           }
           return updates;
         }
-        return ex;
+        // No log yet for this day → default the weight to the most recent
+        // session's logged weight (progressive overload), falling back to the
+        // plan's baked weight when there's no history.
+        return applyPreviousWeights(ex);
       });
 
       return merged;
@@ -4760,7 +4795,104 @@ function Workouts() {
       console.error('Error getting exercises:', e);
       return [];
     }
-  }, [todayWorkout, workoutLog]);
+  }, [todayWorkout, workoutLog, previousWeightsByExercise]);
+
+  // The weighted (reps-based) exercises shown for the viewed day. Derived from
+  // todayWorkout directly — NOT from `exercises` — so the prefill fetch effect
+  // below can't loop on its own setState. Timed/cardio/warm-up/stretch and
+  // distance exercises are skipped (carrying over a weight makes no sense).
+  const weightedExercisesForDay = useMemo(() => {
+    try {
+      const wd = todayWorkout?.workout_data;
+      if (!wd) return [];
+      let raw = [];
+      if (Array.isArray(wd.exercises) && wd.exercises.length > 0) {
+        raw = wd.exercises;
+      } else if (Array.isArray(wd.days) && wd.days.length > 0) {
+        const di = Math.abs(todayWorkout.day_index || 0) % wd.days.length;
+        raw = wd.days[di]?.exercises || [];
+      }
+      return raw
+        .filter(ex => ex && ex.id)
+        .filter(ex => {
+          const timed = ex.trackingType === 'time' || ex.trackingType === 'distance' ||
+            ex.exercise_type === 'cardio' || ex.exercise_type === 'interval' ||
+            ex.exercise_type === 'timed' || ex.isWarmup || ex.isStretch ||
+            ex.phase === 'warmup' || ex.phase === 'cooldown' ||
+            ex.section === 'warm-up' || ex.section === 'cool-down' || !!ex.duration;
+          return !timed;
+        })
+        .map(ex => ({ id: ex.id, name: ex.name || '' }));
+    } catch { return []; }
+  }, [todayWorkout]);
+
+  // Stable string key so the effect only re-fetches when the actual set of
+  // exercises (or the viewed date) changes, not on every render.
+  const prefillFetchKey = useMemo(
+    () => `${todayWorkout?.workout_date || formatDate(selectedDate)}|` +
+      weightedExercisesForDay.map(e => `${e.id}:${e.name}`).join(','),
+    [weightedExercisesForDay, todayWorkout?.workout_date, selectedDate]
+  );
+
+  // Fetch each exercise's most-recent PRIOR logged weight so the merge above
+  // can default to it. Runs once per day/exercise-set, in parallel, capped to
+  // prior sessions via endDate so today's own (or future) logs never count.
+  useEffect(() => {
+    const cid = clientData?.id;
+    const list = weightedExercisesForDay;
+    if (!cid || list.length === 0) {
+      setPreviousWeightsByExercise(prev => (Object.keys(prev).length ? {} : prev));
+      return;
+    }
+
+    // endDate = the day BEFORE the viewed workout date, so "previous" excludes
+    // anything logged on (or after) the day being viewed.
+    let endDate = null;
+    try {
+      const viewedStr = todayWorkout?.workout_date || formatDate(selectedDate);
+      const d = new Date(`${viewedStr}T00:00:00`);
+      d.setDate(d.getDate() - 1);
+      endDate = formatDate(d);
+    } catch { endDate = null; }
+
+    let cancelled = false;
+    (async () => {
+      const entries = await Promise.all(list.map(async (ex) => {
+        try {
+          const params = new URLSearchParams({ clientId: String(cid), limit: '1' });
+          if (ex.name) params.set('exerciseName', ex.name);
+          if (ex.id) params.set('exerciseId', String(ex.id));
+          if (endDate) params.set('endDate', endDate);
+          const res = await apiGet(`/.netlify/functions/exercise-history?${params.toString()}`);
+          const session = res?.history?.[0];
+          if (!session) return null;
+          let sd = session.setsData;
+          if (typeof sd === 'string') { try { sd = JSON.parse(sd); } catch { sd = []; } }
+          if (!Array.isArray(sd) || sd.length === 0) return null;
+          const weights = sd.map(s => ({
+            weight: Number(s?.weight) || 0,
+            weightUnit: s?.weightUnit || null
+          }));
+          if (!weights.some(w => w.weight > 0)) return null;
+          return [ex.id, weights];
+        } catch { return null; }
+      }));
+      if (cancelled) return;
+      const map = {};
+      for (const e of entries) { if (e) map[e[0]] = e[1]; }
+      setPreviousWeightsByExercise(prev => {
+        try {
+          if (JSON.stringify(prev) === JSON.stringify(map)) return prev;
+        } catch { /* fall through to update */ }
+        return map;
+      });
+    })();
+
+    return () => { cancelled = true; };
+  // prefillFetchKey already encodes the date + exercise list; the extra deps
+  // are the values read inside the effect.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [clientData?.id, prefillFetchKey]);
 
   // Calculate workout duration — actual elapsed time from play mode
   // plus estimated time for any exercises added after the guided workout ended
