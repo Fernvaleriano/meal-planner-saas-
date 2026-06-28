@@ -6996,7 +6996,9 @@
                         <div class="ai-form-group">
                             <label>Session Duration</label>
                             <select id="aiSingleSessionDuration">
-                                <option value="30">~30 minutes</option>
+                                <option value="15">~15 minutes</option>
+                                    <option value="20">~20 minutes</option>
+                                    <option value="30">~30 minutes</option>
                                 <option value="45">~45 minutes</option>
                                 <option value="60" selected>~60 minutes</option>
                                 <option value="90">~90 minutes</option>
@@ -7066,7 +7068,9 @@
                         <div class="ai-form-group">
                             <label>Session Duration</label>
                             <select id="aiSessionDuration">
-                                <option value="30">~30 minutes</option>
+                                <option value="15">~15 minutes</option>
+                                    <option value="20">~20 minutes</option>
+                                    <option value="30">~30 minutes</option>
                                 <option value="45">~45 minutes</option>
                                 <option value="60" selected>~60 minutes</option>
                                 <option value="90">~90 minutes</option>
@@ -14296,7 +14300,7 @@
         }
         function _bulkGoalDefault(c) {
             const g = String(c.default_goal || '').toLowerCase();
-            if (/lose|fat|lean|cut|weight loss/.test(g)) return 'weight_loss';
+            if (/lose|fat|lean|cut|weight loss/.test(g)) return 'fat_loss';
             if (/strength|strong/.test(g)) return 'strength';
             if (/endur|condition|cardio/.test(g)) return 'endurance';
             if (/gain|muscle|hyper|build|mass|size|tone/.test(g)) return 'hypertrophy';
@@ -14416,7 +14420,7 @@
                 return `<div style="background:#0a1018; border:1px solid rgba(255,255,255,0.08); border-radius:12px; padding:10px 12px;">
                     <div style="font-weight:600; color:#fff; margin-bottom:8px;">${esc(c.client_name || 'Unnamed')}</div>
                     <div style="display:flex; flex-wrap:wrap; gap:6px;">
-                        ${sel(id, 'goal', [['hypertrophy', 'Hypertrophy'], ['strength', 'Strength'], ['weight_loss', 'Fat Loss'], ['endurance', 'Endurance'], ['general', 'General']], s.goal)}
+                        ${sel(id, 'goal', [['hypertrophy', 'Hypertrophy'], ['strength', 'Strength'], ['fat_loss', 'Fat Loss'], ['general_fitness', 'General']], s.goal)}
                         ${sel(id, 'experience', [['beginner', 'Beginner'], ['intermediate', 'Intermediate'], ['advanced', 'Advanced']], s.experience)}
                         ${sel(id, 'daysPerWeek', [[2, '2 days'], [3, '3 days'], [4, '4 days'], [5, '5 days'], [6, '6 days']], s.daysPerWeek)}
                         ${sel(id, 'duration', [[1, '1 wk'], [4, '4 wks'], [6, '6 wks'], [8, '8 wks'], [12, '12 wks']], s.duration)}
