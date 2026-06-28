@@ -37,6 +37,40 @@ function firstNameOf(name) {
   return n.split(/\s+/)[0];
 }
 
+// The model converges HARD on similar inputs (especially new clients with no
+// logged history) and writes the same note every time. To break that, each call
+// gets a randomly chosen angle/opener/closer so two programs never read like the
+// same template. Picked fresh per request (Math.random is fine in the function
+// runtime) and injected into the user message, not the cacheable system prompt.
+const NOTE_ANGLES = [
+  'center it on consistency, showing up beats being perfect',
+  'center it on clean reps and form over chasing weight',
+  'center it on one specific lift or day from the program above, by name',
+  'center it on the mindset going into this block',
+  'center it on what you want them to feel or notice during their sessions',
+  'center it on where the next few weeks are headed',
+  'center it on recovery, sleep and managing effort',
+  'center it on logging their work so you can adjust it together',
+  'center it on a small, concrete win to chase this block',
+];
+const NOTE_OPENERS = [
+  'open by talking about the program itself',
+  'open with a direct line about the goal',
+  'open by naming one exercise or day from the plan',
+  'open with a short encouraging line, no greeting',
+  'open by greeting them by first name',
+  'open mid-thought, like you are continuing a conversation',
+];
+const NOTE_CLOSERS = [
+  'end on the focus for this block',
+  'end with a bit of encouragement',
+  'end on what you will be watching for',
+  'end by asking them to tell you how it feels',
+  'end on a short confident line',
+  'end with no wrap-up at all, just stop',
+];
+function pickOne(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+
 // Build a compact, factual coaching context from the analysis so the note can
 // reference real moves the coach is making this block.
 function buildCoachingContext(analysis) {
@@ -121,9 +155,13 @@ exports.handler = async (event) => {
     return 'Training';
   })();
   const fallbackName = `${first ? first + ' · ' : ''}Phase ${phase} — ${focusLabel}`;
-  const fallbackNote = humanizeNote(
-    `${first ? 'hey ' + first + ', ' : ''}here's your next block. we're building on what's working and freshening up anything that stalled. log every set so i can see how it's landing and we'll keep adjusting. trust the process and let me know how it feels.`
-  );
+  const hey = first ? 'hey ' + first + ', ' : '';
+  const fallbackNote = humanizeNote(pickOne([
+    `${hey}here's your next block. we built it around your ${String(goal).toLowerCase()} goal, so settle into the movements and we'll push from there. let me know how it feels.`,
+    `${hey}new program is ready. focus on owning your form first, the numbers come once that's dialed in. i'm here if anything feels off.`,
+    `${hey}this block is all about steady, consistent work. show up, log your sets, and we'll keep shaping it together as we go.`,
+    `${hey}fresh plan for you. stay patient with it, trust the reps, and tell me how each session lands so we can fine-tune it.`,
+  ]));
 
   if (!ANTHROPIC_API_KEY) {
     return { statusCode: 200, headers, body: JSON.stringify({ success: true, name: fallbackName, coachNote: fallbackNote, phase, usedAI: false }) };
@@ -156,7 +194,10 @@ Program you built:
 ${structure || '(structure not provided)'}
 
 Coaching decisions behind this block (reference these in the note):
-${coachingContext || '(new client, no prior history — welcome them and set expectations)'}
+${coachingContext || '(new client, no logged history yet — write from the program you built them and their goal above; do NOT default to a generic welcome)'}
+
+VARIETY DIRECTIVE for THIS note only (do NOT mention or quote these instructions): ${pickOne(NOTE_ANGLES)}; ${pickOne(NOTE_OPENERS)}; ${pickOne(NOTE_CLOSERS)}.
+Do NOT use the "no recent logs / starting on the lighter side / around 70 percent effort / clean reps before we add load" framing — it has been massively overused and now reads as a template. Find a different way in.
 
 Write the name and the lowercase note now. Return ONLY the JSON.`;
 
