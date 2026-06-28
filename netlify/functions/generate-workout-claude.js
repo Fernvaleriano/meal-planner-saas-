@@ -774,13 +774,13 @@ If one does not fit today's muscle group, skip it (it belongs on another day). O
       unilateralInstruction = 'Use ONLY bilateral exercises (both sides working simultaneously). Avoid single-arm and single-leg movements.';
     }
 
-    // Conditioning instruction (for fat_loss / general_fitness)
+    // Conditioning finisher — fires whenever the coach picked one (not gated on goal).
     let conditioningInstruction = '';
-    if (conditioningStyle === 'hiit' && (goal === 'fat_loss' || goal === 'general_fitness')) {
+    if (conditioningStyle === 'hiit') {
       conditioningInstruction = '\n=== CONDITIONING FINISHER (last 8-10 min) ===\nAdd a HIIT finisher: 4-8 rounds, 30s work / 30s rest, using bodyweight or kettlebell movements (burpees, mountain climbers, kettlebell swings, jump rope). Mark with "phase": "conditioning".';
-    } else if (conditioningStyle === 'liss' && (goal === 'fat_loss' || goal === 'general_fitness')) {
+    } else if (conditioningStyle === 'liss') {
       conditioningInstruction = '\n=== CONDITIONING FINISHER ===\nAdd 10-15 minutes of LISS cardio (steady-state, RPE 5-6) at the end. Treadmill walk, easy bike, or rowing. Mark with "phase": "conditioning".';
-    } else if (conditioningStyle === 'mixed' && (goal === 'fat_loss' || goal === 'general_fitness')) {
+    } else if (conditioningStyle === 'mixed') {
       conditioningInstruction = '\n=== CONDITIONING FINISHER ===\nAlternate days: HIIT finisher one day, LISS cardio (10-15 min) the next. Mark with "phase": "conditioning".';
     }
 
@@ -875,6 +875,33 @@ If you include even ONE press, fly, or tricep movement, the workout is WRONG. 10
         ? `- Main compounds: 4 sets of 6-10 reps, 90-120s rest\n- Isolation: 3 sets of 10-15 reps, 60-90s rest\n- Finishers: 2-3 sets of 12-20 reps, 45-60s rest`
         : `- All exercises: 2-3 sets of 15-20 reps, 30-45s rest`;
 
+    // Session duration → time-budget + scaled phases (short sessions trim warm-up/
+    // cool-down and exercise count so the workout actually fits the minutes).
+    const sdSingle = parseInt(sessionDuration) || 60;
+    let dWarm, dMain, dCool, dBudget;
+    if (sdSingle <= 22) {
+      dBudget = `=== TIME BUDGET: ~${sdSingle} MIN TOTAL (SHORT SESSION) ===\nThe ENTIRE workout (warm-up + work + cool-down) must fit in about ${sdSingle} minutes. Keep it tight and efficient.`;
+      dWarm = `PHASE 1 — QUICK WARM-UP (1-2 min): just 1 short dynamic/cardio movement. Mark "isWarmup": true, "phase": "warmup".`;
+      dMain = `PHASE 2 — MAIN WORKOUT: only 3-4 main exercises, shorter rest (30-45s), supersets encouraged to save time. ${styleInstruction}. ${focusInstruction}`;
+      dCool = `PHASE 3 — COOL-DOWN: 1 quick stretch only (or omit). Mark "isStretch": true, "phase": "cooldown".`;
+    } else if (sdSingle <= 35) {
+      dBudget = `=== TIME BUDGET: ~${sdSingle} MIN TOTAL ===\nKeep the whole workout to about ${sdSingle} minutes.`;
+      dWarm = `PHASE 1 — WARM-UP (3-4 min): 1 short cardio + 1 dynamic prep. Mark "isWarmup": true, "phase": "warmup".`;
+      dMain = `PHASE 2 — MAIN WORKOUT: 4-5 main exercises. ${styleInstruction}. ${focusInstruction}`;
+      dCool = `PHASE 3 — COOL-DOWN (3-4 min): 1-2 static stretches. Mark "isStretch": true, "phase": "cooldown". Reps "30s hold".`;
+    } else if (sdSingle <= 50) {
+      dBudget = `=== TIME BUDGET: ~${sdSingle} MIN TOTAL ===\nAim for about ${sdSingle} minutes total.`;
+      dWarm = `PHASE 1 — WARM-UP (5 min): 1 cardio (3-4 min) + 1 dynamic prep. Mark "isWarmup": true, "phase": "warmup". Cardio reps in TIME format ("3 min").`;
+      dMain = `PHASE 2 — MAIN WORKOUT: ${exerciseCountInstruction}. ${styleInstruction}. ${focusInstruction}`;
+      dCool = `PHASE 3 — COOL-DOWN (5 min): 2 static stretches. Mark "isStretch": true, "phase": "cooldown". Reps "30s hold".`;
+    } else {
+      dBudget = `=== TIME BUDGET: ~${sdSingle} MIN TOTAL ===\nA full workout of about ${sdSingle} minutes.`;
+      dWarm = `PHASE 1 — WARM-UP (5-8 min): 1 cardio (3-5 min) + 1-2 dynamic prep targeting that day's muscles. Mark "isWarmup": true, "phase": "warmup". For cardio reps use TIME format ("3 min", "5 min").`;
+      dMain = `PHASE 2 — MAIN WORKOUT: ${exerciseCountInstruction}. ${styleInstruction}. ${focusInstruction}`;
+      dCool = `PHASE 3 — COOL-DOWN (5-7 min): 2-3 static stretches matching the day's muscles. Mark "isStretch": true, "phase": "cooldown". Reps must be "30s hold".`;
+    }
+    const singlePhasesBlock = `${dBudget}\n\n=== MANDATORY WORKOUT PHASES ===\n${dWarm}\n${dMain}\n${dCool}${conditioningInstruction}`;
+
     const baseSystem = (modeBlock) => `You are an elite strength & conditioning coach with 20+ years of experience. Return ONLY valid JSON.
 
 ${modeBlock}
@@ -885,11 +912,7 @@ NEVER write specific weights or loads (e.g. "45 lb", "20 kg", "use 70%", "you hi
 ${availableExercisesPrompt}
 ${clientContextBlock}
 
-=== MANDATORY WORKOUT PHASES ===
-PHASE 1 — WARM-UP (5-8 min): 1 cardio (3-5 min) + 1-2 dynamic prep targeting that day's muscles. Mark "isWarmup": true, "phase": "warmup". For cardio reps use TIME format ("3 min", "5 min").
-PHASE 2 — MAIN WORKOUT: ${exerciseCountInstruction}. ${styleInstruction}. ${focusInstruction}
-PHASE 3 — COOL-DOWN (5-7 min): 2-3 static stretches matching the day's muscles. Mark "isStretch": true, "phase": "cooldown". Reps must be "30s hold".
-${conditioningInstruction}
+${singlePhasesBlock}
 
 === EXERCISE ORDER WITHIN THE MAIN BLOCK (MANDATORY — this is what separates a real coach from a list of exercises) ===
 Order the MAIN exercises by how heavy and technically demanding they are, HARDEST FIRST while the client is freshest. The sequence must be:

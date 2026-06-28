@@ -246,7 +246,7 @@ async function generateOneDay(anthropic, params) {
     injuries, injuryCodes, preferences, tempo, rpeTarget, rirTarget,
     unilateralPreference, conditioningStyle, clientContextBlock,
     warmupSuitable, stretchExercises, avoidExercises = [], keepMandate = '', weightUnit = 'lb',
-    model = 'claude-sonnet-4-5'
+    model = 'claude-sonnet-4-5', focusAreas = []
   } = params;
 
   const targetMuscle = daySpec.targetMuscle;
@@ -347,6 +347,54 @@ ${exercisesList}
 The coach typed these for THIS client. They are non-negotiable and override variety, defaults, and your own opinion. They apply to this day and every other day of the program, not just day 1.${injuries ? `\n- NOTES / LIMITATIONS: "${injuries}"\n  → Treat as hard constraints. NEVER include an exercise that conflicts with or could aggravate these; substitute a safe alternative.` : ''}${preferences ? `\n- PREFERENCES: "${preferences}"\n  → Follow exactly. If a preference names a movement, style, or thing to include or avoid, honor it on this day too.` : ''}\n`
     : '';
 
+  // ── Session duration → time-budget + scaled phases ──────────────────────────
+  // Make the whole workout actually fit the chosen minutes. Short sessions trim
+  // warm-up/cool-down and exercise count; long ones get the full structure.
+  const sd = parseInt(sessionDuration) || 60;
+  let warmupLine, mainLine, cooldownLine, budgetLine;
+  if (sd <= 22) {
+    budgetLine = `=== TIME BUDGET: ~${sd} MIN TOTAL (SHORT SESSION) ===\nThis client is short on time. The ENTIRE session (warm-up + work + cool-down) must fit in about ${sd} minutes. Keep it tight and efficient.`;
+    warmupLine = `PHASE 1 — QUICK WARM-UP (1-2 min): just 1 short dynamic/cardio movement. Mark "isWarmup": true, "phase": "warmup".`;
+    mainLine = `PHASE 2 — MAIN WORKOUT: only 3-4 main exercises, shorter rest (30-45s). Pairing exercises into supersets to save time is encouraged. Mark "phase": "main".`;
+    cooldownLine = `PHASE 3 — COOL-DOWN: 1 quick stretch only (or omit). Mark "isStretch": true, "phase": "cooldown".`;
+  } else if (sd <= 35) {
+    budgetLine = `=== TIME BUDGET: ~${sd} MIN TOTAL ===\nKeep the whole session to about ${sd} minutes.`;
+    warmupLine = `PHASE 1 — WARM-UP (3-4 min): 1 short cardio + 1 dynamic prep. Mark "isWarmup": true, "phase": "warmup".`;
+    mainLine = `PHASE 2 — MAIN WORKOUT: 4-5 main exercises. Mark "phase": "main".`;
+    cooldownLine = `PHASE 3 — COOL-DOWN (3-4 min): 1-2 static stretches. Mark "isStretch": true, "phase": "cooldown". Reps "30s hold".`;
+  } else if (sd <= 50) {
+    budgetLine = `=== TIME BUDGET: ~${sd} MIN TOTAL ===\nAim for about ${sd} minutes total.`;
+    warmupLine = `PHASE 1 — WARM-UP (5 min): 1 cardio (3-4 min) + 1 dynamic prep. Mark "isWarmup": true, "phase": "warmup". Cardio reps in TIME format ("3 min").`;
+    mainLine = `PHASE 2 — MAIN WORKOUT: ${Math.max(5, minEx || 5)}-${Math.max(6, maxEx || 6)} main exercises. Mark "phase": "main".`;
+    cooldownLine = `PHASE 3 — COOL-DOWN (5 min): 2 static stretches matching trained muscles. Mark "isStretch": true, "phase": "cooldown". Reps "30s hold".`;
+  } else {
+    budgetLine = `=== TIME BUDGET: ~${sd} MIN TOTAL ===\nA full session of about ${sd} minutes.`;
+    warmupLine = `PHASE 1 — WARM-UP (5-8 min): 1 cardio (3-5 min) + 1-2 dynamic prep. Mark "isWarmup": true, "phase": "warmup". Cardio reps in TIME format ("3 min", "5 min").`;
+    mainLine = `PHASE 2 — MAIN WORKOUT: ${minEx}-${maxEx} main exercises. Mark "phase": "main".`;
+    cooldownLine = `PHASE 3 — COOL-DOWN (5-7 min): 2-3 static stretches matching trained muscles. Mark "isStretch": true, "phase": "cooldown". Reps "30s hold".`;
+  }
+  const phasesBlock = `${budgetLine}\n\n=== MANDATORY WORKOUT PHASES ===\n${warmupLine}\n${mainLine}\n${cooldownLine}`;
+
+  // ── Training style (straight sets / supersets / circuits / mixed) ────────────
+  const styleMap = {
+    straight_sets: 'STRAIGHT SETS: every exercise stands alone — set "isSuperset": false and "supersetGroup": null on all of them.',
+    supersets: 'SUPERSETS: pair MOST main exercises. Each pair shares the SAME "supersetGroup" letter ("A","B",…), sits consecutively, and has "isSuperset": true. Prefer antagonist pairings (e.g. push with pull).',
+    circuits: 'CIRCUITS: group 3-5 main exercises into a circuit — give them all the same "supersetGroup" letter and "isSuperset": true.',
+    mixed: 'MIXED: mostly straight sets plus 1-2 superset pairs — mark only the paired ones "isSuperset": true with a matching "supersetGroup" letter.'
+  };
+  const styleBlock = `=== TRAINING STYLE ===\n${styleMap[trainingStyle] || styleMap.straight_sets}`;
+
+  // ── Conditioning finisher (fires whenever the coach picked one) ──────────────
+  let conditioningBlock = '';
+  if (conditioningStyle === 'hiit') conditioningBlock = `\n=== CONDITIONING FINISHER (last 8-10 min) ===\nAdd a HIIT finisher: 4-8 rounds, 30s work / 30s rest, bodyweight or kettlebell (burpees, mountain climbers, kettlebell swings, jump rope). Mark "phase": "conditioning".`;
+  else if (conditioningStyle === 'liss') conditioningBlock = `\n=== CONDITIONING FINISHER ===\nAdd 10-15 min of LISS cardio (steady, RPE 5-6) at the end — treadmill walk, easy bike, or row. Mark "phase": "conditioning".`;
+  else if (conditioningStyle === 'mixed') conditioningBlock = `\n=== CONDITIONING FINISHER ===\nAlternate: a HIIT finisher on some days, 10-15 min LISS on others. Mark "phase": "conditioning".`;
+
+  // ── Focus areas (extra priority) ────────────────────────────────────────────
+  const focusBlock = (Array.isArray(focusAreas) && focusAreas.length)
+    ? `\n=== FOCUS AREAS (EXTRA PRIORITY) ===\nThe coach wants extra emphasis on: ${focusAreas.join(', ')}. Where these fit THIS day's muscle group, bias exercise selection and add a little volume toward them (an extra exercise or set), without neglecting the rest of the day.`
+    : '';
+
   const systemPrompt = `You are an elite strength & conditioning coach with 20+ years of experience. Return ONLY valid JSON, no markdown.
 
 Create a single ${muscleLabel} workout for an ${experience}-level trainee optimized for ${goal}.
@@ -358,10 +406,11 @@ NEVER write specific weights or loads (e.g. "45 lb", "20 kg", "use 70%", "you hi
 ${availableExercisesPrompt}
 ${clientContextBlock}
 ${avoidBlock}
-=== MANDATORY WORKOUT PHASES ===
-PHASE 1 — WARM-UP (5-8 min): 1 cardio (3-5 min) + 1-2 dynamic prep. Mark "isWarmup": true, "phase": "warmup". Cardio reps in TIME format ("3 min", "5 min").
-PHASE 2 — MAIN WORKOUT: ${minEx}-${maxEx} main exercises. Mark "phase": "main".
-PHASE 3 — COOL-DOWN (5-7 min): 2-3 static stretches matching trained muscles. Mark "isStretch": true, "phase": "cooldown". Reps "30s hold".
+${phasesBlock}
+
+${styleBlock}
+${focusBlock}
+${conditioningBlock}
 
 === EXERCISE ORDER WITHIN THE MAIN BLOCK (MANDATORY — this is what separates a real coach from a list of exercises) ===
 Order the MAIN exercises by how heavy and technically demanding they are, HARDEST FIRST while the client is freshest. The sequence must be:
@@ -924,7 +973,7 @@ If one does not fit today's muscle group, skip it (it belongs on another day). O
         injuries, injuryCodes, preferences, tempo, rpeTarget, rirTarget,
         unilateralPreference, conditioningStyle, clientContextBlock,
         warmupSuitable, stretchExercises, avoidExercises, keepMandate,
-        weightUnit: clientWeightUnit, model: genModel
+        weightUnit: clientWeightUnit, model: genModel, focusAreas
       });
       // Record this day's MAIN exercises so later same-type days avoid them
       const usedNow = (dayResult.exercises || [])
