@@ -32,13 +32,54 @@ function resolveDuration(video) {
   });
 }
 
+// Capture frames by PLAYING the clip and grabbing painted frames as they go by.
+//
+// Why not just seek+draw: on iOS Safari, drawing a video that is paused/seeked
+// and not actually on screen produces BLACK frames — the decoder never paints
+// to the compositor. The fix is to (a) attach the <video> to the DOM so it's
+// renderable (display:none also blanks it, so we hide it with near-zero size/
+// opacity instead), (b) play it muted/inline, and (c) capture via
+// requestVideoFrameCallback, which only fires once a real frame is presented.
+// Seek-based capture is kept as a fallback for environments that block autoplay.
 async function extractFrames(file, count = FRAME_COUNT, maxWidth = FRAME_MAX_WIDTH) {
   const url = URL.createObjectURL(file);
   const video = document.createElement('video');
   video.muted = true;
+  video.defaultMuted = true;
   video.playsInline = true;
+  video.setAttribute('muted', '');
+  video.setAttribute('playsinline', '');
   video.preload = 'auto';
+  // Must be renderable for iOS to decode to canvas — NOT display:none / visibility:hidden.
+  video.style.cssText = 'position:fixed;top:0;left:0;width:2px;height:2px;opacity:0.01;pointer-events:none;z-index:-1;';
+  document.body.appendChild(video);
   video.src = url;
+
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+  const frames = [];
+
+  const grab = () => {
+    let w = video.videoWidth;
+    let h = video.videoHeight;
+    if (!w || !h) return false;
+    if (w > maxWidth) { h = Math.round((h * maxWidth) / w); w = maxWidth; }
+    canvas.width = w;
+    canvas.height = h;
+    try {
+      ctx.drawImage(video, 0, 0, w, h);
+      frames.push(canvas.toDataURL('image/jpeg', 0.7));
+      return true;
+    } catch (e) {
+      return false;
+    }
+  };
+
+  const cleanup = () => {
+    try { video.pause(); } catch (e) { /* ignore */ }
+    URL.revokeObjectURL(url);
+    if (video.parentNode) video.parentNode.removeChild(video);
+  };
 
   try {
     await new Promise((res, rej) => {
@@ -48,43 +89,81 @@ async function extractFrames(file, count = FRAME_COUNT, maxWidth = FRAME_MAX_WID
     });
 
     const duration = await resolveDuration(video);
-    // Reset to start after the duration nudge above.
-    await new Promise((res) => {
-      const onSeek = () => { video.removeEventListener('seeked', onSeek); res(); };
-      video.addEventListener('seeked', onSeek);
-      try { video.currentTime = 0; } catch (e) { res(); }
-      setTimeout(res, 1500);
-    });
+    try { video.currentTime = 0; } catch (e) { /* ignore */ }
 
-    // Sample evenly across the clip, skipping the very first/last instants.
+    // Evenly spaced capture points across the clip.
     const targets = [];
     for (let k = 0; k < count; k++) {
       targets.push(Math.max(0, (duration * (k + 0.5)) / count));
     }
 
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
-    const frames = [];
+    const hasRVFC = typeof video.requestVideoFrameCallback === 'function';
 
-    for (const t of targets) {
-      await new Promise((res) => {
-        const onSeek = () => { video.removeEventListener('seeked', onSeek); res(); };
-        video.addEventListener('seeked', onSeek);
-        try { video.currentTime = t; } catch (e) { res(); }
-        setTimeout(res, 2500); // never hang on a stuck seek
+    // Seek-based fallback (used if playback/autoplay is blocked).
+    const seekCapture = async () => {
+      for (const t of targets) {
+        await new Promise((res) => {
+          const onSeek = () => { video.removeEventListener('seeked', onSeek); res(); };
+          video.addEventListener('seeked', onSeek);
+          try { video.currentTime = t; } catch (e) { res(); }
+          setTimeout(res, 2500);
+        });
+        if (hasRVFC) {
+          await new Promise((res) => {
+            let done = false;
+            video.requestVideoFrameCallback(() => { done = true; res(); });
+            setTimeout(() => { if (!done) res(); }, 400);
+          });
+        }
+        grab();
+      }
+    };
+
+    await new Promise((resolve) => {
+      let ti = 0;
+      let finished = false;
+      const finish = () => { if (!finished) { finished = true; resolve(); } };
+
+      // Overall safety cap so a stuck decode can never hang the UI.
+      const safety = setTimeout(() => {
+        while (ti < targets.length && grab()) ti++;
+        finish();
+      }, Math.min(25000, duration * 1000 + 8000));
+
+      const onFrame = () => {
+        if (finished) return;
+        // Grab every target the playhead has now passed.
+        while (ti < targets.length && video.currentTime >= targets[ti]) {
+          grab();
+          ti++;
+        }
+        if (ti >= targets.length) { clearTimeout(safety); finish(); return; }
+        if (hasRVFC) video.requestVideoFrameCallback(onFrame);
+      };
+
+      video.onended = () => {
+        while (ti < targets.length) { grab(); ti++; }
+        clearTimeout(safety);
+        finish();
+      };
+
+      // Play a touch faster than realtime to keep capture snappy (muted allows >1x).
+      try { video.playbackRate = 2; } catch (e) { /* ignore */ }
+
+      video.play().then(() => {
+        if (hasRVFC) video.requestVideoFrameCallback(onFrame);
+        else video.ontimeupdate = onFrame; // fallback frame pump
+      }).catch(async () => {
+        // Autoplay refused — fall back to seek-based capture.
+        try { await seekCapture(); } catch (e) { /* ignore */ }
+        clearTimeout(safety);
+        finish();
       });
-      let w = video.videoWidth;
-      let h = video.videoHeight;
-      if (!w || !h) continue;
-      if (w > maxWidth) { h = Math.round((h * maxWidth) / w); w = maxWidth; }
-      canvas.width = w;
-      canvas.height = h;
-      ctx.drawImage(video, 0, 0, w, h);
-      frames.push(canvas.toDataURL('image/jpeg', 0.7));
-    }
+    });
+
     return frames;
   } finally {
-    URL.revokeObjectURL(url);
+    cleanup();
   }
 }
 
