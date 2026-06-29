@@ -8,6 +8,7 @@ import { onAppSuspend, onAppResume } from '../../hooks/useAppLifecycle';
 import Portal from '../Portal';
 import SetEditorModal from './SetEditorModal';
 import SwapExerciseModal from './SwapExerciseModal';
+import FormCheckModal from './FormCheckModal';
 import AskCoachChat from './AskCoachChat';
 import VoiceNotePlayer from '../VoiceNotePlayer';
 import AskAIChatModal from './AskAIChatModal';
@@ -377,6 +378,7 @@ function ExerciseDetailModal({
 
   // Simple state - minimize state variables
   const [showSwapModal, setShowSwapModal] = useState(false);
+  const [showFormCheck, setShowFormCheck] = useState(false);
   const [showSetEditor, setShowSetEditor] = useState(false);
   // Coach custom videos open straight into the loaded player (first frame +
   // native controls) instead of a thumbnail + play button. Stock library
@@ -2403,6 +2405,15 @@ function ExerciseDetailModal({
           </button>
           <h2 className="header-title">{exercise.name || 'Exercise'}</h2>
           <div className="header-actions">
+            <button
+              className="swap-btn-visible"
+              onClick={() => setShowFormCheck(true)}
+              type="button"
+              title={t('formCheck.title') === 'formCheck.title' ? 'Form Check' : t('formCheck.title')}
+            >
+              <Sparkles size={16} />
+              <span>{t('formCheck.shortBtn') === 'formCheck.shortBtn' ? 'Form' : t('formCheck.shortBtn')}</span>
+            </button>
             {onSwapExercise && (
               <button
                 className="swap-btn-visible"
@@ -3397,6 +3408,13 @@ function ExerciseDetailModal({
             coachId={coachId}
           />
         </Portal>
+      )}
+
+      {showFormCheck && (
+        <FormCheckModal
+          exerciseName={exercise?.name}
+          onClose={() => setShowFormCheck(false)}
+        />
       )}
 
       {/* Delete Confirmation Modal */}

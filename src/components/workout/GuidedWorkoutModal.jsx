@@ -3,6 +3,7 @@ import { X, Play, Pause, SkipForward, SkipBack, ChevronRight, ChevronLeft, Check
 import Portal from '../Portal';
 import SmartThumbnail from './SmartThumbnail';
 import SwapExerciseModal from './SwapExerciseModal';
+import FormCheckModal from './FormCheckModal';
 import { apiGet, apiPost, apiPut, apiDelete, getOrCreateWorkoutLogId } from '../../utils/api';
 import { onAppResume } from '../../hooks/useAppLifecycle';
 import { parseDurationToSeconds } from '../../utils/workoutDuration';
@@ -573,6 +574,7 @@ function GuidedWorkoutModal({
 
   // Swap modal state
   const [showSwapModal, setShowSwapModal] = useState(false);
+  const [showFormCheck, setShowFormCheck] = useState(false);
   const wasPausedBeforeSwapRef = useRef(false);
 
   // Resume prompt state
@@ -4095,6 +4097,15 @@ function GuidedWorkoutModal({
               <span>{t('guidedWorkout.swapBtn')}</span>
             </button>
           )}
+          <button
+            className="guided-swap-btn"
+            onClick={() => setShowFormCheck(true)}
+            type="button"
+            title={t('formCheck.title') === 'formCheck.title' ? 'Form Check' : t('formCheck.title')}
+          >
+            <Sparkles size={14} />
+            <span>{t('formCheck.shortBtn') === 'formCheck.shortBtn' ? 'Form' : t('formCheck.shortBtn')}</span>
+          </button>
         </div>
         <h1 className="guided-exercise-name">{currentExercise.name}</h1>
         <div className="guided-exercise-meta">
@@ -5177,6 +5188,14 @@ function GuidedWorkoutModal({
           onClose={handleSwapClose}
           genderPreference={genderPreference}
           coachId={coachId}
+        />
+      )}
+
+      {/* AI Form Check (beta) */}
+      {showFormCheck && (
+        <FormCheckModal
+          exerciseName={currentExercise?.name}
+          onClose={() => setShowFormCheck(false)}
         />
       )}
 
