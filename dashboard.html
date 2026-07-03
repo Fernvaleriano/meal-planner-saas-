@@ -9349,6 +9349,9 @@
             notifications.forEach(n => {
                 // Skip workout_assigned — that's a confirmation of a coach action, already in the bell.
                 if (n.type === 'workout_assigned') return;
+                // Skip gym check-ins — these already show in the "Wins" activity feed, so
+                // surfacing them here in "Needs You" duplicates them. Wins is the right home.
+                if (n.type === 'gym_proof' || n.type === 'gym_checkin') return;
                 const aid = 'notif-' + n.id;
                 const icon = notifIcons[n.type] || '🔔';
                 const dotColor = notifDotColors[n.type] || 'blue';
