@@ -12,7 +12,7 @@ const { handleCors, authenticateRequest, checkRateLimit, rateLimitResponse, cors
 
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 
-const MAX_FRAMES = 8;
+const MAX_FRAMES = 12;
 
 // Plain-English safety line returned with every result and shown in the UI.
 const DISCLAIMER = "This is an AI second opinion based on a few snapshots of your set — not a medical or injury assessment. When in doubt, check with your coach.";
@@ -91,29 +91,51 @@ exports.handler = async (event, context) => {
             ? `\nIMPORTANT: Write ALL text fields (summary, goodPoints, issues, cues) in this language code: "${language}".`
             : '';
 
-        const prompt = `You are an experienced, encouraging strength coach reviewing a client's lifting form. The images below are sequential still frames pulled from a short video of the client performing ONE set of: "${exName}". Read them in order as a movement from start to finish.
+        const prompt = `You are an experienced, encouraging strength coach reviewing a client's lifting form. The images below are still frames pulled in order from a short video of the client performing a set of: "${exName}". Read them in sequence as a movement from start to finish.
+
+IMPORTANT — the client may NOT have trimmed the clip. Some frames can show them walking up to the equipment, setting up, resting between reps, re-racking, or standing around — NOT actually lifting. Silently IGNORE those frames. Judge form ONLY from the frames that clearly show the working reps being performed. If fewer than about two frames actually show the exercise being performed, set "canAssess" to false (or "viewQuality" to "poor") and, in "summary", gently tell them to film just the one set (about 5-10 seconds of the actual lift, nothing before or after).
 
 Give honest, useful, plain-English feedback a beginner can act on. Be encouraging but specific. Focus ONLY on what is actually visible — common things worth checking depending on the lift: range of motion / depth, spine/back position (rounding or excessive arching), knee tracking (caving in), bar or hand path, hip hinge, stance, head/neck position, control and tempo, lockout.
 
 CRITICAL RULES:
-- Judge ONLY what you can clearly see. If the camera angle, lighting, framing, or clothing makes something impossible to assess, say so and set "viewQuality" accordingly — do NOT guess.
-- If you cannot tell what exercise is happening or no person is clearly visible, set "canAssess" to false and explain in "summary".
+- Judge ONLY what you can clearly see in the frames that show the actual lift. If the camera angle, lighting, framing, or clothing makes something impossible to assess, say so and set "viewQuality" accordingly — do NOT guess.
+- If you cannot tell what exercise is happening or no person is clearly performing the lift, set "canAssess" to false and explain in "summary".
 - Do NOT diagnose injuries or give medical advice. You flag what LOOKS off, you do not declare anything safe or dangerous.
 - Never claim the form is "perfect." At most say it looks solid with nothing obvious to fix.
 - Keep it short: max 4 good points, max 4 issues, max 3 cues.${langInstruction}
 
-Return ONLY valid JSON (no markdown, no code fences) in EXACTLY this shape:
-{
-  "canAssess": true,
-  "viewQuality": "good",            // "good" | "partial" | "poor" — how well the angle/clip let you judge form
-  "summary": "1-2 sentence plain-English overall read of the set",
-  "goodPoints": ["short specific thing they did well"],
-  "issues": [
-    { "point": "what looks off, plainly", "severity": "minor", "fix": "one concrete cue to fix it" }
-  ],
-  "cues": ["short coaching cue to focus on next set"]
-}
 Use "severity" of "minor" | "moderate" | "major". If you genuinely see nothing to fix, return an empty "issues" array. If "canAssess" is false, return empty arrays for goodPoints/issues/cues and explain why in "summary".`;
+
+        // Tool-based structured output — forces the model to return the exact
+        // JSON shape the UI expects, so we don't depend on fragile text parsing.
+        const reportTool = {
+            name: 'report_form_check',
+            description: 'Return the structured form-check assessment for the client.',
+            input_schema: {
+                type: 'object',
+                properties: {
+                    canAssess: { type: 'boolean', description: 'False if no clear lifting is visible.' },
+                    viewQuality: { type: 'string', enum: ['good', 'partial', 'poor'], description: 'How well the angle/clip let you judge form.' },
+                    summary: { type: 'string', description: '1-2 sentence plain-English overall read of the set.' },
+                    goodPoints: { type: 'array', items: { type: 'string' }, description: 'Up to 4 short specific things they did well.' },
+                    issues: {
+                        type: 'array',
+                        items: {
+                            type: 'object',
+                            properties: {
+                                point: { type: 'string', description: 'What looks off, plainly.' },
+                                severity: { type: 'string', enum: ['minor', 'moderate', 'major'] },
+                                fix: { type: 'string', description: 'One concrete cue to fix it.' }
+                            },
+                            required: ['point', 'severity', 'fix']
+                        },
+                        description: 'Up to 4 issues. Empty if nothing to fix.'
+                    },
+                    cues: { type: 'array', items: { type: 'string' }, description: 'Up to 3 short coaching cues for the next set.' }
+                },
+                required: ['canAssess', 'viewQuality', 'summary', 'goodPoints', 'issues', 'cues']
+            }
+        };
 
         const contentParts = [...imageParts, { type: 'text', text: prompt }];
 
@@ -121,8 +143,10 @@ Use "severity" of "minor" | "moderate" | "major". If you genuinely see nothing t
         try {
             const anthropic = new Anthropic({ apiKey: ANTHROPIC_API_KEY, maxRetries: 2 });
             message = await anthropic.messages.create({
-                model: 'claude-sonnet-4-5-20250929',
+                model: 'claude-sonnet-5',
                 max_tokens: 900,
+                tools: [reportTool],
+                tool_choice: { type: 'tool', name: 'report_form_check' },
                 messages: [{ role: 'user', content: contentParts }]
             });
         } catch (apiError) {
@@ -143,20 +167,35 @@ Use "severity" of "minor" | "moderate" | "major". If you genuinely see nothing t
             };
         }
 
-        const content = message.content?.[0]?.text || '';
         let parsed = null;
-        try {
-            parsed = JSON.parse(content.trim());
-        } catch (e) {
-            const cleaned = content.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
-            const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
-            if (jsonMatch) {
-                try { parsed = JSON.parse(jsonMatch[0]); } catch (e2) { /* fall through */ }
+
+        // Preferred path: the model called the tool, so the input IS the object.
+        const toolUse = Array.isArray(message.content)
+            ? message.content.find(b => b.type === 'tool_use' && b.name === 'report_form_check')
+            : null;
+        if (toolUse && toolUse.input && typeof toolUse.input === 'object') {
+            parsed = toolUse.input;
+        }
+
+        // Fallback: if the model returned text anyway, parse it out.
+        if (!parsed) {
+            const textBlock = Array.isArray(message.content)
+                ? message.content.find(b => b.type === 'text')
+                : null;
+            const content = textBlock?.text || '';
+            try {
+                parsed = JSON.parse(content.trim());
+            } catch (e) {
+                const cleaned = content.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
+                const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
+                if (jsonMatch) {
+                    try { parsed = JSON.parse(jsonMatch[0]); } catch (e2) { /* fall through */ }
+                }
             }
         }
 
         if (!parsed || typeof parsed !== 'object') {
-            console.error('Could not parse form-check response:', content.substring(0, 500));
+            console.error('Could not parse form-check response:', JSON.stringify(message.content || '').substring(0, 500));
             return {
                 statusCode: 200,
                 headers,
