@@ -97,7 +97,7 @@ async function analyzeClientHistory(supabase, clientId, options = {}) {
   try {
     const [logsRes, assignmentsRes] = await Promise.all([
       supabase.from('workout_logs')
-        .select('id, workout_date, duration_minutes, perceived_exertion, notes')
+        .select('id, workout_date, duration_minutes, workout_rating, notes')
         .eq('client_id', clientId)
         .gte('workout_date', sixtyDaysAgo)
         .order('workout_date', { ascending: true }),
@@ -345,7 +345,10 @@ async function analyzeClientHistory(supabase, clientId, options = {}) {
   }));
 
   // Aggregate metrics
-  const rpeValues = logs.map(l => l.perceived_exertion).filter(v => v != null);
+  // workout_rating is 1-5; ×2 converts to the 0-10 RPE-ish scale the
+  // thresholds below (>=8.5 high, <=6 low) and the "/10" display expect.
+  // (Same convention as generate-workout-claude-background.js.)
+  const rpeValues = logs.map(l => l.workout_rating).filter(v => v != null).map(v => v * 2);
   const avgRPE = rpeValues.length > 0 ? rpeValues.reduce((s, v) => s + v, 0) / rpeValues.length : null;
 
   const oldestDate = logs[0].workout_date;

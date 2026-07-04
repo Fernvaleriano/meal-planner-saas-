@@ -342,10 +342,16 @@ async function fetchClientContext(supabase, clientId) {
       intake: null, // form_responses lookup deferred
       lastProgram: lastAssignmentRes?.data || null,
       recentSessionCount: logsRes.data?.length || 0,
-      // Use workout_rating as a proxy for RPE (no perceived_exertion column exists)
-      avgRPE: logsRes.data?.length > 0
-        ? (logsRes.data.reduce((s, l) => s + (l.workout_rating || 0), 0) / logsRes.data.filter(l => l.workout_rating).length || null)
-        : null,
+      // Use workout_rating as a proxy for RPE (no perceived_exertion column exists).
+      // Rating is 1-5; ×2 puts it on the 0-10 scale the >=8.5 / <=6 thresholds
+      // in formatClientContextForPrompt expect (same convention as the
+      // background generator).
+      avgRPE: (() => {
+        const rated = (logsRes.data || []).filter(l => l.workout_rating);
+        return rated.length > 0
+          ? (rated.reduce((s, l) => s + l.workout_rating, 0) / rated.length) * 2
+          : null;
+      })(),
       exerciseHistory: exerciseHistoryRaw.map(([name, data]) => `${name}: top ${data.topWeight}, ${data.sessions} sessions${data.prs ? `, ${data.prs} PRs` : ''}`),
       exerciseHistoryRaw // kept for the summary block
     };
