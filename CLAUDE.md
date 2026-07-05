@@ -26,24 +26,63 @@ headers in a casual conversation — stop, delete, rewrite plain.
 
 ## ⚠️ OPERATIONAL REMINDERS — ACTION REQUIRED (read me)
 
-- **DECISION (May 2026): WEB-ONLY. Native / App Store is intentionally
-  DROPPED.** Ziquecoach is a web app (PWA) only. Submitting to the
-  Apple App Store / Google Play and shipping a native Capacitor build
-  is **deliberately abandoned** — chosen by the founder for instant
-  bug-fix deploys (no app-store review latency), lower maintenance, and
-  because distribution is coach-invite based (no app-store discovery
-  needed). **Implications for anyone (human or AI) working here:**
-  - The "broken Capacitor mobile build" in LAUNCH-CHECKLIST.md is NOT a
-    bug to fix. Do not repair/resurrect the Capacitor build, Android
-    keystore, App ID, FCM/APNs, or App Store compliance tasks. Treat
-    `android/`, `ios/`, `capacitor.config.json`, `vite.config.mobile.js`
-    as parked/legacy.
-  - Push notifications, if ever wanted, go via PWA web push — not
-    native. Optional, not a launch blocker.
-  - The web app IS the product: prioritize PWA reliability (service
-    worker / install / offline / no stale cache) over anything native.
-  - GDPR export/deletion work was still correct — privacy law is
-    platform-independent.
+- **UPDATE (July 2026): App Store is BACK ON — the May 2026 "web-only,
+  App Store deliberately dropped" decision is REVERSED by the founder.
+  See the TODO right below.** The web app/PWA remains the primary
+  product and still gets priority for reliability work, but
+  `android/`, `ios/`, `capacitor.config.json`, and
+  `vite.config.mobile.js` are NO LONGER parked/legacy — they are the
+  path to the store build. (GDPR export/deletion work unaffected —
+  privacy law is platform-independent.)
+
+- **TODO (July 2026): APP STORE SUBMISSION PLAN — agreed with the
+  founder, work NOT started yet.** Goal: get the React app into the
+  Apple App Store WITHOUT being rejected as a "website in a wrapper"
+  (Apple guideline 4.2, minimum functionality — the founder's explicit
+  worry). Facts already settled:
+  - Founder ALREADY HAS an active Apple Developer account (years old) —
+    no signup wait.
+  - App ID `com.ziquecoach.app` is already set in the Capacitor/iOS/
+    Android configs; it's the one to use at first submission (can't be
+    changed after publishing).
+  - OPEN QUESTION for the founder: does he have a Mac for the
+    Xcode build/upload, or do we set up a cloud build service (e.g.
+    Codemagic / GitHub Actions macOS runner)? iOS builds can't be made
+    from a Linux session.
+
+  **Build order (BEFORE submitting):**
+  1. **Fix the mobile packaging (quick, code-only).** `build:mobile` in
+     `package.json` still copies the LEGACY root HTML pages into
+     `www/`, so the native shell would ship the old app. Change it to
+     build the React SPA via `vite.config.mobile.js` (already exists:
+     `app-test.html` → `www/`, relative paths). Verify
+     `capacitor.config.json` (`webDir: "www"`) loads the SPA and
+     routing works inside the shell.
+  2. **Native push notifications (APNs via Capacitor plugin)** — the
+     #1 "real app" signal for review and genuinely useful (workout
+     reminders, coach messages on the lock screen). Wire to the
+     existing notifications backend. The May 2026 "web push only" note
+     no longer applies to the store build.
+  3. **Face ID / Touch ID login** — biometric unlock. Small effort,
+     strong native feel.
+  4. **Proper native camera flow** for progress/food photos (real
+     camera UI, not the browser file picker).
+  5. **Reviewer demo account** — working coach + client logins with
+     realistic data so Apple's reviewer sees a living product.
+  6. *(v2, optional, not a blocker)* Apple Health sync (write workouts
+     to HealthKit).
+
+  **Compliance notes:**
+  - The app already bundles its screens locally in `www/` (not a
+    remote-URL wrapper) — keep it that way.
+  - The moment Google sign-in ships (see social-login TODO below),
+    Apple REQUIRES "Sign in with Apple" in the iOS app — plan them
+    together.
+  - Account deletion must be reachable inside the app (verify the
+    GDPR deletion flow is exposed in the React app).
+  - Expect a few weeks end-to-end (build work → TestFlight → review at
+    a few days per round; a rejection = fix and resubmit, not a dead
+    end).
 
 - **TODO: add Google + Apple sign-in / sign-up.** Currently only
   email+password. Competitors (e.g. burnon.ai) already offer social
