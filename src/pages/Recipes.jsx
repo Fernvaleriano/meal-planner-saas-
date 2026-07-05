@@ -436,6 +436,9 @@ function Recipes() {
   const handleDownloadPDF = () => {
     if (!selectedRecipe) return;
 
+    // The printout opens in its own window — CSS variables from the app don't
+    // exist there, so interpolate the applied brand color directly.
+    const printBrandColor = (getComputedStyle(document.documentElement).getPropertyValue('--brand-primary') || '').trim() || '#2cb5a5';
     const printContent = `
       <!DOCTYPE html>
       <html>
@@ -443,7 +446,7 @@ function Recipes() {
         <title>${selectedRecipe.name} - ${t('recipesPage.pdfTitleSuffix')}</title>
         <style>
           body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; padding: 40px; max-width: 800px; margin: 0 auto; }
-          h1 { color: #2cb5a5; margin-bottom: 8px; }
+          h1 { color: ${printBrandColor}; margin-bottom: 8px; }
           .subtitle { color: #64748b; margin-bottom: 24px; }
           .nutrition { display: flex; gap: 24px; background: #f1f5f9; padding: 16px; border-radius: 8px; margin-bottom: 24px; }
           .nutrition-item { text-align: center; }
@@ -456,7 +459,7 @@ function Recipes() {
           .instructions p { margin-bottom: 12px; }
           .footer { margin-top: 40px; padding-top: 20px; border-top: 1px solid #e2e8f0; color: #94a3b8; font-size: 12px; }
           .back-bar { display: flex; align-items: center; gap: 8px; margin-bottom: 20px; }
-          .back-bar a { display: inline-flex; align-items: center; gap: 6px; color: #2cb5a5; text-decoration: none; font-weight: 600; font-size: 15px; padding: 10px 16px; border-radius: 10px; background: #f0fdfa; border: 1px solid #ccfbf1; }
+          .back-bar a { display: inline-flex; align-items: center; gap: 6px; color: ${printBrandColor}; text-decoration: none; font-weight: 600; font-size: 15px; padding: 10px 16px; border-radius: 10px; background: #f0fdfa; border: 1px solid #ccfbf1; }
           .back-bar a:active { background: #ccfbf1; }
           @media print { body { padding: 20px; } .back-bar { display: none; } }
         </style>
@@ -656,7 +659,7 @@ function Recipes() {
                 onClick={openCreateForm}
                 style={{
                   display: 'flex', alignItems: 'center', gap: '8px',
-                  background: '#2cb5a5', color: 'white', border: 'none',
+                  background: 'var(--brand-primary, #2cb5a5)', color: 'white', border: 'none',
                   borderRadius: '10px', padding: '12px 20px', fontSize: '15px',
                   fontWeight: '600', cursor: 'pointer', flex: '1',
                   justifyContent: 'center'
@@ -1342,7 +1345,7 @@ function Recipes() {
                       transition: 'border-color 0.2s, background 0.2s',
                       background: 'var(--gray-50)'
                     }}
-                    onMouseOver={(e) => { e.currentTarget.style.borderColor = '#2cb5a5'; e.currentTarget.style.background = 'var(--gray-100)'; }}
+                    onMouseOver={(e) => { e.currentTarget.style.borderColor = 'var(--brand-primary, #2cb5a5)'; e.currentTarget.style.background = 'var(--gray-100)'; }}
                     onMouseOut={(e) => { e.currentTarget.style.borderColor = 'var(--gray-300)'; e.currentTarget.style.background = 'var(--gray-50)'; }}
                     >
                       <Camera size={32} color="#94a3b8" />
@@ -1387,8 +1390,8 @@ function Recipes() {
                   style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}
                   onClick={() => handleFormChange('is_public', !formData.is_public)}
                 >
-                  {formData.is_public ? <Eye size={18} color="#2cb5a5" /> : <EyeOff size={18} color="#6b7280" />}
-                  <span style={{ fontSize: '14px', color: formData.is_public ? '#2cb5a5' : '#6b7280' }}>
+                  {formData.is_public ? <Eye size={18} style={{ color: 'var(--brand-primary, #2cb5a5)' }} /> : <EyeOff size={18} color="#6b7280" />}
+                  <span style={{ fontSize: '14px', color: formData.is_public ? 'var(--brand-primary, #2cb5a5)' : '#6b7280' }}>
                     {formData.is_public ? t('recipesPage.formVisibleToClients') : t('recipesPage.formHiddenFromClients')}
                   </span>
                 </div>
@@ -1400,7 +1403,7 @@ function Recipes() {
                   disabled={saving || !formData.name.trim()}
                   style={{
                     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
-                    background: saving ? '#6b7280' : '#2cb5a5', color: 'white', border: 'none',
+                    background: saving ? '#6b7280' : 'var(--brand-primary, #2cb5a5)', color: 'white', border: 'none',
                     borderRadius: '10px', padding: '14px 24px', fontSize: '16px',
                     fontWeight: '600', cursor: saving ? 'not-allowed' : 'pointer',
                     width: '100%', marginTop: '8px',
@@ -1469,8 +1472,8 @@ function Recipes() {
                   marginBottom: '16px',
                   textAlign: 'center'
                 }}>
-                  <Loader size={24} color="#2cb5a5" style={{ animation: 'spin 1s linear infinite' }} />
-                  <p style={{ color: '#2cb5a5', fontSize: '14px', fontWeight: '500', marginTop: '8px' }}>
+                  <Loader size={24} style={{ color: 'var(--brand-primary, #2cb5a5)', animation: 'spin 1s linear infinite' }} />
+                  <p style={{ color: 'var(--brand-primary, #2cb5a5)', fontSize: '14px', fontWeight: '500', marginTop: '8px' }}>
                     {t('recipesPage.youtubeExtractingDetail')}
                   </p>
                   <p style={{ color: '#64748b', fontSize: '12px', marginTop: '4px' }}>

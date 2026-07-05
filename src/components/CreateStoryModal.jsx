@@ -174,11 +174,11 @@ const styles = {
   addPhotoBtn: {
     alignSelf: 'flex-start', display: 'inline-flex', alignItems: 'center', gap: 8,
     padding: '8px 14px', borderRadius: 20, border: '1px solid var(--border-color, #e2e8f0)',
-    background: 'transparent', color: '#2cb5a5', cursor: 'pointer', fontSize: 14, fontWeight: 600
+    background: 'transparent', color: 'var(--brand-primary, #2cb5a5)', cursor: 'pointer', fontSize: 14, fontWeight: 600
   },
   thumbRow: { display: 'flex', alignItems: 'center', gap: 12 },
   thumb: { width: 64, height: 64, objectFit: 'cover', borderRadius: 10, flex: '0 0 auto' },
-  changeBtn: { background: 'none', border: 'none', color: '#2cb5a5', fontWeight: 600, cursor: 'pointer', fontSize: 13 },
+  changeBtn: { background: 'none', border: 'none', color: 'var(--brand-primary, #2cb5a5)', fontWeight: 600, cursor: 'pointer', fontSize: 13 },
   removeBtn: { background: 'none', border: 'none', color: 'var(--text-secondary, #64748b)', fontWeight: 600, cursor: 'pointer', fontSize: 13 },
   textarea: {
     width: '100%', padding: '11px 12px', borderRadius: 10, fontSize: 15, boxSizing: 'border-box', resize: 'vertical',
@@ -191,14 +191,14 @@ const styles = {
     padding: '9px 10px', borderRadius: 10, border: '1px solid var(--border-color, #e2e8f0)',
     background: 'transparent', color: 'inherit', cursor: 'pointer', fontSize: 13, fontWeight: 600
   },
-  visBtnActive: { background: 'rgba(44,181,165,0.14)', borderColor: '#2cb5a5', color: '#0f766e' },
+  visBtnActive: { background: 'rgba(44,181,165,0.14)', borderColor: 'var(--brand-primary, #2cb5a5)', color: 'var(--brand-primary-darker, #0f766e)' },
   visHint: { fontSize: 12, color: 'var(--text-secondary, #64748b)', marginBottom: 12, lineHeight: 1.4 },
   error: {
     fontSize: 13, color: '#b91c1c', background: 'rgba(239,68,68,0.1)',
     padding: '8px 10px', borderRadius: 8, marginBottom: 10
   },
   submit: {
-    width: '100%', padding: '13px', borderRadius: 12, border: 'none', background: '#2cb5a5',
+    width: '100%', padding: '13px', borderRadius: 12, border: 'none', background: 'var(--brand-primary, #2cb5a5)',
     color: '#fff', fontSize: 15, fontWeight: 700, cursor: 'pointer',
     display: 'flex', alignItems: 'center', justifyContent: 'center'
   },

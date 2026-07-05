@@ -2123,7 +2123,10 @@ function Diary() {
           ctx.fill();
         };
 
-        if (shareDiaryToggles.calories) drawProgressBar(t('diaryPage.shareCalories'), totals.calories, goals.calorie_goal, '#2cb5a5', progressY);
+        // Canvas can't resolve CSS variables — read the applied brand color off
+        // :root so the share image matches the coach's brand.
+        const shareBrandColor = (getComputedStyle(document.documentElement).getPropertyValue('--brand-primary') || '').trim() || '#2cb5a5';
+        if (shareDiaryToggles.calories) drawProgressBar(t('diaryPage.shareCalories'), totals.calories, goals.calorie_goal, shareBrandColor, progressY);
         if (shareDiaryToggles.protein) drawProgressBar(t('diaryPage.shareProtein'), totals.protein, goals.protein_goal, '#10b981', progressY + 36);
         if (shareDiaryToggles.carbs) drawProgressBar(t('diaryPage.shareCarbs'), totals.carbs, goals.carbs_goal, '#f59e0b', progressY + 72);
         if (shareDiaryToggles.fat) drawProgressBar(t('diaryPage.shareFat'), totals.fat, goals.fat_goal, '#ef4444', progressY + 108);
@@ -3117,7 +3120,7 @@ function Diary() {
               <button
                 className="btn-primary"
                 onClick={executeCopyDate}
-                style={{ width: '100%', padding: '12px', borderRadius: '8px', background: '#2cb5a5', color: 'white', border: 'none', fontWeight: 600 }}
+                style={{ width: '100%', padding: '12px', borderRadius: '8px', background: 'var(--brand-primary, #2cb5a5)', color: 'white', border: 'none', fontWeight: 600 }}
               >
                 {t('diaryPage.copyEntries')}
               </button>
@@ -3567,7 +3570,7 @@ function Diary() {
                     <div style={{ fontSize: '0.8rem', color: 'var(--gray-400)' }}>{t('diaryPage.nutritionCalories')}</div>
                   </div>
                   <div style={{ textAlign: 'center' }}>
-                    <div style={{ fontSize: '1.3rem', fontWeight: 600, color: '#2cb5a5' }}>{editingEntry.protein || 0}g</div>
+                    <div style={{ fontSize: '1.3rem', fontWeight: 600, color: 'var(--brand-macro-protein, #2cb5a5)' }}>{editingEntry.protein || 0}g</div>
                     <div style={{ fontSize: '0.8rem', color: 'var(--gray-400)' }}>{t('diaryPage.nutritionProtein')}</div>
                   </div>
                   <div style={{ textAlign: 'center' }}>
@@ -3605,7 +3608,7 @@ function Diary() {
                     padding: '14px',
                     borderRadius: '12px',
                     border: 'none',
-                    background: 'linear-gradient(135deg, #2cb5a5 0%, #2563eb 100%)',
+                    background: 'linear-gradient(135deg, var(--brand-primary, #2cb5a5) 0%, #2563eb 100%)',
                     color: 'white',
                     fontWeight: 600,
                     cursor: 'pointer'
@@ -3741,7 +3744,7 @@ function Diary() {
               <button
                 className="btn-primary"
                 onClick={() => handleSaveMeal(document.getElementById('saveMealName').value)}
-                style={{ width: '100%', padding: '12px', borderRadius: '8px', background: '#2cb5a5', color: 'white', border: 'none', fontWeight: 600 }}
+                style={{ width: '100%', padding: '12px', borderRadius: '8px', background: 'var(--brand-primary, #2cb5a5)', color: 'white', border: 'none', fontWeight: 600 }}
               >
                 {t('diaryPage.saveToFavorites')}
               </button>
@@ -3969,7 +3972,7 @@ function Diary() {
                       setAiLogging(false);
                     }
                   }}
-                  style={{ flex: 1, padding: '14px', borderRadius: '8px', background: '#2cb5a5', color: 'white', border: 'none', fontWeight: 600, fontSize: '1rem' }}
+                  style={{ flex: 1, padding: '14px', borderRadius: '8px', background: 'var(--brand-primary, #2cb5a5)', color: 'white', border: 'none', fontWeight: 600, fontSize: '1rem' }}
                   disabled={aiLogging || !aiInput.trim() || aiLogShowConfirmation}
                 >
                   {aiLogging ? t('diaryPage.analyzing') : t('diaryPage.logFood')}
@@ -4210,7 +4213,7 @@ function Diary() {
             <div className="modal-body" style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '16px', maxHeight: '70vh', overflowY: 'auto' }}>
               {clientData?.can_edit_goals && [{
                   key: 'calorie_goal', label: t('diaryPage.nutritionCalories'), unit: 'kcal', color: '#f97316', step: 50 },
-                { key: 'protein_goal', label: t('diaryPage.nutritionProtein'), unit: 'g', color: '#2cb5a5', step: 5 },
+                { key: 'protein_goal', label: t('diaryPage.nutritionProtein'), unit: 'g', color: 'var(--brand-macro-protein, #2cb5a5)', step: 5 },
                 { key: 'carbs_goal', label: t('diaryPage.nutritionCarbs'), unit: 'g', color: '#10b981', step: 5 },
                 { key: 'fat_goal', label: t('diaryPage.nutritionFat'), unit: 'g', color: '#f59e0b', step: 5 }
               ].map(({ key, label, unit, color, step }) => (
@@ -4336,7 +4339,7 @@ function Diary() {
                 disabled={savingGoals}
                 style={{
                   marginTop: '8px', padding: '12px', borderRadius: '10px',
-                  border: 'none', background: '#2cb5a5', color: '#fff',
+                  border: 'none', background: 'var(--brand-primary, #2cb5a5)', color: '#fff',
                   fontSize: '1rem', fontWeight: 600, cursor: savingGoals ? 'not-allowed' : 'pointer',
                   opacity: savingGoals ? 0.6 : 1
                 }}

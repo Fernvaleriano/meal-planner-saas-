@@ -2096,6 +2096,65 @@
             canRequestNewPlan: true
         };
 
+        // Override stylesheet covering the 40+ places where #2dd4bf and #14b8a6
+        // are hardcoded in the <style> block. Idempotent — safe to call from both
+        // the logged-in and the anonymous shared-link branding paths.
+        function injectBrandOverrideCSS() {
+            if (document.getElementById('coach-brand-override')) return;
+            const overrideCSS = document.createElement('style');
+            overrideCSS.id = 'coach-brand-override';
+            overrideCSS.textContent = `
+                body { background: var(--brand-gradient) !important; }
+                .header h1, .section-title, .info-label, .meal-title,
+                .macro-label, .btn-primary, .favorite-btn.active,
+                .day-header { color: var(--brand-primary); }
+                .day-header {
+                    background: var(--brand-gradient) !important;
+                    color: white !important;
+                }
+                .btn-primary, .copy-btn, [style*="background: #2dd4bf"],
+                [style*="background:#2dd4bf"] {
+                    background: var(--brand-primary) !important;
+                }
+                .btn-secondary, [style*="background: #14b8a6"],
+                [style*="background:#14b8a6"] {
+                    background: var(--brand-secondary) !important;
+                }
+                .share-btn, .action-btn-primary {
+                    background: var(--brand-gradient) !important;
+                }
+                .supplement-badge {
+                    border-top-color: var(--brand-primary) !important;
+                }
+            `;
+            document.head.appendChild(overrideCSS);
+        }
+
+        // Apply the lightweight branding get-shared-plan returns, so ANONYMOUS
+        // viewers of a shared link see the coach's brand too (the fuller
+        // applyCoachBranding below only runs for logged-in clients).
+        function applySharedBranding(cb) {
+            if (!cb || (!cb.primaryColor && !cb.logoUrl && !cb.displayName)) return;
+            try {
+                const primary = cb.primaryColor;
+                if (primary) {
+                    const secondary = cb.secondaryColor || primary;
+                    const root = document.documentElement;
+                    root.style.setProperty('--brand-primary', primary);
+                    root.style.setProperty('--brand-secondary', secondary);
+                    root.style.setProperty('--brand-gradient', `linear-gradient(135deg, ${primary} 0%, ${secondary} 100%)`);
+                    injectBrandOverrideCSS();
+                }
+                if (cb.logoUrl) {
+                    const logoEl = document.getElementById('brandLogo');
+                    if (logoEl) logoEl.src = cb.logoUrl;
+                }
+                if (cb.displayName) {
+                    document.title = `Your Meal Plan - ${cb.displayName}`;
+                }
+            } catch (e) { /* branding is cosmetic — never block the plan */ }
+        }
+
         // Fetch and apply coach branding colors
         async function applyCoachBranding(coachId) {
             if (!coachId) return;
@@ -2115,34 +2174,7 @@
                 }
 
                 // Inject a dynamic stylesheet to override all hardcoded brand colors
-                // This covers the 40+ places where #2dd4bf and #14b8a6 are used in the <style> block
-                const overrideCSS = document.createElement('style');
-                overrideCSS.id = 'coach-brand-override';
-                overrideCSS.textContent = `
-                    body { background: var(--brand-gradient) !important; }
-                    .header h1, .section-title, .info-label, .meal-title,
-                    .macro-label, .btn-primary, .favorite-btn.active,
-                    .day-header { color: var(--brand-primary); }
-                    .day-header {
-                        background: var(--brand-gradient) !important;
-                        color: white !important;
-                    }
-                    .btn-primary, .copy-btn, [style*="background: #2dd4bf"],
-                    [style*="background:#2dd4bf"] {
-                        background: var(--brand-primary) !important;
-                    }
-                    .btn-secondary, [style*="background: #14b8a6"],
-                    [style*="background:#14b8a6"] {
-                        background: var(--brand-secondary) !important;
-                    }
-                    .share-btn, .action-btn-primary {
-                        background: var(--brand-gradient) !important;
-                    }
-                    .supplement-badge {
-                        border-top-color: var(--brand-primary) !important;
-                    }
-                `;
-                document.head.appendChild(overrideCSS);
+                injectBrandOverrideCSS();
 
                 // Apply coach's client theme preference (only if client hasn't manually toggled)
                 if (b.brand_client_theme) {
@@ -2374,6 +2406,11 @@
 
                 const data = await response.json();
                 currentPlan = data.planData;
+
+                // Brand the page for anonymous viewers right away; if the viewer
+                // turns out to be a logged-in client, applyCoachBranding below
+                // layers the fuller branding (theme, etc.) on top.
+                applySharedBranding(data.coachBranding);
 
                 console.log('✅ Loaded shared plan:', currentPlan);
 
