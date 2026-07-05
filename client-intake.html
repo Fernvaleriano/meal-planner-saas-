@@ -46,9 +46,19 @@
 
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #2dd4bf 0%, #14b8a6 100%);
+            /* Uses the CSS variable so applyCoachBranding() re-skins the whole
+               page by just overriding --brand-* on :root */
+            background: var(--brand-gradient);
             min-height: 100vh;
             padding: 40px 20px;
+        }
+
+        .coach-logo {
+            display: none;
+            max-height: 56px;
+            max-width: 180px;
+            object-fit: contain;
+            margin-bottom: 14px;
         }
 
         .intake-container {
@@ -534,6 +544,7 @@
         <!-- Main Form -->
         <div id="formContent" style="display: none;">
             <div class="intake-header">
+                <img id="coachLogo" class="coach-logo" alt="" />
                 <h1>Complete Your Profile</h1>
                 <p>Fill out your information to get started with your nutrition and fitness coaching</p>
                 <div class="coach-info">
@@ -1067,6 +1078,37 @@
             return { feet, inches };
         }
 
+        // Re-skin the page in the coach's brand. The page CSS is fully driven
+        // by the --brand-* variables on :root, so overriding them recolors the
+        // header, buttons, focus rings and background in one shot.
+        function applyCoachBranding(branding) {
+            if (!branding) return;
+            try {
+                const primary = branding.brand_primary_color;
+                if (primary) {
+                    const secondary = branding.brand_secondary_color || primary;
+                    const root = document.documentElement;
+                    root.style.setProperty('--brand-primary', primary);
+                    root.style.setProperty('--brand-secondary', secondary);
+                    root.style.setProperty('--brand-gradient', 'linear-gradient(135deg, ' + primary + ' 0%, ' + secondary + ' 100%)');
+                    const themeMeta = document.querySelector('meta[name="theme-color"]');
+                    if (themeMeta) themeMeta.content = primary;
+                }
+                if (branding.brand_logo_url) {
+                    const logo = document.getElementById('coachLogo');
+                    if (logo) {
+                        logo.onerror = function() { logo.style.display = 'none'; };
+                        logo.src = branding.brand_logo_url;
+                        logo.alt = branding.brand_name || 'Coach logo';
+                        logo.style.display = 'inline-block';
+                    }
+                }
+                if (branding.brand_name) {
+                    document.title = 'Complete Your Profile - ' + branding.brand_name;
+                }
+            } catch (e) { /* branding is cosmetic — never block the form */ }
+        }
+
         // Validate intake token
         async function validateToken() {
             if (!token) {
@@ -1102,6 +1144,10 @@
                 if (coachData && coachData.full_name) {
                     coachNameEl.textContent = coachData.full_name;
                 }
+
+                // Apply the coach's branding (colors, logo, title) so the
+                // prospect's first touch is the coach's brand, not the platform's
+                applyCoachBranding(coachData && coachData.branding);
 
                 // Apply form config — hide disabled sections
                 if (intakeFormConfig && intakeFormConfig.sections) {

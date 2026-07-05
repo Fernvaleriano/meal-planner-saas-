@@ -194,7 +194,9 @@ const styles = {
     width: 62, height: 62, borderRadius: '50%', padding: 3,
     display: 'flex', alignItems: 'center', justifyContent: 'center', boxSizing: 'border-box'
   },
-  ringUnseen: { background: 'linear-gradient(135deg, #2cb5a5 0%, #0d9488 50%, #14b8a6 100%)' },
+  // Coach-branded ring when a custom brand is set (banner gradient is only
+  // defined for custom-branded coaches); the original teal mix otherwise.
+  ringUnseen: { background: 'var(--brand-banner-gradient, linear-gradient(135deg, #2cb5a5 0%, #0d9488 50%, #14b8a6 100%))' },
   ringSeen: { background: 'var(--border-color, #d1d5db)' },
   avatar: {
     width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover',

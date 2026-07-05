@@ -98,6 +98,9 @@ const BRAND_CSS_PROPS = [
   '--brand-banner-card-bg-light', '--brand-banner-card-bg-dark', '--brand-banner-card-shadow',
   '--brand-rest-day-bg-light', '--brand-rest-day-bg-dark',
   '--brand-shadow-soft', '--brand-shadow-soft-strong', '--brand-macro-protein',
+  // Tint/shade family — set only for custom-branded coaches; global.css keeps
+  // the original teal hexes as per-line var() fallbacks for default coaches.
+  '--brand-primary-soft', '--brand-primary-lighter', '--brand-primary-darker',
 ];
 
 // Persistent key the pre-React inline script reads to apply brand colors and
@@ -106,13 +109,18 @@ const BRAND_CSS_PROPS = [
 // auth), this is a single "last applied branding" snapshot.
 const PRELOAD_KEY = 'zique_branding_preload';
 
-function getCachedBranding(coachId) {
+function getCachedBranding(coachId, { allowStale = false } = {}) {
   try {
     const cached = localStorage.getItem(`${CACHE_KEY}_${coachId}`);
     if (!cached) return null;
     const { data, timestamp } = JSON.parse(cached);
-    if (Date.now() - timestamp > CACHE_TTL) {
-      localStorage.removeItem(`${CACHE_KEY}_${coachId}`);
+    // Expired entries are NOT deleted: a fresh read (allowStale=false) treats
+    // them as a miss so a network refetch happens, but they remain available
+    // as a stale fallback. Otherwise a client who opens the app offline (or on
+    // a failing network) more than 30 minutes after their last visit snaps
+    // back to default teal even though we know their coach's brand perfectly
+    // well. Stale brand >> wrong brand; a successful fetch overwrites it.
+    if (Date.now() - timestamp > CACHE_TTL && !allowStale) {
       return null;
     }
     return data;
@@ -140,6 +148,19 @@ function darkenColor(hex, percent) {
   const R = Math.max(0, (num >> 16) - amt);
   const G = Math.max(0, ((num >> 8) & 0x00FF) - amt);
   const B = Math.max(0, (num & 0x0000FF) - amt);
+  return '#' + (0x1000000 + R * 0x10000 + G * 0x100 + B).toString(16).slice(1);
+}
+
+/**
+ * Lighten a hex color by a percentage (0-100). Mirror of darkenColor.
+ */
+function lightenColor(hex, percent) {
+  if (!hex) return hex;
+  const num = parseInt(hex.replace('#', ''), 16);
+  const amt = Math.round(2.55 * percent);
+  const R = Math.min(255, (num >> 16) + amt);
+  const G = Math.min(255, ((num >> 8) & 0x00FF) + amt);
+  const B = Math.min(255, (num & 0x0000FF) + amt);
   return '#' + (0x1000000 + R * 0x10000 + G * 0x100 + B).toString(16).slice(1);
 }
 
@@ -201,7 +222,18 @@ function applyBrandingCSS(branding) {
     root.style.setProperty('--brand-primary-dark', darkenColor(branding.brand_primary_color, 10));
   }
   if (branding.brand_secondary_color) {
-    root.style.setProperty('--brand-secondary', branding.brand_secondary_color);
+    // Same "secondary looks default" filter the gradient builders use: when the
+    // coach customized primary but never touched secondary (the API auto-fills
+    // the stock '#178072' teal), reuse primary so the ~15 global.css gradients
+    // that end on var(--brand-secondary) stay in the coach's color family
+    // instead of bleeding brand-color→teal.
+    const primaryForSecondary = (branding.brand_primary_color || '').toLowerCase();
+    const secondaryIsStock = branding.brand_secondary_color.toLowerCase() === '#178072';
+    const primaryIsCustom = primaryForSecondary && primaryForSecondary !== '#2cb5a5';
+    root.style.setProperty(
+      '--brand-secondary',
+      (primaryIsCustom && secondaryIsStock) ? branding.brand_primary_color : branding.brand_secondary_color
+    );
   }
   if (branding.brand_accent_color) {
     root.style.setProperty('--brand-accent', branding.brand_accent_color);
@@ -295,6 +327,14 @@ function applyBrandingCSS(branding) {
 
     // Macro ring "protein" stroke (was hardcoded #2cb5a5)
     root.style.setProperty('--brand-macro-protein', primary);
+
+    // Tint/shade family for the many global.css spots that historically used
+    // fixed teal variants (#4ec5b7 soft, #5eead4/#2dd4bf light accents,
+    // #22998a dark). Derived from the coach's primary so every accent stays
+    // in their color family; default coaches fall back to the original hexes.
+    root.style.setProperty('--brand-primary-soft', lightenColor(primary, 10));
+    root.style.setProperty('--brand-primary-lighter', lightenColor(primary, 22));
+    root.style.setProperty('--brand-primary-darker', darkenColor(primary, 8));
   }
 
   // Extended palette
@@ -407,10 +447,11 @@ export function BrandingProvider({ children }) {
   const { t } = useLanguage();
   const coachId = clientData?.coach_id || (clientData?.is_coach ? clientData?.id : null);
 
-  // Initialize from cache for instant display
+  // Initialize from cache for instant display (stale is fine here — it's the
+  // coach's real brand; the fetch below refreshes it)
   const [branding, setBranding] = useState(() => {
     if (coachId) {
-      const cached = getCachedBranding(coachId);
+      const cached = getCachedBranding(coachId, { allowStale: true });
       if (cached) return cached;
     }
     return DEFAULT_BRANDING;
@@ -434,6 +475,16 @@ export function BrandingProvider({ children }) {
       setBranding(cached);
       applyBrandingCSS(cached);
       setLoading(false);
+    } else if (!force && !cached) {
+      // Cache expired (or fetch about to run cold): show the stale brand while
+      // we refetch, so a failed/slow network never reverts a client to default
+      // teal. A successful fetch below overwrites both state and cache.
+      const stale = getCachedBranding(coachId, { allowStale: true });
+      if (stale) {
+        setBranding(stale);
+        applyBrandingCSS(stale);
+        setLoading(false);
+      }
     }
 
     try {
@@ -660,6 +711,23 @@ export function BrandingProvider({ children }) {
       {children}
     </BrandingContext.Provider>
   );
+}
+
+/**
+ * Seed the branding cache + CSS from outside the provider (used by the Login
+ * page right after a successful sign-in). This makes the FIRST app boot after
+ * login fully branded: the per-coach cache gives BrandingContext its initial
+ * state, and applyBrandingCSS paints :root and writes the cold-start preload
+ * snapshot the splash screen reads. Without this, a brand-new device shows
+ * default colors until the post-login fetch resolves — the one flash that
+ * matters most. The provider still fetches fresh data and reconciles.
+ */
+export function seedBrandingCache(coachId, data) {
+  if (!coachId || !data || !data.brand_primary_color) return;
+  try {
+    setCachedBranding(coachId, data);
+    applyBrandingCSS(data);
+  } catch { /* cosmetic only — never block login */ }
 }
 
 export function useBranding() {

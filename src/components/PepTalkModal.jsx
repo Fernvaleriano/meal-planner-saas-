@@ -209,7 +209,7 @@ const bodyStyle = {
 const acknowledgeBtnStyle = {
   width: '100%',
   padding: '14px 20px',
-  background: '#0d9488',
+  background: 'var(--brand-primary-darker, #0d9488)',
   color: 'white',
   border: 'none',
   borderRadius: 10,

@@ -3,6 +3,7 @@ import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { supabase } from '../utils/supabase';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
+import { seedBrandingCache } from '../context/BrandingContext';
 
 const DEFAULT_LOGO = 'https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/assets/ziquecoach-logo-teal.png';
 const DEFAULT_PRIMARY = '#2cb5a5';
@@ -45,6 +46,17 @@ function Login() {
 
   const coachIdParam = searchParams.get('coachId');
   const [brandingData, setBrandingData] = useState(() => getLoginBranding(coachIdParam));
+  const [logoFailed, setLogoFailed] = useState(false);
+  // Whether this device is associated with a coach (invite link or a previous
+  // login). If so, we hold back the platform's default logo while the coach's
+  // real branding loads — a neutral beat beats flashing the wrong brand.
+  const [hasCoachContext] = useState(() => {
+    try {
+      return !!(coachIdParam || localStorage.getItem('login_coach_id'));
+    } catch {
+      return !!coachIdParam;
+    }
+  });
 
   // Fetch branding from API if we have a coach ID but no cached data
   useEffect(() => {
@@ -75,6 +87,12 @@ function Login() {
     }
   }, [user, navigate]);
 
+  // A fresh logo URL (e.g. after the branding fetch resolves) gets a fresh
+  // chance to load even if a previous URL failed
+  useEffect(() => {
+    setLogoFailed(false);
+  }, [brandingData?.brand_logo_url]);
+
   const handleLogin = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -91,7 +109,7 @@ function Login() {
       // Check if user is a client
       const { data: client, error: clientError } = await supabase
         .from('clients')
-        .select('id')
+        .select('id, coach_id')
         .eq('user_id', data.user.id)
         .single();
 
@@ -101,11 +119,21 @@ function Login() {
       }
 
       // Now that auth + client lookup both succeeded, it's safe to remember
-      // the coachId from the URL for next time. Doing this earlier (at
-      // render time) let any unauthenticated visit overwrite the stored
-      // value with whatever was in the query string.
-      if (coachIdParam) {
-        try { localStorage.setItem('login_coach_id', coachIdParam); } catch { /* ignore */ }
+      // the coach for next time. Prefer the client's REAL coach_id over the
+      // URL param — it brands future logins even when the client arrives
+      // without an invite link, and can't be spoofed by a query string.
+      const realCoachId = client.coach_id || coachIdParam;
+      if (realCoachId) {
+        try { localStorage.setItem('login_coach_id', realCoachId); } catch { /* ignore */ }
+      }
+
+      // Seed the app's branding cache so the very first post-login boot is
+      // already in the coach's colors (no default-teal flash on a brand-new
+      // device). Only when the branding we fetched is actually this client's
+      // coach — a mismatched invite link must not paint another coach's brand.
+      if (brandingData?.brand_primary_color && brandingData?.coach_id
+          && (!client.coach_id || brandingData.coach_id === client.coach_id)) {
+        seedBrandingCache(brandingData.coach_id, brandingData);
       }
 
       navigate('/', { replace: true });
@@ -117,7 +145,10 @@ function Login() {
   };
 
   // Resolve branding values
-  const logoUrl = brandingData?.brand_logo_url || DEFAULT_LOGO;
+  const brandKnown = !!(brandingData?.brand_logo_url || brandingData?.brand_primary_color);
+  // With a coach context but branding still loading, show no logo instead of
+  // the platform default (which would flash and then swap to the coach's).
+  const logoUrl = brandingData?.brand_logo_url || (hasCoachContext && !brandKnown ? null : DEFAULT_LOGO);
   const primaryColor = brandingData?.brand_primary_color || DEFAULT_PRIMARY;
   const brandName = brandingData?.brand_name || 'Ziquecoach';
   const welcomeMessage = brandingData?.brand_welcome_message;
@@ -126,13 +157,18 @@ function Login() {
   return (
     <div className="login-page">
       <div className="login-container">
-        {/* Logo */}
+        {/* Logo (fixed-height slot so a late-loading logo doesn't shift the form) */}
         <div className="login-logo">
-          <img
-            src={logoUrl}
-            alt={brandName}
-            style={hasCustomBranding && brandingData?.brand_logo_url ? { borderRadius: '12px', objectFit: 'contain' } : undefined}
-          />
+          {logoUrl && !logoFailed ? (
+            <img
+              src={logoUrl}
+              alt={brandName}
+              onError={() => setLogoFailed(true)}
+              style={hasCustomBranding && brandingData?.brand_logo_url ? { borderRadius: '12px', objectFit: 'contain' } : undefined}
+            />
+          ) : logoFailed ? (
+            <div className="login-logo-fallback">{brandName}</div>
+          ) : null}
         </div>
 
         {/* Header */}
@@ -230,12 +266,23 @@ function Login() {
         .login-logo {
           text-align: center;
           margin-bottom: 32px;
+          min-height: 80px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
         }
 
         .login-logo img {
           height: 80px;
           width: auto;
           max-width: 200px;
+        }
+
+        .login-logo-fallback {
+          color: #f1f5f9;
+          font-size: 1.4rem;
+          font-weight: 700;
+          letter-spacing: 0.5px;
         }
 
         .login-header {

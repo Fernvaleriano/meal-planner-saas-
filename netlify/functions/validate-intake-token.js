@@ -116,7 +116,17 @@ exports.handler = async (event, context) => {
                 },
                 coach: coach ? {
                     full_name: coach.full_name || coach.name,
-                    email: coach.email
+                    email: coach.email,
+                    // Coach branding so the intake form (a prospect's first
+                    // in-product touch) carries the coach's brand, not the
+                    // platform's. Display-only — same policy as
+                    // get-coach-branding: clients always see what the coach saved.
+                    branding: {
+                        brand_name: coach.brand_name || null,
+                        brand_logo_url: coach.brand_logo_url || null,
+                        brand_primary_color: coach.brand_primary_color || null,
+                        brand_secondary_color: coach.brand_secondary_color || null
+                    }
                 } : null
             })
         };

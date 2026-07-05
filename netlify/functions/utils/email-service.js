@@ -543,6 +543,7 @@ async function sendInvitationEmail({
  * @param {string} options.coachName - Coach's name
  * @param {string} options.intakeFormUrl - URL to the intake form
  * @param {boolean} options.whiteLabel - Is this a white-label email?
+ * @param {Object} options.branding - Coach branding settings (optional)
  * @returns {Object} - { subject, text, html }
  */
 function generateIntakeInvitationEmail({
@@ -550,21 +551,32 @@ function generateIntakeInvitationEmail({
     clientEmail,
     coachName = 'Your Coach',
     intakeFormUrl,
-    whiteLabel = false
+    whiteLabel = false,
+    branding = {}
 }) {
     const displayName = clientName || 'there';
 
-    const subject = whiteLabel
-        ? `${coachName} has invited you to join`
+    // Coach branding with platform fallbacks — this is the prospect's very
+    // first touch, so it should carry the coach's brand, not the platform's.
+    const primaryColor = branding.brand_primary_color || '#2cb5a5';
+    const brandName = branding.brand_name || (whiteLabel ? coachName : 'Ziquecoach');
+    const logoUrl = branding.brand_email_logo_url || branding.brand_logo_url;
+
+    const subject = whiteLabel || branding.brand_name
+        ? `${coachName} has invited you to join ${brandName}`
         : `${coachName} has invited you to Ziquecoach`;
 
-    const footerText = whiteLabel ? coachName : 'Ziquecoach';
-    const welcomeTitle = whiteLabel ? `Welcome!` : `Welcome to Ziquecoach`;
+    const footerText = branding.brand_email_footer || brandName;
+    const welcomeTitle = branding.brand_name ? `Welcome to ${branding.brand_name}!` : (whiteLabel ? `Welcome!` : `Welcome to Ziquecoach`);
     const welcomeSubtitle = 'Your nutrition coaching journey starts here';
+
+    const logoHtml = logoUrl
+        ? `<img src="${logoUrl}" alt="${brandName}" style="max-width: 150px; height: auto; margin-bottom: 12px;">`
+        : '';
 
     const textBody = `Hi ${displayName},
 
-Great news! ${coachName} has invited you to join ${whiteLabel ? 'their' : 'Ziquecoach -'} your personal nutrition coaching portal.
+Great news! ${coachName} has invited you to join ${branding.brand_name ? `${brandName} -` : (whiteLabel ? 'their' : 'Ziquecoach -')} your personal nutrition coaching portal.
 
 To get started, please complete your profile by clicking the link below. This will help your coach create a personalized meal plan just for you.
 
@@ -604,7 +616,8 @@ ${footerText}`;
     <title>${subject}</title>
 </head>
 <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f8fafc;">
-    <div style="background-color: #2cb5a5; padding: 40px 30px; border-radius: 12px 12px 0 0; text-align: center;">
+    <div style="background-color: ${primaryColor}; padding: 40px 30px; border-radius: 12px 12px 0 0; text-align: center;">
+        ${logoHtml}
         <h1 style="color: #ffffff; margin: 0; font-size: 28px;">${welcomeTitle}</h1>
         <p style="color: rgba(255,255,255,0.9); margin: 10px 0 0 0; font-size: 16px;">${welcomeSubtitle}</p>
     </div>
@@ -617,11 +630,11 @@ ${footerText}`;
         <p style="margin-bottom: 20px;">To get started, please complete your profile. This will help your coach create a personalized meal plan just for you.</p>
 
         <div style="text-align: center; margin: 35px 0;">
-            <a href="${intakeFormUrl}" style="display: inline-block; background-color: #2cb5a5; color: #ffffff; text-decoration: none; padding: 16px 40px; border-radius: 8px; font-weight: 600; font-size: 18px; box-shadow: 0 4px 14px rgba(13, 148, 136, 0.4);">Complete Your Profile</a>
+            <a href="${intakeFormUrl}" style="display: inline-block; background-color: ${primaryColor}; color: #ffffff; text-decoration: none; padding: 16px 40px; border-radius: 8px; font-weight: 600; font-size: 18px;">Complete Your Profile</a>
         </div>
 
-        <div style="background-color: #f0fdfa; padding: 20px; border-radius: 8px; margin: 25px 0; border-left: 4px solid #2cb5a5;">
-            <p style="font-weight: 600; margin: 0 0 12px 0; color: #22998a; font-size: 16px;">You'll be asked to provide:</p>
+        <div style="background-color: ${primaryColor}10; padding: 20px; border-radius: 8px; margin: 25px 0; border-left: 4px solid ${primaryColor};">
+            <p style="font-weight: 600; margin: 0 0 12px 0; color: ${primaryColor}; font-size: 16px;">You'll be asked to provide:</p>
             <ul style="margin: 0; padding-left: 20px; color: #334155;">
                 <li style="margin-bottom: 8px;">Basic information (name, contact details)</li>
                 <li style="margin-bottom: 8px;">Physical stats (weight, height, activity level)</li>
@@ -686,12 +699,22 @@ async function sendIntakeInvitationEmail({
     // Check if coach has white-label email enabled
     const hasWhiteLabel = coach?.white_label_enabled && coach?.email_from_verified;
 
+    // Same branding gate the portal invitation email uses (Professional tier)
+    const hasBranding = ['professional', 'branded'].includes(coach?.subscription_tier);
+
     const emailContent = generateIntakeInvitationEmail({
         clientName: client.client_name || '',
         clientEmail: client.email,
         coachName: coach?.full_name || coach?.email || 'Your Coach',
         intakeFormUrl,
-        whiteLabel: hasWhiteLabel
+        whiteLabel: hasWhiteLabel,
+        branding: hasBranding ? {
+            brand_name: coach?.brand_name,
+            brand_primary_color: coach?.brand_primary_color,
+            brand_logo_url: coach?.brand_logo_url,
+            brand_email_logo_url: coach?.brand_email_logo_url,
+            brand_email_footer: coach?.brand_email_footer
+        } : {}
     });
 
     return sendEmail({

@@ -3,6 +3,28 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../utils/supabase';
 import { useLanguage } from '../context/LanguageContext';
 
+const DEFAULT_LOGO = 'https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/assets/ziquecoach-logo-teal.png';
+const DEFAULT_PRIMARY = '#2cb5a5';
+
+/**
+ * Coach branding for the forgot-password screen — same cached source the
+ * Login page uses (login_coach_id is set after a successful sign-in, and the
+ * per-coach cache is written by Login's branding fetch). Cache-only on
+ * purpose: this page is always reached from Login, which fetches.
+ */
+function getForgotBranding() {
+  try {
+    const coachId = localStorage.getItem('login_coach_id');
+    if (!coachId) return null;
+    const cached = localStorage.getItem(`coach_branding_v2_${coachId}`);
+    if (cached) {
+      const { data } = JSON.parse(cached);
+      if (data) return data;
+    }
+  } catch { /* ignore */ }
+  return null;
+}
+
 function ForgotPassword() {
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
@@ -10,6 +32,11 @@ function ForgotPassword() {
   const [success, setSuccess] = useState(false);
   const navigate = useNavigate();
   const { t } = useLanguage();
+  const [branding] = useState(() => getForgotBranding());
+  const [logoFailed, setLogoFailed] = useState(false);
+  const logoUrl = branding?.brand_logo_url || DEFAULT_LOGO;
+  const primaryColor = branding?.brand_primary_color || DEFAULT_PRIMARY;
+  const brandName = branding?.brand_name || 'Ziquecoach';
 
   const handleResetPassword = async (e) => {
     e.preventDefault();
@@ -39,10 +66,15 @@ function ForgotPassword() {
       <div className="login-container">
         {/* Logo */}
         <div className="login-logo">
-          <img
-            src="https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/assets/ziquecoach-logo-teal.png"
-            alt="Ziquecoach"
-          />
+          {!logoFailed ? (
+            <img
+              src={logoUrl}
+              alt={brandName}
+              onError={() => setLogoFailed(true)}
+            />
+          ) : (
+            <div className="login-logo-fallback">{brandName}</div>
+          )}
         </div>
 
         {/* Header */}
@@ -153,6 +185,15 @@ function ForgotPassword() {
         .login-logo img {
           height: 80px;
           width: auto;
+          max-width: 200px;
+          object-fit: contain;
+        }
+
+        .login-logo-fallback {
+          color: #f1f5f9;
+          font-size: 1.4rem;
+          font-weight: 700;
+          letter-spacing: 0.5px;
         }
 
         .login-header {
@@ -218,16 +259,16 @@ function ForgotPassword() {
 
         .login-field input:focus {
           outline: none;
-          border-color: #2cb5a5;
+          border-color: ${primaryColor};
           background: rgba(15, 23, 42, 0.8);
-          box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.2);
+          box-shadow: 0 0 0 3px ${primaryColor}33;
         }
 
         .login-button {
           width: 100%;
           padding: 16px;
           margin-top: 8px;
-          background: linear-gradient(135deg, #2cb5a5 0%, #4ec5b7 100%);
+          background: linear-gradient(135deg, ${primaryColor} 0%, ${primaryColor}dd 100%);
           border: none;
           border-radius: 12px;
           color: white;
@@ -240,12 +281,12 @@ function ForgotPassword() {
           align-items: center;
           justify-content: center;
           gap: 8px;
-          box-shadow: 0 4px 14px rgba(13, 148, 136, 0.4);
+          box-shadow: 0 4px 14px ${primaryColor}66;
         }
 
         .login-button:hover:not(:disabled) {
           transform: translateY(-2px);
-          box-shadow: 0 6px 20px rgba(13, 148, 136, 0.5);
+          box-shadow: 0 6px 20px ${primaryColor}80;
         }
 
         .login-button:active:not(:disabled) {

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <meta name="theme-color" content="#2dd4bf">
+    <meta name="theme-color" content="#2cb5a5">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>Ziquecoach</title>
@@ -72,8 +72,11 @@
         .splash-spinner {
             width: 40px;
             height: 40px;
-            border: 3px solid rgba(13, 148, 136, 0.2);
-            border-top-color: #2dd4bf;
+            /* Neutral gray by default — the inline branding script below paints
+               it in the coach's color when a cached brand exists. Never show a
+               wrong brand color on a first visit. */
+            border: 3px solid rgba(148, 163, 184, 0.25);
+            border-top-color: #94a3b8;
             border-radius: 50%;
             animation: splashSpin 1s linear infinite;
         }
@@ -88,11 +91,17 @@
         <!-- Inline splash screen - replaced automatically when React mounts -->
         <div class="splash-screen" id="splash-screen">
             <div class="splash-content">
+                <!-- Hidden until the inline branding script knows which logo to
+                     show. On a device that has loaded the app before, the cached
+                     coach logo appears on the very first frame; on a brand-new
+                     device the splash stays neutral (spinner only) instead of
+                     flashing the platform logo at a coach's client. -->
                 <img
                     src="https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/assets/ziquecoach-logo-teal.png"
-                    alt="Ziquecoach"
+                    alt=""
                     class="splash-logo"
                     id="splash-logo"
+                    style="display: none"
                 />
                 <div class="splash-spinner" id="splash-spinner"></div>
             </div>
@@ -256,10 +265,15 @@
                     }
                 }
 
-                // Apply custom logo to the splash
+                // Apply the cached brand logo to the splash and reveal it.
+                // (The img starts hidden so a first-ever visit shows a neutral
+                // splash rather than the wrong brand.)
                 if (logoUrl) {
                     var logo = document.getElementById('splash-logo');
-                    if (logo) logo.src = logoUrl;
+                    if (logo) {
+                        logo.src = logoUrl;
+                        logo.style.display = '';
+                    }
                 }
                 // Apply custom primary color to the splash spinner
                 if (primary) {

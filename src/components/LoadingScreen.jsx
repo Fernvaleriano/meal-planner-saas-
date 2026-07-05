@@ -1,34 +1,55 @@
 import { useEffect, useMemo, useState } from 'react';
 
-const DEFAULT_LOGO = 'https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/assets/ziquecoach-logo-white.png';
-const DEFAULT_PRIMARY = '#2cb5a5';
-const DEFAULT_BRAND_NAME = 'Ziquecoach';
+// Neutral gray used when no coach brand is cached yet — never show the
+// platform's default logo/teal to a client whose coach has their own brand.
+const NEUTRAL_SPINNER = '#94a3b8';
 
 /**
- * Get coach branding from sessionStorage cache (set by branding.js or the SPA).
- * Returns { logoUrl, primaryColor, brandName } or defaults.
+ * Get coach branding from cache. Two sources, in order:
+ *   1. sessionStorage 'zique_branding' — written by applyBrandingCSS, current tab.
+ *   2. localStorage 'zique_branding_preload' — the persistent cold-start snapshot
+ *      the pre-React splash script also uses. Without this fallback a cold PWA
+ *      relaunch (fresh sessionStorage) briefly showed the default logo even
+ *      though the raw splash before it was already coach-branded.
+ * Returns { logoUrl, primaryColor, brandName } or null.
  */
 function getCachedBranding() {
   try {
     const cached = sessionStorage.getItem('zique_branding');
-    if (!cached) return null;
-    const { branding } = JSON.parse(cached);
-    if (!branding) return null;
-    return {
-      logoUrl: branding.brand_logo_url || null,
-      primaryColor: branding.brand_primary_color || null,
-      brandName: branding.brand_name || null,
-    };
-  } catch {
-    return null;
-  }
+    if (cached) {
+      const { branding } = JSON.parse(cached);
+      if (branding) {
+        return {
+          logoUrl: branding.brand_logo_url || null,
+          primaryColor: branding.brand_primary_color || null,
+          brandName: branding.brand_name || null,
+        };
+      }
+    }
+  } catch { /* fall through to preload snapshot */ }
+  try {
+    const preloadRaw = localStorage.getItem('zique_branding_preload');
+    if (preloadRaw) {
+      const preload = JSON.parse(preloadRaw);
+      if (preload && (preload.logo || preload.primary)) {
+        return {
+          logoUrl: preload.logo || null,
+          primaryColor: preload.primary || null,
+          brandName: preload.brandName || null,
+        };
+      }
+    }
+  } catch { /* ignore */ }
+  return null;
 }
 
 function LoadingScreen() {
   const branding = useMemo(() => getCachedBranding(), []);
-  const logoUrl = branding?.logoUrl || DEFAULT_LOGO;
-  const primaryColor = branding?.primaryColor || DEFAULT_PRIMARY;
-  const brandName = branding?.brandName || DEFAULT_BRAND_NAME;
+  // No cached brand → neutral splash (spinner only), matching the pre-React
+  // splash in app-test.html. Wrong brand is worse than no brand.
+  const logoUrl = branding?.logoUrl || null;
+  const primaryColor = branding?.primaryColor || NEUTRAL_SPINNER;
+  const brandName = branding?.brandName || '';
   const spinnerBorderColor = primaryColor + '33'; // 20% opacity
   const [logoFailed, setLogoFailed] = useState(false);
   useEffect(() => { setLogoFailed(false); }, [logoUrl]);
@@ -36,16 +57,16 @@ function LoadingScreen() {
   return (
     <div className="loading-screen">
       <div className="loading-content">
-        {!logoFailed ? (
+        {logoUrl && !logoFailed ? (
           <img
             src={logoUrl}
             alt={brandName}
             className="loading-logo"
             onError={() => setLogoFailed(true)}
           />
-        ) : (
+        ) : logoFailed && brandName ? (
           <div className="loading-logo-fallback">{brandName}</div>
-        )}
+        ) : null}
         <div className="loading-spinner-container">
           <div
             className="loading-spinner-ring"
@@ -108,8 +129,9 @@ function LoadingScreen() {
         .loading-spinner-ring {
           width: 40px;
           height: 40px;
-          border: 3px solid rgba(13, 148, 136, 0.2);
-          border-top-color: #2cb5a5;
+          /* Neutral fallback — the inline style above paints the coach color */
+          border: 3px solid rgba(148, 163, 184, 0.25);
+          border-top-color: #94a3b8;
           border-radius: 50%;
           animation: spin 1s linear infinite;
         }
