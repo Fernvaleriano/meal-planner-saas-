@@ -2407,6 +2407,16 @@
             border-color: var(--brand-primary);
         }
 
+        /* Notes field wraps to multiple lines so the whole note is readable
+           without scrolling sideways */
+        .wb-detail-notes-textarea {
+            resize: vertical;
+            min-height: 68px;
+            line-height: 1.45;
+            white-space: pre-wrap;
+            overflow-wrap: break-word;
+        }
+
         /* Responsive */
         @media (max-width: 1024px) {
             .wb-panel-days {
@@ -9087,7 +9097,7 @@
 
                 <div class="wb-detail-section">
                     <label>Notes</label>
-                    <input type="text" class="wb-detail-notes-input" value="${escapeHtml(exercise.notes || '')}" placeholder="Add notes (e.g., form tips...)" onchange="updateExercise(${di},${ei},'notes',this.value)">
+                    <textarea class="wb-detail-notes-input wb-detail-notes-textarea" rows="3" placeholder="Add notes (e.g., form tips...)" onchange="updateExercise(${di},${ei},'notes',this.value)">${escapeHtml(exercise.notes || '')}</textarea>
                 </div>
 
                 <div class="wb-detail-section">
