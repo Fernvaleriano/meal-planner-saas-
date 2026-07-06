@@ -372,7 +372,10 @@ function formatClientContextForPrompt(ctx) {
     if (p.height_ft) lines.push(`Height: ${p.height_ft}'${p.height_in || 0}"`);
     if (p.weight) lines.push(`Weight: ${p.weight} lb`);
     if (p.default_goal) lines.push(`Stated goal: ${p.default_goal}`);
-    if (p.fitness_goal_details) lines.push(`Goal details: ${p.fitness_goal_details}`);
+    if (p.fitness_goal_details) {
+      lines.push(`Goal details: ${p.fitness_goal_details}`);
+      lines.push(`  → SPECIFIC GOALS ARE PROGRAMMING TARGETS, not flavor text. If the goal details name a concrete skill, event, or lift (e.g. unassisted pull-ups, a race/marathon, a strength number), the program MUST train it directly on the days where it fits: a pull-up goal needs an actual pull-up progression (assisted pull ups, negatives, pulldown strength work) as main exercises; a running/endurance event needs real running or conditioning blocks, not just a cardio warm-up. Mentioning the goal in a note without programming for it is a failure.`);
+    }
     if (p.fitness_level) lines.push(`Fitness level: ${p.fitness_level}`);
     if (p.health_concerns) lines.push(`Logged injuries / health concerns: ${p.health_concerns}`);
     if (p.equipment_access) lines.push(`Equipment access: ${p.equipment_access}`);

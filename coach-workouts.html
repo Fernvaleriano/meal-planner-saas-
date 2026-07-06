@@ -14451,7 +14451,9 @@
         let _bulkAssignments = {};
         // clientId(string) -> completed workouts in the last 28 days (0 = dormant,
         // missing = unknown/not loaded). Drives the days-per-week default.
+        // Shared by the Bulk AI modal AND the single AI modal's client picker.
         let _bulkActivity = {};
+        let _bulkActivityLoaded = false;
         async function _bulkLoadAssignments() {
             _bulkAssignments = {};
             _bulkActivity = {};
@@ -14474,6 +14476,7 @@
                 if (res.activity && typeof res.activity === 'object') {
                     for (const [cid, n] of Object.entries(res.activity)) _bulkActivity[String(cid)] = Number(n) || 0;
                 }
+                _bulkActivityLoaded = true;
             } catch (e) { /* no end-date info; filters just won't have it */ }
         }
         function _bulkDaysLeft(id) {
@@ -15295,9 +15298,39 @@
                 if (storedMovement.size > 0) bits.push(`Movement screen: ${[...storedMovement].join(', ')} <em>(auto-checked)</em>`);
                 if (hf.aiNotes) bits.push(`AI notes: ${hf.aiNotes}`);
                 if (c.equipment_access) bits.push(`Equipment: ${c.equipment_access} <em>(grid auto-set, adjust if wrong)</em>`);
+                let unavailList = c.unavailable_equipment;
+                if (typeof unavailList === 'string') { try { unavailList = JSON.parse(unavailList); } catch (e) { unavailList = []; } }
+                if (Array.isArray(unavailList) && unavailList.length) bits.push(`No access to: ${unavailList.join(', ')} <em>(excluded automatically)</em>`);
                 badge.innerHTML = `<strong>${c.client_name}'s context loaded.</strong> ${bits.join(' · ') || 'Will pull recent training history on generation.'}`;
                 badge.style.display = '';
             }
+            _applyClientActivityToAIModal(clientId, c);
+        }
+
+        // Default the single AI modal's days-per-week to what this client
+        // ACTUALLY trains (same behavior-first rule as Bulk AI) and append a
+        // "logs ~N×/week" hint to the context badge. Best-effort and async —
+        // the token guard drops stale results if the coach re-picks quickly.
+        let _aiActivityToken = null;
+        async function _applyClientActivityToAIModal(clientId, c) {
+            const token = String(clientId);
+            _aiActivityToken = token;
+            try {
+                if (!_bulkActivityLoaded) await _bulkLoadAssignments();
+                if (_aiActivityToken !== token) return;
+                const act = _bulkActivity[token];
+                const prev = _bulkAssignments[token] || {};
+                const days = _bulkDefaultDays(c, prev);
+                if (days != null) {
+                    const dd = document.getElementById('aiDaysPerWeek');
+                    if (dd) dd.value = String(_bulkSnapToOptions(days, [2, 3, 4, 5, 6], parseInt(dd.value, 10) || 4));
+                }
+                const badge = document.getElementById('aiClientContextBadge');
+                if (badge && badge.style.display !== 'none' && act != null) {
+                    const hint = act === 0 ? 'no logged workouts in the last 4 weeks' : `logs ~${(act / 4).toFixed(1)}×/week`;
+                    badge.innerHTML += ` · ${hint}${days != null ? ' <em>(days/week auto-set, adjust if wrong)</em>' : ''}`;
+                }
+            } catch (e) { /* hint only — never block the modal */ }
         }
 
         // ============================================
