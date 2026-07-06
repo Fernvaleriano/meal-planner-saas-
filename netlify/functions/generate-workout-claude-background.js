@@ -461,7 +461,7 @@ ${repRangeBlock}
 - CROSS-DAY VARIETY: Never reuse an exercise that appears on another day training the same muscles (see ALREADY USED list above). Two same-type days must look clearly different — different primary lift and different accessories — not copies. Rotate equipment and angle to spread stimulus and reduce joint wear.
 - DO NOT auto-default to textbook lifts (barbell bench press, back squat, conventional deadlift) just because they are "standard". Choose the primary from the client's history, equipment, and variety — a good coach rotates primaries, they don't reflexively program barbell bench every chest day.
 - KEEP WHAT'S WORKING: If a CLIENT BRIEFING exercise is tagged "KEEP+PROGRESS" (the client is still PRing / adding reps) and it is in your AVAILABLE EXERCISES list and NOT in the ALREADY USED list, you MUST include that exact exercise as a primary. Never replace a lift the client is progressing on with a generic substitute.
-- CARDIO MACHINES (treadmill, stairmaster, bike, rower, elliptical) belong ONLY in warm-up. NEVER as main strength.
+- CARDIO MACHINES (treadmill, stairmaster, bike, rower, elliptical) belong ONLY in warm-up, NEVER as main strength work. ONE exception: if the CLIENT PROFILE's goal details name a running or endurance event (marathon, race, 5k/10k), add a real running/conditioning block at the END of the day with "phase": "conditioning" (e.g. 15-20 min treadmill run, reps in TIME format) on the days where it fits — that goal must actually be trained.
 - The "notes" field is shown to the CLIENT — write a normal coaching cue only. NEVER put internal labels (KEEP+PROGRESS, SWAP, PERSIST, ROTATE, REGRESSED, briefing text, or emoji) in notes, and NEVER put weights/loads in notes (e.g. "you hit 50 lb last time", "start around 45 lb") — the app tracks weights for the client.
 - For LEG days: include squat + hip hinge + hamstring iso + calf + ideally glute-specific.
 
@@ -770,6 +770,7 @@ exports.handler = async (event) => {
     let mergedInjuryCodes = Array.isArray(injuryCodes) ? injuryCodes.slice() : [];
     let mergedMovementFlags = Array.isArray(movementScreenFlags) ? movementScreenFlags.slice() : [];
     let clientUnavailableEquipment = [];
+    let clientGoalDetails = '';
     if (clientId) {
       try {
         const { data: hfRow } = await supabase.from('clients').select('health_flags, unavailable_equipment').eq('id', clientId).maybeSingle();
@@ -842,6 +843,7 @@ exports.handler = async (event) => {
 
         const client = clientRes.data;
         if (client?.unit_preference === 'metric') clientWeightUnit = 'kg';
+        if (client?.fitness_goal_details) clientGoalDetails = String(client.fitness_goal_details);
         const recentLogs = logsRes.data || [];
         const intake = null;
         const lastProgram = lastAssignmentRes.data || null;
@@ -978,6 +980,26 @@ exports.handler = async (event) => {
         const display = `${match.name}${eq}${cu}`;
         if (!sampled[g].some(s => s.toLowerCase().startsWith(match.name.toLowerCase()))) {
           sampled[g].unshift(display);
+        }
+      }
+    }
+
+    // Goal-driven pool guarantee: the "specific goals are programming targets"
+    // directive can't program movements the random sampler never offered (July
+    // 2026: a client with a stated pull-up goal got zero pull-up work because
+    // "Assisted pull up" wasn't in the sampled candidate list). If the goal
+    // names pull-ups/chin-ups, force the progressions into the pool.
+    if (/pull[\s-]?ups?|chin[\s-]?ups?/i.test(clientGoalDetails)) {
+      const progressions = equipmentFiltered
+        .filter(ex => /pull[\s-]?up|chin[\s-]?up/i.test(ex.name || ''))
+        .slice(0, 4);
+      for (const match of progressions) {
+        const g = (match.muscle_group || 'other').toLowerCase();
+        if (!sampled[g]) sampled[g] = [];
+        const eq = match.equipment ? ` [${match.equipment}]` : '';
+        const cu = match.coach_id ? ' (custom)' : '';
+        if (!sampled[g].some(s => s.toLowerCase().startsWith(match.name.toLowerCase()))) {
+          sampled[g].unshift(`${match.name}${eq}${cu}`);
         }
       }
     }
