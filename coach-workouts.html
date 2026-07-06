@@ -14531,10 +14531,18 @@
                 const id = String(c.id);
                 const on = _bulkState.selected.has(id);
                 const badge = _bulkEndBadge(id);
+                // Show the client's current plan name under their name so the coach
+                // can see WHICH program the "ending soon" badge refers to — clients
+                // can carry more than one active plan at once, so the badge alone is
+                // ambiguous about which one is ending.
+                const planName = (_bulkAssignments[id] && _bulkAssignments[id].name) ? esc(_bulkAssignments[id].name) : '';
                 return `<label style="display:flex; align-items:center; gap:10px; padding:9px 11px; background:${on ? 'rgba(46,196,182,0.12)' : '#0a1018'}; border:1px solid ${on ? 'rgba(46,196,182,0.4)' : 'rgba(255,255,255,0.08)'}; border-radius:10px; cursor:pointer;">
-                        <input type="checkbox" ${on ? 'checked' : ''} onchange="toggleBulkClient('${id}')" style="width:16px; height:16px; accent-color:#2EC4B6;">
-                        <span style="font-weight:600; color:#fff;">${esc(c.client_name || 'Unnamed')}</span>
-                        <span style="color:${badge.color}; font-size:11px; margin-left:auto; white-space:nowrap;">${badge.text}</span>
+                        <input type="checkbox" ${on ? 'checked' : ''} onchange="toggleBulkClient('${id}')" style="width:16px; height:16px; accent-color:#2EC4B6; flex-shrink:0;">
+                        <span style="display:flex; flex-direction:column; min-width:0; flex:1;">
+                            <span style="font-weight:600; color:#fff;">${esc(c.client_name || 'Unnamed')}</span>
+                            ${planName ? `<span style="font-size:11px; color:#64748b; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${planName}</span>` : ''}
+                        </span>
+                        <span style="color:${badge.color}; font-size:11px; margin-left:auto; white-space:nowrap; flex-shrink:0;">${badge.text}</span>
                     </label>`;
             }).join('');
             list.innerHTML = rows || '<div style="color:#64748b; font-size:13px; padding:8px;">No clients match.</div>';
