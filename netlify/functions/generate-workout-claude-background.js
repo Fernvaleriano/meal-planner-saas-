@@ -15,7 +15,7 @@ const Anthropic = require('@anthropic-ai/sdk');
 const { createClient } = require('@supabase/supabase-js');
 const { corsHeaders, handleCors } = require('./utils/auth');
 const { analyzeClientHistory, formatAnalysisForPrompt, applyMovementScreenExclusions } = require('./utils/client-analysis');
-const { exerciseMatchesEquipment } = require('./utils/equipment-filter');
+const { exerciseMatchesEquipment, filterUnavailableEquipment } = require('./utils/equipment-filter');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -200,7 +200,10 @@ function computeSplitDays(daysPerWeek, split) {
     push_pull_legs: {
       3: [['push', 'Push Day'], ['pull', 'Pull Day'], ['legs', 'Leg Day']],
       4: [['push', 'Push Day'], ['pull', 'Pull Day'], ['legs', 'Leg Day'], ['upper_body', 'Upper Body']],
-      5: [['push', 'Push Day'], ['pull', 'Pull Day'], ['legs', 'Leg Day'], ['push', 'Push Day 2'], ['pull', 'Pull Day 2']],
+      // 5-day: PPL + Upper/Lower, NOT push/pull twice — a pure P/P/L/P/P week
+      // trains chest and back 2x but legs only 1x, which under-serves the
+      // lower body for hypertrophy (June 2026 bulk-AI review).
+      5: [['push', 'Push Day'], ['pull', 'Pull Day'], ['legs', 'Leg Day'], ['upper_body', 'Upper Body'], ['lower_body', 'Lower Body']],
       6: [['push', 'Push A'], ['pull', 'Pull A'], ['legs', 'Legs A'], ['push', 'Push B'], ['pull', 'Pull B'], ['legs', 'Legs B']]
     },
     upper_lower: {
@@ -308,6 +311,28 @@ ${exercisesList}
   }
   if (stretchExercises.length > 0) {
     warmupStretchInstructions += `\n\nAVAILABLE STRETCHES (copy name EXACTLY):\n${stretchExercises.map(n => `"${n}"`).join(', ')}\nInclude 2-3 stretches at end matching trained muscles. Mark "isStretch": true. Reps "30s hold".`;
+  }
+
+  // Day-aware cardio warm-up. Left to itself the model opens nearly every day
+  // with "Jogging"/"Treadmill Jogging". Match the machine to the day instead
+  // (coach preference, June 2026): rower primes the back and grip on pull days,
+  // step mill primes the lower body on leg days, elliptical is the low-impact
+  // default everywhere else. Fall back down the list if a machine isn't in
+  // this pool (equipment/library limits), and stay silent if none fit.
+  const cardioPick = (patterns) => {
+    for (const re of patterns) {
+      const m = exercisesWithVideos.find(e => re.test(e.name || '') && exerciseMatchesEquipment(e, equipment));
+      if (m) return m.name;
+    }
+    return null;
+  };
+  const preferredCardio = ['legs', 'lower_body', 'glutes'].includes(targetMuscle)
+    ? cardioPick([/stepmill machine steps$/i, /stepmill|stair/i, /elliptical machine normal speed$/i, /elliptical/i])
+    : ['pull', 'back'].includes(targetMuscle)
+      ? cardioPick([/rowing machine normal speed$/i, /rowing machine/i, /elliptical machine normal speed$/i, /elliptical/i])
+      : cardioPick([/elliptical machine normal speed$/i, /elliptical/i]);
+  if (preferredCardio) {
+    warmupStretchInstructions += `\n\nCARDIO WARM-UP CHOICE (MANDATORY): use "${preferredCardio}" (copy the name EXACTLY) as this day's cardio warm-up, easy pace, reps in TIME format ("3 min"). Do NOT use jogging or the treadmill as the warm-up.`;
   }
 
   const tempoMap = {
@@ -598,15 +623,27 @@ function dayAcceptsCategory(targetMuscle, cat) {
   if (t === 'arms') return ['biceps', 'triceps'].includes(cat);
   return t === cat; // bro-split single-muscle days (chest/back/shoulders/legs/core)
 }
+// Rotate the injected keeper cue — a single hardcoded sentence repeated 3-4
+// times inside one program reads exactly like the AI template the cue rules
+// forbid. Picked deterministically off the exercise name so re-runs are stable.
+const KEEPER_NOTES = [
+  'you\'ve been making real progress here, so keep chasing a little more each week.',
+  'this one\'s been climbing for you, keep riding it. same clean form, nudge it forward.',
+  'we\'re keeping this in because it\'s working. stay patient and keep stacking small wins on it.',
+  'your numbers on this have been trending up, so don\'t change a thing. just keep showing up for it.',
+  'this lift is one of your best movers right now, protect that momentum.',
+  'still moving up on this one, love to see it. keep the reps honest and let it build.'
+];
 function buildKeeperExercise(lib, template) {
   const t = template || {};
+  const noteIdx = (lib.name || '').length % KEEPER_NOTES.length;
   return {
     name: lib.name,
     muscleGroup: lib.muscle_group,
     sets: typeof t.sets === 'number' ? t.sets : 4,
     reps: t.reps || '8-10',
     restSeconds: typeof t.restSeconds === 'number' ? t.restSeconds : 90,
-    notes: 'you\'ve been making real progress here, so keep chasing a little more each week.',
+    notes: KEEPER_NOTES[noteIdx],
     isSuperset: false, supersetGroup: null, isWarmup: false, isStretch: false, phase: 'main',
     id: lib.id, video_url: lib.video_url, animation_url: lib.animation_url,
     thumbnail_url: lib.thumbnail_url, muscle_group: lib.muscle_group, equipment: lib.equipment,
@@ -723,20 +760,30 @@ exports.handler = async (event) => {
   try {
     const anthropic = new Anthropic({ apiKey: ANTHROPIC_API_KEY });
     const allExercises = await loadExercises(supabase, coachId);
-    const exercisesWithVideos = allExercises.filter(e => e.video_url || e.animation_url);
+    let exercisesWithVideos = allExercises.filter(e => e.video_url || e.animation_url);
     // Merge per-generation flags with the client's stored health_flags so
     // permanent injuries always apply even if the coach didn't manually check
-    // anything in the modal.
+    // anything in the modal. Also pull the client's unavailable-equipment list
+    // (gear their gym doesn't have) — Bulk AI passes no equipment restrictions
+    // of its own, so without this the pool assumes a fully equipped gym and
+    // programs gear the client has explicitly said they don't have.
     let mergedInjuryCodes = Array.isArray(injuryCodes) ? injuryCodes.slice() : [];
     let mergedMovementFlags = Array.isArray(movementScreenFlags) ? movementScreenFlags.slice() : [];
+    let clientUnavailableEquipment = [];
     if (clientId) {
       try {
-        const { data: hfRow } = await supabase.from('clients').select('health_flags').eq('id', clientId).maybeSingle();
+        const { data: hfRow } = await supabase.from('clients').select('health_flags, unavailable_equipment').eq('id', clientId).maybeSingle();
         const hf = hfRow?.health_flags || {};
         if (Array.isArray(hf.injuryCodes)) mergedInjuryCodes = [...new Set([...mergedInjuryCodes, ...hf.injuryCodes])];
         if (Array.isArray(hf.movementFlags)) mergedMovementFlags = [...new Set([...mergedMovementFlags, ...hf.movementFlags])];
+        let unavail = hfRow?.unavailable_equipment;
+        if (typeof unavail === 'string') { try { unavail = JSON.parse(unavail); } catch { unavail = []; } }
+        if (Array.isArray(unavail)) clientUnavailableEquipment = unavail.filter(Boolean);
       } catch (e) { /* ignore */ }
     }
+    // Filter at the top of the funnel so every downstream pool (candidate list,
+    // warm-ups, stretches, name-matching) inherits the restriction.
+    exercisesWithVideos = filterUnavailableEquipment(exercisesWithVideos, clientUnavailableEquipment);
 
     let exercisesAfterInjuries = applyInjuryExclusions(exercisesWithVideos, mergedInjuryCodes);
     exercisesAfterInjuries = applyMovementScreenExclusions(exercisesAfterInjuries, mergedMovementFlags);
@@ -839,10 +886,14 @@ exports.handler = async (event) => {
           if (client.height_ft) lines.push(`Height: ${client.height_ft}'${client.height_in || 0}"`);
           if (client.weight) lines.push(`Weight: ${client.weight} ${clientWeightUnit}`);
           if (client.default_goal) lines.push(`Stated goal: ${client.default_goal}`);
-          if (client.fitness_goal_details) lines.push(`Goal details: ${client.fitness_goal_details}`);
+          if (client.fitness_goal_details) {
+            lines.push(`Goal details: ${client.fitness_goal_details}`);
+            lines.push(`  → SPECIFIC GOALS ARE PROGRAMMING TARGETS, not flavor text. If the goal details name a concrete skill, event, or lift (e.g. unassisted pull-ups, a race/marathon, a strength number), the program MUST train it directly on the days where it fits: a pull-up goal needs an actual pull-up progression (assisted pull ups, negatives, pulldown strength work) as main exercises; a running/endurance event needs real running or conditioning blocks, not just a cardio warm-up. Mentioning the goal in a note without programming for it is a failure.`);
+          }
           if (client.fitness_level) lines.push(`Fitness level: ${client.fitness_level}`);
           if (client.health_concerns) lines.push(`Logged injuries / health concerns: ${client.health_concerns}`);
           if (client.equipment_access) lines.push(`Equipment access: ${client.equipment_access}`);
+          if (clientUnavailableEquipment.length) lines.push(`Equipment NOT available at this client's gym: ${clientUnavailableEquipment.join(', ')} — these are already removed from your exercise list; never work around it by naming them in notes.`);
           if (client.exercise_frequency) lines.push(`Exercise frequency: ${client.exercise_frequency}`);
           if (client.notes) lines.push(`Coach notes: ${client.notes}`);
           if (clientHealthFlags?.aiNotes) lines.push(`AI-specific coach notes: ${clientHealthFlags.aiNotes}`);
@@ -962,10 +1013,23 @@ If one does not fit today's muscle group, skip it (it belongs on another day). O
     const allViolations = [];
     // Track main exercises already used PER muscle-group-type, so two push days
     // (or two pull/leg days) don't end up as near-copies. Keyed by targetMuscle.
+    // Upper/lower days overlap the push/pull/legs days that precede them in the
+    // 5-day split, so they also avoid those types' picks (generation is
+    // sequential here, so earlier days' lists are always complete).
+    const RELATED_AVOID_TYPES = {
+      upper_body: ['push', 'pull'],
+      lower_body: ['legs'],
+      legs: ['lower_body'],
+      push: ['upper_body'],
+      pull: ['upper_body']
+    };
     const usedByType = {};
     for (const daySpec of splitDays) {
       const typeKey = daySpec.targetMuscle || daySpec.dayName;
-      const avoidExercises = usedByType[typeKey] || [];
+      const avoidExercises = [
+        ...(usedByType[typeKey] || []),
+        ...((RELATED_AVOID_TYPES[typeKey] || []).flatMap(k => usedByType[k] || []))
+      ];
       const dayResult = await generateOneDay(anthropic, {
         daySpec, exercisesByMuscleGroupSampled: sampled,
         exercisesAfterInjuries, exercisesWithVideos,
@@ -975,11 +1039,13 @@ If one does not fit today's muscle group, skip it (it belongs on another day). O
         warmupSuitable, stretchExercises, avoidExercises, keepMandate,
         weightUnit: clientWeightUnit, model: genModel, focusAreas
       });
-      // Record this day's MAIN exercises so later same-type days avoid them
+      // Record this day's MAIN exercises so later same-type days avoid them.
+      // Accumulate same-type only — related types are unioned at read time
+      // above; storing them here too would snowball the lists.
       const usedNow = (dayResult.exercises || [])
         .filter(ex => ex && !ex.isWarmup && !ex.isStretch && ex.name)
         .map(ex => ex.name);
-      usedByType[typeKey] = [...avoidExercises, ...usedNow];
+      usedByType[typeKey] = [...(usedByType[typeKey] || []), ...usedNow];
       day1Workouts.push(dayResult);
       if (dayResult.violations?.length) {
         for (const v of dayResult.violations) allViolations.push({ ...v, day: daySpec.dayName });

@@ -12,7 +12,7 @@ const Anthropic = require('@anthropic-ai/sdk');
 const { createClient } = require('@supabase/supabase-js');
 const { corsHeaders, handleCors, authenticateRequest } = require('./utils/auth');
 const { analyzeClientHistory, formatAnalysisForPrompt, applyMovementScreenExclusions } = require('./utils/client-analysis');
-const { exerciseMatchesEquipment } = require('./utils/equipment-filter');
+const { exerciseMatchesEquipment, filterUnavailableEquipment } = require('./utils/equipment-filter');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -620,12 +620,16 @@ exports.handler = async (event) => {
       try {
         const { data: clientFlags } = await supabase
           .from('clients')
-          .select('health_flags')
+          .select('health_flags, unavailable_equipment')
           .eq('id', clientId)
           .maybeSingle();
         const hf = clientFlags?.health_flags || {};
         if (Array.isArray(hf.injuryCodes)) mergedInjuryCodes = [...new Set([...mergedInjuryCodes, ...hf.injuryCodes])];
         if (Array.isArray(hf.movementFlags)) mergedMovementFlags = [...new Set([...mergedMovementFlags, ...hf.movementFlags])];
+        // Drop gear the client's gym doesn't have at the top of the funnel so
+        // every downstream pool (candidates, warm-ups, name-matching) inherits
+        // it — same guarantee the background generator applies.
+        exercisesWithVideos = filterUnavailableEquipment(exercisesWithVideos, clientFlags?.unavailable_equipment);
       } catch (e) { /* ignore */ }
     }
 
@@ -823,6 +827,24 @@ If one does not fit today's muscle group, skip it (it belongs on another day). O
         warmupStretchInstructions += '\n- Pick warm-ups that prepare THE MUSCLES TRAINED THAT DAY. Upper-body days → arm circles, arm swings, torso twists, band/shoulder prep. Lower-body / leg days → leg swings, hip circles, bodyweight squats, marches, high knees. Full-body days → mix.';
         warmupStretchInstructions += '\n- Do NOT use "Jogging" / "Jog in place" / "Running in place" as the warm-up on every workout. General running-in-place is fine occasionally for leg or full-body days, but it is a poor warm-up for an upper-body day and must NOT be the automatic first pick.';
         warmupStretchInstructions += '\n- VARY the warm-up across days in a program — a 4-day program should not open all 4 days with the same cardio move.';
+      }
+      // Day-aware cardio warm-up machine (same rule as the background
+      // generator): rower on pull/back days, step mill on leg days,
+      // elliptical everywhere else — never default to jogging/treadmill.
+      const cardioPick = (patterns) => {
+        for (const re of patterns) {
+          const m = exercisesWithVideos.find(e => re.test(e.name || '') && exerciseMatchesEquipment(e, equipment));
+          if (m) return m.name;
+        }
+        return null;
+      };
+      const preferredCardio = ['legs', 'lower_body', 'glutes'].includes(targetMuscle)
+        ? cardioPick([/stepmill machine steps$/i, /stepmill|stair/i, /elliptical machine normal speed$/i, /elliptical/i])
+        : ['pull', 'back'].includes(targetMuscle)
+          ? cardioPick([/rowing machine normal speed$/i, /rowing machine/i, /elliptical machine normal speed$/i, /elliptical/i])
+          : cardioPick([/elliptical machine normal speed$/i, /elliptical/i]);
+      if (preferredCardio) {
+        warmupStretchInstructions += `\n\nCARDIO WARM-UP CHOICE (MANDATORY): if this workout opens with a cardio warm-up, use "${preferredCardio}" (copy the name EXACTLY), easy pace, reps in TIME format ("3 min"). Do NOT use jogging or the treadmill as the warm-up.`;
       }
       if (stretchExercises.length > 0) {
         warmupStretchInstructions += `\n\nAVAILABLE STRETCHES (copy name EXACTLY):\n${stretchExercises.map(n => `"${n}"`).join(', ')}`;

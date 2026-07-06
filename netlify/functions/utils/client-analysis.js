@@ -425,14 +425,29 @@ async function analyzeClientHistory(supabase, clientId, options = {}) {
     }
   }
 
-  // Deload detection
+  // Deload vs. layoff detection.
+  // A deload only makes sense for someone who has been training hard and
+  // recently — accumulated fatigue is the thing a deload discharges. A client
+  // who hasn't logged a session in weeks is RESTED, not fatigued: prescribing
+  // a "deload" after a month off is backwards (June 2026 bulk-AI review —
+  // a client 4 weeks off was handed a deload block). They need a comeback
+  // ramp: re-enter lighter, rebuild the habit, then work back up.
+  const lastSessionDate = logs[logs.length - 1].workout_date;
+  const daysSinceLastSession = lastSessionDate
+    ? Math.max(0, Math.floor((Date.now() - new Date(lastSessionDate).getTime()) / (24 * 60 * 60 * 1000)))
+    : null;
+  const onLayoff = daysSinceLastSession != null && daysSinceLastSession >= 21;
+  const trainingConsistently = !onLayoff &&
+    daysSinceLastSession != null && daysSinceLastSession <= 10 &&
+    sessionsPerWeek >= 2;
   const lastDeload = lastAssignments.find(p => /deload/i.test(p.name || ''));
   const weeksSinceDeload = lastDeload && lastDeload.created_at
     ? Math.floor((Date.now() - new Date(lastDeload.created_at).getTime()) / (7 * 24 * 60 * 60 * 1000))
     : null;
-  const deloadDue = (avgRPE != null && avgRPE >= 8.5) ||
-                    (weeksSinceDeload != null && weeksSinceDeload >= 5) ||
-                    exerciseAnalysis.filter(e => e.weightTrend === 'decreasing').length >= 3;
+  const deloadDue = trainingConsistently && (
+    (avgRPE != null && avgRPE >= 8.5) ||
+    (weeksSinceDeload != null && weeksSinceDeload >= 5) ||
+    exerciseAnalysis.filter(e => e.weightTrend === 'decreasing').length >= 3);
 
   // Training age inference
   let trainingAge = 'intermediate';
@@ -441,7 +456,9 @@ async function analyzeClientHistory(supabase, clientId, options = {}) {
 
   // Top-level recommendation
   let overallRecommendation;
-  if (deloadDue) {
+  if (onLayoff) {
+    overallRecommendation = `Client has not trained in ${daysSinceLastSession} days — this is a RETURN-FROM-BREAK block, NOT a deload. Week 1 should re-enter around 70% of previous working intensity with moderate volume, rebuild the habit, then ramp back to normal working sets. Do not label or program it as a deload.`;
+  } else if (deloadDue) {
     overallRecommendation = 'DELOAD recommended. Reduce volume by ~30%, drop intensity to RPE 6-7, focus on form and recovery for 1 week.';
   } else if (recovery && recovery.workoutAdherencePct != null && recovery.workoutAdherencePct < 70) {
     overallRecommendation = `Workout adherence is only ${recovery.workoutAdherencePct}% — the priority is a program the client will actually complete. Trim to fewer/shorter sessions and rebuild consistency before adding volume.`;
@@ -460,6 +477,8 @@ async function analyzeClientHistory(supabase, clientId, options = {}) {
     avgRPE: avgRPE != null ? avgRPE.toFixed(1) : null,
     trainingAge,
     deloadDue,
+    onLayoff,
+    daysSinceLastSession,
     weeksSinceDeload,
     lastProgramName: lastAssignments[0]?.name || null,
     programHistory: lastAssignments.map(p => p.name),
@@ -491,6 +510,7 @@ function formatAnalysisForPrompt(analysis) {
   lines.push(`Training age (inferred): ${analysis.trainingAge}`);
   if (analysis.lastProgramName) lines.push(`Most recent program: "${analysis.lastProgramName}"`);
   if (analysis.programHistory.length > 1) lines.push(`Program history (newest first): ${analysis.programHistory.slice(0, 3).join(' ← ')}`);
+  if (analysis.onLayoff) lines.push(`⚠ LAYOFF: last logged session was ${analysis.daysSinceLastSession} days ago. Program a COMEBACK RAMP — week 1 lighter (~70% intensity, moderate volume) to re-enter safely, then build back up. They are rested, not fatigued: do NOT call this a deload or program it as one.`);
   if (analysis.deloadDue) lines.push(`⚠ DELOAD INDICATED: ${analysis.weeksSinceDeload != null ? `${analysis.weeksSinceDeload} weeks since last deload, ` : ''}fatigue accumulating.`);
 
   if (analysis.exerciseAnalysis.length > 0) {
