@@ -696,6 +696,36 @@ exports.handler = withTimeout(async (event) => {
 
         let responseAssignments = assignments || [];
 
+        // Opt-in: per-client count of completed workouts in the last 28 days,
+        // so callers like Bulk AI can default days-per-week to what the client
+        // ACTUALLY trains instead of what their last program prescribed.
+        // Returned as { activity: { [client_id]: count } }.
+        let activity = null;
+        if ((event.queryStringParameters || {}).withActivity === 'true') {
+          activity = {};
+          try {
+            const cutoff = new Date(Date.now() - 28 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+            const { data: recentLogs } = await supabase
+              .from('workout_logs')
+              .select('client_id')
+              .eq('coach_id', coachId)
+              .eq('status', 'completed')
+              .gte('workout_date', cutoff)
+              .limit(5000);
+            for (const l of (recentLogs || [])) {
+              activity[l.client_id] = (activity[l.client_id] || 0) + 1;
+            }
+            // Clients with an assignment but no recent logs report an explicit 0
+            // so the caller can tell "dormant" apart from "activity not loaded".
+            for (const a of responseAssignments) {
+              if (a.client_id != null && activity[a.client_id] == null) activity[a.client_id] = 0;
+            }
+          } catch (e) {
+            console.warn('withActivity count failed:', e.message);
+            activity = null;
+          }
+        }
+
         // Flatten the joined program into lightweight fields and compute the
         // session estimate server-side, then drop the heavy program_data so it
         // never travels over the wire.
@@ -717,7 +747,7 @@ exports.handler = withTimeout(async (event) => {
         return {
           statusCode: 200,
           headers,
-          body: JSON.stringify({ assignments: responseAssignments })
+          body: JSON.stringify(activity ? { assignments: responseAssignments, activity } : { assignments: responseAssignments })
         };
       }
 

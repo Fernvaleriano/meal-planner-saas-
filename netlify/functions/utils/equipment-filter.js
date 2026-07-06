@@ -100,9 +100,64 @@ function exerciseMatchesEquipment(ex, selectedEquipment) {
   });
 }
 
+// ─── Per-client unavailable-equipment filtering ───────────────────────────────
+// Clients can list specific gear their gym doesn't have (e.g. "EZ Bar",
+// "battle ropes") on their profile. This matcher mirrors
+// restrictionMatchesExercise() in coach-workouts.html / client-profile.html so
+// the AI generators exclude the same exercises the assignment-time equipment
+// alert would flag — keep the two in sync.
+function restrictionMatchesExercise(restriction, exEquipLower, exNameLower) {
+  if (!restriction) return false;
+  // Filler words ignored everywhere; GENERIC = category words (e.g.
+  // "machine") that must not cause a broad match on their own.
+  const FILLER = new Set(['the', 'a', 'an', 'with', 'and', 'of', 'for', 'equipment']);
+  const GENERIC = new Set(['machine']);
+  const norm = s => (s || '').split(/[^a-z0-9]+/).filter(Boolean)
+    .map(w => (w.length > 3 ? w.replace(/s$/, '') : w));
+  const rWords = norm(restriction).filter(w => !FILLER.has(w));
+  if (rWords.length === 0) return false;
+  const rSet = new Set(rWords);
+
+  // 1) Equipment-field match (word level, not raw substring).
+  const eqWords = norm(exEquipLower).filter(w => !FILLER.has(w));
+  if (eqWords.length) {
+    const eqSet = new Set(eqWords);
+    if (rWords.every(w => eqSet.has(w))) return true;
+    const eqMeaningful = eqWords.filter(w => !GENERIC.has(w));
+    if (eqMeaningful.length && eqMeaningful.every(w => rSet.has(w))) return true;
+  }
+
+  // 2) Name match: every distinctive word of the restriction must appear as a
+  //    word in the exercise name ("battle ropes" flags "Battle Rope ... Slams").
+  let rNameWords = rWords.filter(w => !GENERIC.has(w));
+  if (rNameWords.length === 0) rNameWords = rWords;
+  const nameWords = new Set(norm(exNameLower));
+  return rNameWords.every(w => nameWords.has(w));
+}
+
+// Drop every exercise that needs a piece of gear on the client's
+// unavailable-equipment list. Accepts the raw column value (array or JSON
+// string) so callers don't each have to normalize it.
+function filterUnavailableEquipment(exercises, unavailable) {
+  let list = unavailable;
+  if (typeof list === 'string') {
+    try { list = JSON.parse(list); } catch { list = []; }
+  }
+  if (!Array.isArray(list) || list.length === 0) return exercises;
+  const restrictions = list.map(r => String(r || '').toLowerCase().trim()).filter(Boolean);
+  if (restrictions.length === 0) return exercises;
+  return exercises.filter(ex => {
+    const eq = (ex.equipment || '').toLowerCase();
+    const nm = (ex.name || '').toLowerCase();
+    return !restrictions.some(r => restrictionMatchesExercise(r, eq, nm));
+  });
+}
+
 module.exports = {
   nameGearTokens,
   nameNeedsEquipment,
   exerciseMatchesEquipment,
+  restrictionMatchesExercise,
+  filterUnavailableEquipment,
   GEAR_NAME_PATTERNS,
 };

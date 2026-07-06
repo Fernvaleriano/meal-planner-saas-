@@ -82,6 +82,7 @@ function buildCoachingContext(analysis) {
   if (kept.length) lines.push(`Lifts that are progressing (keeping + pushing): ${kept.join(', ')}.`);
   if (swapped.length) lines.push(`Lifts that stalled (swapping for fresh variations): ${swapped.join(', ')}.`);
   if (analysis.skippedExercises && analysis.skippedExercises.length) lines.push(`Was skipping: ${analysis.skippedExercises.slice(0, 3).join(', ')} (subbed in something they'll actually do).`);
+  if (analysis.onLayoff) lines.push(`They haven't trained in ${analysis.daysSinceLastSession || '21+'} days — this block eases them back in and rebuilds the habit (a comeback, not a deload).`);
   if (analysis.deloadDue) lines.push(`Fatigue building, this block eases off a touch to recover.`);
   if (analysis.recovery && analysis.recovery.workoutAdherencePct != null && analysis.recovery.workoutAdherencePct < 70) lines.push(`Adherence has been low, so this block is trimmed to be more doable.`);
   if (analysis.nutritionPhase && analysis.nutritionPhase.note) lines.push(`Nutrition phase: ${analysis.nutritionPhase.note}`);

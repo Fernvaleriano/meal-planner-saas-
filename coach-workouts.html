@@ -13601,7 +13601,9 @@
                 'push_pull_legs': {
                     3: [['push', 'Push Day'], ['pull', 'Pull Day'], ['legs', 'Leg Day']],
                     4: [['push', 'Push Day'], ['pull', 'Pull Day'], ['legs', 'Leg Day'], ['upper_body', 'Upper Body']],
-                    5: [['push', 'Push Day'], ['pull', 'Pull Day'], ['legs', 'Leg Day'], ['push', 'Push Day 2'], ['pull', 'Pull Day 2']],
+                    // 5-day: PPL + Upper/Lower so legs get trained twice a week
+                    // (P/P/L/P/P left legs at 1x — under-serves the lower body)
+                    5: [['push', 'Push Day'], ['pull', 'Pull Day'], ['legs', 'Leg Day'], ['upper_body', 'Upper Body'], ['lower_body', 'Lower Body']],
                     6: [['push', 'Push A'], ['pull', 'Pull A'], ['legs', 'Legs A'], ['push', 'Push B'], ['pull', 'Pull B'], ['legs', 'Legs B']]
                 },
                 'upper_lower': {
@@ -14098,6 +14100,16 @@
             if (!e) return true;
             return equipment.map(x => String(x).toLowerCase()).includes(e);
         }
+        // Rotate the injected keeper cue (same pool as the background generator) —
+        // one hardcoded sentence repeated 3-4 times in a program reads like AI.
+        const _KEEPER_NOTES = [
+            'you\'ve been making real progress here, so keep chasing a little more each week.',
+            'this one\'s been climbing for you, keep riding it. same clean form, nudge it forward.',
+            'we\'re keeping this in because it\'s working. stay patient and keep stacking small wins on it.',
+            'your numbers on this have been trending up, so don\'t change a thing. just keep showing up for it.',
+            'this lift is one of your best movers right now, protect that momentum.',
+            'still moving up on this one, love to see it. keep the reps honest and let it build.'
+        ];
         function _keeperBuildExercise(lib, template) {
             const t = template || {};
             return {
@@ -14105,7 +14117,7 @@
                 sets: typeof t.sets === 'number' ? t.sets : 4,
                 reps: t.reps || '8-10',
                 restSeconds: typeof t.restSeconds === 'number' ? t.restSeconds : 90,
-                notes: 'you\'ve been making real progress here, so keep chasing a little more each week.',
+                notes: _KEEPER_NOTES[(lib.name || '').length % _KEEPER_NOTES.length],
                 isSuperset: false, supersetGroup: null, isWarmup: false, isStretch: false, phase: 'main',
                 id: lib.id, video_url: lib.video_url, animation_url: lib.animation_url,
                 thumbnail_url: lib.thumbnail_url, muscle_group: lib.muscle_group, equipment: lib.equipment,
@@ -14388,15 +14400,46 @@
             if (!Number.isFinite(n) || n <= 0) return fallback;
             return opts.reduce((best, o) => Math.abs(o - n) < Math.abs(best - n) ? o : best, opts[0]);
         }
+        // Upper bound of the profile's exercise_frequency ("3-4" → 4, "5+" → 5).
+        function _bulkFreqCapFromProfile(c) {
+            const f = String(c.exercise_frequency || '').trim();
+            if (!f) return null;
+            const m = f.match(/(\d+)\s*[-–+]\s*(\d+)?/);
+            if (!m) return null;
+            const hi = m[2] ? parseInt(m[2], 10) : parseInt(m[1], 10);
+            return Number.isFinite(hi) ? hi : null;
+        }
+        // Days-per-week default from what the client ACTUALLY does, not just what
+        // their last program prescribed (June 2026 review: a 3x/week client kept
+        // getting 5-day defaults because his old program said 5). Order:
+        // real logged frequency → dormant-client trim → profile intent capped by
+        // the previous program → null (caller falls back to prev program / 4).
+        function _bulkDefaultDays(c, prev) {
+            const sessions28 = _bulkActivity[String(c.id)];
+            const prevDays = parseInt(prev.daysPerWeek, 10);
+            if (Number.isFinite(sessions28) && sessions28 >= 4) {
+                return Math.min(6, Math.max(2, Math.round(sessions28 / 4)));
+            }
+            if (sessions28 === 0 && prev.startDate) {
+                const started = new Date(prev.startDate + 'T00:00:00');
+                // Had a plan for 2+ weeks and never logged a session — don't
+                // re-prescribe a big week; rebuild the habit on 3 days.
+                if (!isNaN(started.getTime()) && (Date.now() - started.getTime()) > 14 * 86400000) return 3;
+            }
+            const cap = _bulkFreqCapFromProfile(c);
+            if (cap != null) return Math.min(6, Math.max(2, Number.isFinite(prevDays) ? Math.min(prevDays, cap) : cap));
+            return null;
+        }
         // Build the per-client default settings, seeded from the client's most
         // recent program when we have it (goal, level, days, weeks, session
         // length), otherwise from the client profile + generic fallbacks.
         function _bulkDefaultSettings(c) {
             const prev = _bulkAssignments[String(c.id)] || {};
+            const behaviorDays = _bulkDefaultDays(c, prev);
             return {
                 goal: _bulkGoalFromPrev(prev, c),
                 experience: _bulkExpFromPrev(prev, c),
-                daysPerWeek: _bulkSnapToOptions(prev.daysPerWeek, [2, 3, 4, 5, 6], 4),
+                daysPerWeek: _bulkSnapToOptions(behaviorDays != null ? behaviorDays : prev.daysPerWeek, [2, 3, 4, 5, 6], 4),
                 duration: _bulkSnapToOptions(prev.durationWeeks, [1, 4, 6, 8, 12], 4),
                 split: 'auto', tier: 'quality',
                 sessionDuration: _bulkSnapToOptions(prev.estSessionMinutes, [15, 20, 30, 45, 60, 90], 60),
@@ -14406,15 +14449,20 @@
         }
         // clientId(string) -> { endDate: 'YYYY-MM-DD'|null, name } for the client's current active plan
         let _bulkAssignments = {};
+        // clientId(string) -> completed workouts in the last 28 days (0 = dormant,
+        // missing = unknown/not loaded). Drives the days-per-week default.
+        let _bulkActivity = {};
         async function _bulkLoadAssignments() {
             _bulkAssignments = {};
+            _bulkActivity = {};
             try {
-                const res = await apiCall(`/.netlify/functions/workout-assignments?coachId=${encodeURIComponent(currentCoachId)}&activeOnly=true&summary=true&withProgram=true`);
+                const res = await apiCall(`/.netlify/functions/workout-assignments?coachId=${encodeURIComponent(currentCoachId)}&activeOnly=true&summary=true&withProgram=true&withActivity=true`);
                 // ordered newest-first by the API, so the first row per client is their current plan
                 for (const a of (res.assignments || [])) {
                     const cid = String(a.client_id);
                     if (!_bulkAssignments[cid]) _bulkAssignments[cid] = {
                         endDate: a.end_date || null,
+                        startDate: a.start_date || null,
                         name: a.name || '',
                         programType: a.program_type || null,
                         difficulty: a.difficulty || null,
@@ -14422,6 +14470,9 @@
                         durationWeeks: a.duration_weeks || null,
                         estSessionMinutes: a.est_session_minutes || null
                     };
+                }
+                if (res.activity && typeof res.activity === 'object') {
+                    for (const [cid, n] of Object.entries(res.activity)) _bulkActivity[String(cid)] = Number(n) || 0;
                 }
             } catch (e) { /* no end-date info; filters just won't have it */ }
         }
@@ -14517,8 +14568,12 @@
             listEl.innerHTML = ids.map(id => {
                 const c = (clients || []).find(x => String(x.id) === id) || {};
                 const s = _bulkState.settings[id];
+                const act = _bulkActivity[id];
+                const actHint = (act == null) ? ''
+                    : act === 0 ? `<span style="color:#f59e0b; font-size:11px; font-weight:400; margin-left:8px;">no logged workouts in 4 wks</span>`
+                    : `<span style="color:#64748b; font-size:11px; font-weight:400; margin-left:8px;">logs ~${(act / 4).toFixed(1)}×/week</span>`;
                 return `<div style="background:#0a1018; border:1px solid rgba(255,255,255,0.08); border-radius:12px; padding:10px 12px;">
-                    <div style="font-weight:600; color:#fff; margin-bottom:8px;">${esc(c.client_name || 'Unnamed')}</div>
+                    <div style="font-weight:600; color:#fff; margin-bottom:8px;">${esc(c.client_name || 'Unnamed')}${actHint}</div>
                     <div style="display:flex; flex-wrap:wrap; gap:6px;">
                         ${sel(id, 'goal', [['hypertrophy', 'Hypertrophy'], ['strength', 'Strength'], ['fat_loss', 'Fat Loss'], ['general_fitness', 'General']], s.goal)}
                         ${sel(id, 'experience', [['beginner', 'Beginner'], ['intermediate', 'Intermediate'], ['advanced', 'Advanced']], s.experience)}
