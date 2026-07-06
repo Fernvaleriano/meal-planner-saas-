@@ -696,9 +696,14 @@ exports.handler = withTimeout(async (event) => {
 
         let responseAssignments = assignments || [];
 
-        // Opt-in: per-client count of completed workouts in the last 28 days,
-        // so callers like Bulk AI can default days-per-week to what the client
+        // Opt-in: per-client count of training days in the last 28 days, so
+        // callers like Bulk AI can default days-per-week to what the client
         // ACTUALLY trains instead of what their last program prescribed.
+        // Counts DISTINCT workout dates of ANY status — many clients log real
+        // sessions but never tap "finish" (July 2026: a client with 12 real
+        // sessions in 4 weeks showed 0 when filtered to status=completed),
+        // and the AI's history analyzer counts all sessions too, so a
+        // completed-only count would contradict what the generator sees.
         // Returned as { activity: { [client_id]: count } }.
         let activity = null;
         if ((event.queryStringParameters || {}).withActivity === 'true') {
@@ -707,12 +712,15 @@ exports.handler = withTimeout(async (event) => {
             const cutoff = new Date(Date.now() - 28 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
             const { data: recentLogs } = await supabase
               .from('workout_logs')
-              .select('client_id')
+              .select('client_id, workout_date')
               .eq('coach_id', coachId)
-              .eq('status', 'completed')
               .gte('workout_date', cutoff)
               .limit(5000);
+            const seenDay = new Set();
             for (const l of (recentLogs || [])) {
+              const key = `${l.client_id}|${l.workout_date}`;
+              if (seenDay.has(key)) continue;
+              seenDay.add(key);
               activity[l.client_id] = (activity[l.client_id] || 0) + 1;
             }
             // Clients with an assignment but no recent logs report an explicit 0

@@ -372,7 +372,10 @@ function formatClientContextForPrompt(ctx) {
     if (p.height_ft) lines.push(`Height: ${p.height_ft}'${p.height_in || 0}"`);
     if (p.weight) lines.push(`Weight: ${p.weight} lb`);
     if (p.default_goal) lines.push(`Stated goal: ${p.default_goal}`);
-    if (p.fitness_goal_details) lines.push(`Goal details: ${p.fitness_goal_details}`);
+    if (p.fitness_goal_details) {
+      lines.push(`Goal details: ${p.fitness_goal_details}`);
+      lines.push(`  → SPECIFIC GOALS ARE PROGRAMMING TARGETS, not flavor text. If the goal details name a concrete skill, event, or lift (e.g. unassisted pull-ups, a race/marathon, a strength number), the program MUST train it directly on the days where it fits: a pull-up goal needs an actual pull-up progression (assisted pull ups, negatives, pulldown strength work) as main exercises; a running/endurance event needs real running or conditioning blocks, not just a cardio warm-up. Mentioning the goal in a note without programming for it is a failure.`);
+    }
     if (p.fitness_level) lines.push(`Fitness level: ${p.fitness_level}`);
     if (p.health_concerns) lines.push(`Logged injuries / health concerns: ${p.health_concerns}`);
     if (p.equipment_access) lines.push(`Equipment access: ${p.equipment_access}`);
@@ -724,6 +727,25 @@ exports.handler = async (event) => {
       }
     }
 
+    // Goal-driven pool guarantee (same rule as the background generator): the
+    // "specific goals are programming targets" directive can't program movements
+    // the random sampler never offered. If the goal names pull-ups/chin-ups,
+    // force the progressions into the candidate pool.
+    const goalDetailsText = String(clientContext?.profile?.fitness_goal_details || '');
+    if (/pull[\s-]?ups?|chin[\s-]?ups?/i.test(goalDetailsText)) {
+      const progressions = equipmentFilteredExercises
+        .filter(ex => /pull[\s-]?up|chin[\s-]?up/i.test(ex.name || ''))
+        .slice(0, 4);
+      for (const match of progressions) {
+        const group = (match.muscle_group || 'other').toLowerCase();
+        if (!exercisesByMuscleGroupSampled[group]) exercisesByMuscleGroupSampled[group] = [];
+        const display = `${match.name}${match.equipment ? ` [${match.equipment}]` : ''}${match.coach_id ? ' (custom)' : ''}`;
+        if (!exercisesByMuscleGroupSampled[group].some(s => s.toLowerCase().startsWith(match.name.toLowerCase()))) {
+          exercisesByMuscleGroupSampled[group].unshift(display);
+        }
+      }
+    }
+
     // Build a sharp, top-of-prompt MANDATE for the lifts the client is actively
     // PRing. A buried "keep what's working" bullet gets overridden by the model's
     // own priors (e.g. "incline barbell is the best chest builder"); a short,
@@ -979,7 +1001,7 @@ ${repRangeBlock}
 - VOICE — write each cue like the coach texted it on his phone, NOT like AI: ALL LOWERCASE (every letter, including the start of each sentence, no capitals ever); NO em dashes or en dashes (use commas/periods); short, warm, contractions are good; no AI filler ("engage your core", "ensure proper form", "maintain", "throughout the movement", "optimal", "focus on").
 - MAKE EVERY NOTE DIFFERENT. Do not reuse one formula ("control the eccentric, squeeze at the top, no swinging") with the nouns swapped, coaches hate that. For each exercise pick a DIFFERENT angle: setup/positioning, breathing/bracing, tempo, the one common mistake on THAT lift, what muscle it should feel like, range of motion, or effort target. Don't start consecutive notes with the same word, and make each cue specific enough that it couldn't be pasted onto a different exercise. Use phrases like "control the eccentric", "squeeze at the top", "no swinging", "full range of motion" at most ONCE in the whole workout.
 - PERSONAL TOUCH — make it feel made for them: the client profile above has real detail (their training history, lifts they're progressing on, injuries, how often they train). on the MAIN exercises where you actually know something about this client, work it into the cue so they feel seen (e.g. "this has been a staple for you, keep building it", "you've been moving well here, chase one more than last time", "keeping these controlled so that shoulder stays happy"). aim for about 2-3 genuinely personal cues per workout, skip warm-ups/stretches, and vary how you do it. never invent a detail that isn't in the profile, and never put numbers in a cue.
-- CARDIO MACHINES (treadmill, stairmaster, bike, rower, elliptical, jump rope) are CARDIO ONLY. They belong in WARM-UP (with "phase": "warmup", reps in time format like "5 min") or in a CONDITIONING FINISHER. They are NEVER main strength exercises with sets/reps like "3×12-15".
+- CARDIO MACHINES (treadmill, stairmaster, bike, rower, elliptical, jump rope) are CARDIO ONLY. They belong in WARM-UP (with "phase": "warmup", reps in time format like "5 min") or in a CONDITIONING FINISHER. They are NEVER main strength exercises with sets/reps like "3×12-15". If the CLIENT PROFILE's goal details name a running or endurance event (marathon, race, 5k/10k), a real running/conditioning block at the END of the day ("phase": "conditioning", 15-20 min, TIME format) is REQUIRED on the days where it fits — that goal must actually be trained.
 - A "Push" day means ONLY chest, shoulders, triceps. A "Pull" day means ONLY back and biceps. NEVER mix them — putting a row on a push day or a chest press on a pull day is a programming error.
 - For LEG days: include at least one squat pattern, one hip hinge (RDL/deadlift/hip thrust), one hamstring isolation, one calf exercise, and ideally one glute-specific movement.
 
