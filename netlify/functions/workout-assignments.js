@@ -121,6 +121,56 @@ async function enrichExercisesWithEquipment(exercises, supabase) {
   });
 }
 
+// Normalize a stored exercise so estimateWorkoutMinutes() reads the real set
+// count and rest — the DB keeps those inside setsData (or a stringified `sets`
+// array), while the canonical estimator looks at ex.sets / ex.restSeconds.
+function normalizeExerciseForEstimate(ex) {
+  if (!ex || typeof ex !== 'object') return ex;
+  let setsArr = ex.setsData;
+  if (typeof setsArr === 'string') { try { setsArr = JSON.parse(setsArr); } catch (e) { setsArr = null; } }
+  if (!Array.isArray(setsArr)) {
+    if (typeof ex.sets === 'string' && ex.sets.trim().charAt(0) === '[') {
+      try { const a = JSON.parse(ex.sets); if (Array.isArray(a)) setsArr = a; } catch (e) { /* keep null */ }
+    } else if (Array.isArray(ex.sets)) {
+      setsArr = ex.sets;
+    }
+  }
+  const out = { ...ex };
+  if (Array.isArray(setsArr) && setsArr.length) {
+    out.sets = setsArr; // canonical resolveSetCount uses .length
+    const rest = Number(setsArr[0] && setsArr[0].restSeconds);
+    if (Number.isFinite(rest) && rest >= 0) out.restSeconds = rest;
+  } else if (typeof ex.sets === 'string') {
+    const n = parseInt(ex.sets, 10);
+    if (Number.isFinite(n) && n > 0) out.sets = n;
+  }
+  return out;
+}
+
+// Estimate a typical session length (minutes) for a program by averaging the
+// per-day estimate across days that actually have exercises. Returns null when
+// there's nothing to estimate from. Reuses the canonical per-day estimator so
+// the number stays consistent with what clients see elsewhere.
+function estimateProgramSessionMinutes(programData) {
+  try {
+    let days = null;
+    if (programData && Array.isArray(programData.days)) days = programData.days;
+    else if (programData && programData.weeks && programData.weeks[0] && Array.isArray(programData.weeks[0].workouts)) days = programData.weeks[0].workouts;
+    if (!Array.isArray(days) || !days.length) return null;
+    const perDay = [];
+    for (const day of days) {
+      const exs = day && Array.isArray(day.exercises) ? day.exercises.map(normalizeExerciseForEstimate) : [];
+      if (!exs.length) continue;
+      const m = estimateWorkoutMinutes(exs);
+      if (m > 0) perDay.push(m);
+    }
+    if (!perDay.length) return null;
+    return Math.round(perDay.reduce((a, b) => a + b, 0) / perDay.length);
+  } catch (e) {
+    return null;
+  }
+}
+
 exports.handler = withTimeout(async (event) => {
   if (event.httpMethod === 'OPTIONS') {
     return { statusCode: 200, headers, body: '' };
@@ -610,11 +660,21 @@ exports.handler = withTimeout(async (event) => {
 
       // Get all assignments for a coach
       if (coachId) {
+        // Opt-in: pull lightweight metadata about each assignment's program
+        // (goal/level/days/weeks) plus a session-length estimate, so callers
+        // like Bulk AI can pre-fill defaults from a client's current program.
+        // Only added when explicitly requested to keep the default summary
+        // path byte-for-byte unchanged.
+        const withProgram = (event.queryStringParameters || {}).withProgram === 'true';
+
         // When filtering by programId, return only minimal fields to keep the
         // response small (full workout_data per row can blow past Netlify's
         // 6MB response limit for coaches with many assignments).
+        const baseSummaryColumns = 'id, client_id, coach_id, program_id, name, is_active, start_date, end_date, created_at, clients!inner(id, client_name, email)';
         const selectColumns = (programId || summary === 'true')
-          ? 'id, client_id, coach_id, program_id, name, is_active, start_date, end_date, created_at, clients!inner(id, client_name, email)'
+          ? (withProgram
+              ? `${baseSummaryColumns}, workout_programs!client_workout_assignments_program_id_fkey(program_type, difficulty, days_per_week, duration_weeks, program_data)`
+              : baseSummaryColumns)
           : '*, clients!inner(id, client_name, email)';
 
         let query = supabase
@@ -634,10 +694,30 @@ exports.handler = withTimeout(async (event) => {
 
         if (error) throw error;
 
+        let responseAssignments = assignments || [];
+
+        // Flatten the joined program into lightweight fields and compute the
+        // session estimate server-side, then drop the heavy program_data so it
+        // never travels over the wire.
+        if (withProgram) {
+          responseAssignments = responseAssignments.map((a) => {
+            const prog = a.workout_programs || null;
+            const { workout_programs, ...rest } = a;
+            return {
+              ...rest,
+              program_type: prog ? (prog.program_type || null) : null,
+              difficulty: prog ? (prog.difficulty || null) : null,
+              days_per_week: prog ? (prog.days_per_week || null) : null,
+              duration_weeks: prog ? (prog.duration_weeks || null) : null,
+              est_session_minutes: prog ? estimateProgramSessionMinutes(prog.program_data) : null
+            };
+          });
+        }
+
         return {
           statusCode: 200,
           headers,
-          body: JSON.stringify({ assignments: assignments || [] })
+          body: JSON.stringify({ assignments: responseAssignments })
         };
       }
 
