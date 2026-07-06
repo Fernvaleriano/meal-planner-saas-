@@ -14329,9 +14329,18 @@
             renderBulkClientList();
             renderBulkSettings();
             document.getElementById('bulkAiModal').style.display = 'flex';
-            // Pull each client's current plan end-date in the background, then re-render
-            // so the "ending soon" filter / badges populate.
-            _bulkLoadAssignments().then(renderBulkClientList);
+            // Pull each client's current plan (end-date + program meta) in the
+            // background, then re-render so the "ending soon" badges populate and
+            // any client selected during the brief load window picks up the
+            // program-based defaults instead of the generic fallback.
+            _bulkLoadAssignments().then(() => {
+                for (const id of _bulkState.selected) {
+                    const c = (clients || []).find(x => String(x.id) === id);
+                    if (c) _bulkState.settings[id] = _bulkDefaultSettings(c);
+                }
+                renderBulkClientList();
+                renderBulkSettings();
+            });
         }
         function closeBulkAiModal() {
             if (_bulkState.running && !confirm('Still generating. Close anyway? Drafts already finished are saved.')) return;
@@ -14351,16 +14360,68 @@
             if (/adv|elite|expert/.test(e)) return 'advanced';
             return 'intermediate';
         }
+        // Map a previous program's stored program_type to one of the goal
+        // dropdown options; fall back to the client-profile guess when the
+        // previous program has no usable type (older rows can be blank).
+        function _bulkGoalFromPrev(prev, c) {
+            const t = String((prev && prev.programType) || '').toLowerCase();
+            let g = null;
+            if (/hyper|muscle|build|mass|size|tone|gain/.test(t)) g = 'hypertrophy';
+            else if (/strength|power/.test(t)) g = 'strength';
+            else if (/fat|weight.?loss|lose|lean|cut/.test(t)) g = 'fat_loss';
+            // The goal dropdown has no endurance/flexibility/sport option, so map
+            // those (and explicit "general") to the closest fit: General.
+            else if (/general|maintain|endur|condition|cardio|flex|mobility|sport|athlet/.test(t)) g = 'general_fitness';
+            if (!g) g = _bulkGoalDefault(c);
+            return ['hypertrophy', 'strength', 'fat_loss', 'general_fitness'].includes(g) ? g : 'hypertrophy';
+        }
+        function _bulkExpFromPrev(prev, c) {
+            const d = String((prev && prev.difficulty) || '').toLowerCase();
+            if (d === 'beginner' || d === 'intermediate' || d === 'advanced') return d;
+            return _bulkExpDefault(c);
+        }
+        // Snap the previous program's value to the nearest option the matching
+        // dropdown actually offers, so the pre-filled value renders selected
+        // (an unlisted value would silently show the first option instead).
+        function _bulkSnapToOptions(n, opts, fallback) {
+            n = parseInt(n, 10);
+            if (!Number.isFinite(n) || n <= 0) return fallback;
+            return opts.reduce((best, o) => Math.abs(o - n) < Math.abs(best - n) ? o : best, opts[0]);
+        }
+        // Build the per-client default settings, seeded from the client's most
+        // recent program when we have it (goal, level, days, weeks, session
+        // length), otherwise from the client profile + generic fallbacks.
+        function _bulkDefaultSettings(c) {
+            const prev = _bulkAssignments[String(c.id)] || {};
+            return {
+                goal: _bulkGoalFromPrev(prev, c),
+                experience: _bulkExpFromPrev(prev, c),
+                daysPerWeek: _bulkSnapToOptions(prev.daysPerWeek, [2, 3, 4, 5, 6], 4),
+                duration: _bulkSnapToOptions(prev.durationWeeks, [1, 4, 6, 8, 12], 4),
+                split: 'auto', tier: 'quality',
+                sessionDuration: _bulkSnapToOptions(prev.estSessionMinutes, [15, 20, 30, 45, 60, 90], 60),
+                exerciseCount: '5-6', trainingStyle: 'straight_sets',
+                conditioningStyle: 'none', tempo: 'standard', intensity: '', unilateral: 'mixed'
+            };
+        }
         // clientId(string) -> { endDate: 'YYYY-MM-DD'|null, name } for the client's current active plan
         let _bulkAssignments = {};
         async function _bulkLoadAssignments() {
             _bulkAssignments = {};
             try {
-                const res = await apiCall(`/.netlify/functions/workout-assignments?coachId=${encodeURIComponent(currentCoachId)}&activeOnly=true&summary=true`);
+                const res = await apiCall(`/.netlify/functions/workout-assignments?coachId=${encodeURIComponent(currentCoachId)}&activeOnly=true&summary=true&withProgram=true`);
                 // ordered newest-first by the API, so the first row per client is their current plan
                 for (const a of (res.assignments || [])) {
                     const cid = String(a.client_id);
-                    if (!_bulkAssignments[cid]) _bulkAssignments[cid] = { endDate: a.end_date || null, name: a.name || '' };
+                    if (!_bulkAssignments[cid]) _bulkAssignments[cid] = {
+                        endDate: a.end_date || null,
+                        name: a.name || '',
+                        programType: a.program_type || null,
+                        difficulty: a.difficulty || null,
+                        daysPerWeek: a.days_per_week || null,
+                        durationWeeks: a.duration_weeks || null,
+                        estSessionMinutes: a.est_session_minutes || null
+                    };
                 }
             } catch (e) { /* no end-date info; filters just won't have it */ }
         }
@@ -14424,7 +14485,7 @@
                 if (allOn) { _bulkState.selected.delete(id); delete _bulkState.settings[id]; }
                 else if (!_bulkState.selected.has(id)) {
                     _bulkState.selected.add(id);
-                    _bulkState.settings[id] = { goal: _bulkGoalDefault(c), experience: _bulkExpDefault(c), daysPerWeek: 4, duration: 4, split: 'auto', tier: 'quality', sessionDuration: 60, exerciseCount: '5-6', trainingStyle: 'straight_sets', conditioningStyle: 'none', tempo: 'standard', intensity: '', unilateral: 'mixed' };
+                    _bulkState.settings[id] = _bulkDefaultSettings(c);
                 }
             });
             renderBulkClientList();
@@ -14435,7 +14496,7 @@
             else {
                 _bulkState.selected.add(id);
                 const c = (clients || []).find(x => String(x.id) === id) || {};
-                _bulkState.settings[id] = { goal: _bulkGoalDefault(c), experience: _bulkExpDefault(c), daysPerWeek: 4, duration: 4, split: 'auto', tier: 'quality', sessionDuration: 60, exerciseCount: '5-6', trainingStyle: 'straight_sets', conditioningStyle: 'none', tempo: 'standard', intensity: '', unilateral: 'mixed' };
+                _bulkState.settings[id] = _bulkDefaultSettings(c);
             }
             renderBulkClientList();
             renderBulkSettings();
