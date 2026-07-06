@@ -16,7 +16,7 @@ function PepTalkModal() {
   const clientId = clientData?.id;
   const isCoach = clientData?.is_coach === true;
 
-  const { pepTalks, refresh, dismissLocal } = useUnviewedPepTalks(isCoach ? null : clientId);
+  const { pepTalks, refresh, dismissLocal, removeLocal } = useUnviewedPepTalks(isCoach ? null : clientId);
 
   const current = pepTalks[0] || null;
   // Mandatory pep talks (the default) can't be closed — the client must read /
@@ -63,19 +63,24 @@ function PepTalkModal() {
 
   const handleAcknowledge = useCallback(async () => {
     if (!current || !clientId) return;
+    // Close instantly (optimistic) — the old flow waited for the POST + a list
+    // refetch before the modal disappeared, which on mobile felt like the
+    // button needed several taps. If the server write below fails, refresh()
+    // re-adds the pep talk to the list, so the mandatory guarantee still holds.
+    const ackedId = current.id;
+    removeLocal(ackedId);
     try {
       await apiPost('/.netlify/functions/mark-pep-talk-viewed', {
         clientId,
-        pepTalkId: current.id,
+        pepTalkId: ackedId,
         action: 'viewed'
       });
     } catch (err) {
       console.error('Failed to mark pep talk viewed:', err);
-      // Even if the server call fails, refresh — the list endpoint will tell us
-      // whether the row actually flipped, so we don't end up stuck on a dead modal.
+      // Refresh below re-shows the modal if the row didn't actually flip.
     }
     refresh();
-  }, [current, clientId, refresh]);
+  }, [current, clientId, removeLocal, refresh]);
 
   const handleDismiss = useCallback(() => {
     if (!current || !clientId) return;

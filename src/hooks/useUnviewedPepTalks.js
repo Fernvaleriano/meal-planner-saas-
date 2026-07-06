@@ -16,6 +16,10 @@ import { onAppResume } from './useAppLifecycle';
  *   pepTalks    – visible pep talks (server list minus locally-dismissed IDs)
  *   refresh     – repull the list (call after view/dismiss)
  *   dismissLocal(id) – hide a pep talk for this session only
+ *   removeLocal(id)  – optimistically drop a pep talk from the list right now
+ *                      (used by "Got it" so the modal closes instantly; a
+ *                      later refresh() re-adds it if the server write failed,
+ *                      so the mandatory guarantee still holds)
  */
 export function useUnviewedPepTalks(clientId) {
   const [pepTalks, setPepTalks] = useState([]);
@@ -36,6 +40,10 @@ export function useUnviewedPepTalks(clientId) {
       console.error('Failed to fetch pep talks:', err);
     }
   }, [clientId]);
+
+  const removeLocal = useCallback((id) => {
+    setPepTalks(prev => prev.filter(p => p.id !== id));
+  }, []);
 
   const dismissLocal = useCallback((id) => {
     setDismissedIds(prev => {
@@ -67,5 +75,5 @@ export function useUnviewedPepTalks(clientId) {
     [pepTalks, dismissedIds]
   );
 
-  return { pepTalks: visiblePepTalks, refresh, dismissLocal };
+  return { pepTalks: visiblePepTalks, refresh, dismissLocal, removeLocal };
 }
