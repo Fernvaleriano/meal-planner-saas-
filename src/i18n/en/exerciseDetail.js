@@ -108,6 +108,8 @@ export default {
   historyLoading: 'Loading history...',
   historyEmpty: 'No history yet for this exercise',
   historyLogSets: 'Log sets to start tracking',
+  historyError: "Couldn't load history",
+  historyRetry: 'Retry',
   historyEst1RM: 'Est. 1RM: {value} {unit}',
   historySessions: '{count} sessions',
   historyPRs: '{count} PRs',
