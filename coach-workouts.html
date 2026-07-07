@@ -10063,12 +10063,13 @@
             });
 
             const equipSelect = document.getElementById('swapFilterEquipment');
-            const currentEquip = (currentExercise.equipment || '').toLowerCase();
+            // Do NOT default to the current exercise's equipment. The whole point of a
+            // swap is usually to change equipment — only the muscle should match. Leave
+            // equipment on "Any Equipment" so suggestions aren't locked to the same gear.
             equipSelect.innerHTML = '<option value="">Any Equipment</option>' +
                 [...equipmentSet].sort().map(e => {
                     const label = e.charAt(0).toUpperCase() + e.slice(1);
-                    const selected = e === currentEquip ? ' selected' : '';
-                    return `<option value="${e}"${selected}>${label}</option>`;
+                    return `<option value="${e}">${label}</option>`;
                 }).join('');
 
             const muscleSelect = document.getElementById('swapFilterMuscle');
