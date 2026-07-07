@@ -719,6 +719,40 @@ function buildWorkoutFromLog(log) {
   };
 }
 
+// Build a clean, independent copy of a workout for the "duplicate to another
+// date" flow. A duplicate must start FRESH: same exercises and prescribed
+// sets/reps, but nothing marked completed and no weights carried over from the
+// source week. We deliberately drop the logged `sets` array and strip logged
+// fields (weight/completed/effort/rpe) from `setsData` so ExerciseCard /
+// ExerciseDetailModal initialize from a blank prescription. The result is
+// written to its OWN ad-hoc workout row, so the copy and the original never
+// share data (the old override-based duplicate stored only a pointer into the
+// program's shared days[], which is why both weeks moved together).
+function buildFreshDuplicateData(workoutData) {
+  const source = workoutData || {};
+  const stripSet = (s) => {
+    if (!s || typeof s !== 'object') return s;
+    // Keep prescription fields (reps, restSeconds, duration, distance,
+    // setNumber); drop anything the client logs during a session.
+    const { weight, weightUnit, completed, effort, rpe, ...prescription } = s;
+    return prescription;
+  };
+  const cleanExercise = (ex) => {
+    if (!ex || typeof ex !== 'object') return ex;
+    const { completed, sets, setsData, ...rest } = ex;
+    const cleaned = { ...rest };
+    const prescribed = (Array.isArray(setsData) && setsData.length > 0)
+      ? setsData
+      : (Array.isArray(sets) ? sets : null);
+    if (prescribed) cleaned.setsData = prescribed.map(stripSet);
+    return cleaned;
+  };
+  return {
+    ...source,
+    exercises: Array.isArray(source.exercises) ? source.exercises.map(cleanExercise) : []
+  };
+}
+
 function Workouts() {
   const { clientData, user } = useAuth();
   const navigate = useNavigate();
@@ -4282,11 +4316,12 @@ function Workouts() {
           }
           succeeded = true;
         } else if (rescheduleAction === 'duplicate') {
-          // Create a copy on the target date
+          // Create an independent FRESH copy on the target date (no completion,
+          // no carried-over weights — see buildFreshDuplicateData).
           await apiPost('/.netlify/functions/adhoc-workouts', {
             clientId: targetWorkout.client_id || clientData?.id,
             workoutDate: rescheduleTargetDate,
-            workoutData: targetWorkout.workout_data,
+            workoutData: buildFreshDuplicateData(targetWorkout.workout_data),
             name: targetWorkout.name || targetWorkout.workout_data?.name || 'Workout'
           });
           succeeded = true;
@@ -4304,8 +4339,24 @@ function Workouts() {
           }
           succeeded = true;
         }
+      } else if (rescheduleAction === 'duplicate') {
+        // DUPLICATE (assigned workout): create a fully independent copy on the
+        // target date instead of the old shared-pointer override. The previous
+        // implementation stored only { instance_id, day_index } in the
+        // assignment's date_overrides, so the duplicate and the original both
+        // read/wrote the SAME program days[dayIndex] — the new week appeared
+        // already completed with last week's weights, and editing either week
+        // changed both. An ad-hoc copy is its own row with its own date-scoped
+        // logs, so the two weeks are truly separate and the copy starts fresh.
+        await apiPost('/.netlify/functions/adhoc-workouts', {
+          clientId: targetWorkout.client_id || clientData?.id,
+          workoutDate: rescheduleTargetDate,
+          workoutData: buildFreshDuplicateData(targetWorkout.workout_data),
+          name: targetWorkout.name || targetWorkout.workout_data?.name || 'Workout'
+        });
+        succeeded = true;
       } else {
-        // Assigned workout - use client-workout-log
+        // Reschedule / skip (assigned workout) - use client-workout-log
         const res = await apiPost('/.netlify/functions/client-workout-log', {
           assignmentId: targetWorkout.id,
           action: rescheduleAction,
