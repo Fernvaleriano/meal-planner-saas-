@@ -13,6 +13,7 @@ const { createClient } = require('@supabase/supabase-js');
 const { corsHeaders, handleCors, authenticateRequest } = require('./utils/auth');
 const { analyzeClientHistory, formatAnalysisForPrompt, applyMovementScreenExclusions } = require('./utils/client-analysis');
 const { exerciseMatchesEquipment, filterUnavailableEquipment } = require('./utils/equipment-filter');
+const { buildConditioningFinisher } = require('./utils/finisher');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -464,8 +465,9 @@ function generateMultiWeekProgression(week1Workouts, totalWeeks, goal, weightUni
 
     const workouts = week1Workouts.map(workout => {
       const exercises = (workout.exercises || []).map(ex => {
-        if (ex.isWarmup || ex.isStretch || ex.phase === 'warmup' || ex.phase === 'cooldown') {
-          // Don't progress warmups/cooldowns
+        if (ex.isWarmup || ex.isStretch || ex.phase === 'warmup' || ex.phase === 'cooldown' || ex.phase === 'conditioning') {
+          // Don't progress warmups/cooldowns/conditioning finishers (no "add
+          // weight" note on burpees or an easy jog)
           return { ...ex };
         }
         const baseSets = Number(ex.sets) || 3;
@@ -806,15 +808,16 @@ If one does not fit today's muscle group, skip it (it belongs on another day). O
       unilateralInstruction = 'Use ONLY bilateral exercises (both sides working simultaneously). Avoid single-arm and single-leg movements.';
     }
 
-    // Conditioning finisher — fires whenever the coach picked one (not gated on goal).
-    let conditioningInstruction = '';
-    if (conditioningStyle === 'hiit') {
-      conditioningInstruction = '\n=== CONDITIONING FINISHER (last 8-10 min) ===\nAdd a HIIT finisher: 4-8 rounds, 30s work / 30s rest, using bodyweight or kettlebell movements (burpees, mountain climbers, kettlebell swings, jump rope). Mark with "phase": "conditioning".';
-    } else if (conditioningStyle === 'liss') {
-      conditioningInstruction = '\n=== CONDITIONING FINISHER ===\nAdd 10-15 minutes of LISS cardio (steady-state, RPE 5-6) at the end. Treadmill walk, easy bike, or rowing. Mark with "phase": "conditioning".';
-    } else if (conditioningStyle === 'mixed') {
-      conditioningInstruction = '\n=== CONDITIONING FINISHER ===\nAlternate days: HIIT finisher one day, LISS cardio (10-15 min) the next. Mark with "phase": "conditioning".';
-    }
+    // Conditioning finisher — fires whenever the coach picked one (not gated on
+    // goal). Names REAL library moves (exact DB names, with videos) from the
+    // injury+equipment-filtered pool so the finisher actually renders with a
+    // video, and explicitly overrides the "cardio only in warm-up" rule so the
+    // prompt stops contradicting itself. See utils/finisher.js.
+    const conditioningInstruction = buildConditioningFinisher({
+      conditioningStyle,
+      pool: equipmentFilteredExercises,
+      equipment
+    });
 
     // Focus areas
     let focusInstruction = '';
@@ -1193,7 +1196,9 @@ Return this exact JSON structure:
     const splitViolations = [];
     if (isSingleWorkout && (targetMuscle === 'push' || targetMuscle === 'pull')) {
       const violationCheck = (ex) => {
-        if (ex.isWarmup || ex.isStretch || ex.phase === 'warmup' || ex.phase === 'cooldown') return null;
+        // A conditioning finisher is deliberately off the muscle split (cardio /
+        // bodyweight intervals) — never strip it as a "wrong movement".
+        if (ex.isWarmup || ex.isStretch || ex.phase === 'warmup' || ex.phase === 'cooldown' || ex.phase === 'conditioning') return null;
         const name = (ex.name || '').toLowerCase();
         const mg = (ex.muscle_group || ex.muscleGroup || '').toLowerCase();
         if (targetMuscle === 'push') {
