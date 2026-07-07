@@ -1962,84 +1962,8 @@
             display: none;
         }
 
-        /* ===== STATS STRIP ===== */
         .dashboard-glance {
             margin-bottom: 16px;
-        }
-
-        .stats-strip {
-            display: flex;
-            align-items: center;
-            gap: 0;
-            padding: 12px 20px;
-            background: white;
-            border-radius: 14px;
-            border: 1px solid var(--gray-100);
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
-            overflow-x: auto;
-            -webkit-overflow-scrolling: touch;
-            scrollbar-width: none;
-            margin-bottom: 16px;
-        }
-
-        .stats-strip::-webkit-scrollbar {
-            display: none;
-        }
-
-        [data-theme="dark"] .stats-strip {
-            background: #1e293b;
-            border-color: #334155;
-        }
-
-        .stats-strip-item {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            padding: 4px 14px;
-            white-space: nowrap;
-            text-decoration: none;
-            color: inherit;
-            transition: background 0.15s;
-            border-radius: 8px;
-        }
-
-        .stats-strip-item:hover {
-            background: var(--gray-50);
-        }
-
-        [data-theme="dark"] .stats-strip-item:hover {
-            background: rgba(255, 255, 255, 0.05);
-        }
-
-        .stats-strip-number {
-            font-size: 1.125rem;
-            font-weight: 700;
-            color: var(--gray-900);
-        }
-
-        [data-theme="dark"] .stats-strip-number {
-            color: #f1f5f9;
-        }
-
-        .stats-strip-number--pending {
-            color: var(--brand-primary);
-        }
-
-        .stats-strip-label {
-            font-size: 0.8125rem;
-            color: var(--gray-500);
-            font-weight: 500;
-        }
-
-        .stats-strip-divider {
-            width: 1px;
-            height: 24px;
-            background: var(--gray-200);
-            flex-shrink: 0;
-        }
-
-        [data-theme="dark"] .stats-strip-divider {
-            background: #334155;
         }
 
         /* ===== ALERTS OVERVIEW SUMMARY ===== */
@@ -4228,50 +4152,9 @@
                 border-radius: 12px;
             }
 
-            .stats-strip {
-                padding: 10px 14px;
-                gap: 0;
-                border-radius: 12px;
-            }
-
-            .stats-strip-item {
-                padding: 4px 10px;
-            }
-
-            .stats-strip-number {
-                font-size: 1rem;
-            }
-
-            .stats-strip-label {
-                font-size: 0.75rem;
-            }
-
             .stories-compact {
                 padding: 10px 14px;
                 border-radius: 12px;
-            }
-        }
-
-        @media (max-width: 480px) {
-            .stats-strip {
-                padding: 8px 10px;
-            }
-
-            .stats-strip-item {
-                padding: 4px 8px;
-                gap: 4px;
-            }
-
-            .stats-strip-number {
-                font-size: 0.9375rem;
-            }
-
-            .stats-strip-label {
-                font-size: 0.6875rem;
-            }
-
-            .stats-strip-divider {
-                height: 18px;
             }
         }
 
@@ -5602,40 +5485,8 @@
                 </div>
             </div>
 
-            <!-- Compact stats + priority row -->
+            <!-- Priority row (stats strip removed June 2026 — founder request) -->
             <div class="dashboard-glance">
-                <!-- Inline stats strip -->
-                <div class="stats-strip">
-                    <a href="manage-clients.html" class="stats-strip-item" title="View all clients">
-                        <span class="stats-strip-number" id="clientCount">-</span>
-                        <span class="stats-strip-label">Clients</span>
-                    </a>
-                    <div class="stats-strip-divider"></div>
-                    <div class="stats-strip-item" style="cursor:pointer" onclick="document.getElementById('overviewCardAlerts').scrollIntoView({behavior:'smooth'})" title="Check-ins submitted this week">
-                        <span class="stats-strip-number stats-strip-number--pending" id="checkInCount">-</span>
-                        <span class="stats-strip-label">Check-Ins</span>
-                    </div>
-                    <div class="stats-strip-divider"></div>
-                    <div class="stats-strip-item" title="Completed workouts this week">
-                        <span class="stats-strip-number" id="statWorkouts">-</span>
-                        <span class="stats-strip-label">Workouts</span>
-                    </div>
-                    <div class="stats-strip-divider"></div>
-                    <div class="stats-strip-item" title="New PRs this week">
-                        <span class="stats-strip-number" id="statPRs">-</span>
-                        <span class="stats-strip-label">PRs</span>
-                    </div>
-                    <div class="stats-strip-divider"></div>
-                    <div class="stats-strip-item" title="Workout adherence rate">
-                        <span class="stats-strip-number" id="statAdherence">-</span>
-                        <span class="stats-strip-label">Adherence</span>
-                    </div>
-                    <div class="stats-strip-divider"></div>
-                    <div class="stats-strip-item" title="Active clients rate">
-                        <span class="stats-strip-number" id="statActiveRate">-</span>
-                        <span class="stats-strip-label">Active</span>
-                    </div>
-                </div>
 
                 <!-- Tier Badge -->
                 <span id="tierBadge" class="tier-badge" style="margin-bottom: 8px;">LOADING</span>
@@ -6239,9 +6090,8 @@
                     .select('*', { count: 'exact', head: true })
                     .eq('coach_id', coachId);
 
-                if (!clientError) {
-                    document.getElementById('clientCount').textContent = clientCount || 0;
-                }
+                // Stats strip removed — clientCount element no longer exists,
+                // but the count still feeds loadPriorityAlerts below.
 
                 // Fetch check-ins submitted this week (rolling 7-day window, matches
                 // the rest of the dashboard's "this week" stats). Previously this showed
@@ -6263,8 +6113,6 @@
                 } catch (e) {
                     console.warn('Could not load check-in count:', e);
                 }
-                document.getElementById('checkInCount').textContent = weeklyCheckIns;
-
                 // Populate priority alerts
                 await loadPriorityAlerts(coachId, clientCount || 0, weeklyCheckIns);
             } catch (error) {
@@ -10916,29 +10764,6 @@
                     if (clientData[m.client_id]) clientData[m.client_id].measurements++;
                 });
 
-                // Update extended stats
-                const totalWorkouts = (thisWeekWorkouts || []).length;
-                const totalPRs = (prNotifs || []).length;
-                const activeClients = Object.values(clientData).filter(c => c.workouts > 0).length;
-                const totalClients = clients.length;
-                const activeRate = totalClients > 0 ? Math.round((activeClients / totalClients) * 100) : 0;
-
-                document.getElementById('statWorkouts').textContent = totalWorkouts;
-                document.getElementById('statPRs').textContent = totalPRs;
-                document.getElementById('statActiveRate').textContent = activeRate + '%';
-
-                // Calculate real adherence: workouts completed vs scheduled across all clients with programs
-                let totalScheduled = 0;
-                let totalCompleted = 0;
-                Object.values(clientData).forEach(c => {
-                    if (c.hasProgram && c.scheduledDaysPerWeek > 0 && !c.programExpired) {
-                        totalScheduled += c.scheduledDaysPerWeek;
-                        totalCompleted += Math.min(c.workouts, c.scheduledDaysPerWeek);
-                    }
-                });
-                const adherenceRate = totalScheduled > 0 ? Math.round((totalCompleted / totalScheduled) * 100) : activeRate;
-                document.getElementById('statAdherence').textContent = adherenceRate + '%';
-
                 // Re-render alerts overview with updated stats
                 renderPriorityAlertSections();
 
@@ -11042,9 +10867,9 @@
         // Load dashboard on page load
         loadDashboard();
 
-        // --- Refresh the top numbers when the coach returns to the page ---
+        // --- Refresh dashboard data when the coach returns to the page ---
         // The PWA/tab often stays alive in the background, so without this the
-        // Clients / Check-Ins / Workouts / PRs numbers stay frozen at whatever
+        // priority alerts, activity grid, and wins feed stay frozen at whatever
         // they were when the page was first opened. When the page becomes
         // visible again we re-pull the lightweight, read-only stats (not a full
         // bootstrap — that would re-run auth/subscription/realtime setup).
