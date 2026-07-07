@@ -269,8 +269,13 @@ exports.handler = async (event) => {
       const dateA = a.workoutDate || '';
       const dateB = b.workoutDate || '';
       if (dateB !== dateA) return dateB.localeCompare(dateA);
-      // Tie-break by id for same-date entries
-      return (b.id || '').localeCompare(a.id || '');
+      // Tie-break by id for same-date entries. ids are integers, so use a
+      // numeric compare — calling String.localeCompare on a number throws
+      // ("b.id.localeCompare is not a function"), which 500'd the whole
+      // request whenever a client had two logs for the same exercise on the
+      // same date (e.g. a duplicated workout). That surfaced as an endless
+      // "Loading history..." spinner on the client.
+      return (Number(b.id) || 0) - (Number(a.id) || 0);
     });
 
     // Calculate stats if filtering by specific exercise
