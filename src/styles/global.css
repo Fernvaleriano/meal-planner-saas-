@@ -24788,6 +24788,22 @@ textarea,
     font-size: 13px;
 }
 
+.exercise-history-retry {
+    margin-top: 12px;
+    padding: 8px 20px;
+    border: 1px solid #14b8a6;
+    border-radius: 8px;
+    background: transparent;
+    color: #14b8a6;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.exercise-history-retry:active {
+    background: rgba(20, 184, 166, 0.12);
+}
+
 /* PR Banner */
 .history-pr-banner {
     display: flex;

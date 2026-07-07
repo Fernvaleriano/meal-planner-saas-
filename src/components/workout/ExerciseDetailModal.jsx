@@ -402,6 +402,11 @@ function ExerciseDetailModal({
   const [historyData, setHistoryData] = useState(null);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [historyStats, setHistoryStats] = useState(null);
+  // Tracks a FAILED history fetch (network/timeout/error). Without this, a
+  // failed fetch left historyData null, and the "re-fetch if open and empty"
+  // effect below re-fired forever — an endless "Loading history..." spinner
+  // that silently retried every ~15s and never surfaced the error.
+  const [historyError, setHistoryError] = useState(false);
   const [deletingHistoryId, setDeletingHistoryId] = useState(null); // exercise_log id being deleted
   const [confirmDeleteHistoryId, setConfirmDeleteHistoryId] = useState(null); // exercise_log id awaiting confirm
 
@@ -1781,6 +1786,7 @@ function ExerciseDetailModal({
     // Invalidate history cache so next view shows fresh data (including updated weights/PRs)
     setHistoryData(null);
     setHistoryStats(null);
+    setHistoryError(false);
 
     // Persist to backend via parent callback - use ref to avoid stale closure
     const currentExercise = exerciseRef.current;
@@ -1818,6 +1824,7 @@ function ExerciseDetailModal({
   const fetchExerciseHistory = useCallback(async () => {
     if (!clientId || !exercise?.id) return;
     setHistoryLoading(true);
+    setHistoryError(false);
     try {
       // Fetch by name first — captures history across all programs
       let res = exercise.name
@@ -1833,9 +1840,15 @@ function ExerciseDetailModal({
       if (res?.history) {
         setHistoryData(res.history);
         setHistoryStats(res.stats || null);
+      } else {
+        // Reached the server but got no usable history array back — treat as a
+        // failure so the retry effect stops and the user sees an error state
+        // instead of an endless spinner.
+        setHistoryError(true);
       }
     } catch (err) {
       console.error('Error fetching exercise history:', err);
+      setHistoryError(true);
     } finally {
       setHistoryLoading(false);
     }
@@ -1850,12 +1863,14 @@ function ExerciseDetailModal({
     }
   }, [showHistory, historyData, fetchExerciseHistory]);
 
-  // Re-fetch history if section is open but data was invalidated (e.g. after editing sets)
+  // Re-fetch history if section is open but data was invalidated (e.g. after editing sets).
+  // Gated on !historyError so a persistent failure doesn't loop forever — the
+  // user retries explicitly via the error state's Retry button.
   useEffect(() => {
-    if (showHistory && !historyData && !historyLoading) {
+    if (showHistory && !historyData && !historyLoading && !historyError) {
       fetchExerciseHistory();
     }
-  }, [showHistory, historyData, historyLoading, fetchExerciseHistory]);
+  }, [showHistory, historyData, historyLoading, historyError, fetchExerciseHistory]);
 
   // Delete a single exercise history entry and refresh
   const handleDeleteHistoryEntry = useCallback(async (exerciseLogId) => {
@@ -1881,6 +1896,7 @@ function ExerciseDetailModal({
   useEffect(() => {
     setHistoryData(null);
     setHistoryStats(null);
+    setHistoryError(false);
     setShowHistory(false);
     setCoachingRecommendation(null);
     setAcceptedCoachingRec(false);
@@ -3089,6 +3105,18 @@ function ExerciseDetailModal({
                 <div className="exercise-history-loading">
                   <Loader2 size={20} className="spin" />
                   <span>{t('exerciseDetail.historyLoading')}</span>
+                </div>
+              ) : historyError ? (
+                <div className="exercise-history-empty">
+                  <AlertCircle size={32} style={{ color: '#f59e0b' }} />
+                  <p>{t('exerciseDetail.historyError')}</p>
+                  <button
+                    type="button"
+                    className="exercise-history-retry"
+                    onClick={() => { setHistoryError(false); fetchExerciseHistory(); }}
+                  >
+                    {t('exerciseDetail.historyRetry')}
+                  </button>
                 </div>
               ) : !historyData || historyData.length === 0 ? (
                 <div className="exercise-history-empty">

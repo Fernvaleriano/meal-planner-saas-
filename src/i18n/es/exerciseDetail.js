@@ -109,6 +109,8 @@ export default {
   historyLoading: 'Cargando historial...',
   historyEmpty: 'Aún no hay historial para este ejercicio',
   historyLogSets: 'Registra series para comenzar a rastrear',
+  historyError: 'No se pudo cargar el historial',
+  historyRetry: 'Reintentar',
   historyEst1RM: '1RM est.: {value} {unit}',
   historySessions: '{count} sesiones',
   historyPRs: '{count} récords',
