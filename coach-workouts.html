@@ -8841,7 +8841,13 @@
             const dayToCopy = workoutDays[dayIndex];
             workoutDays.push({
                 name: `${dayToCopy.name} (Copy)`,
-                exercises: dayToCopy.exercises.map(ex => ({ ...ex }))
+                // Deep copy — a shallow `{ ...ex }` leaves the nested setsData
+                // array (and its set objects) shared by reference with the
+                // original day. updateExercise() mutates setsData in place
+                // (see forEach/push/length edits), so a shared reference would
+                // make editing the copied day silently change the original day
+                // (and vice-versa). Matches duplicateCheckedExercises().
+                exercises: JSON.parse(JSON.stringify(dayToCopy.exercises || []))
             });
             renderDaysList();
         }
