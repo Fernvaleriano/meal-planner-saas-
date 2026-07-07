@@ -13701,7 +13701,7 @@
                 const weekIndex = w - 1;
                 const workouts = week1Workouts.map(workout => {
                     const exercises = (workout.exercises || []).map(ex => {
-                        if (ex.isWarmup || ex.isStretch || ex.phase === 'warmup' || ex.phase === 'cooldown') return { ...ex };
+                        if (ex.isWarmup || ex.isStretch || ex.phase === 'warmup' || ex.phase === 'cooldown' || ex.phase === 'conditioning') return { ...ex };
                         const baseSets = Number(ex.sets) || 3;
                         const baseReps = String(ex.reps || '8-12');
                         let newSets = baseSets;

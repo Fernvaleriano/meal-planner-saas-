@@ -16,6 +16,7 @@ const { createClient } = require('@supabase/supabase-js');
 const { corsHeaders, handleCors } = require('./utils/auth');
 const { analyzeClientHistory, formatAnalysisForPrompt, applyMovementScreenExclusions } = require('./utils/client-analysis');
 const { exerciseMatchesEquipment, filterUnavailableEquipment } = require('./utils/equipment-filter');
+const { buildConditioningFinisher } = require('./utils/finisher');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -157,7 +158,7 @@ function generateMultiWeekProgression(week1Workouts, totalWeeks, goal, weightUni
     const weekIndex = w - 1;
     const workouts = week1Workouts.map(workout => {
       const exercises = (workout.exercises || []).map(ex => {
-        if (ex.isWarmup || ex.isStretch || ex.phase === 'warmup' || ex.phase === 'cooldown') return { ...ex };
+        if (ex.isWarmup || ex.isStretch || ex.phase === 'warmup' || ex.phase === 'cooldown' || ex.phase === 'conditioning') return { ...ex };
         const baseSets = Number(ex.sets) || 3;
         const baseReps = String(ex.reps || '8-12');
         let newSets = baseSets;
@@ -410,10 +411,15 @@ The coach typed these for THIS client. They are non-negotiable and override vari
   const styleBlock = `=== TRAINING STYLE ===\n${styleMap[trainingStyle] || styleMap.straight_sets}`;
 
   // ── Conditioning finisher (fires whenever the coach picked one) ──────────────
-  let conditioningBlock = '';
-  if (conditioningStyle === 'hiit') conditioningBlock = `\n=== CONDITIONING FINISHER (last 8-10 min) ===\nAdd a HIIT finisher: 4-8 rounds, 30s work / 30s rest, bodyweight or kettlebell (burpees, mountain climbers, kettlebell swings, jump rope). Mark "phase": "conditioning".`;
-  else if (conditioningStyle === 'liss') conditioningBlock = `\n=== CONDITIONING FINISHER ===\nAdd 10-15 min of LISS cardio (steady, RPE 5-6) at the end — treadmill walk, easy bike, or row. Mark "phase": "conditioning".`;
-  else if (conditioningStyle === 'mixed') conditioningBlock = `\n=== CONDITIONING FINISHER ===\nAlternate: a HIIT finisher on some days, 10-15 min LISS on others. Mark "phase": "conditioning".`;
+  // Names REAL library moves (exact DB names, with videos) from the injury+
+  // equipment-filtered pool so the finisher renders with a video, and overrides
+  // the "cardio only in warm-up" rule so the prompt stops contradicting itself.
+  // See utils/finisher.js.
+  const conditioningBlock = buildConditioningFinisher({
+    conditioningStyle,
+    pool: exercisesAfterInjuries,
+    equipment
+  });
 
   // ── Focus areas (extra priority) ────────────────────────────────────────────
   const focusBlock = (Array.isArray(focusAreas) && focusAreas.length)
@@ -557,7 +563,9 @@ Return this exact JSON structure:
   if (targetMuscle === 'push' || targetMuscle === 'pull') {
     const kept = [];
     for (const ex of matched) {
-      if (ex.isWarmup || ex.isStretch) { kept.push(ex); continue; }
+      // Warm-ups, stretches, and the conditioning finisher are deliberately off
+      // the muscle split — never strip them as a "wrong movement".
+      if (ex.isWarmup || ex.isStretch || ex.phase === 'conditioning') { kept.push(ex); continue; }
       const n = (ex.name || '').toLowerCase();
       const mg = (ex.muscle_group || '').toLowerCase();
       let violation = null;
