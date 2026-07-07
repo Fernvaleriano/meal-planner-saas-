@@ -16179,44 +16179,64 @@
             });
         }
 
+        // Build a clean, independent copy of a workout for the "copy to another
+        // date" flow. A copy must start FRESH: same exercises and prescribed
+        // sets/reps, but nothing marked completed and no weights carried over.
+        // Mirrors buildFreshDuplicateData in src/pages/Workouts.jsx. Kept here so
+        // both the assigned and adhoc branches write a real, log-stripped copy
+        // instead of the old shared-pointer duplicate (which made the copy and
+        // the original share the program's days[dayIndex] and move together).
+        function acBuildFreshDuplicateData(workoutData) {
+            const source = workoutData || {};
+            const stripSet = function(s) {
+                if (!s || typeof s !== 'object') return s;
+                const { weight, weightUnit, completed, _completed, effort, rpe, ...prescription } = s;
+                return prescription;
+            };
+            const cleanExercise = function(ex) {
+                if (!ex || typeof ex !== 'object') return ex;
+                const { completed, _completed, sets, setsData, ...rest } = ex;
+                const cleaned = { ...rest };
+                const prescribed = (Array.isArray(setsData) && setsData.length > 0)
+                    ? setsData
+                    : (Array.isArray(sets) ? sets : null);
+                if (prescribed) cleaned.setsData = prescribed.map(stripSet);
+                return cleaned;
+            };
+            return {
+                ...source,
+                exercises: Array.isArray(source.exercises) ? source.exercises.map(cleanExercise) : []
+            };
+        }
+
         function acCopyWorkout(wIdx, dateStr) {
             const workout = (acDayWorkouts || [])[wIdx];
             if (!workout) { alert('Could not find workout to copy'); return; }
-            const assignmentId = workout.id;
             const isAdhoc = !!workout.is_adhoc;
 
             acOpenDatePicker('Copy workout to date', async function(targetDate) {
                 if (!targetDate) return;
                 acToast('Copying workout…');
                 try {
-                    if (isAdhoc) {
-                        await fetch('/.netlify/functions/adhoc-workouts', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                clientId,
-                                workoutDate: targetDate,
-                                workoutData: workout.workout_data || {},
-                                name: workout.name || workout.workout_data?.name || 'Workout'
-                            })
-                        });
-                    } else {
-                        const res = await fetch('/.netlify/functions/client-workout-log', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                assignmentId,
-                                action: 'duplicate',
-                                sourceDayIndex: workout.day_index != null ? workout.day_index : 0,
-                                targetDate,
-                                isAdded: !!workout.is_added,
-                                instanceId: workout.instance_id || null
-                            })
-                        });
-                        if (!res.ok) {
-                            const errBody = await res.json().catch(() => ({}));
-                            throw new Error(errBody.error || 'Failed to copy workout');
-                        }
+                    // Both assigned and adhoc copies create an independent adhoc
+                    // workout row on the target date. Assigned workouts used to
+                    // go through client-workout-log's `duplicate` action, which
+                    // only stored a pointer into the program's shared days[] —
+                    // so the copy showed the original's completed/logged state
+                    // and editing either date changed both.
+                    const res = await fetch('/.netlify/functions/adhoc-workouts', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            clientId,
+                            workoutDate: targetDate,
+                            workoutData: acBuildFreshDuplicateData(workout.workout_data),
+                            name: workout.name || workout.workout_data?.name || 'Workout'
+                        })
+                    });
+                    if (!res.ok) {
+                        const errBody = await res.json().catch(() => ({}));
+                        throw new Error(errBody.error || 'Failed to copy workout');
                     }
 
                     cpInvalidateFeed();
