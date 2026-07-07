@@ -4414,10 +4414,11 @@ function Workouts() {
   const openRescheduleModal = useCallback((action, targetWorkout) => {
     rescheduleWorkoutRef.current = targetWorkout || todayWorkoutRef.current;
     setRescheduleAction(action);
-    // Default to the day currently being viewed (the workout's own day) rather
-    // than tomorrow — when moving/duplicating a workout the coach usually wants
-    // to act on the current day, not the following one.
-    setRescheduleTargetDate(formatDate(selectedDateRef.current));
+    // Default to TODAY (the actual current calendar day), not the day being
+    // viewed. When moving/duplicating a workout that sits on a past day (e.g.
+    // viewing the 2nd while today is the 7th), the user almost always wants to
+    // bring it to today, so pre-fill the picker with today's date.
+    setRescheduleTargetDate(formatDate(new Date()));
     setShowRescheduleModal(true);
     setShowMenu(false);
     setShowHeroMenu(false);
