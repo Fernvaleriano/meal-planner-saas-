@@ -24,7 +24,7 @@ async function ensureBucketExists(supabase) {
       await supabase.storage.createBucket(BUCKET_NAME, {
         public: true,
         fileSizeLimit: MAX_FILE_SIZE,
-        allowedMimeTypes: ['image/*', 'video/*']
+        allowedMimeTypes: ['image/*', 'video/*', 'audio/*']
       });
     }
     return true;
@@ -59,11 +59,11 @@ exports.handler = async (event) => {
     }
 
     // Validate content type
-    if (!contentType.startsWith('image/') && !contentType.startsWith('video/')) {
+    if (!contentType.startsWith('image/') && !contentType.startsWith('video/') && !contentType.startsWith('audio/')) {
       return {
         statusCode: 400,
         headers: corsHeaders,
-        body: JSON.stringify({ error: 'Only image and video files are allowed' })
+        body: JSON.stringify({ error: 'Only image, video, and audio files are allowed' })
       };
     }
 
@@ -74,7 +74,9 @@ exports.handler = async (event) => {
       return { statusCode: 500, headers: corsHeaders, body: JSON.stringify({ error: 'Storage not available' }) };
     }
 
-    const mediaCategory = contentType.startsWith('video/') ? 'video' : 'image';
+    const mediaCategory = contentType.startsWith('video/') ? 'video'
+      : contentType.startsWith('audio/') ? 'audio'
+      : 'image';
     const ext = fileExtension || contentType.split('/')[1] || 'bin';
     const timestamp = Date.now();
     const storagePath = `${coachId}/${clientId}/${timestamp}.${ext}`;

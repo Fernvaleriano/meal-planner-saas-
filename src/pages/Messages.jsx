@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
-import { Send, Search, MessageCircle, X, Trash2, Check, CheckCheck, Paperclip, SmilePlus } from 'lucide-react';
+import { Send, Search, MessageCircle, X, Trash2, Check, CheckCheck, Paperclip, SmilePlus, Mic, Square } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { apiGet, apiPost } from '../utils/api';
 import { supabase } from '../utils/supabase';
@@ -10,6 +10,14 @@ import { getDateLocale } from '../utils/dateLocale';
 
 import { useToast } from '../components/Toast';
 import { useLanguage } from '../context/LanguageContext';
+import {
+  isVoiceRecordingSupported,
+  isVoiceRecording,
+  startVoiceRecording,
+  stopVoiceRecording,
+  cancelVoiceRecording,
+  formatRecordingTime
+} from '../utils/voiceRecorder';
 // localStorage cache helper for instant display on resume
 const getCache = (key) => {
   try {
@@ -138,6 +146,8 @@ function Messages() {
   const [searchQuery, setSearchQuery] = useState('');
   const [mediaPreview, setMediaPreview] = useState(null); // { file, dataUrl, type }
   const [uploading, setUploading] = useState(false);
+  const [recordingVoice, setRecordingVoice] = useState(false);
+  const [recordSeconds, setRecordSeconds] = useState(0);
   const [selectedMsgId, setSelectedMsgId] = useState(null); // for unsend menu
   const [reactionPickerMsgId, setReactionPickerMsgId] = useState(null); // for emoji reaction picker
   const [resubscribeKey, setResubscribeKey] = useState(0); // Incremented on resume to force Supabase channel re-subscribe
@@ -314,6 +324,53 @@ function Messages() {
     setMediaPreview(null);
   };
 
+  // Release the mic if the user navigates away mid-recording
+  useEffect(() => () => cancelVoiceRecording(), []);
+
+  // Turn a finished voice recording into a pending attachment so the sender
+  // can listen back before hitting send (same flow as photo/video).
+  const attachVoiceRecording = (rec) => {
+    setRecordingVoice(false);
+    setRecordSeconds(0);
+    if (!rec) return;
+    if (rec.durationMs < 1000) {
+      showError(t('messagesPage.errorRecordingShort'));
+      return;
+    }
+    if (mediaPreview?.previewUrl) URL.revokeObjectURL(mediaPreview.previewUrl);
+    const file = new File([rec.blob], `voice-message.${rec.extension}`, { type: rec.mimeType });
+    setMediaPreview({
+      file,
+      previewUrl: URL.createObjectURL(rec.blob),
+      dataUrl: null,
+      type: 'audio'
+    });
+  };
+
+  const handleToggleVoiceRecording = async () => {
+    if (isVoiceRecording()) {
+      const rec = await stopVoiceRecording();
+      attachVoiceRecording(rec);
+      return;
+    }
+    if (!isVoiceRecordingSupported()) {
+      showError(t('messagesPage.errorVoiceUnsupported'));
+      return;
+    }
+    try {
+      await startVoiceRecording({
+        onTick: setRecordSeconds,
+        // 5-minute cap reached: attach what was recorded instead of losing it
+        onAutoStop: attachVoiceRecording
+      });
+      setRecordSeconds(0);
+      setRecordingVoice(true);
+    } catch (err) {
+      console.error('Error accessing microphone:', err);
+      showError(t('messagesPage.errorMicAccess'));
+    }
+  };
+
   // Upload media to server using signed URL (bypasses Netlify body size limit)
   const uploadMedia = async (file) => {
     const cId = isCoach ? coachId : activeConvo.coachId;
@@ -412,7 +469,7 @@ function Messages() {
       }
 
       // Update conversation list with new last message
-      const previewText = msgText || (mediaType === 'video' ? t('messagesPage.sentVideo') : t('messagesPage.sentPhoto'));
+      const previewText = msgText || (mediaType === 'video' ? t('messagesPage.sentVideo') : mediaType === 'audio' ? t('messagesPage.sentVoice') : t('messagesPage.sentPhoto'));
       setConversations(prev => prev.map(c => {
         const matchId = isCoach ? c.clientId : c.coachId;
         const activeId = isCoach ? activeConvo.clientId : activeConvo.coachId;
@@ -827,7 +884,7 @@ function Messages() {
               const matchId = isCoach ? c.clientId : c.coachId;
               const msgMatchId = isCoach ? newMsg.client_id : newMsg.coach_id;
               if (matchId === msgMatchId) {
-                const previewText = newMsg.message || (newMsg.media_type === 'video' ? t('messagesPage.sentVideo') : newMsg.media_type === 'gif' ? t('messagesPage.sentGif') : t('messagesPage.sentPhoto'));
+                const previewText = newMsg.message || (newMsg.media_type === 'video' ? t('messagesPage.sentVideo') : newMsg.media_type === 'gif' ? t('messagesPage.sentGif') : newMsg.media_type === 'audio' ? t('messagesPage.sentVoice') : t('messagesPage.sentPhoto'));
                 return {
                   ...c,
                   lastMessage: previewText,
@@ -1007,6 +1064,19 @@ function Messages() {
   // Render media content in a message bubble
   const renderMedia = (msg) => {
     if (!msg.media_url) return null;
+
+    if (msg.media_type === 'audio') {
+      return (
+        <div className="chat-msg-audio">
+          <audio
+            src={msg.media_url}
+            controls
+            preload="metadata"
+            className="chat-media-audio"
+          />
+        </div>
+      );
+    }
 
     if (msg.media_type === 'video') {
       return (
@@ -1246,6 +1316,8 @@ function Messages() {
             </button>
             {mediaPreview.type === 'video' ? (
               <video src={mediaPreview.previewUrl} className="chat-media-preview-content" controls />
+            ) : mediaPreview.type === 'audio' ? (
+              <audio src={mediaPreview.previewUrl} className="chat-media-preview-audio" controls preload="metadata" />
             ) : (
               <img src={mediaPreview.previewUrl} alt={t('messagesPage.previewAlt')} className="chat-media-preview-content" />
             )}
@@ -1268,6 +1340,21 @@ function Messages() {
             title={t('messagesPage.attachTitle')}
           >
             <Paperclip size={20} />
+          </button>
+          <button
+            className={`chat-attach-btn chat-voice-btn ${recordingVoice ? 'recording' : ''}`}
+            onClick={handleToggleVoiceRecording}
+            disabled={sending}
+            title={recordingVoice ? t('messagesPage.stopRecordingTitle') : t('messagesPage.recordVoiceTitle')}
+          >
+            {recordingVoice ? (
+              <>
+                <Square size={16} fill="currentColor" />
+                <span className="chat-voice-timer">{formatRecordingTime(recordSeconds)}</span>
+              </>
+            ) : (
+              <Mic size={20} />
+            )}
           </button>
           <textarea
             ref={inputRef}

@@ -24,6 +24,8 @@ export default {
   // Input bar
   inputPlaceholder: 'Enviar un mensaje...',
   attachTitle: 'Enviar foto o video',
+  recordVoiceTitle: 'Grabar un mensaje de voz',
+  stopRecordingTitle: 'Detener grabación',
 
   // Message actions
   unsend: 'Eliminar',
@@ -39,6 +41,7 @@ export default {
   sentVideo: 'Envió un video',
   sentPhoto: 'Envió una foto',
   sentGif: 'Envió un GIF',
+  sentVoice: 'Envió un mensaje de voz',
 
   // Bulk messaging (coach only)
   massMessage: 'Mensaje masivo',
@@ -54,6 +57,9 @@ export default {
   // Toast / error messages
   errorFileType: 'Por favor selecciona un archivo de imagen o video.',
   errorFileTooLarge: 'Archivo demasiado grande. El tamaño máximo es 250 MB.',
+  errorVoiceUnsupported: 'La grabación de voz no es compatible con este navegador.',
+  errorMicAccess: 'No se pudo acceder al micrófono. Revisa los permisos.',
+  errorRecordingShort: 'La grabación fue demasiado corta — mantenla un momento más.',
   errorUploadMedia: 'Error al subir el archivo. Intenta de nuevo o usa un archivo más pequeño.',
   errorSendMessage: 'Error al enviar el mensaje. Intenta de nuevo.',
   errorBulkSend: 'Error al enviar el mensaje masivo. Intenta de nuevo.',

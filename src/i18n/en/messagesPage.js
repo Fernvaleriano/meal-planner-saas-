@@ -24,6 +24,8 @@ export default {
   // Input bar
   inputPlaceholder: 'Send a message...',
   attachTitle: 'Send photo or video',
+  recordVoiceTitle: 'Record a voice message',
+  stopRecordingTitle: 'Stop recording',
 
   // Message actions
   unsend: 'Unsend',
@@ -40,6 +42,7 @@ export default {
   sentVideo: 'Sent a video',
   sentPhoto: 'Sent a photo',
   sentGif: 'Sent a GIF',
+  sentVoice: 'Sent a voice message',
 
   // Bulk messaging (coach only)
   massMessage: 'Mass message',
@@ -56,6 +59,9 @@ export default {
   // Toast / error messages
   errorFileType: 'Please select an image or video file.',
   errorFileTooLarge: 'File too large. Maximum size is 250MB.',
+  errorVoiceUnsupported: 'Voice recording is not supported in this browser.',
+  errorMicAccess: 'Could not access the microphone. Please check permissions.',
+  errorRecordingShort: 'Recording was too short — hold it a moment longer.',
   errorUploadMedia: 'Failed to upload media. Please try again or use a smaller file.',
   errorSendMessage: 'Failed to send message. Please try again.',
   errorBulkSend: 'Failed to send bulk message. Please try again.',
