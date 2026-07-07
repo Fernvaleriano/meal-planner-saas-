@@ -722,7 +722,11 @@ function WorkoutBuilder() {
                           const dayToCopy = days[index];
                           setDays(prev => [...prev, {
                             name: `${dayToCopy.name} (Copy)`,
-                            exercises: dayToCopy.exercises.map(ex => ({ ...ex }))
+                            // Deep copy so the copied day never shares its nested
+                            // setsData/sets arrays with the original (a shallow
+                            // { ...ex } would let a future in-place set edit
+                            // corrupt both days — see coach-workouts.html).
+                            exercises: JSON.parse(JSON.stringify(dayToCopy.exercises || []))
                           }]);
                           setDayMenuOpen(null);
                           showSuccess('Day duplicated');
