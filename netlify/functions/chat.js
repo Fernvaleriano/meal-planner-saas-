@@ -82,7 +82,7 @@ exports.handler = async (event) => {
             clientId: client.id,
             clientName: client.client_name,
             profilePhoto: client.profile_photo_url,
-            lastMessage: msgData?.latest?.message || (msgData?.latest?.media_type === 'video' ? 'Sent a video' : msgData?.latest?.media_type === 'gif' ? 'Sent a GIF' : msgData?.latest?.media_url ? 'Sent a photo' : null),
+            lastMessage: msgData?.latest?.message || (msgData?.latest?.media_type === 'video' ? 'Sent a video' : msgData?.latest?.media_type === 'gif' ? 'Sent a GIF' : msgData?.latest?.media_type === 'audio' ? 'Sent a voice message' : msgData?.latest?.media_url ? 'Sent a photo' : null),
             lastMessageAt: msgData?.latest?.created_at || null,
             lastMessageSender: msgData?.latest?.sender_type || null,
             unreadCount: msgData?.unreadCount || 0,
@@ -242,7 +242,7 @@ exports.handler = async (event) => {
         // Create a notification for the recipient
         const notifText = message?.trim()
           ? message.trim().substring(0, 100)
-          : mediaType === 'video' ? 'Sent a video' : mediaType === 'gif' ? 'Sent a GIF' : 'Sent a photo';
+          : mediaType === 'video' ? 'Sent a video' : mediaType === 'gif' ? 'Sent a GIF' : mediaType === 'audio' ? 'Sent a voice message' : 'Sent a photo';
 
         if (senderType === 'coach') {
           await supabase.from('notifications').insert({

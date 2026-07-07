@@ -459,6 +459,27 @@
         .msg-bubble.media-bubble { padding: 4px; }
         .msg-bubble.media-bubble p { padding: 6px 10px 0; }
 
+        /* Voice messages */
+        .msg-audio { padding: 2px; }
+        .msg-audio audio { width: 240px; max-width: 100%; display: block; }
+        .input-action-btn.recording {
+            color: #dc2626;
+            animation: voicePulse 1.2s ease-in-out infinite;
+            border-radius: 8px;
+            width: auto;
+            gap: 4px;
+        }
+        .input-action-btn .voice-timer {
+            font-size: 12px;
+            font-weight: 600;
+            font-variant-numeric: tabular-nums;
+        }
+        @keyframes voicePulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.35); }
+            50% { box-shadow: 0 0 0 5px rgba(220, 38, 38, 0.12); }
+        }
+        .attachment-preview audio { width: 100%; display: block; }
+
         /* Message context menu */
         .msg-wrapper { position: relative; display: flex; flex-direction: column; }
         .msg-context-menu {
@@ -1027,6 +1048,9 @@
                     <button class="input-action-btn" id="attachBtn" title="Send photo/video">
                         <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/></svg>
                     </button>
+                    <button class="input-action-btn" id="voiceBtn" title="Record a voice message">
+                        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+                    </button>
                 </div>
                 <div class="input-middle">
                     <div class="attachment-preview" id="attachmentPreview">
@@ -1406,6 +1430,8 @@
                 if (hasMedia) {
                     if (msg.media_type === 'video') {
                         mediaHtml = `<div class="msg-media" onclick="openLightbox('${msg.media_url}', 'video')"><video src="${msg.media_url}" preload="metadata"></video></div>`;
+                    } else if (msg.media_type === 'audio') {
+                        mediaHtml = `<div class="msg-audio"><audio src="${msg.media_url}" controls preload="metadata"></audio></div>`;
                     } else {
                         mediaHtml = `<div class="msg-media" onclick="openLightbox('${msg.media_url}', 'image')"><img src="${msg.media_url}" alt="Photo" loading="lazy"></div>`;
                     }
@@ -1470,6 +1496,73 @@
             }
         }
 
+        // Voice message recording (composer)
+        const COMPOSER_MIC_SVG = '<svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>';
+        const COMPOSER_STOP_SVG = '<svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24"><rect x="5" y="5" width="14" height="14" rx="2"/></svg>';
+
+        function resetVoiceBtn() {
+            const btn = document.getElementById('voiceBtn');
+            if (!btn) return;
+            btn.classList.remove('recording');
+            btn.innerHTML = COMPOSER_MIC_SVG;
+        }
+
+        async function toggleVoiceRecording() {
+            const btn = document.getElementById('voiceBtn');
+            if (!window.VoiceMessage || !VoiceMessage.isSupported()) {
+                alert('Voice recording is not supported in this browser.');
+                return;
+            }
+
+            if (btn.classList.contains('recording')) {
+                const recording = await VoiceMessage.stop();
+                attachVoiceRecording(recording);
+                return;
+            }
+
+            try {
+                await VoiceMessage.start({
+                    onTick: (seconds) => {
+                        const timer = btn.querySelector('.voice-timer');
+                        if (timer) timer.textContent = VoiceMessage.formatElapsed(seconds);
+                    },
+                    // 5-minute cap reached: attach what was recorded instead of losing it
+                    onAutoStop: (recording) => attachVoiceRecording(recording)
+                });
+            } catch (e) {
+                console.error('Error accessing microphone:', e);
+                alert('Could not access microphone. Please check permissions.');
+                return;
+            }
+            btn.classList.add('recording');
+            btn.innerHTML = COMPOSER_STOP_SVG + '<span class="voice-timer">0:00</span>';
+        }
+
+        // Turn a finished recording into a pending attachment so the coach can
+        // listen back before hitting Send (same flow as photo/video).
+        function attachVoiceRecording(recording) {
+            resetVoiceBtn();
+            if (!recording) return;
+            if (recording.durationMs < 1000) {
+                alert('Recording was too short — hold it a moment longer.');
+                return;
+            }
+
+            clearAttachment();
+            const file = new File([recording.blob], 'voice-message.' + recording.extension, { type: recording.mimeType });
+            const previewUrl = URL.createObjectURL(recording.blob);
+            pendingAttachment = { file, previewUrl, mediaType: 'audio' };
+
+            const preview = document.getElementById('attachmentPreview');
+            const audio = document.createElement('audio');
+            audio.src = previewUrl;
+            audio.controls = true;
+            audio.preload = 'metadata';
+            preview.insertBefore(audio, preview.firstChild);
+            preview.classList.add('visible');
+            updateSendBtnState();
+        }
+
         // Input handling
         function setupInput() {
             const input = document.getElementById('msgInput');
@@ -1478,6 +1571,10 @@
             input.value = '';
             sendBtn.disabled = true;
             clearAttachment();
+            // Discard any in-progress recording when switching threads so a
+            // voice note started for one client can't be sent to another.
+            if (window.VoiceMessage) VoiceMessage.cancel();
+            resetVoiceBtn();
 
             // Remove old listeners by cloning
             const newInput = input.cloneNode(true);
@@ -1502,6 +1599,7 @@
             document.getElementById('attachBtn').onclick = () => {
                 document.getElementById('fileInput').click();
             };
+            document.getElementById('voiceBtn').onclick = toggleVoiceRecording;
             document.getElementById('fileInput').onchange = handleFileSelect;
             document.getElementById('attachmentRemove').onclick = clearAttachment;
 
@@ -1560,7 +1658,7 @@
             pendingAttachment = null;
             const preview = document.getElementById('attachmentPreview');
             preview.classList.remove('visible');
-            const media = preview.querySelector('img, video');
+            const media = preview.querySelector('img, video, audio');
             if (media) media.remove();
             updateSendBtnState();
         }
@@ -1747,6 +1845,8 @@
                 const previewSrc = attachment.previewUrl;
                 const mediaTag = attachment.mediaType === 'video'
                     ? `<div class="msg-media"><video src="${previewSrc}" preload="metadata"></video></div>`
+                    : attachment.mediaType === 'audio'
+                    ? `<div class="msg-audio"><audio src="${previewSrc}" controls preload="metadata"></audio></div>`
                     : `<div class="msg-media"><img src="${previewSrc}" alt="Photo"></div>`;
                 bubbleHtml = `<div class="msg-bubble media-bubble">${mediaTag}${text ? `<p>${escapeHtml(text)}</p>` : ''}<span class="msg-time">${formatMsgTime(new Date().toISOString())}</span></div>`;
             } else {
@@ -1759,7 +1859,7 @@
             // Update conversation list
             const convo = conversations.find(c => c.clientId === activeClientId);
             if (convo) {
-                convo.lastMessage = text || (attachment?.mediaType === 'video' ? 'Sent a video' : 'Sent a photo');
+                convo.lastMessage = text || (attachment?.mediaType === 'video' ? 'Sent a video' : attachment?.mediaType === 'audio' ? 'Sent a voice message' : 'Sent a photo');
                 convo.lastMessageAt = new Date().toISOString();
                 convo.lastMessageSender = 'coach';
                 convo.hasMessages = true;
@@ -1944,7 +2044,7 @@
                     if (msg.sender_type === 'client') {
                         const convo = conversations.find(c => c.clientId === msg.client_id);
                         if (convo) {
-                            convo.lastMessage = msg.message;
+                            convo.lastMessage = msg.message || (msg.media_type === 'video' ? 'Sent a video' : msg.media_type === 'audio' ? 'Sent a voice message' : msg.media_url ? 'Sent a photo' : msg.message);
                             convo.lastMessageAt = msg.created_at;
                             convo.lastMessageSender = 'client';
                             convo.hasMessages = true;
@@ -2043,6 +2143,7 @@
         // Init
         document.addEventListener('DOMContentLoaded', init);
     </script>
+    <script src="/js/voice-message.js"></script>
     <script src="/js/api-helper.js"></script>
     <script src="/js/trainer-support-agent.js"></script>
     <script src="/js/voice-commander.js"></script>

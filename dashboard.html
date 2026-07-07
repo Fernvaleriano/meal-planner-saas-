@@ -4918,6 +4918,78 @@
             color: #6ee7b7;
         }
 
+        /* Voice reply mic button (used in Wins / Needs You / Logs reply rows) */
+        .voice-reply-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            flex-shrink: 0;
+            padding: 6px 9px;
+            border: 1px solid #e2e8f0;
+            background: #fff;
+            color: #64748b;
+            border-radius: 8px;
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: color 0.15s, border-color 0.15s;
+        }
+        .voice-reply-btn:hover {
+            color: var(--brand-primary, #14b8a6);
+            border-color: var(--brand-primary, #14b8a6);
+        }
+        .voice-reply-btn.recording {
+            color: #dc2626;
+            border-color: #dc2626;
+            animation: voiceReplyPulse 1.2s ease-in-out infinite;
+        }
+        .voice-reply-btn.sending,
+        .voice-reply-btn.sent {
+            opacity: 0.7;
+            cursor: default;
+        }
+        .voice-reply-btn .voice-reply-timer {
+            font-variant-numeric: tabular-nums;
+        }
+        .voice-reply-cancel {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            width: 24px;
+            height: 24px;
+            margin-left: 4px;
+            border: none;
+            background: transparent;
+            color: #94a3b8;
+            font-size: 14px;
+            line-height: 1;
+            cursor: pointer;
+            border-radius: 50%;
+        }
+        .voice-reply-cancel:hover {
+            color: #dc2626;
+            background: rgba(220, 38, 38, 0.08);
+        }
+        @keyframes voiceReplyPulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.35); }
+            50% { box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.12); }
+        }
+        [data-theme="dark"] .voice-reply-btn {
+            background: #1a1a2e;
+            border-color: #334155;
+            color: #94a3b8;
+        }
+        [data-theme="dark"] .voice-reply-btn:hover {
+            color: var(--brand-primary, #14b8a6);
+            border-color: var(--brand-primary, #14b8a6);
+        }
+        [data-theme="dark"] .voice-reply-btn.recording {
+            color: #f87171;
+            border-color: #f87171;
+        }
+
         /* Emoji reaction picker for priority items */
         .priority-reaction-row {
             display: inline-flex;
@@ -6759,6 +6831,165 @@
             }
         }
 
+        // ---- Voice replies (Wins / Needs You / Logs) ----
+        // The mic button lives inside each inline reply row. First click starts
+        // recording (button pulses red with a timer + a ✕ to discard); second
+        // click stops, uploads the audio to chat storage, and sends it as a
+        // chat message with the same "Re: …" context prefix the text replies use.
+        const VOICE_MIC_SVG = '<svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>';
+        const VOICE_STOP_SVG = '<svg width="12" height="12" fill="currentColor" viewBox="0 0 24 24"><rect x="5" y="5" width="14" height="14" rx="2"/></svg>';
+        const VOICE_ITEM_SUBJECTS = {
+            workout: 'your workout',
+            client_pr: 'your new PR',
+            checkin: 'your check-in',
+            photo: 'your progress photo',
+            measurement: 'your measurements',
+            gym_checkin: 'your gym check-in',
+            badge_earned: 'your new badge',
+        };
+
+        function resetVoiceReplyBtn(btn) {
+            btn.dataset.voiceState = '';
+            btn.classList.remove('recording', 'sending', 'sent');
+            btn.innerHTML = VOICE_MIC_SVG;
+            removeVoiceReplyCancel(btn);
+        }
+
+        function removeVoiceReplyCancel(btn) {
+            const next = btn.nextElementSibling;
+            if (next && next.classList.contains('voice-reply-cancel')) next.remove();
+        }
+
+        function cancelVoiceReply(cancelBtn) {
+            const btn = cancelBtn.previousElementSibling;
+            window.VoiceMessage?.cancel();
+            if (btn && btn.classList.contains('voice-reply-btn')) resetVoiceReplyBtn(btn);
+        }
+
+        async function finishVoiceReply(btn, clientId, subject, quote, itemType, itemId, recording) {
+            if (!recording) { resetVoiceReplyBtn(btn); return; }
+            if (recording.durationMs < 1000) {
+                resetVoiceReplyBtn(btn);
+                alert('Recording was too short — hold the mic a moment longer.');
+                return;
+            }
+            try {
+                const { mediaUrl, mediaType } = await VoiceMessage.uploadToChat({
+                    coachId: _currentCoachId,
+                    clientId,
+                    recording
+                });
+                // Same context prefix as the text replies so the client knows
+                // what the voice note is about.
+                let msg = 'Re: ' + subject;
+                if (quote) msg += ' — "' + quote + '"';
+                const res = await fetch('/.netlify/functions/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'send',
+                        coachId: _currentCoachId,
+                        clientId,
+                        senderType: 'coach',
+                        message: msg,
+                        mediaUrl,
+                        mediaType
+                    })
+                });
+                if (!res.ok) throw new Error('Failed to send voice message');
+                resetVoiceReplyBtn(btn);
+                showVoiceReplySent(btn, clientId, itemType, itemId);
+            } catch (e) {
+                console.error('Error sending voice reply:', e);
+                resetVoiceReplyBtn(btn);
+                alert('Failed to send voice message. Please try again.');
+            }
+        }
+
+        function showVoiceReplySent(btn, clientId, itemType, itemId) {
+            const row = btn.closest('.priority-note-reply-row, .activity-item-reply-row, .meal-comment-input-row');
+            if (!row) return;
+
+            // Meal cards (Logs) keep their comment row visible — flash a ✓ on the mic.
+            if (row.classList.contains('meal-comment-input-row')) {
+                btn.dataset.voiceState = 'sent';
+                btn.classList.add('sent');
+                btn.innerHTML = '✓';
+                setTimeout(() => resetVoiceReplyBtn(btn), 3000);
+                return;
+            }
+
+            row.style.display = 'none';
+
+            if (row.id && row.id.startsWith('reply-row-')) {
+                const aid = row.id.slice('reply-row-'.length);
+                const sent = document.getElementById('reply-sent-' + aid);
+                if (sent) {
+                    sent.style.display = 'inline-flex';
+                    setTimeout(() => { sent.style.display = 'none'; }, 4000);
+                }
+            } else if (row.id && row.id.startsWith('activity-item-reply-')) {
+                const itemEl = row.closest('.activity-detail-item');
+                if (itemType && itemId) markActivityCommented(clientId, itemType, itemId, itemEl);
+                const sent = itemEl?.querySelector('.activity-item-sent');
+                if (sent) {
+                    sent.style.display = 'inline-flex';
+                    setTimeout(() => { sent.style.display = 'none'; }, 3000);
+                }
+            }
+        }
+
+        async function toggleVoiceReply(btn, clientId, subject, quote, itemType, itemId) {
+            if (!window.VoiceMessage || !VoiceMessage.isSupported()) {
+                alert('Voice recording is not supported in this browser.');
+                return;
+            }
+            subject = subject || VOICE_ITEM_SUBJECTS[itemType] || 'your activity';
+            if (btn.dataset.voiceState === 'sending' || btn.dataset.voiceState === 'sent') return;
+
+            if (btn.dataset.voiceState === 'recording') {
+                btn.dataset.voiceState = 'sending';
+                btn.classList.remove('recording');
+                btn.classList.add('sending');
+                btn.innerHTML = '…';
+                removeVoiceReplyCancel(btn);
+                const recording = await VoiceMessage.stop();
+                await finishVoiceReply(btn, clientId, subject, quote, itemType, itemId, recording);
+                return;
+            }
+
+            try {
+                await VoiceMessage.start({
+                    onTick: (seconds) => {
+                        // If a background refresh re-rendered this card, the button is
+                        // gone — release the mic instead of recording invisibly.
+                        if (!document.contains(btn)) { VoiceMessage.cancel(); return; }
+                        const timer = btn.querySelector('.voice-reply-timer');
+                        if (timer) timer.textContent = VoiceMessage.formatElapsed(seconds);
+                    },
+                    // Hit the 5-minute cap: send what was recorded rather than lose it.
+                    onAutoStop: (recording) => {
+                        if (!document.contains(btn)) return;
+                        btn.dataset.voiceState = 'sending';
+                        btn.classList.remove('recording');
+                        btn.classList.add('sending');
+                        btn.innerHTML = '…';
+                        removeVoiceReplyCancel(btn);
+                        finishVoiceReply(btn, clientId, subject, quote, itemType, itemId, recording);
+                    }
+                });
+            } catch (e) {
+                console.error('Error accessing microphone:', e);
+                alert('Could not access microphone. Please check permissions.');
+                return;
+            }
+
+            btn.dataset.voiceState = 'recording';
+            btn.classList.add('recording');
+            btn.innerHTML = VOICE_STOP_SVG + '<span class="voice-reply-timer">0:00</span>';
+            btn.insertAdjacentHTML('afterend', '<button class="voice-reply-cancel" title="Discard recording" onclick="event.stopPropagation(); cancelVoiceReply(this)">✕</button>');
+        }
+
         // Toggle emoji reaction on a priority item — opens reply, prefills emoji, and auto-sends
         async function toggleReaction(alertId, clientId, emoji, itemType, itemId) {
             const btn = document.getElementById('react-' + alertId + '-' + (emoji === '👏' ? 'clap' : emoji === '👊' ? 'fist' : emoji === '💪' ? 'muscle' : 'fire'));
@@ -7373,6 +7604,7 @@
                             <div class="activity-item-reply-row" id="activity-item-reply-${itemUid}" onclick="event.stopPropagation()">
                                 <input type="text" placeholder="Comment on this..." maxlength="500" onkeydown="if(event.key==='Enter'){event.preventDefault();sendItemReply('${ev.clientId}','${ev.itemType}','${ev.itemId}','${escapedQuote}',this)}">
                                 <button onclick="sendItemReply('${ev.clientId}','${ev.itemType}','${ev.itemId}','${escapedQuote}',this.previousElementSibling)">Send</button>
+                                <button class="voice-reply-btn" title="Send a voice message" onclick="toggleVoiceReply(this,'${ev.clientId}','','${escapedQuote}','${ev.itemType}','${ev.itemId}')">${VOICE_MIC_SVG}</button>
                             </div>
                         </div>
                     </div>`;
@@ -7683,6 +7915,7 @@
                                 <button class="meal-comment-submit" onclick="addMealComment(${primaryEntryId}, '${meal.clientId}', this)">
                                     <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
                                 </button>
+                                <button class="voice-reply-btn" title="Send a voice message about this meal" onclick="toggleVoiceReply(this,'${meal.clientId}','your ${meal.mealType} log','')">${VOICE_MIC_SVG}</button>
                             </div>
                         </div>
                     </div>
@@ -8353,6 +8586,7 @@
                                             <div id="reply-row-${aid}" class="priority-note-reply-row" style="display:none;" onclick="event.stopPropagation()">
                                                 <input type="text" id="reply-input-${aid}" placeholder="Type your reply..." onkeydown="if(event.key==='Enter'){sendNoteReply('${aid}','${clientId}','${safeExerciseName}','${safeNoteContent}')}" />
                                                 <button onclick="sendNoteReply('${aid}','${clientId}','${safeExerciseName}','${safeNoteContent}')">Send</button>
+                                                <button class="voice-reply-btn" title="Send a voice message" onclick="toggleVoiceReply(this,'${clientId}','${safeExerciseName}','${safeNoteContent}')">${VOICE_MIC_SVG}</button>
                                             </div>
                                             <div id="reply-sent-${aid}" class="priority-note-reply-sent" style="display:none;">
                                                 <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>
@@ -8482,6 +8716,7 @@
                                                         <div id="reply-row-${aid}" class="priority-note-reply-row" style="display:none;" onclick="event.stopPropagation()">
                                                             <input type="text" id="reply-input-${aid}" placeholder="Type your reply..." onkeydown="if(event.key==='Enter'){sendPlateauReply('${aid}','${g.clientId}','${safePlateauMsg}')}" />
                                                             <button onclick="sendPlateauReply('${aid}','${g.clientId}','${safePlateauMsg}')">Send</button>
+                                                            <button class="voice-reply-btn" title="Send a voice message" onclick="toggleVoiceReply(this,'${g.clientId}','Plateau','${safePlateauMsg}')">${VOICE_MIC_SVG}</button>
                                                         </div>
                                                         <div id="reply-sent-${aid}" class="priority-note-reply-sent" style="display:none;">
                                                             <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>
@@ -9239,6 +9474,7 @@
                             <div id="reply-row-${aid}" class="priority-note-reply-row" style="display:none;" onclick="event.stopPropagation()">
                                 <input type="text" id="reply-input-${aid}" placeholder="Type your reply..." onkeydown="if(event.key==='Enter'){sendNoteReply('${aid}','${clientId}','Gym Check-In','')}" />
                                 <button onclick="sendNoteReply('${aid}','${clientId}','Gym Check-In','')">Send</button>
+                                <button class="voice-reply-btn" title="Send a voice message" onclick="toggleVoiceReply(this,'${clientId}','Gym Check-In','')">${VOICE_MIC_SVG}</button>
                             </div>
                             <div id="reply-sent-${aid}" class="priority-note-reply-sent" style="display:none;">
                                 <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>
@@ -10968,6 +11204,7 @@
         }
     </script>
     <script src="/js/voice-to-text.js"></script>
+    <script src="/js/voice-message.js"></script>
     <script src="/js/api-helper.js"></script>
     <script src="/js/badge-share-card.js"></script>
     <script src="/js/trainer-support-agent.js"></script>
