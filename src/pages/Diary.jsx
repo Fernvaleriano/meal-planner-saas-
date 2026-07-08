@@ -168,6 +168,10 @@ function Diary() {
   const audioChunksRef = useRef([]);
   const preVoiceInputRef = useRef('');
 
+  // AI chat "Confirm & Add": prevent double-tap duplicate entries
+  const [aiConfirmAdding, setAiConfirmAdding] = useState(false);
+  const aiConfirmAddingRef = useRef(false); // Ref to prevent duplicate submissions
+
   // AI Log Modal: parsed-food confirmation state
   const [aiLogParsedFoods, setAiLogParsedFoods] = useState(null);
   const [aiLogServings, setAiLogServings] = useState(1);
@@ -176,10 +180,11 @@ function Diary() {
   // Water: tracks latest tapped value for rapid-tap accuracy
   const waterLatestRef = useRef(null);
 
-  // Food search states
-  const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState([]);
-  const [searchLoading, setSearchLoading] = useState(false);
+  // Latest requested diary date — guards against out-of-order responses
+  // when the user taps prev/next quickly (same pattern as the dateStr
+  // guard in Workouts.jsx). Set by the date-change load effect; checked
+  // before applying any fetched data.
+  const latestDateRef = useRef(null);
 
   // Weekly summary states
   const [weeklyData, setWeeklyData] = useState(null);
@@ -324,7 +329,13 @@ function Diary() {
     fetchWithTimeout(`/.netlify/functions/water-intake?clientId=${encodeURIComponent(clientData.id)}&date=${dateStr}&timezone=${encodeURIComponent(timezone)}`)
       .then(res => res.ok ? res.json() : Promise.reject(new Error(`HTTP ${res.status}`)))
       .then(waterData => {
+        // Ignore responses that resolve after the user navigated to a
+        // different date (the ref is null only before the first load).
+        if (latestDateRef.current && latestDateRef.current !== dateStr) return;
         const newWater = waterData?.glasses || 0;
+        // Fresh server value replaces any rapid-tap ref so future taps
+        // start from what's actually displayed.
+        waterLatestRef.current = null;
         setWaterIntake(newWater);
         if (waterData?.goal) setWaterGoal(waterData.goal);
         if (waterData?.unit) setWaterUnit(waterData.unit);
@@ -347,6 +358,10 @@ function Diary() {
         apiGet(`/.netlify/functions/food-diary?clientId=${clientData.id}&date=${dateStr}`).catch(() => FAILED),
         apiGet(`/.netlify/functions/get-diary-interactions?clientId=${clientData.id}&date=${dateStr}`).catch(() => FAILED)
       ]);
+
+      // Ignore responses that resolve after the user navigated to a
+      // different date — applying them would render the wrong day's food.
+      if (latestDateRef.current && latestDateRef.current !== dateStr) return;
 
       const diaryFailed = diaryData === FAILED;
       const interactionsFailed = interactionsData === FAILED;
@@ -745,6 +760,12 @@ function Diary() {
     const dateStr = formatDate(currentDate);
     const cacheKey = `diary_${clientData.id}_${dateStr}`;
 
+    // Mark this as the latest requested date so in-flight responses for a
+    // previously viewed date can't overwrite this day's data.
+    latestDateRef.current = dateStr;
+    // Reset the rapid-tap water ref — its value belongs to the previous date.
+    waterLatestRef.current = null;
+
     // Load from cache first for instant display
     const cached = getCache(cacheKey);
     if (cached) {
@@ -763,6 +784,7 @@ function Diary() {
         return res.json();
       })
       .then(data => {
+        if (latestDateRef.current !== dateStr) return; // stale response for a previous date
         const w = data?.glasses || 0;
         setWaterIntake(w);
         if (data?.goal) setWaterGoal(data.goal);
@@ -777,6 +799,7 @@ function Diary() {
       apiGet(`/.netlify/functions/food-diary?clientId=${clientData.id}&date=${dateStr}`),
       apiGet(`/.netlify/functions/get-diary-interactions?clientId=${clientData.id}&date=${dateStr}`).catch(() => null)
     ]).then(([diaryData, interactionsData]) => {
+      if (latestDateRef.current !== dateStr) return; // stale response for a previous date
       const newEntries = diaryData.entries || [];
       const newGoals = diaryData.goals || getGenderBasedDefaults(clientData?.gender);
 
@@ -864,119 +887,6 @@ function Diary() {
       }, 300);
     } else {
       saveWater(clientData.id, dateStr, next);
-    }
-  };
-
-  // Handle AI food logging
-  const handleAiLog = async () => {
-    if (!aiInput.trim()) return;
-
-    // Check if auth is still loading
-    if (authLoading || !clientData) {
-      showError(t('diaryPage.toastLoadingProfile'));
-      return;
-    }
-
-    // Check if there was an error fetching client data
-    if (!clientData.id) {
-      console.error('AI Log: clientData.id is null (fetch may have failed)', { clientData });
-      showError(t('diaryPage.toastProfileLoading'));
-      return;
-    }
-
-    setAiLogging(true);
-
-    try {
-      // Step 1: Analyze food with AI
-      const aiData = await apiPost('/.netlify/functions/analyze-food-text', {
-        text: aiInput,
-        language
-      });
-
-      if (!aiData?.foods || aiData.foods.length === 0) {
-        console.error('No foods recognized');
-        return;
-      }
-
-      // Step 2: Log all food items in parallel for faster logging
-      const dateStr = formatDate(currentDate);
-
-      // Create all food logging requests
-      const logPromises = aiData.foods.map(food =>
-        apiPost('/.netlify/functions/food-diary', {
-          clientId: clientData.id,
-          coachId: clientData.coach_id,
-          entryDate: dateStr,
-          mealType: selectedMealType,
-          foodName: food.name,
-          calories: food.calories,
-          protein: food.protein,
-          carbs: food.carbs,
-          fat: food.fat,
-          fiber: food.fiber,
-          sugar: food.sugar,
-          sodium: food.sodium,
-          potassium: food.potassium,
-          calcium: food.calcium,
-          iron: food.iron,
-          vitaminC: food.vitaminC,
-          cholesterol: food.cholesterol,
-          servingSize: 1,
-          servingUnit: 'serving',
-          numberOfServings: 1,
-          foodSource: 'ai'
-        })
-      );
-
-      // Execute all requests in parallel
-      const results = await Promise.all(logPromises);
-
-      // Collect entries and calculate totals
-      const newEntries = results.filter(r => r.entry).map(r => r.entry);
-      const addedTotals = aiData.foods.reduce((acc, food) => ({
-        calories: acc.calories + (food.calories || 0),
-        protein: acc.protein + (food.protein || 0),
-        carbs: acc.carbs + (food.carbs || 0),
-        fat: acc.fat + (food.fat || 0),
-        fiber: acc.fiber + (food.fiber || 0),
-        sugar: acc.sugar + (food.sugar || 0),
-        sodium: acc.sodium + (food.sodium || 0),
-        potassium: acc.potassium + (food.potassium || 0),
-        calcium: acc.calcium + (food.calcium || 0),
-        iron: acc.iron + (food.iron || 0),
-        vitaminC: acc.vitaminC + (food.vitaminC || 0),
-        cholesterol: acc.cholesterol + (food.cholesterol || 0)
-      }), { calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0, sugar: 0, sodium: 0, potassium: 0, calcium: 0, iron: 0, vitaminC: 0, cholesterol: 0 });
-
-      // Update local state
-      const updatedEntries = [...entries, ...newEntries];
-      const updatedTotals = {
-        calories: totals.calories + addedTotals.calories,
-        protein: totals.protein + addedTotals.protein,
-        carbs: totals.carbs + addedTotals.carbs,
-        fat: totals.fat + addedTotals.fat,
-        fiber: (totals.fiber || 0) + addedTotals.fiber,
-        sugar: (totals.sugar || 0) + addedTotals.sugar,
-        sodium: (totals.sodium || 0) + addedTotals.sodium,
-        potassium: (totals.potassium || 0) + addedTotals.potassium,
-        calcium: (totals.calcium || 0) + addedTotals.calcium,
-        iron: (totals.iron || 0) + addedTotals.iron,
-        vitaminC: (totals.vitaminC || 0) + addedTotals.vitaminC,
-        cholesterol: (totals.cholesterol || 0) + addedTotals.cholesterol
-      };
-
-      setEntries(updatedEntries);
-      setTotals(updatedTotals);
-      setAiInput('');
-
-      // Update cache
-      const cacheKey = `diary_${clientData.id}_${dateStr}`;
-      const cached = getCache(cacheKey) || {};
-      setCache(cacheKey, { ...cached, entries: updatedEntries, totals: updatedTotals });
-    } catch (err) {
-      console.error('Error logging food:', err);
-    } finally {
-      setAiLogging(false);
     }
   };
 
@@ -1139,7 +1049,14 @@ function Diary() {
         } catch (e) { /* ignore individual failures */ }
       }
 
-      showSuccess(t('diaryPage.toastCopiedEntries', { count: copiedCount }));
+      const failedCount = data.entries.length - copiedCount;
+      if (failedCount > 0) {
+        // Partial failure: warn instead of reporting success — re-running
+        // the copy would duplicate the entries that already succeeded.
+        showError(`Copied ${copiedCount} of ${data.entries.length} entries — ${failedCount} failed. Copying again may duplicate the ones that succeeded.`);
+      } else {
+        showSuccess(t('diaryPage.toastCopiedEntries', { count: copiedCount }));
+      }
 
       // Reload if we copied to current date
       if (toDate === formatDate(currentDate)) {
@@ -1172,85 +1089,6 @@ function Diary() {
       await copyEntriesFromDate(formatDate(currentDate), copyDateInput);
     }
     setCopyDateInput('');
-  };
-
-  // Food search
-  const handleFoodSearch = async (query) => {
-    if (!query.trim()) {
-      setSearchResults([]);
-      return;
-    }
-    setSearchLoading(true);
-    try {
-      const data = await apiGet(`/.netlify/functions/food-search?query=${encodeURIComponent(query)}&clientId=${clientData?.id}`);
-      setSearchResults(data.results || []);
-    } catch (err) {
-      console.error('Error searching foods:', err);
-    } finally {
-      setSearchLoading(false);
-    }
-  };
-
-  // Add food from search results
-  const addFoodFromSearch = async (food) => {
-    if (!clientData?.id) return;
-    try {
-      const dateStr = formatDate(currentDate);
-      const result = await apiPost('/.netlify/functions/food-diary', {
-        clientId: clientData.id,
-        coachId: clientData.coach_id,
-        entryDate: dateStr,
-        mealType: selectedMealType,
-        foodName: food.name,
-        brand: food.brand,
-        calories: food.calories,
-        protein: food.protein,
-        carbs: food.carbs,
-        fat: food.fat,
-        fiber: food.fiber,
-        sugar: food.sugar,
-        sodium: food.sodium,
-        potassium: food.potassium,
-        calcium: food.calcium,
-        iron: food.iron,
-        vitaminC: food.vitaminC,
-        cholesterol: food.cholesterol,
-        servingSize: food.serving_size || 1,
-        servingUnit: food.serving_unit || 'serving',
-        numberOfServings: 1,
-        foodSource: 'search'
-      });
-
-      if (result.entry) {
-        const updatedEntries = [...entries, result.entry];
-        const updatedTotals = {
-          calories: totals.calories + (food.calories || 0),
-          protein: totals.protein + (food.protein || 0),
-          carbs: totals.carbs + (food.carbs || 0),
-          fat: totals.fat + (food.fat || 0),
-          fiber: (totals.fiber || 0) + (parseFloat(food.fiber) || 0),
-          sugar: (totals.sugar || 0) + (parseFloat(food.sugar) || 0),
-          sodium: (totals.sodium || 0) + (parseFloat(food.sodium) || 0),
-          potassium: (totals.potassium || 0) + (parseFloat(food.potassium) || 0),
-          calcium: (totals.calcium || 0) + (parseFloat(food.calcium) || 0),
-          iron: (totals.iron || 0) + (parseFloat(food.iron) || 0),
-          vitaminC: (totals.vitaminC || 0) + (parseFloat(food.vitaminC) || 0),
-          cholesterol: (totals.cholesterol || 0) + (parseFloat(food.cholesterol) || 0)
-        };
-        setEntries(updatedEntries);
-        setTotals(updatedTotals);
-
-        // Update cache
-        const cacheKey = `diary_${clientData.id}_${dateStr}`;
-        const cached = getCache(cacheKey) || {};
-        setCache(cacheKey, { ...cached, entries: updatedEntries, totals: updatedTotals });
-      }
-      setShowSearchModal(false);
-      setSearchQuery('');
-      setSearchResults([]);
-    } catch (err) {
-      console.error('Error adding food:', err);
-    }
   };
 
   // Parse food suggestions from AI response [[FOOD: name | cal | prot | carbs | fat]]
@@ -1738,7 +1576,11 @@ function Diary() {
 
   // Confirm food log from AI
   const confirmAIFoodLog = async () => {
-    if (!pendingFoodLog || !clientData?.id) return;
+    // Use ref to prevent duplicate submissions (more reliable than state)
+    if (!pendingFoodLog || !clientData?.id || aiConfirmAddingRef.current) return;
+
+    aiConfirmAddingRef.current = true;
+    setAiConfirmAdding(true);
 
     const food = pendingFoodLog;
     const mealType = selectedAIMealType || getDefaultMealType();
@@ -1811,6 +1653,9 @@ function Diary() {
     } catch (err) {
       console.error('Error adding food:', err);
       setAiMessages(prev => [...prev, { role: 'assistant', content: t('diaryPage.aiCantAddFood') }]);
+    } finally {
+      aiConfirmAddingRef.current = false;
+      setAiConfirmAdding(false);
     }
   };
 
@@ -1898,63 +1743,6 @@ function Diary() {
     } catch (err) {
       console.error('Error saving meal:', err);
       showError(t('diaryPage.toastMealSaveFailed'));
-    }
-  };
-
-  // Handle adding from favorites
-  const handleAddFromFavorite = async (favorite) => {
-    if (!clientData?.id) return;
-    const dateStr = formatDate(currentDate);
-
-    try {
-      let newEntries = [];
-      let addedTotals = { calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0, sugar: 0, sodium: 0, potassium: 0, calcium: 0, iron: 0, vitaminC: 0, cholesterol: 0 };
-
-      for (const food of favorite.foods) {
-        const result = await apiPost('/.netlify/functions/food-diary', {
-          clientId: clientData.id,
-          coachId: clientData.coach_id,
-          entryDate: dateStr,
-          mealType: selectedMealType,
-          foodName: food.food_name,
-          calories: food.calories,
-          protein: food.protein,
-          carbs: food.carbs,
-          fat: food.fat,
-          fiber: food.fiber,
-          sugar: food.sugar,
-          sodium: food.sodium,
-          potassium: food.potassium,
-          calcium: food.calcium,
-          iron: food.iron,
-          vitaminC: food.vitaminC || food.vitamin_c,
-          cholesterol: food.cholesterol,
-          servingSize: food.serving_size || 1,
-          servingUnit: food.serving_unit || 'serving',
-          numberOfServings: food.number_of_servings || 1,
-          foodSource: 'favorite'
-        });
-
-        if (result.entry) {
-          newEntries.push(result.entry);
-        }
-        addedTotals = buildTotals(addedTotals, food, 'add');
-      }
-
-      const updatedEntries = [...entries, ...newEntries];
-      const updatedTotals = buildTotals(totals, addedTotals, 'add');
-
-      setEntries(updatedEntries);
-      setTotals(updatedTotals);
-
-      // Update cache
-      const cacheKey = `diary_${clientData.id}_${dateStr}`;
-      const cached = getCache(cacheKey) || {};
-      setCache(cacheKey, { ...cached, entries: updatedEntries, totals: updatedTotals });
-
-      setShowFavoritesModal(false);
-    } catch (err) {
-      console.error('Error adding from favorite:', err);
     }
   };
 
@@ -2219,7 +2007,11 @@ function Diary() {
     breakfast: entries.filter(e => e.meal_type === 'breakfast'),
     lunch: entries.filter(e => e.meal_type === 'lunch'),
     dinner: entries.filter(e => e.meal_type === 'dinner'),
-    snack: entries.filter(e => e.meal_type === 'snack')
+    // Anything that isn't breakfast/lunch/dinner (including unknown
+    // meal_type values) falls into snacks so every entry stays visible,
+    // editable, and deletable — otherwise it counts toward totals but
+    // appears in no section.
+    snack: entries.filter(e => e.meal_type !== 'breakfast' && e.meal_type !== 'lunch' && e.meal_type !== 'dinner')
   };
 
   // Calculate remaining and progress
@@ -3001,10 +2793,10 @@ function Diary() {
                         ))}
                       </div>
                       <div className="ai-food-log-actions">
-                        <button className="confirm-btn" onClick={confirmAIFoodLog}>
-                          <Check size={14} /> {t('diaryPage.aiConfirmAdd')}
+                        <button className="confirm-btn" onClick={confirmAIFoodLog} disabled={aiConfirmAdding}>
+                          <Check size={14} /> {aiConfirmAdding ? t('diaryPage.adding') : t('diaryPage.aiConfirmAdd')}
                         </button>
-                        <button className="cancel-btn" onClick={cancelAIFoodLog}>
+                        <button className="cancel-btn" onClick={cancelAIFoodLog} disabled={aiConfirmAdding}>
                           {t('diaryPage.aiCancelLog')}
                         </button>
                       </div>
@@ -3622,108 +3414,9 @@ function Diary() {
         </div>
       )}
 
-      {/* Food Search Modal */}
-      {showSearchModal && (
-        <div className="modal-overlay active" onClick={() => setShowSearchModal(false)}>
-          <div className="modal-content" onClick={e => e.stopPropagation()}>
-            <div className="modal-header">
-              <button className="modal-close" onClick={() => setShowSearchModal(false)}>&times;</button>
-              <input
-                type="text"
-                className="search-input"
-                placeholder={t('diaryPage.searchPlaceholder')}
-                value={searchQuery}
-                onChange={(e) => {
-                  setSearchQuery(e.target.value);
-                  handleFoodSearch(e.target.value);
-                }}
-                autoFocus
-              />
-            </div>
-            <div className="modal-body">
-              {/* Meal Type Selector */}
-              <div className="modal-meal-selector">
-                <label>{t('diaryPage.searchAddTo')}</label>
-                <div className="meal-type-chips">
-                  {['breakfast', 'lunch', 'dinner', 'snack'].map(type => (
-                    <button
-                      key={type}
-                      className={`meal-chip ${selectedMealType === type ? 'active' : ''}`}
-                      onClick={() => setSelectedMealType(type)}
-                    >
-                      {type.charAt(0).toUpperCase() + type.slice(1)}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div className="search-results">
-                {searchLoading ? (
-                  <div style={{ textAlign: 'center', padding: '20px' }}>{t('diaryPage.searching')}</div>
-                ) : searchResults.length > 0 ? (
-                  searchResults.map((food, idx) => (
-                    <div key={idx} className="search-result-item" onClick={() => addFoodFromSearch(food)}>
-                      <div className="food-info">
-                        <span className="food-name">{food.name}</span>
-                        {food.brand && <span className="food-brand">{food.brand}</span>}
-                      </div>
-                      <span className="food-cals">{food.calories} cal</span>
-                    </div>
-                  ))
-                ) : searchQuery ? (
-                  <div style={{ textAlign: 'center', padding: '20px', color: '#64748b' }}>
-                    {t('diaryPage.noResults')}
-                  </div>
-                ) : (
-                  <div style={{ textAlign: 'center', padding: '20px', color: '#64748b' }}>
-                    {t('diaryPage.typeToSearch')}
-                  </div>
-                )}
-              </div>
-
-              {/* Quick Add Options */}
-              <div className="quick-add-section" style={{ marginTop: '20px', borderTop: '1px solid #e2e8f0', paddingTop: '20px' }}>
-                <div style={{ fontWeight: 600, marginBottom: '12px', color: '#64748b' }}>{t('diaryPage.orTryOptions')}</div>
-                <button className="quick-add-btn" onClick={() => { setShowSearchModal(false); setShowPhotoModal(true); }}>
-                  <div className="quick-add-icon" style={{ background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', borderRadius: '10px', width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <Camera size={20} color="white" />
-                  </div>
-                  <div className="quick-add-text">
-                    <div style={{ fontWeight: 600 }}>{t('diaryPage.logByPhoto')}</div>
-                    <div style={{ fontSize: '0.85rem', color: '#64748b' }}>{t('diaryPage.logByPhotoSub')}</div>
-                  </div>
-                </button>
-                <button className="quick-add-btn" onClick={() => { setShowSearchModal(false); setShowAILogModal(true); }} style={{ marginTop: '10px' }}>
-                  <div className="quick-add-icon" style={{ background: 'linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)', borderRadius: '10px', width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <Mic size={20} color="white" />
-                  </div>
-                  <div className="quick-add-text">
-                    <div style={{ fontWeight: 600 }}>{t('diaryPage.aiVoiceTextLog')}</div>
-                    <div style={{ fontSize: '0.85rem', color: '#64748b' }}>{t('diaryPage.aiVoiceTextLogSub')}</div>
-                  </div>
-                </button>
-                <button className="quick-add-btn" onClick={() => { setShowSearchModal(false); setShowFavoritesModal(true); }} style={{ marginTop: '10px' }}>
-                  <div className="quick-add-icon" style={{ background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)', borderRadius: '10px', width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <Heart size={20} color="white" />
-                  </div>
-                  <div className="quick-add-text">
-                    <div style={{ fontWeight: 600 }}>{t('diaryPage.fromFavorites')}</div>
-                    <div style={{ fontSize: '0.85rem', color: '#64748b' }}>{t('diaryPage.fromFavoritesSub')}</div>
-                  </div>
-                </button>
-                <button className="quick-add-btn" onClick={() => { setShowSearchModal(false); setShowScanLabelModal(true); }} style={{ marginTop: '10px' }}>
-                  <div className="quick-add-icon" style={{ background: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)', borderRadius: '10px', width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <FileText size={20} color="white" />
-                  </div>
-                  <div className="quick-add-text">
-                    <div style={{ fontWeight: 600 }}>{t('diaryPage.scanNutritionLabel')}</div>
-                    <div style={{ fontSize: '0.85rem', color: '#64748b' }}>{t('diaryPage.scanNutritionLabelSub')}</div>
-                  </div>
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Food search UI is rendered by <SearchFoodsModal /> below (the
+          previous inline duplicate keyed to the same showSearchModal state
+          was covered by it and only wasted focus + search requests). */}
 
       {/* Save Meal Modal */}
       {showSaveMealModal && (
