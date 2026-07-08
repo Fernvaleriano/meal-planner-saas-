@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
 import { supabase } from '../utils/supabase';
 import { clearSessionCache, setSessionCache } from '../utils/api';
+import { clearBrandingCSS } from './BrandingContext';
 import { clearPersistedState } from '../hooks/useStatePersistence';
 import { clearTopNavCaches } from '../components/TopNav';
 
@@ -156,8 +157,10 @@ export function AuthProvider({ children }) {
     }
     if (oldKey) {
       // Migrate old key to new key
-      localStorage.setItem('zique-theme', oldKey);
-      localStorage.removeItem('theme');
+      try {
+        localStorage.setItem('zique-theme', oldKey);
+        localStorage.removeItem('theme');
+      } catch { /* ignore quota / private mode */ }
       return oldKey;
     }
     return 'dark';
@@ -176,15 +179,18 @@ export function AuthProvider({ children }) {
 
       // PGRST116 = no rows found, which is expected for non-coaches
       if (error && error.code !== 'PGRST116') {
-        // Log non-expected errors but don't break the flow
+        // Log non-expected errors but don't break the flow.
+        // Return null ("unknown") — NOT false — so a flaky query can't
+        // demote a coach; callers fall back to the last known value.
         console.warn('SPA: Coach check returned error:', error.code, error.message);
-        return false;
+        return null;
       }
       return !!data;
     } catch (err) {
-      // Silent fail - if we can't check coach status, assume they're not a coach
+      // Couldn't check coach status — return null ("unknown") so the
+      // caller keeps the previously known value instead of demoting.
       console.warn('SPA: Error checking coach status:', err.message);
-      return false;
+      return null;
     }
   }, []);
 
@@ -208,9 +214,12 @@ export function AuthProvider({ children }) {
         .limit(1)
         .maybeSingle();
 
-      const [clientResult, isCoach] = await Promise.all([
+      // Guard the coach check with the same timeout so a hanging coaches
+      // query can't stall the whole Promise.all (infinite LoadingScreen).
+      // Timeout resolves to null ("unknown"), matching checkIsCoach errors.
+      const [clientResult, coachCheckResult] = await Promise.all([
         Promise.race([fetchPromise, timeoutPromise]),
-        checkIsCoach(userId)
+        Promise.race([checkIsCoach(userId), timeoutPromise]).catch(() => null)
       ]);
 
       const { data, error } = clientResult;
@@ -223,6 +232,25 @@ export function AuthProvider({ children }) {
       if (!data) {
         console.warn('SPA: No client record found for user:', userId);
         return { id: null, client_name: 'User', error: true, errorMessage: 'No client record found' };
+      }
+
+      // Resolve coach status. null means "couldn't check" (error/timeout) —
+      // fall back to the last known cached value instead of demoting to
+      // false, so one flaky coaches query can't persistently strip coach
+      // access. Only a confirmed false (query succeeded, no row) demotes.
+      let isCoach = coachCheckResult;
+      if (isCoach === null) {
+        try {
+          const cached = localStorage.getItem(`cachedClientData_${userId}`);
+          if (cached) {
+            const parsed = JSON.parse(cached);
+            if (parsed && typeof parsed.is_coach === 'boolean') {
+              isCoach = parsed.is_coach;
+            }
+          }
+        } catch { /* ignore */ }
+        // No prior knowledge — default to false (same as legacy behavior)
+        if (isCoach === null) isCoach = false;
       }
 
       // Add isCoach flag to the client data
@@ -307,7 +335,8 @@ export function AuthProvider({ children }) {
               setTimeout(() => reject(new Error('Auth timeout')), 10000)
             );
             const sessionPromise = supabase.auth.getSession();
-            const { data: { session } } = await Promise.race([sessionPromise, timeoutPromise]);
+            const { data, error } = await Promise.race([sessionPromise, timeoutPromise]);
+            const session = data?.session;
 
             if (session?.user && mounted) {
               setUser(session.user);
@@ -325,7 +354,11 @@ export function AuthProvider({ children }) {
                   setClientData(client);
                 }
               });
-            } else if (!session && mounted) {
+            } else if (!session && !error && mounted) {
+              // Confirmed signed-out (no session AND no error). If getSession
+              // returned an error (e.g. failed token refresh while offline),
+              // we keep the cached state instead — same as the timeout path
+              // below — so a flaky network can't hard-log-out the user.
               // Session expired — clear cached data for whichever user we
               // had hydrated (best-effort via sb-* if still present) and
               // legacy unkeyed cache. Other users' caches on this device
@@ -335,6 +368,8 @@ export function AuthProvider({ children }) {
               localStorage.removeItem('cachedClientData');
               setClientData(null);
               setUser(null);
+            } else if (error && mounted) {
+              console.warn('SPA: Background session check errored, keeping cached state:', error.message);
             }
           } catch (err) {
             console.error('SPA: Background auth error:', err);
@@ -446,7 +481,7 @@ export function AuthProvider({ children }) {
   // Apply theme to document
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
-    localStorage.setItem('zique-theme', theme);
+    try { localStorage.setItem('zique-theme', theme); } catch { /* ignore quota / private mode */ }
   }, [theme]);
 
   const toggleTheme = useCallback(() => {
@@ -475,6 +510,10 @@ export function AuthProvider({ children }) {
     // Pre-auth branding hint — separate explicit remove since it doesn't
     // match the user-data patterns.
     localStorage.removeItem('login_coach_id');
+    // Reset the previous user's brand colors on :root and drop the
+    // 'zique_branding_preload' cold-start snapshot, so the next account on
+    // a shared device doesn't see (or replay) the old coach's branding.
+    clearBrandingCSS();
     // Clear API session cache
     clearSessionCache();
     // Reset in-memory caches that live on module scope (not localStorage)

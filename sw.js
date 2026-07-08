@@ -1,5 +1,5 @@
 // Ziquecoach PWA Service Worker
-const CACHE_NAME = 'ziquecoach-v18';
+const CACHE_NAME = 'ziquecoach-v19';
 const STATIC_CACHE = 'zique-static-v18';
 const DATA_CACHE = 'zique-data-v12';
 const CDN_CACHE = 'zique-cdn-v7';
@@ -235,9 +235,16 @@ self.addEventListener('fetch', (event) => {
 
           event.waitUntil(revalidation);
 
-          // No cache? Wait for network
+          // No cache? Wait for network. revalidation resolves null when the
+          // fetch failed (its .catch) — respondWith must never get null, so
+          // return the same structured offline 503 the bypass branch uses.
           if (!cachedResponse) {
-            return revalidation;
+            return revalidation.then((networkResponse) =>
+              networkResponse || new Response('{"error":"offline"}', {
+                status: 503,
+                headers: { 'Content-Type': 'application/json' }
+              })
+            );
           }
         }
 
@@ -289,11 +296,14 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(
       fetch(request)
         .then((response) => {
-          // Cache the fresh response
-          const responseClone = response.clone();
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put(request, responseClone);
-          });
+          // Cache the fresh response — only if it's a good one, so error
+          // pages (404/5xx during deploys) never poison the offline cache
+          if (response.ok) {
+            const responseClone = response.clone();
+            caches.open(CACHE_NAME).then((cache) => {
+              cache.put(request, responseClone);
+            });
+          }
           return response;
         })
         .catch(() => {
@@ -313,20 +323,25 @@ self.addEventListener('fetch', (event) => {
         if (cachedResponse) {
           // Return cached version and update cache in background
           fetch(request).then((response) => {
-            caches.open(CACHE_NAME).then((cache) => {
-              cache.put(request, response);
-            });
+            if (response.ok) {
+              caches.open(CACHE_NAME).then((cache) => {
+                cache.put(request, response);
+              });
+            }
           }).catch(() => {});
           return cachedResponse;
         }
 
         // Not in cache - fetch from network
         return fetch(request).then((response) => {
-          // Cache the response for next time
-          const responseClone = response.clone();
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put(request, responseClone);
-          });
+          // Cache the response for next time — only if ok, so deploy-window
+          // 404s for old hashed chunks aren't cached and served forever
+          if (response.ok) {
+            const responseClone = response.clone();
+            caches.open(CACHE_NAME).then((cache) => {
+              cache.put(request, responseClone);
+            });
+          }
           return response;
         });
       })

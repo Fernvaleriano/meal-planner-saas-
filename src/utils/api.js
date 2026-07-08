@@ -187,6 +187,20 @@ async function getAuthToken() {
   const session = await inflightGetSessionPromise;
   if (!session) return null;
 
+  // Don't clobber a fresher cache: while we awaited, TOKEN_REFRESHED may
+  // have primed sessionCache via setSessionCache (timestamp newer than when
+  // this attempt started), or the cached session may simply expire later
+  // than the one we just resolved (e.g. a stale localStorage fallback).
+  // Overwriting would replace a fresh token with a stale one AND stamp an
+  // old timestamp on it.
+  const existing = sessionCache.session;
+  if (existing && (
+    sessionCache.timestamp > now ||
+    (existing.expires_at && session.expires_at && existing.expires_at > session.expires_at)
+  )) {
+    return existing.access_token;
+  }
+
   // Cache it
   sessionCache = {
     ...sessionCache,

@@ -46,6 +46,30 @@ const compressImage = (file, maxWidth = 1200, quality = 0.8) => {
   });
 };
 
+// Count-based foods (e.g. servingSize 1 "burger", 2 "tbsp") come back from
+// food-search with the piece COUNT stored in the measure's `weight`, plus
+// synthetic gram measures (100g/Gram/Ounce) appended by the server. The
+// per-100g values for those foods are fabricated from that count as if it
+// were grams, so selecting a gram measure explodes the macros (a 530 cal
+// burger "weighing" 1 reads as 53,000 cal per 100g). Detect those foods and
+// hide the gram-based measures; the food's own serving measure stays correct
+// because the same fabricated baseline cancels out in the scaling math.
+// Only local sources fabricate weights — Edamam measures are real grams.
+const GRAM_BASED_UNITS = ['g', 'gram', 'grams', '100g', 'ml', 'oz', 'ounce', 'ounces'];
+const SYNTHETIC_GRAM_LABELS = ['100g', 'gram', 'ounce'];
+const isCountBasedFood = (food) => {
+  if (!food || !['common', 'recent', 'favorite'].includes(food.source)) return false;
+  const baseWeight = food.measures?.[0]?.weight ?? food.servingSize;
+  const baseUnit = (food.measures?.[0]?.label || food.servingUnit || '').toLowerCase();
+  return baseWeight != null && baseWeight <= 10 && !GRAM_BASED_UNITS.includes(baseUnit);
+};
+const getSafeMeasures = (food) => {
+  const measures = food?.measures;
+  if (!Array.isArray(measures) || !isCountBasedFood(food)) return measures;
+  const safe = measures.filter(m => !SYNTHETIC_GRAM_LABELS.includes((m.label || '').toLowerCase()));
+  return safe.length > 0 ? safe : measures;
+};
+
 // Meal type selector component
 const MealTypeSelector = ({ selected, onChange }) => {
   const { t } = useLanguage();
@@ -84,6 +108,7 @@ export function SnapPhotoModal({ isOpen, onClose, mealType, clientData, onFoodLo
   const [selectedMealType, setSelectedMealType] = useState(mealType);
   const [isAdding, setIsAdding] = useState(false);
   const isAddingRef = useRef(false); // Ref to prevent duplicate submissions
+  const succeededFoodsRef = useRef(new Set()); // Foods already saved to the diary — skipped on retry so they aren't duplicated
   const cameraRef = useRef(null);
   const uploadRef = useRef(null);
   const MAX_PHOTOS = 4;
@@ -127,6 +152,7 @@ export function SnapPhotoModal({ isOpen, onClose, mealType, clientData, onFoodLo
 
       if (data?.foods && data.foods.length > 0) {
         setResults(data.foods);
+        succeededFoodsRef.current = new Set(); // Fresh batch — nothing saved yet
         // Initialize servings to 1 for each food item
         const initialServings = {};
         data.foods.forEach((_, idx) => {
@@ -196,15 +222,20 @@ export function SnapPhotoModal({ isOpen, onClose, mealType, clientData, onFoodLo
 
     isAddingRef.current = true;
     setIsAdding(true);
+    setError(null);
     const entryDate = getEntryDate(selectedDate);
     let addedTotals = { calories: 0, protein: 0, carbs: 0, fat: 0 };
 
-    // Store results for retry
-    const foodsToAdd = [...results];
+    // Only POST foods that haven't already been saved — after a partial
+    // failure, the succeeded ones stay in succeededFoodsRef so tapping
+    // "Add all" again retries just the failed ones (no duplicates).
+    const pendingFoods = results
+      .map((food, idx) => ({ food, idx }))
+      .filter(({ food }) => !succeededFoodsRef.current.has(food));
 
     try {
       // Create all food logging requests in parallel for faster logging
-      const logPromises = foodsToAdd.map((food, idx) => {
+      const logPromises = pendingFoods.map(({ food, idx }) => {
         const foodServings = servings[idx] || 1;
         return apiPost('/.netlify/functions/food-diary', {
           clientId: clientData.id,
@@ -231,8 +262,24 @@ export function SnapPhotoModal({ isOpen, onClose, mealType, clientData, onFoodLo
         });
       });
 
-      // Execute all requests in parallel
-      await Promise.all(logPromises);
+      // Execute all requests in parallel, tracking which ones succeeded
+      const outcomes = await Promise.allSettled(logPromises);
+      outcomes.forEach((outcome, i) => {
+        if (outcome.status === 'fulfilled') succeededFoodsRef.current.add(pendingFoods[i].food);
+      });
+
+      const failures = outcomes.filter(o => o.status === 'rejected');
+      if (failures.length > 0) {
+        console.error('Failed to add foods:', failures[0].reason);
+        // Composed inline (not a dictionary key) because it needs live counts
+        const partialMsg = language === 'es'
+          ? `No se pudieron agregar ${failures.length} de ${pendingFoods.length} alimentos. Toca de nuevo para reintentar solo los que fallaron.`
+          : `${failures.length} of ${pendingFoods.length} foods failed to add. Tap again to retry just the failed ones.`;
+        setError(partialMsg);
+        isAddingRef.current = false; // Reset ref on error to allow retrying the failed ones
+        showError(partialMsg);
+        return;
+      }
 
       // Calculate totals using the calculateTotal function
       addedTotals = calculateTotal();
@@ -248,7 +295,7 @@ export function SnapPhotoModal({ isOpen, onClose, mealType, clientData, onFoodLo
     } finally {
       setIsAdding(false);
     }
-  }, [results, clientData, selectedMealType, servings, onFoodLogged, showError, showSuccess, selectedDate, t]);
+  }, [results, clientData, selectedMealType, servings, onFoodLogged, showError, showSuccess, selectedDate, t, language]);
 
   const handleClose = () => {
     setPreviews([]);
@@ -259,6 +306,7 @@ export function SnapPhotoModal({ isOpen, onClose, mealType, clientData, onFoodLo
     setAnalyzing(false);
     setIsAdding(false);
     isAddingRef.current = false;
+    succeededFoodsRef.current = new Set();
     onClose();
   };
 
@@ -370,7 +418,7 @@ export function SnapPhotoModal({ isOpen, onClose, mealType, clientData, onFoodLo
             <div className="photo-results-section">
               <div className="photo-results-header">
                 <h3>{t('foodModals.detectedFoods')}</h3>
-                <button className="btn-text-danger" onClick={() => { setResults(null); setServings({}); }}>
+                <button className="btn-text-danger" onClick={() => { setResults(null); setServings({}); setError(null); succeededFoodsRef.current = new Set(); }}>
                   {t('foodModals.clearAll')}
                 </button>
               </div>
@@ -414,6 +462,7 @@ export function SnapPhotoModal({ isOpen, onClose, mealType, clientData, onFoodLo
                     <strong>{t('foodModals.total')}</strong>
                     <span>{Math.round(calculateTotal().calories)} cal</span>
                   </div>
+                  {error && <div className="modal-error">{error}</div>}
                   <MealTypeSelector selected={selectedMealType} onChange={setSelectedMealType} />
                   <button className="btn-primary full-width" onClick={addAllTooDiary} disabled={isAdding}>
                     {isAdding
@@ -485,7 +534,7 @@ export function SearchFoodsModal({ isOpen, onClose, mealType, clientData, onFood
   const getScaledNutrition = () => {
     if (!selectedFood) return { calories: 0, protein: 0, carbs: 0, fat: 0 };
 
-    const measure = selectedFood.measures?.[selectedMeasure];
+    const measure = getSafeMeasures(selectedFood)?.[selectedMeasure];
     const weight = measure?.weight || selectedFood.servingSize || 100;
     const multiplier = (weight / 100) * servings;
 
@@ -509,7 +558,7 @@ export function SearchFoodsModal({ isOpen, onClose, mealType, clientData, onFood
 
     try {
       // Scale micronutrients from per-100g values (same approach as macros) to avoid double-scaling
-      const measure = foodToAdd.measures?.[selectedMeasure];
+      const measure = getSafeMeasures(foodToAdd)?.[selectedMeasure];
       const weight = measure?.weight || foodToAdd.servingSize || 100;
       const microMultiplier = (weight / 100) * servings;
 
@@ -534,8 +583,8 @@ export function SearchFoodsModal({ isOpen, onClose, mealType, clientData, onFood
         iron: hasPer100g ? Math.round(foodToAdd.ironPer100g * microMultiplier * 10) / 10 : (foodToAdd.iron != null ? Math.round(foodToAdd.iron * servings * 10) / 10 : null),
         vitaminC: hasPer100g ? Math.round(foodToAdd.vitaminCPer100g * microMultiplier) : (foodToAdd.vitaminC != null ? Math.round(foodToAdd.vitaminC * servings) : null),
         cholesterol: hasPer100g ? Math.round(foodToAdd.cholesterolPer100g * microMultiplier) : (foodToAdd.cholesterol != null ? Math.round(foodToAdd.cholesterol * servings) : null),
-        servingSize: foodToAdd.measures?.[selectedMeasure]?.weight || 100,
-        servingUnit: foodToAdd.measures?.[selectedMeasure]?.label || 'g',
+        servingSize: measure?.weight || 100,
+        servingUnit: measure?.label || 'g',
         numberOfServings: servings,
         foodSource: 'search'
       });
@@ -565,6 +614,8 @@ export function SearchFoodsModal({ isOpen, onClose, mealType, clientData, onFood
   if (!isOpen) return null;
 
   const nutrition = getScaledNutrition();
+  const safeMeasures = getSafeMeasures(selectedFood);
+  const countBased = isCountBasedFood(selectedFood);
 
   return (
     <div className="modal-overlay" onClick={handleClose}>
@@ -626,13 +677,15 @@ export function SearchFoodsModal({ isOpen, onClose, mealType, clientData, onFood
 
               <div className="serving-selector">
                 <label>{t('foodModals.servingSize')}</label>
-                {selectedFood.measures && selectedFood.measures.length > 0 ? (
+                {safeMeasures && safeMeasures.length > 0 ? (
                   <select
                     value={selectedMeasure}
                     onChange={(e) => setSelectedMeasure(Number(e.target.value))}
                   >
-                    {selectedFood.measures.map((m, idx) => (
-                      <option key={idx} value={idx}>{m.label} ({m.weight}g)</option>
+                    {safeMeasures.map((m, idx) => (
+                      <option key={idx} value={idx}>
+                        {countBased || m.weight == null ? m.label : `${m.label} (${m.weight}g)`}
+                      </option>
                     ))}
                   </select>
                 ) : (
