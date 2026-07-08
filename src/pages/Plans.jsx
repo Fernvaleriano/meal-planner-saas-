@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { ChevronLeft, ChevronRight, Calendar, Flame, Target, Clock, Utensils, Coffee, Sun, Moon, Apple, Heart, ClipboardList, RefreshCw, Pencil, Crosshair, BookOpen, X, Plus, Minus, Trash2, Search, Undo2, RotateCcw, ShoppingCart, ChefHat, FileDown, Check, MessageSquare, Mic, MoreHorizontal } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
-import { apiGet, apiPost } from '../utils/api';
+import { apiGet, apiPost, apiDelete } from '../utils/api';
 import { usePullToRefresh, PullToRefreshIndicator } from '../hooks/usePullToRefresh';
 import { onAppResume } from '../hooks/useAppLifecycle';
 
@@ -431,19 +431,38 @@ function Plans() {
     try { localStorage.setItem('plannerUndoStates', JSON.stringify(states)); } catch (e) { /* quota exceeded */ }
   }, [previousMealStates]);
 
-  // Store original plan data for revert feature
+  // Store original plan data for revert feature + reset per-plan state.
+  // This page stays mounted across navigation, so state tied to one plan
+  // (original snapshot, undo data, meal prep guide, grocery checks) must be
+  // reset whenever the selected plan changes — otherwise plan A's data leaks
+  // into plan B (e.g. Revert would overwrite B with A's original).
   useEffect(() => {
-    if (selectedPlan && !originalPlanData) {
-      // Deep clone and store the original plan when first loaded
-      const originalKey = `originalPlan_${selectedPlan.id}`;
-      const stored = localStorage.getItem(originalKey);
-      if (stored) {
-        setOriginalPlanData(JSON.parse(stored));
-      } else {
-        const original = JSON.parse(JSON.stringify(selectedPlan.plan_data));
-        setOriginalPlanData(original);
-        localStorage.setItem(originalKey, JSON.stringify(original));
-      }
+    // Clear state belonging to any previously viewed plan
+    setUndoData(null);
+    setMealPrepGuide(null);
+
+    if (!selectedPlan) {
+      setOriginalPlanData(null);
+      return;
+    }
+
+    // Deep clone and store the original plan when first loaded
+    const originalKey = `originalPlan_${selectedPlan.id}`;
+    const stored = localStorage.getItem(originalKey);
+    if (stored) {
+      setOriginalPlanData(JSON.parse(stored));
+    } else {
+      const original = JSON.parse(JSON.stringify(selectedPlan.plan_data));
+      setOriginalPlanData(original);
+      localStorage.setItem(originalKey, JSON.stringify(original));
+    }
+
+    // Re-load this plan's grocery checklist (persisted per plan id)
+    try {
+      const checks = localStorage.getItem(`grocery-checks-${selectedPlan.id}`);
+      setGroceryChecks(checks ? JSON.parse(checks) : {});
+    } catch (e) {
+      setGroceryChecks({});
     }
   }, [selectedPlan?.id]);
 
@@ -684,11 +703,21 @@ function Plans() {
       setActionLoading('log');
 
       const today = getLocalDateString();
+
+      // Normalize to the four types the Diary groups by (breakfast / lunch /
+      // dinner / snack) — anything else (e.g. "meal", "Meal 2") would save
+      // fine but never show up in the Diary UI. Unrecognized types → snack.
+      const rawMealType = (mealToLog.type || mealToLog.meal_type || '').toLowerCase();
+      let normalizedMealType = 'snack';
+      if (rawMealType.includes('breakfast')) normalizedMealType = 'breakfast';
+      else if (rawMealType.includes('lunch')) normalizedMealType = 'lunch';
+      else if (rawMealType.includes('dinner')) normalizedMealType = 'dinner';
+
       await apiPost('/.netlify/functions/food-diary', {
         clientId: clientData.id,
         coachId: clientData.coach_id,
         entryDate: today,
-        mealType: (mealToLog.type || mealToLog.meal_type || 'meal').toLowerCase(),
+        mealType: normalizedMealType,
         foodName: mealToLog.name,
         servingSize: 1,
         servingUnit: 'serving',
@@ -739,6 +768,10 @@ function Plans() {
       ));
     } catch (err) {
       console.error('Failed to save plan:', err);
+      // The UI already shows the change optimistically, so a silent failure
+      // looks like a successful save — tell the user it didn't stick.
+      // TODO: move this string into the plansPage i18n dictionaries
+      showError('Your change could not be saved. Please check your connection and try again.');
     }
   };
 
@@ -1737,6 +1770,13 @@ Keep it practical and brief. Format with clear sections.`;
 
     // Open print dialog
     const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      // window.open returns null when pop-ups are blocked (common in iOS
+      // standalone / PWA mode) — bail out instead of crashing.
+      // TODO: move this string into the plansPage i18n dictionaries
+      showError('Could not open the print view — your browser blocked the pop-up.');
+      return;
+    }
     printWindow.document.write(content);
     printWindow.document.close();
     printWindow.focus();
