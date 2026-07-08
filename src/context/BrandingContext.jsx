@@ -432,8 +432,12 @@ function applyBrandingCSS(branding) {
 
 /**
  * Clear branding CSS overrides from document root.
+ * Exported so AuthContext's logout can reset the previous user's brand
+ * colors + cold-start preload snapshot on shared devices. (The circular
+ * import AuthContext <-> BrandingContext is safe: both sides only import
+ * hoisted function declarations that are never called at module-eval time.)
  */
-function clearBrandingCSS() {
+export function clearBrandingCSS() {
   const root = document.documentElement;
   BRAND_CSS_PROPS.forEach(p => root.style.removeProperty(p));
   document.body.style.fontFamily = '';

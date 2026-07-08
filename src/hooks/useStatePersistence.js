@@ -32,20 +32,30 @@ const scheduleIdle = typeof window !== 'undefined' && window.requestIdleCallback
   : (cb) => setTimeout(cb, 1);
 
 /**
+ * Write the snapshot to sessionStorage synchronously. Used directly by the
+ * suspend flush — once the page is hidden, requestIdleCallback/setTimeout
+ * callbacks may never run before the OS suspends the WebView, so the
+ * suspend path must not defer.
+ */
+function persistStateSync(key, data) {
+  try {
+    const payload = JSON.stringify({
+      data,
+      timestamp: Date.now(),
+    });
+    sessionStorage.setItem(STORAGE_PREFIX + key, payload);
+  } catch (e) {
+    // Storage full or private mode — silently ignore
+    console.warn('[StatePersistence] Write failed:', e.message);
+  }
+}
+
+/**
  * Save state snapshot to sessionStorage (non-blocking).
  */
 function persistState(key, data) {
   scheduleIdle(() => {
-    try {
-      const payload = JSON.stringify({
-        data,
-        timestamp: Date.now(),
-      });
-      sessionStorage.setItem(STORAGE_PREFIX + key, payload);
-    } catch (e) {
-      // Storage full or private mode — silently ignore
-      console.warn('[StatePersistence] Write failed:', e.message);
-    }
+    persistStateSync(key, data);
   });
 }
 
@@ -106,12 +116,13 @@ export function useStatePersistence(key, state) {
   // Persist on suspend (app going to background)
   useEffect(() => {
     const unsubscribe = onAppSuspend(() => {
-      // Flush immediately on suspend — no debounce
+      // Flush immediately on suspend — no debounce, and no idle deferral:
+      // deferred callbacks may never fire once the page is hidden.
       if (debounceRef.current) {
         clearTimeout(debounceRef.current);
         debounceRef.current = null;
       }
-      persistState(key, latestStateRef.current);
+      persistStateSync(key, latestStateRef.current);
     });
 
     return () => {

@@ -44,15 +44,18 @@ export function useInstallPrompt() {
       setInstallPrompt(e);
     };
 
-    window.addEventListener('beforeinstallprompt', handler);
-    window.addEventListener('appinstalled', () => {
+    const installedHandler = () => {
       setIsInstalled(true);
       setInstallPrompt(null);
       promptRef.current = null;
-    });
+    };
+
+    window.addEventListener('beforeinstallprompt', handler);
+    window.addEventListener('appinstalled', installedHandler);
 
     return () => {
       window.removeEventListener('beforeinstallprompt', handler);
+      window.removeEventListener('appinstalled', installedHandler);
     };
   }, []);
 
