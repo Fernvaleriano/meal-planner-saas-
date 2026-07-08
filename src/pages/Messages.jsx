@@ -84,6 +84,18 @@ const translateReactionMessage = (text, t) => {
   return t('messagesPage.reactedTo', { emoji: m[1], subject: translateReactionSubject(m[2], t) });
 };
 
+// Split a reaction notification's leading verb + emoji from the rest of the
+// sentence so the emoji can be shown as a warm, prominent chip instead of
+// sitting inline in a dim gray line. Works for both the EN ("Reacted 🔥 to
+// your new PR (...)") and ES ("Reaccionó 🔥 a tu ...") formats — the emoji is
+// always the token immediately after the verb. Falls back to the whole string
+// with no emoji if the shape is unexpected.
+const splitReactionNote = (displayText) => {
+  const m = displayText.match(/^(\S+)\s+(\S+)\s+([\s\S]+)$/);
+  if (!m) return { emoji: '', text: displayText };
+  return { emoji: m[2], text: m[3] };
+};
+
 // Coach replies are sent in two formats, both using U+2014 em-dashes:
 //   Re: <subject> — "<quoted excerpt>" — <reply text>   (with a quoted detail)
 //   Re: <subject> — <reply text>                        (no detail to quote)
@@ -1216,8 +1228,19 @@ function Messages() {
                         </div>
                         <p className="chat-reply-text">{parsedReply.reply}</p>
                       </>
+                    ) : isOldReaction ? (
+                      (() => {
+                        const displayText = language === 'es' ? translateReactionMessage(msg.message, t) : msg.message;
+                        const { emoji, text } = splitReactionNote(displayText);
+                        return (
+                          <div className="reaction-note">
+                            {emoji && <span className="reaction-note-emoji">{emoji}</span>}
+                            <span className="reaction-note-text">{text}</span>
+                          </div>
+                        );
+                      })()
                     ) : (
-                      msg.message && <p>{isOldReaction && language === 'es' ? translateReactionMessage(msg.message, t) : msg.message}</p>
+                      msg.message && <p>{msg.message}</p>
                     )}
 
                     {/* Time + read receipt */}
