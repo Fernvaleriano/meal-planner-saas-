@@ -312,6 +312,14 @@
             border-color: #334155;
         }
 
+        /* Brief highlight when a post is opened via a deep link (e.g. tapping
+           a "replied to your comment" notification on the dashboard). */
+        .feed-card--highlight {
+            border-color: #2EC4B6;
+            box-shadow: 0 0 0 3px rgba(46, 196, 182, 0.35);
+            transition: box-shadow 0.3s ease, border-color 0.3s ease;
+        }
+
         .feed-card-header {
             display: flex;
             align-items: center;
@@ -1160,8 +1168,23 @@
                 document.getElementById('userEmail').textContent = currentUser.email;
                 document.getElementById('userAvatar').textContent = currentUser.email.charAt(0).toUpperCase();
 
-                // Load clients for filter (non-blocking - don't wait for it to complete)
-                loadClients().catch(err => console.error('Failed to load clients filter:', err));
+                // Deep-link support: /client-feed.html?clientId=X&entryId=Y
+                // (used by the dashboard "reply to your comment" notification so
+                // the coach lands on the exact post, not just the client's feed).
+                const _dlParams = new URLSearchParams(window.location.search);
+                const _deepLinkClientId = _dlParams.get('clientId');
+                const _deepLinkEntryId = _dlParams.get('entryId');
+
+                if (_deepLinkClientId) {
+                    // The filter option must exist before we can pre-select it,
+                    // so wait for the client list here (only in the deep-link case).
+                    try { await loadClients(); } catch (err) { console.error('Failed to load clients filter:', err); }
+                    const cf = document.getElementById('clientFilter');
+                    if (cf) cf.value = _deepLinkClientId;
+                } else {
+                    // Load clients for filter (non-blocking - don't wait for it to complete)
+                    loadClients().catch(err => console.error('Failed to load clients filter:', err));
+                }
 
                 // Load unread message count for sidebar badge
                 loadUnreadMessageCount(currentUser.id);
@@ -1170,6 +1193,11 @@
                 console.log('Client Feed: Starting to load feed...');
                 await loadFeed(true);
                 console.log('Client Feed: Feed load complete');
+
+                // If we arrived via a deep link, open + highlight the target post.
+                if (_deepLinkEntryId) {
+                    revealDeepLinkedEntry(_deepLinkEntryId).catch(err => console.error('Deep-link reveal failed:', err));
+                }
             } catch (err) {
                 console.error('Client Feed: Initialization error:', err);
                 document.getElementById('feedContainer').innerHTML = `
@@ -1331,6 +1359,26 @@
                     alert('Failed to load more items. Please try again.');
                 }
             }
+        }
+
+        // Find the deep-linked post, open its comment thread, scroll to it and
+        // highlight it briefly. If it isn't on the first page yet, load more
+        // pages (bounded) until we find it — then give up quietly, leaving the
+        // coach on the correct client's feed either way.
+        async function revealDeepLinkedEntry(entryId, attemptsLeft = 6) {
+            const card = document.querySelector(`.feed-card[data-entry-id="${entryId}"]`);
+            if (!card) {
+                if (hasMore && attemptsLeft > 0) {
+                    await loadFeed(false);
+                    return revealDeepLinkedEntry(entryId, attemptsLeft - 1);
+                }
+                return;
+            }
+            const commentsSection = card.querySelector('.comments-section');
+            if (commentsSection) commentsSection.classList.add('show');
+            card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            card.classList.add('feed-card--highlight');
+            setTimeout(() => card.classList.remove('feed-card--highlight'), 3000);
         }
 
         function renderMealCard(meal) {

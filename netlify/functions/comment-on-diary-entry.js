@@ -245,6 +245,19 @@ exports.handler = async (event) => {
             title: `💬 ${clientName} replied to your comment`,
             message: `"${comment.substring(0, 100)}${comment.length > 100 ? '...' : ''}"`,
             related_client_id: clientId,
+            // Remember which diary post this reply belongs to so the dashboard
+            // can deep-link the coach straight to the comment thread (not just
+            // the client's profile).
+            related_entry_id: entryId,
+            metadata: {
+              food_name: foodName,
+              meal_type: mealType,
+              entry_date: entry?.entry_date,
+              comment_preview: comment.substring(0, 100),
+              full_comment: comment.trim(),
+              client_name: clientName,
+              comment_id: data.id
+            },
             is_read: false,
             created_at: new Date().toISOString()
           });

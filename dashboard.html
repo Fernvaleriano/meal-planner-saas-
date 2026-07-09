@@ -9339,6 +9339,7 @@
             chat_message: '💬',
             diary_reaction: '❤️',
             diary_comment: '💬',
+            diary_comment_reply: '💬',
             diet_plan_published: '🍽️',
             workout_assigned: '💪',
             gym_checkin: '🏋️',
@@ -9361,7 +9362,7 @@
 
             if (filtered.length > 0) {
                 notificationList.innerHTML = filtered.map(n => `
-                    <div class="notification-item ${n.is_read ? '' : 'unread'}" data-id="${n.id}" data-client-id="${n.related_client_id || ''}" data-type="${n.type || ''}" data-checkin-id="${n.related_checkin_id || ''}">
+                    <div class="notification-item ${n.is_read ? '' : 'unread'}" data-id="${n.id}" data-client-id="${n.related_client_id || ''}" data-type="${n.type || ''}" data-checkin-id="${n.related_checkin_id || ''}" data-entry-id="${n.related_entry_id || ''}">
                         <div class="notification-title">${notifIcons[n.type] || '🔔'} ${n.title}</div>
                         <div class="notification-message">${n.message || ''}</div>
                         <div class="notification-time">${formatTimeAgo(n.created_at)}</div>
@@ -9375,6 +9376,7 @@
                         const clientId = item.dataset.clientId;
                         const notifType = item.dataset.type;
                         const checkinId = item.dataset.checkinId;
+                        const entryId = item.dataset.entryId;
 
                         // Decrement badge count immediately if this was unread
                         if (item.classList.contains('unread')) {
@@ -9395,6 +9397,7 @@
 
                         const isValidClientId = clientId && clientId !== '' && clientId !== 'null' && clientId !== 'undefined';
                         const isValidCheckinId = checkinId && checkinId !== '' && checkinId !== 'null' && checkinId !== 'undefined';
+                        const isValidEntryId = entryId && entryId !== '' && entryId !== 'null' && entryId !== 'undefined';
 
                         // Navigate based on notification type
                         if (notifType === 'chat_message' && isValidClientId) {
@@ -9403,6 +9406,11 @@
                             window.location.href = 'coach-messages.html';
                         } else if (notifType === 'checkin_submitted' && isValidClientId && isValidCheckinId) {
                             window.location.href = `client-profile.html?clientId=${clientId}#checkin-${checkinId}`;
+                        } else if (notifType === 'diary_comment_reply' && isValidClientId && isValidEntryId) {
+                            // Reply to a coach comment → open the exact post in the client feed
+                            window.location.href = `client-feed.html?clientId=${clientId}&entryId=${entryId}`;
+                        } else if (notifType === 'diary_comment_reply' && isValidClientId) {
+                            window.location.href = `client-feed.html?clientId=${clientId}`;
                         } else if (isValidClientId) {
                             window.location.href = `client-profile.html?clientId=${clientId}`;
                         }
@@ -9440,14 +9448,22 @@
                 const dotColor = notifDotColors[n.type] || 'blue';
                 const clientId = n.related_client_id || '';
                 const checkinId = n.related_checkin_id || '';
+                const entryId = n.related_entry_id || '';
                 const timeStr = formatTimeAgo(n.created_at);
 
                 // Build navigation URL
                 let url = '';
                 const isValidClientId = clientId && clientId !== '' && clientId !== 'null' && clientId !== 'undefined';
                 const isValidCheckinId = checkinId && checkinId !== '' && checkinId !== 'null' && checkinId !== 'undefined';
+                const isValidEntryId = entryId && entryId !== '' && entryId !== 'null' && entryId !== 'undefined';
                 if (n.type === 'checkin_submitted' && isValidClientId && isValidCheckinId) {
                     url = `client-profile.html?clientId=${clientId}#checkin-${checkinId}`;
+                } else if (n.type === 'diary_comment_reply' && isValidClientId && isValidEntryId) {
+                    // A reply to a coach comment lives in the client feed, under the
+                    // specific post — deep-link straight to it, not the profile.
+                    url = `client-feed.html?clientId=${clientId}&entryId=${entryId}`;
+                } else if (n.type === 'diary_comment_reply' && isValidClientId) {
+                    url = `client-feed.html?clientId=${clientId}`;
                 } else if (isValidClientId) {
                     url = `client-profile.html?clientId=${clientId}`;
                 }
