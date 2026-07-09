@@ -1,5 +1,11 @@
 # React App Code Review — July 2026
 
+> **STATUS UPDATE (2026-07-09):** All findings in this report have been fixed on branch
+> `claude/react-code-review-jnrdkx` except three deliberately deferred items: the guided-mode
+> setLogs value-resync (finding A5 — mitigated instead by gating auto-saves to touched
+> exercises), the Diary/Plans measure-scaling exposure noted as follow-up in the FoodModals
+> fix, and computing the CheckIn streak beyond the fixes applied. See git history for details.
+
 Full review of the client-facing React app (`src/`, ~67,000 lines). Six parallel review passes
 covered: Workouts pages, guided workout mode, nutrition (Diary/Plans/Recipes), app
 core (auth/API/lifecycle), remaining pages (Dashboard/Messages/Feed/Billing/etc.), and

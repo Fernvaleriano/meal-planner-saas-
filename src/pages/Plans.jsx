@@ -770,8 +770,7 @@ function Plans() {
       console.error('Failed to save plan:', err);
       // The UI already shows the change optimistically, so a silent failure
       // looks like a successful save — tell the user it didn't stick.
-      // TODO: move this string into the plansPage i18n dictionaries
-      showError('Your change could not be saved. Please check your connection and try again.');
+      showError(t('plansPage.errorSavePlan'));
     }
   };
 
@@ -1773,8 +1772,7 @@ Keep it practical and brief. Format with clear sections.`;
     if (!printWindow) {
       // window.open returns null when pop-ups are blocked (common in iOS
       // standalone / PWA mode) — bail out instead of crashing.
-      // TODO: move this string into the plansPage i18n dictionaries
-      showError('Could not open the print view — your browser blocked the pop-up.');
+      showError(t('plansPage.errorPopupBlocked'));
       return;
     }
     printWindow.document.write(content);

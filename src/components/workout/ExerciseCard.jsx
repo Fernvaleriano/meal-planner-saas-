@@ -376,6 +376,14 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
       duration: set?.duration || exercise.duration || parseTimeFromReps(exercise.reps) || null,
       distance: set?.distance || exercise.distance || null,
       restSeconds: set?.restSeconds ?? exercise.restSeconds ?? 60,
+      // Carry the coach metric target fields (rendered as pills below the
+      // sets) — initializeSets maps these too; dropping them here made the
+      // pills vanish whenever a save round-trip re-synced the sets.
+      rpe: set?.rpe || null,
+      percent1RM: set?.percent1RM || null,
+      hrZone: set?.hrZone || null,
+      pace: set?.pace || null,
+      incline: set?.incline || null,
       // Preserve the edit-mode flags so the pill view keeps rendering time/distance
       // after a SetEditorModal save round-trip (exercise.trackingType may not
       // propagate back from the server on every path — these flags are the
@@ -779,44 +787,50 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
 
       const parsed = parseVoiceInputForSets(transcript);
 
-      const newSets = [...sets];
+      // Build newSets from the FRESHEST state via a functional updater — the
+      // `sets` captured when the mic started may be stale if the user kept
+      // editing while speaking (mirrors ExerciseDetailModal's voice handler).
+      setSets(prevSets => {
+        const newSets = [...prevSets];
 
-      if (parsed.multiple && parsed.sets.length > 0) {
-        for (const setData of parsed.sets) {
-          const targetIndex = setData.setNumber - 1;
-          if (targetIndex >= 0 && targetIndex < newSets.length) {
-            if (setData.reps !== null) {
-              newSets[targetIndex] = { ...newSets[targetIndex], reps: setData.reps };
+        if (parsed.multiple && parsed.sets.length > 0) {
+          for (const setData of parsed.sets) {
+            const targetIndex = setData.setNumber - 1;
+            if (targetIndex >= 0 && targetIndex < newSets.length) {
+              if (setData.reps !== null) {
+                newSets[targetIndex] = { ...newSets[targetIndex], reps: setData.reps };
+              }
+              if (setData.weight !== null) {
+                const w = setData.weightUnit
+                  ? convertWeight(setData.weight, setData.weightUnit, weightUnit)
+                  : setData.weight;
+                newSets[targetIndex] = { ...newSets[targetIndex], weight: w };
+              }
             }
-            if (setData.weight !== null) {
-              const w = setData.weightUnit
-                ? convertWeight(setData.weight, setData.weightUnit, weightUnit)
-                : setData.weight;
+          }
+        } else {
+          const targetIndex = parsed.setNumber ? parsed.setNumber - 1 : 0;
+          if (targetIndex >= 0 && targetIndex < newSets.length) {
+            if (parsed.reps !== null) {
+              newSets[targetIndex] = { ...newSets[targetIndex], reps: parsed.reps };
+            }
+            if (parsed.weight !== null) {
+              const w = parsed.weightUnit
+                ? convertWeight(parsed.weight, parsed.weightUnit, weightUnit)
+                : parsed.weight;
               newSets[targetIndex] = { ...newSets[targetIndex], weight: w };
             }
           }
         }
-      } else {
-        const targetIndex = parsed.setNumber ? parsed.setNumber - 1 : 0;
-        if (targetIndex >= 0 && targetIndex < newSets.length) {
-          if (parsed.reps !== null) {
-            newSets[targetIndex] = { ...newSets[targetIndex], reps: parsed.reps };
-          }
-          if (parsed.weight !== null) {
-            const w = parsed.weightUnit
-              ? convertWeight(parsed.weight, parsed.weightUnit, weightUnit)
-              : parsed.weight;
-            newSets[targetIndex] = { ...newSets[targetIndex], weight: w };
-          }
+
+        // Persist to backend — schedule outside the updater so it stays
+        // side-effect free, using the value computed from fresh state.
+        if (onUpdateExercise) {
+          setTimeout(() => onUpdateExercise({ ...exercise, sets: newSets }), 0);
         }
-      }
 
-      setSets(newSets);
-
-      // Persist to backend
-      if (onUpdateExercise) {
-        onUpdateExercise({ ...exercise, sets: newSets });
-      }
+        return newSets;
+      });
 
       // Clear transcript after 3 seconds
       setTimeout(() => setLastTranscript(''), 3000);

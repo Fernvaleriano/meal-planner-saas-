@@ -41,6 +41,18 @@ function ColorInput({ label, value, onChange, placeholder }) {
           type="text"
           value={value || ''}
           onChange={(e) => onChange(e.target.value)}
+          onBlur={(e) => {
+            // Free typing is fine, but never let an invalid value linger —
+            // it gets saved verbatim and ships to clients as broken CSS.
+            const v = e.target.value.trim();
+            if (!v) return;
+            const withHash = v.startsWith('#') ? v : `#${v}`;
+            if (/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(withHash)) {
+              if (withHash !== v) onChange(withHash);
+            } else {
+              onChange('');
+            }
+          }}
           placeholder={placeholder}
           className="bs-text-input bs-color-hex"
           maxLength={7}
@@ -163,6 +175,20 @@ function BrandingSettings() {
 
   const handleLogoUpload = useCallback(async (file, logoType) => {
     if (!file) return;
+    // Enforce the limits the UI promises ("max 1MB" / "max 100KB") before
+    // base64-encoding — an oversized file otherwise ballooned ~33% and died
+    // against the function body limit with a generic upload error.
+    if (!file.type.startsWith('image/')) {
+      setError('Please choose an image file (PNG, JPG, or SVG).');
+      return;
+    }
+    const maxBytes = logoType === 'favicon' ? 100 * 1024 : 1024 * 1024;
+    if (file.size > maxBytes) {
+      setError(logoType === 'favicon'
+        ? 'Favicon is too large — please use a file under 100KB.'
+        : 'Logo is too large — please use a file under 1MB.');
+      return;
+    }
     setUploadingLogo(logoType);
     setError('');
     try {
@@ -270,7 +296,9 @@ function BrandingSettings() {
   };
 
   const handleReset = () => {
-    if (!window.confirm('Reset all branding to defaults? This will save immediately.')) return;
+    // Only resets the FORM — nothing is saved until the coach taps Save
+    // (the old text claimed it saved immediately, which it never did).
+    if (!window.confirm('Reset the branding form to defaults? Your clients keep the current branding until you tap Save.')) return;
     setForm({
       brand_name: '',
       brand_primary_color: '',
@@ -519,9 +547,12 @@ function BrandingSettings() {
                   <div className="bs-module-name">{mod.label}</div>
                   <div className="bs-module-desc">{mod.description}</div>
                 </div>
+                {/* Next value = NOT what's displayed. The display treats a
+                    missing key as ON, so `!form.client_modules[mod.key]`
+                    (= true for undefined) made the first tap a no-op. */}
                 <button
                   className={`toggle-switch ${form.client_modules[mod.key] !== false ? 'active' : ''}`}
-                  onClick={() => updateModule(mod.key, !form.client_modules[mod.key])}
+                  onClick={() => updateModule(mod.key, !(form.client_modules[mod.key] !== false))}
                 >
                   <span className="toggle-knob"></span>
                 </button>

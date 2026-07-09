@@ -26,6 +26,21 @@ const getMealConfig = (mealType) => {
   }
 };
 
+// Safely parse setsData that may arrive as a JSON string or an array.
+// One malformed row must not crash the whole feed.
+const parseSetsData = (setsData) => {
+  if (Array.isArray(setsData)) return setsData;
+  if (typeof setsData === 'string') {
+    try {
+      const parsed = JSON.parse(setsData);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  }
+  return [];
+};
+
 // Format relative time
 const formatRelativeTime = (dateStr) => {
   const date = new Date(dateStr);
@@ -533,7 +548,7 @@ function WorkoutFeedCard({ workout, coachId, onUpdate, weightUnit = 'lbs' }) {
                     {/* Sets detail */}
                     {exercise.setsData && exercise.setsData.length > 0 && (
                       <div className="workout-feed-sets">
-                        {(typeof exercise.setsData === 'string' ? JSON.parse(exercise.setsData) : exercise.setsData).map((set, si) => (
+                        {parseSetsData(exercise.setsData).map((set, si) => (
                           <span key={si} className="workout-feed-set-pill">
                             {set.isTimeBased
                               ? `${set.reps || 0}s`
@@ -788,9 +803,9 @@ function Feed() {
       }
 
       setHasMore(result.hasMore || false);
-      if (!reset) {
-        setOffset(currentOffset + (result.meals?.length || 0));
-      }
+      // Advance offset after reset loads too — otherwise "Load More"
+      // refetches page 1 and duplicates it.
+      setOffset(currentOffset + (result.meals?.length || 0));
 
       // Extract unique clients for filter dropdown
       if (reset && result.clients) {

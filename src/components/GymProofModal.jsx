@@ -104,8 +104,9 @@ function GymProofModal({ isOpen, onClose }) {
   };
 
   const stampPhoto = useCallback((imageData) => {
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
       const img = new Image();
+      img.onerror = () => reject(new Error('Failed to load image for stamping'));
       img.onload = () => {
         const canvas = document.createElement('canvas');
         canvas.width = img.width;

@@ -23,6 +23,17 @@ const getLocalDateString = () => {
   return `${year}-${month}-${day}`;
 };
 
+// Parse a date string as LOCAL time. Date-only strings (YYYY-MM-DD) are
+// parsed by `new Date()` as UTC midnight, which shows the previous day
+// west of UTC — append T00:00:00 to force local parsing. Full timestamps
+// pass through unchanged.
+const parseLocalDate = (dateStr) => {
+  if (typeof dateStr === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+    return new Date(dateStr + 'T00:00:00');
+  }
+  return new Date(dateStr);
+};
+
 // Image compression utility
 const compressImage = (file, maxWidth = 1200, quality = 0.8) => {
   return new Promise((resolve, reject) => {
@@ -155,7 +166,7 @@ function MiniChart({ dataPoints, color = '#4ec5b7' }) {
   const firstDate = dataPoints[0].date;
   const lastDate = dataPoints[dataPoints.length - 1].date;
   const formatDate = (dateStr) => {
-    const d = new Date(dateStr);
+    const d = parseLocalDate(dateStr);
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     return `${d.getDate()} ${months[d.getMonth()]} ${String(d.getFullYear()).slice(2)}`;
   };
@@ -363,7 +374,7 @@ function Progress() {
     if (!tf || !tf.days) return measurements; // "All Time"
     const cutoff = new Date();
     cutoff.setDate(cutoff.getDate() - tf.days);
-    return measurements.filter(m => new Date(m.measured_date) >= cutoff);
+    return measurements.filter(m => parseLocalDate(m.measured_date) >= cutoff);
   }, [measurements, timeFrame]);
 
   // Get data for a specific metric
@@ -1111,7 +1122,7 @@ function Progress() {
                             className="photo-delete-btn"
                             onClick={(e) => {
                               e.stopPropagation();
-                              const dateStr = new Date(photo.taken_date || photo.date_taken).toLocaleDateString(getDateLocale());
+                              const dateStr = parseLocalDate(photo.taken_date || photo.date_taken).toLocaleDateString(getDateLocale());
                               if (window.confirm(t('progressPage.deletePhotoConfirm', { date: dateStr }))) {
                                 handleDeletePhoto(photo.id);
                               }
@@ -1121,7 +1132,7 @@ function Progress() {
                           </button>
                         )}
                         <div className="photo-date-overlay">
-                          {new Date(photo.taken_date || photo.date_taken).toLocaleDateString(getDateLocale())}
+                          {parseLocalDate(photo.taken_date || photo.date_taken).toLocaleDateString(getDateLocale())}
                         </div>
                       </div>
                     );
@@ -1549,7 +1560,7 @@ function Progress() {
                 <div key={photo.id} className="comparison-photo-card">
                   <div className="comparison-photo-label">
                     <strong>{i === 0 ? t('progressPage.labelBefore') : t('progressPage.labelAfter')}</strong>
-                    {new Date(photo.taken_date || photo.date_taken).toLocaleDateString(getDateLocale())}
+                    {parseLocalDate(photo.taken_date || photo.date_taken).toLocaleDateString(getDateLocale())}
                   </div>
                   <img src={photo.url || photo.photo_url} alt={i === 0 ? t('progressPage.labelBefore') : t('progressPage.labelAfter')} />
                   <div className="comparison-photo-badge">

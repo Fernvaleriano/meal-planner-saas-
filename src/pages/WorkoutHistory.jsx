@@ -488,9 +488,14 @@ export default function WorkoutHistory() {
   const [selectedWorkoutId, setSelectedWorkoutId] = useState(null);
   const [workoutDetail, setWorkoutDetail] = useState(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
+  // Mirrors selectedWorkoutId so in-flight fetches can detect they're stale
+  // (user selected something else before the response arrived).
+  const selectedWorkoutIdRef = useRef(null);
 
   // Exercise drill-down
   const [expandedExerciseId, setExpandedExerciseId] = useState(null);
+  // Same stale-response guard for the exercise drill-down.
+  const expandedExerciseIdRef = useRef(null);
   const [exerciseHistory, setExerciseHistory] = useState(null);
   const [exerciseStats, setExerciseStats] = useState(null);
   const [loadingExerciseHistory, setLoadingExerciseHistory] = useState(false);
@@ -535,6 +540,8 @@ export default function WorkoutHistory() {
     async (workoutId) => {
       if (selectedWorkoutId === workoutId) {
         // Toggle off
+        selectedWorkoutIdRef.current = null;
+        expandedExerciseIdRef.current = null;
         setSelectedWorkoutId(null);
         setWorkoutDetail(null);
         setExpandedExerciseId(null);
@@ -542,6 +549,8 @@ export default function WorkoutHistory() {
         setExerciseStats(null);
         return;
       }
+      selectedWorkoutIdRef.current = workoutId;
+      expandedExerciseIdRef.current = null;
       setSelectedWorkoutId(workoutId);
       setWorkoutDetail(null);
       setExpandedExerciseId(null);
@@ -552,12 +561,15 @@ export default function WorkoutHistory() {
         const res = await apiGet(
           `/.netlify/functions/workout-logs?workoutId=${workoutId}`
         );
+        // Stale response — the user selected a different workout (or closed
+        // the detail view) while this request was in flight.
+        if (selectedWorkoutIdRef.current !== workoutId) return;
         setWorkoutDetail(res.workout || null);
       } catch (err) {
         console.error('Failed to fetch workout detail:', err);
-        setWorkoutDetail(null);
+        if (selectedWorkoutIdRef.current === workoutId) setWorkoutDetail(null);
       } finally {
-        setLoadingDetail(false);
+        if (selectedWorkoutIdRef.current === workoutId) setLoadingDetail(false);
       }
     },
     [selectedWorkoutId]
@@ -570,19 +582,28 @@ export default function WorkoutHistory() {
     async (exercise) => {
       const exId = exercise.exercise_id || exercise.id;
       if (expandedExerciseId === exId) {
+        expandedExerciseIdRef.current = null;
         setExpandedExerciseId(null);
         setExerciseHistory(null);
         setExerciseStats(null);
         return;
       }
+      expandedExerciseIdRef.current = exId;
       setExpandedExerciseId(exId);
       setExerciseHistory(null);
       setExerciseStats(null);
+      // Without a real exercise_id there is nothing to query — exercise.id is
+      // the exercise_logs ROW id and would produce a guaranteed-empty result.
+      // Expand with the existing "No history found" empty state instead.
+      if (!exercise.exercise_id) return;
       setLoadingExerciseHistory(true);
       try {
         const res = await apiGet(
           `/.netlify/functions/exercise-history?clientId=${resolvedClientId}&exerciseId=${exId}&limit=30`
         );
+        // Stale response — a different exercise was expanded (or this one
+        // collapsed) while the request was in flight.
+        if (expandedExerciseIdRef.current !== exId) return;
         {
           const normalized = normalizeExerciseHistoryToViewerUnit(
             res.history || [],
@@ -595,7 +616,7 @@ export default function WorkoutHistory() {
       } catch (err) {
         console.error('Failed to fetch exercise history:', err);
       } finally {
-        setLoadingExerciseHistory(false);
+        if (expandedExerciseIdRef.current === exId) setLoadingExerciseHistory(false);
       }
     },
     [expandedExerciseId, resolvedClientId, weightUnit]

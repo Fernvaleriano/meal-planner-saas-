@@ -177,6 +177,7 @@ export default {
   // Toast / showError / showSuccess messages
   toastImageNotFile: 'Por favor selecciona un archivo de imagen.',
   toastImageTooLarge: 'La imagen debe ser menor a 5MB.',
+  toastPopupBlocked: 'No se pudo abrir la vista de impresión — tu navegador bloqueó la ventana emergente.',
   toastImageUploadFailed: 'Error al subir la imagen. Por favor intenta de nuevo.',
   toastLoadFailed: 'Error al cargar las recetas. Desliza hacia abajo para intentar de nuevo.',
   toastNameRequired: 'El nombre de la receta es obligatorio.',

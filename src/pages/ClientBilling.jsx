@@ -279,10 +279,15 @@ export default function ClientBilling() {
       const body = { planId };
       if (promoCode) body.promoCode = promoCode;
       const res = await apiPost('/.netlify/functions/client-checkout', body);
-      if (res.url) window.location.href = res.url;
+      if (res.url) {
+        // Navigating away — keep the button disabled so it can't be
+        // clicked again while the redirect lands.
+        window.location.href = res.url;
+        return;
+      }
+      setActionLoading(false);
     } catch (err) {
       showError(err.message);
-    } finally {
       setActionLoading(false);
     }
   };
@@ -292,14 +297,20 @@ export default function ClientBilling() {
     try {
       const res = await apiPost('/.netlify/functions/client-checkout', { planId, action: 'change_plan' });
       if (res.url) {
+        // Navigating away — keep the button disabled so it can't be
+        // clicked again while the redirect lands.
         window.location.href = res.url;
-      } else if (res.success) {
-        showSuccess(res.message || t('clientBillingPage.successPlanChanged'));
-        fetchData();
+        return;
       }
+      if (res.success) {
+        showSuccess(res.message || t('clientBillingPage.successPlanChanged'));
+        // Keep the button disabled until the refetch lands so the plan
+        // switch can't be double-fired.
+        await fetchData();
+      }
+      setActionLoading(false);
     } catch (err) {
       showError(err.message);
-    } finally {
       setActionLoading(false);
     }
   };

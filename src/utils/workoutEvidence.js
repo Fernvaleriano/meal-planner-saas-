@@ -25,6 +25,7 @@ export function parseSets(sd) {
 // rows were not expanded by the caller.
 export function computeLogQuality(log) {
   let totalSets = 0;
+  let rawSets = 0;
   let completedSets = 0;
   let completedExercises = 0;
 
@@ -33,8 +34,18 @@ export function computeLogQuality(log) {
     const sets = parseSets(ex?.sets_data ?? ex?.setsData);
     let exHasCompleted = false;
     for (const s of sets) {
-      totalSets++;
-      if (s && (s.completed === true || s._completed === true)) {
+      if (!s) continue;
+      rawSets++;
+      const isCompleted = s.completed === true || s._completed === true;
+      // A set only counts as evidence when it was checked off OR carries real
+      // logged effort. Placeholder rows (written when a client merely opens an
+      // exercise — see Workouts.jsx getEffectiveCompletedExercises) have
+      // completed:false and no genuine values; old logs that never set
+      // `completed` but recorded reps/weight/duration still count.
+      if (isCompleted || Number(s.reps) > 0 || Number(s.weight) > 0 || Number(s.duration) > 0) {
+        totalSets++;
+      }
+      if (isCompleted) {
         completedSets++;
         exHasCompleted = true;
       }
@@ -42,7 +53,9 @@ export function computeLogQuality(log) {
     if (exHasCompleted) completedExercises++;
   }
 
-  if (totalSets === 0 && Number(log?.total_sets) > 0) {
+  // Denormalized fallback only when the caller didn't expand exercise rows at
+  // all — never when expanded rows exist but were filtered as placeholders.
+  if (rawSets === 0 && Number(log?.total_sets) > 0) {
     totalSets = Number(log.total_sets);
   }
 

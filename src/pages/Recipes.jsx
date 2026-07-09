@@ -520,6 +520,11 @@ function Recipes() {
     `;
 
     const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      // Popup blocked (common in the installed iOS PWA) — window.open returns null.
+      showError(t('recipesPage.toastPopupBlocked'));
+      return;
+    }
     printWindow.document.write(printContent);
     printWindow.document.close();
     printWindow.print();

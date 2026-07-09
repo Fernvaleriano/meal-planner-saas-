@@ -504,7 +504,15 @@ function GuidedWorkoutModal({
 
     const requestWakeLock = async () => {
       try {
-        wakeLock = await navigator.wakeLock.request('screen');
+        const lock = await navigator.wakeLock.request('screen');
+        // The modal may have unmounted while the request was in flight —
+        // cleanup already ran with wakeLock === null, so holding this lock
+        // would keep the screen awake until the tab is next hidden.
+        if (cancelled) {
+          lock.release().catch(() => {});
+          return;
+        }
+        wakeLock = lock;
         // Clear our ref when the system releases it (e.g. tab hidden) so the
         // visibilitychange handler knows to re-acquire.
         wakeLock.addEventListener('release', () => { wakeLock = null; });
@@ -538,6 +546,10 @@ function GuidedWorkoutModal({
   const [guidedVideoError, setGuidedVideoError] = useState(false);
   const [guidedVideoKey, setGuidedVideoKey] = useState(0);
   const [guidedVideoBlobUrl, setGuidedVideoBlobUrl] = useState(null);
+  // Mirror for the unmount cleanup (deps []), which can't see current state —
+  // without this the multi-MB blob stays reachable until page reload.
+  const guidedVideoBlobUrlRef = useRef(null);
+  useEffect(() => { guidedVideoBlobUrlRef.current = guidedVideoBlobUrl; }, [guidedVideoBlobUrl]);
   const guidedVideoElRef = useRef(null);
   const restPreviewVideoRef = useRef(null);
   const [playingVoiceNote, setPlayingVoiceNote] = useState(false);
@@ -634,8 +646,13 @@ function GuidedWorkoutModal({
         const fromUnit = setsDataSet?.weightUnit || (rawPrescribed > 0 ? 'lbs' : weightUnit);
         const prescribedW = convertWeight(rawPrescribed, fromUnit, weightUnit);
         const prescribedR = setsDataSet?.prescribedReps ?? parseReps(setsDataSet?.reps || ex.reps);
+        // Coach rep targets can be strings ("8-12", "12+") — parse to the
+        // leading number so the rep countdown arms and the saved log stays
+        // numeric (a string here disabled the counter, rendered literally in
+        // the reps box, and failed `reps > 0` checks downstream when saved).
+        const rawReps = existingSet?.reps || setsDataSet?.reps || defaultReps;
         return {
-          reps: existingSet?.reps || setsDataSet?.reps || defaultReps,
+          reps: typeof rawReps === 'string' ? parseReps(rawReps) : rawReps,
           weight: existingSet?.weight || 0,
           prescribedWeight: prescribedW,
           prescribedReps: prescribedR,
@@ -1181,8 +1198,11 @@ function GuidedWorkoutModal({
     // generic logo+spinner splash. Without this the user sees:
     // card → spinner → card (a visible flicker across the reload).
     try {
-      const completedName = exercises[currentExIndex]?.name || 'Exercise';
-      const nextEx = exercises[currentExIndex + 1];
+      // currentExIndex has ALREADY advanced when this effect fires — the
+      // completed exercise is prevIdx and the one about to start is
+      // currentExIndex (not currentExIndex + 1).
+      const completedName = exercises[prevIdx]?.name || 'Exercise';
+      const nextEx = exercises[currentExIndex];
       localStorage.setItem('zique_soft_reset_splash', JSON.stringify({
         ts: Date.now(),
         completedName,
@@ -2326,6 +2346,21 @@ function GuidedWorkoutModal({
         const persist = persistExerciseDataRef.current;
         if (persist) persist(currentExIndexRef.current);
       }
+      // Unconditional stop: the rep-countdown effect's own cleanup skips
+      // stopTickKeepAlive when the countdown is still active, so closing the
+      // modal mid-set would leave a 2s interval holding the iOS audio session
+      // (suppressing background music, draining battery) until page reload.
+      stopTickKeepAlive();
+      // Same for the unilateral switch-sides countdown chain — its ticks can
+      // keep playing sounds for up to 5s after close.
+      if (switchCountdownTimeoutRef.current) {
+        clearTimeout(switchCountdownTimeoutRef.current);
+      }
+      // Release the blob-fallback video (revoked on exercise change and
+      // manual close, but not when unmounting mid-exercise).
+      if (guidedVideoBlobUrlRef.current) {
+        try { URL.revokeObjectURL(guidedVideoBlobUrlRef.current); } catch { /* ignore */ }
+      }
     };
   }, []);
 
@@ -2416,6 +2451,20 @@ function GuidedWorkoutModal({
   // (and any superset partners) checked. Deduped per index so going Back and
   // re-landing is harmless; the explicit Skip-for-Good flows still suppress
   // their own onExerciseComplete and run before any landing for those.
+  // "Touched" = the user actually did something with the exercise this
+  // session (set marked done, explicitly skipped, or entered weight/effort).
+  // Ref-based so timer callbacks and the landing effect see live values.
+  // Same semantics as handleCloseWithSave's inline check.
+  const isExerciseTouched = useCallback((i) => {
+    if (completedSetsRef.current[i]?.size > 0) return true;
+    if (skippedExercisesRef.current.has(i)) return true;
+    const logs = setLogsRef.current[i];
+    if (Array.isArray(logs)) {
+      if (logs.some(s => (s?.weight ?? 0) > 0 || s?.effort || s?.rpe)) return true;
+    }
+    return false;
+  }, []);
+
   const autoLandedRef = useRef(new Set());
   useEffect(() => {
     if (phase !== 'get-ready' && phase !== 'exercise') return;
@@ -2425,10 +2474,19 @@ function GuidedWorkoutModal({
       if (!ex?.id || autoLandedRef.current.has(idx)) return;
       autoLandedRef.current.add(idx);
       if (onExerciseComplete) onExerciseComplete(ex.id);
-      const persist = persistExerciseDataRef.current;
-      if (persist) persist(idx);
+      // Persist only when the user has actually logged something for this
+      // exercise. Landing alone would push the mount-time DEFAULT setLogs
+      // (prescription reps, weight 0) through the keepalive save — and if
+      // real sets were logged earlier that day (or the log merge hadn't
+      // arrived yet), those non-empty defaults would OVERWRITE them; the
+      // server's preserveExisting guard only protects against EMPTY sets.
+      // Same failure family as the May 2026 workouts-disappearing bug.
+      if (isExerciseTouched(idx)) {
+        const persist = persistExerciseDataRef.current;
+        if (persist) persist(idx);
+      }
     });
-  }, [phase, currentExIndex, exercises, onExerciseComplete]);
+  }, [phase, currentExIndex, exercises, onExerciseComplete, isExerciseTouched]);
 
   // Auto-advance if deferred review has no active exercises (edge case: user went back and completed them)
   useEffect(() => {
@@ -3036,7 +3094,7 @@ function GuidedWorkoutModal({
         setPhase('exercise');
         // Activate rep countdown if exercise has integer reps and is not till-failure
         const reps = setLog?.reps || parseReps(exInfo.reps);
-        if (reps > 0 && Number.isInteger(reps) && exInfo.trackingType !== 'failure') {
+        if (reps > 0 && Number.isInteger(reps) && !exInfo.isTillFailure) {
           repTotalRef.current = reps;
           setRepCountdownActive(true);
           setCurrentRep(reps);
@@ -3047,7 +3105,10 @@ function GuidedWorkoutModal({
       // Timed hold finished — chime, then auto-complete the set (which
       // auto-advances into the rest/log phase via doMarkSetDone).
       playCompleteChime();
-      doMarkSetDone(exIdx, setIdx, exInfo);
+      // Via the ref, not the closure: this callback only re-captures when
+      // `exercises` changes, so a direct call would use a doMarkSetDone frozen
+      // before the async unilateralIds fetch / voice-mute toggles landed.
+      doMarkSetDoneRef.current(exIdx, setIdx, exInfo);
     } else if (p === 'rest') {
       doAdvanceAfterRest(exIdx, setIdx, exInfo);
     }
@@ -3096,7 +3157,7 @@ function GuidedWorkoutModal({
         } else {
           const setLog = setLogsRef.current[exIdx]?.[setIdx];
           const reps = setLog?.reps || parseReps(exInfo?.reps);
-          if (reps > 0 && Number.isInteger(reps) && exInfo?.trackingType !== 'failure') {
+          if (reps > 0 && Number.isInteger(reps) && !exInfo?.isTillFailure) {
             repTotalRef.current = reps;
             setCurrentRep(reps);
             setRepCountdownActive(true);
@@ -3270,7 +3331,7 @@ function GuidedWorkoutModal({
         setPhase('exercise');
         // Activate rep countdown for next set — use per-set reps from setLogs
         const reps = nextSetLog?.reps || parseReps(nextInfo.reps);
-        if (reps > 0 && Number.isInteger(reps) && nextInfo.trackingType !== 'failure') {
+        if (reps > 0 && Number.isInteger(reps) && !nextInfo.isTillFailure) {
           repTotalRef.current = reps;
           setRepCountdownActive(true);
           setCurrentRep(reps);
@@ -3626,7 +3687,7 @@ function GuidedWorkoutModal({
         setPhase('exercise');
         // Activate rep countdown when skipping get-ready — use per-set reps
         const reps = skipSetLog?.reps || parseReps(info.reps);
-        if (reps > 0 && Number.isInteger(reps) && info.trackingType !== 'failure') {
+        if (reps > 0 && Number.isInteger(reps) && !info.isTillFailure) {
           repTotalRef.current = reps;
           setRepCountdownActive(true);
           setCurrentRep(reps);
@@ -3762,8 +3823,14 @@ function GuidedWorkoutModal({
       return { ...ex, sets: updatedSets };
     });
 
-    // Also persist to parent state for regular view
-    exercises.forEach((_, i) => persistExerciseData(i));
+    // Also persist to parent state for regular view — touched exercises only,
+    // matching handleCloseWithSave. Persisting all of them fired a keepalive
+    // save per untouched exercise that rewrote prescription defaults over any
+    // real sets logged earlier that day (the server's preserveExisting guard
+    // only protects against EMPTY sets, and these defaults are non-empty).
+    exercises.forEach((_, i) => {
+      if (isExerciseTouched(i)) persistExerciseData(i);
+    });
     clearResumeState(assignmentIdRef.current); // Workout finished, no need to resume
     if (onWorkoutFinish) onWorkoutFinish(finalExercises, totalElapsed);
     onClose();
@@ -5268,8 +5335,11 @@ function GuidedWorkoutModal({
           the splash. Dark / light mode adapts to the device's
           preference; brand color stays consistent in both. */}
       {showSoftResetSplash && (() => {
-        const completedName = exercises[currentExIndex]?.name || 'Exercise';
-        const nextEx = exercises[currentExIndex + 1];
+        // The splash shows after the index advanced (or after the soft-reset
+        // reload resumed on the upcoming exercise): the completed exercise is
+        // the PREVIOUS one and "up next" is the CURRENT one.
+        const completedName = exercises[currentExIndex - 1]?.name || 'Exercise';
+        const nextEx = exercises[currentExIndex];
         const nextName = nextEx?.name || null;
         // The app uses its own theme system (data-theme attribute on <html>,
         // backed by localStorage 'zique-theme'). System matchMedia would

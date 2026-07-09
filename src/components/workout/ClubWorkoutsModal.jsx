@@ -175,16 +175,19 @@ function ClubWorkoutsModal({ onClose, onSelectWorkout, onScheduleProgram, coachI
   // Separate listener so selectedWorkout/selectedProgram are always current in the closure
   useEffect(() => {
     const handlePopState = () => {
+      // Re-arm after unwinding an internal level: the pop consumed our single
+      // history entry, so push a fresh one — otherwise the NEXT back press
+      // navigates away from the page while the modal is still open.
+      const rearm = () => window.history.pushState({ modal: 'club-workouts', timestamp: Date.now() }, '');
       if (showScheduling) {
         setShowScheduling(false);
+        rearm();
       } else if (selectedWorkout) {
-        if (selectedProgram) {
-          setSelectedWorkout(null);
-        } else {
-          setSelectedWorkout(null);
-        }
+        setSelectedWorkout(null);
+        rearm();
       } else if (selectedProgram) {
         setSelectedProgram(null);
+        rearm();
       } else {
         onClose();
       }
@@ -460,7 +463,7 @@ function ClubWorkoutsModal({ onClose, onSelectWorkout, onScheduleProgram, coachI
                   <div className="club-exercise-info">
                     <span className="club-exercise-name">{exercise.name}</span>
                     <span className="club-exercise-meta">
-                      {exercise.sets || 3} sets x {exercise.repType === 'failure'
+                      {Array.isArray(exercise.sets) ? exercise.sets.length : (exercise.sets || 3)} sets x {exercise.repType === 'failure'
                         ? t('clubWorkouts.tillFailure')
                         : (exercise.trackingType === 'time' || exercise.exercise_type === 'cardio' || !!exercise.duration || (typeof exercise.reps === 'string' && /\d+\s*min/i.test(exercise.reps))
                         ? formatDuration(exercise.duration || (Array.isArray(exercise.sets) && exercise.sets[0]?.duration) || exercise.reps || 30)

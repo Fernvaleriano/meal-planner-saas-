@@ -177,6 +177,7 @@ export default {
   // Toast / showError / showSuccess messages
   toastImageNotFile: 'Please select an image file.',
   toastImageTooLarge: 'Image must be under 5MB.',
+  toastPopupBlocked: 'Could not open the print view — your browser blocked the pop-up.',
   toastImageUploadFailed: 'Failed to upload image. Please try again.',
   toastLoadFailed: 'Failed to load recipes. Pull to refresh to try again.',
   toastNameRequired: 'Recipe name is required.',

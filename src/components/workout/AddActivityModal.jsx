@@ -992,14 +992,28 @@ function AddActivityModal({ onAdd, onClose, existingExerciseIds = [], multiSelec
                   {previewExercise.equipment && ` • ${previewExercise.equipment}`}
                 </span>
               </div>
-              <button
-                className="swap-preview-select"
-                onClick={(e) => handleSelect(e, previewExercise)}
-                disabled={selecting}
-              >
-                <Plus size={16} />
-                {t('addActivity.addThisExercise')}
-              </button>
+              {/* In multi-select mode this button TOGGLES selection and the
+                  preview stays open — without a selected state a second
+                  "nothing happened?" tap silently removed the exercise. */}
+              {multiSelect && isExerciseSelected(previewExercise.id) ? (
+                <button
+                  className="swap-preview-select selected"
+                  onClick={(e) => handleSelect(e, previewExercise)}
+                  disabled={selecting}
+                >
+                  <Check size={16} />
+                  {t('addActivity.addedTapToRemove')}
+                </button>
+              ) : (
+                <button
+                  className="swap-preview-select"
+                  onClick={(e) => handleSelect(e, previewExercise)}
+                  disabled={selecting}
+                >
+                  <Plus size={16} />
+                  {t('addActivity.addThisExercise')}
+                </button>
+              )}
             </div>
           </div>
         )}

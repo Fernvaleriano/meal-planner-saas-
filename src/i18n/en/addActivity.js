@@ -60,4 +60,5 @@ export default {
   previewAriaLabel: 'Preview exercise',
   previewAltFallback: 'Exercise preview',
   addThisExercise: 'Add this exercise',
+  addedTapToRemove: 'Added — tap to remove',
 };

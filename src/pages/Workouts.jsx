@@ -1369,9 +1369,12 @@ function Workouts() {
       apiGet(`/.netlify/functions/workout-logs?clientId=${clientData.id}&startDate=${startDate}&endDate=${endDate}&limit=60`).catch(() => null),
       apiGet(`/.netlify/functions/save-gym-proof?clientId=${clientData.id}&limit=60`).catch(() => null),
     ]);
-    // Bail if BOTH requests failed — don't poison the dots with an empty set
-    // on a transient network error (slow-success → fast-failure guard).
-    if (!logsRes && !proofsRes) return;
+    // Bail if EITHER request failed — don't poison the dots on a transient
+    // network error (slow-success → fast-failure guard). Bailing on any
+    // failure (not just both) keeps a logs-fetch failure from wiping all
+    // log-derived dots while the proofs fetch happened to succeed; the
+    // last-good evidence set stays on screen and the next refresh retries.
+    if (!logsRes || !proofsRes) return;
     const logs = (logsRes && (logsRes.workouts || logsRes.logs)) || [];
     const proofs = (proofsRes && proofsRes.proofs) || [];
     setEvidenceDates(buildWorkedOutDates(logs, proofs));
@@ -1595,7 +1598,12 @@ function Workouts() {
       const dateStr = todayWorkout.workout_date || formatDate(selectedDate);
       const cacheKey = `workouts_${clientData.id}_${dateStr}`;
       const existingCache = getCache(cacheKey) || {};
-      setCache(cacheKey, { ...existingCache, workoutLog });
+      // Write the CURRENT todayWorkout alongside the log, not just the log.
+      // The cache restore in fetchWorkout pairs dateCache.workoutLog with
+      // dateCache.todayWorkout (preserved.id === dateCache.todayWorkout?.id),
+      // so updating only workoutLog here could pair workout A (cached) with
+      // workout B's log on a multi-workout day and attach the wrong log.
+      setCache(cacheKey, { ...existingCache, todayWorkout, workoutLog });
     } catch { /* ignore */ }
   }, [workoutLog, clientData?.id, todayWorkout, selectedDate]);
 
@@ -2079,17 +2087,28 @@ function Workouts() {
         const selectedDays = assignSchedule.selectedDays || ['mon', 'tue', 'wed', 'thu', 'fri'];
         const startDate = new Date(assignment.start_date || assignment.created_at);
 
-        // Check end boundary
+        // Normalize to UTC midnight so day-level comparisons match the server
+        // calc in workout-assignments.js — identical fix to the twin in
+        // upcomingWorkouts below. The raw `date >= startDate` /
+        // `date - startDate` math mixed local time-of-day from weekDates with
+        // a UTC-midnight startDate, so both the range check and the day-count
+        // could drift ±1 day by timezone/clock.
+        const DAY_MS = 24 * 60 * 60 * 1000;
+        const startUTC = Date.UTC(startDate.getUTCFullYear(), startDate.getUTCMonth(), startDate.getUTCDate());
+        const targetUTC = Date.UTC(date.getFullYear(), date.getMonth(), date.getDate());
+
+        // Check end boundary (exclusive UTC-midnight timestamp)
         const weeksToUse = assignSchedule.weeksAmount || 12;
-        let endBoundary;
+        let endBoundaryUTC;
         if (assignment.end_date) {
-          endBoundary = new Date(assignment.end_date + 'T23:59:59');
+          const endDate = new Date(assignment.end_date + 'T00:00:00Z');
+          // +1 day so end_date itself stays in range (was `< end_date 23:59:59`)
+          endBoundaryUTC = Date.UTC(endDate.getUTCFullYear(), endDate.getUTCMonth(), endDate.getUTCDate()) + DAY_MS;
         } else {
-          endBoundary = new Date(startDate);
-          endBoundary.setDate(endBoundary.getDate() + (weeksToUse * 7));
+          endBoundaryUTC = startUTC + (weeksToUse * 7) * DAY_MS;
         }
 
-        const isInDateRange = date >= startDate && date < endBoundary;
+        const isInDateRange = targetUTC >= startUTC && targetUTC < endBoundaryUTC;
 
         // Check date overrides
         const dateOverrides = workoutData.date_overrides || {};
@@ -2104,16 +2123,18 @@ function Workouts() {
         // Compute natural day index upfront for dedup (only within date range)
         let naturalDayIndex = undefined;
         if (isInDateRange && days.length > 0 && selectedDays.includes(dayName)) {
-          const totalDaysDiff = Math.floor((date - startDate) / (24 * 60 * 60 * 1000));
+          // UTC-normalized day diff — see startUTC/targetUTC above and the
+          // identical computation in upcomingWorkouts.
+          const totalDaysDiff = Math.floor((targetUTC - startUTC) / DAY_MS);
           const daySet = new Set(selectedDays);
           const fullWeeks = Math.floor(totalDaysDiff / 7);
           const daysPerWeek = dayNamesList.filter(d => daySet.has(d)).length;
           let count = fullWeeks * daysPerWeek;
           const remainderDays = totalDaysDiff % 7;
           for (let i = 0; i < remainderDays; i++) {
-            const d = new Date(startDate);
-            d.setDate(d.getDate() + (fullWeeks * 7) + i);
-            if (daySet.has(dayNamesList[d.getDay()])) count++;
+            const d = new Date(startUTC);
+            d.setUTCDate(d.getUTCDate() + (fullWeeks * 7) + i);
+            if (daySet.has(dayNamesList[d.getUTCDay()])) count++;
           }
           naturalDayIndex = count % days.length;
         }
@@ -2481,50 +2502,41 @@ function Workouts() {
       );
     } catch (e) { /* ignore */ }
 
-    // Update workout_data to clear completed flags on all exercises
-    let capturedWorkoutData = null;
-    let capturedWorkout = null;
+    // Update workout_data to clear completed flags on all exercises.
+    // Compute the cleared data from the current workout FIRST and hand the
+    // same object to both the state update and the backend PUT — capturing
+    // it via a side effect inside the state updater and reading it after a
+    // 50ms timer (the previous version) silently skipped the PUT whenever
+    // React hadn't flushed the render in time.
+    const workout = todayWorkoutRef.current;
+    if (!workout?.workout_data) return;
 
-    setTodayWorkout(prev => {
-      if (!prev?.workout_data) return prev;
+    let currentExercises = [];
+    let isUsingDays = false;
+    const dayIndex = workout.day_index || 0;
 
-      let currentExercises = [];
-      let isUsingDays = false;
-      const dayIndex = prev.day_index || 0;
-
-      if (Array.isArray(prev.workout_data.exercises) && prev.workout_data.exercises.length > 0) {
-        currentExercises = [...prev.workout_data.exercises];
-      } else if (prev.workout_data.days && Array.isArray(prev.workout_data.days)) {
-        isUsingDays = true;
-        const dayData = prev.workout_data.days[dayIndex];
-        if (dayData?.exercises && Array.isArray(dayData.exercises)) {
-          currentExercises = [...dayData.exercises];
-        }
+    if (Array.isArray(workout.workout_data.exercises) && workout.workout_data.exercises.length > 0) {
+      currentExercises = [...workout.workout_data.exercises];
+    } else if (workout.workout_data.days && Array.isArray(workout.workout_data.days)) {
+      isUsingDays = true;
+      const dayData = workout.workout_data.days[dayIndex];
+      if (dayData?.exercises && Array.isArray(dayData.exercises)) {
+        currentExercises = [...dayData.exercises];
       }
+    }
 
-      const updatedExercises = currentExercises.map(ex => ({ ...ex, completed: false }));
+    const updatedExercises = currentExercises.map(ex => ({ ...ex, completed: false }));
 
-      let updatedWorkoutData;
-      if (isUsingDays) {
-        const updatedDays = [...prev.workout_data.days];
-        updatedDays[dayIndex] = { ...updatedDays[dayIndex], exercises: updatedExercises };
-        updatedWorkoutData = { ...prev.workout_data, days: updatedDays };
-      } else {
-        updatedWorkoutData = { ...prev.workout_data, exercises: updatedExercises };
-      }
+    let updatedWorkoutData;
+    if (isUsingDays) {
+      const updatedDays = [...workout.workout_data.days];
+      updatedDays[dayIndex] = { ...updatedDays[dayIndex], exercises: updatedExercises };
+      updatedWorkoutData = { ...workout.workout_data, days: updatedDays };
+    } else {
+      updatedWorkoutData = { ...workout.workout_data, exercises: updatedExercises };
+    }
 
-      capturedWorkoutData = updatedWorkoutData;
-      capturedWorkout = prev;
-
-      return { ...prev, workout_data: updatedWorkoutData };
-    });
-
-    // Persist to backend
-    await new Promise(r => setTimeout(r, 50));
-
-    const workout = capturedWorkout || todayWorkoutRef.current;
-    const updatedWorkoutData = capturedWorkoutData;
-    if (!workout || !updatedWorkoutData) return;
+    setTodayWorkout(prev => (prev?.workout_data ? { ...prev, workout_data: updatedWorkoutData } : prev));
 
     try {
       if (workout.is_adhoc) {
@@ -2817,9 +2829,12 @@ function Workouts() {
         });
 
         if (res?.workout) {
-          // Update with real workout ID from backend
+          // Update with real workout ID from backend — but only if the user
+          // is still on the workout we created. If they switched cards/days
+          // while the POST was in flight, stamping realId onto `prev` would
+          // corrupt a different workout's id.
           const realId = res.workout.id;
-          setTodayWorkout(prev => ({ ...prev, id: realId }));
+          setTodayWorkout(prev => (prev && prev.id === adHocWorkout.id ? { ...prev, id: realId } : prev));
           setTodayWorkouts(prev => prev.map(w =>
             w.id === adHocWorkout.id ? { ...w, id: realId } : w
           ));
@@ -2935,10 +2950,13 @@ function Workouts() {
       });
 
       if (res?.workout) {
-        // Update with real workout ID from backend
+        // Update with real workout ID from backend — only patch the selected
+        // workout if it is still the one we created (the user may have
+        // switched cards/days while the POST was in flight; stamping realId
+        // onto an unrelated `prev` would corrupt its id).
         const realId = res.workout.id;
         if (isForCurrentDay) {
-          setTodayWorkout(prev => ({ ...prev, id: realId }));
+          setTodayWorkout(prev => (prev && prev.id === newWorkout.id ? { ...prev, id: realId } : prev));
           setTodayWorkouts(prev => prev.map(w =>
             w.id === newWorkout.id ? { ...w, id: realId } : w
           ));
@@ -2985,6 +3003,11 @@ function Workouts() {
       } else {
         setReadinessData(null);
       }
+      // Per-session timers belong to the previous card — reset them so
+      // finishing THIS workout doesn't inherit the other workout's start
+      // time (multi-hour "durations") or its play-mode duration.
+      setWorkoutStartTime(null);
+      setActualDurationMinutes(null);
       setShowHeroMenu(false);
       setCompletedExercises(getEffectiveCompletedExercises(workout, matchedLog, clientDataRef.current?.id, formatDate(selectedDateRef.current || new Date())));
     }
@@ -3009,6 +3032,7 @@ function Workouts() {
     setShowClubWorkouts(false);
 
     // If scheduling for today, update local state immediately
+    let tempClubId = null; // temp id of the optimistic workout, for the realId patch below
     if (!isScheduled) {
       const newWorkout = {
         id: `club-${dateStr}-${Date.now()}`,
@@ -3029,6 +3053,7 @@ function Workouts() {
       setTodayWorkout(newWorkout);
       setTodayWorkouts(prev => [...prev, newWorkout]);
       setExpandedWorkout(true);
+      tempClubId = newWorkout.id;
     }
 
     // Create ad-hoc workout in backend
@@ -3041,11 +3066,14 @@ function Workouts() {
       });
 
       if (!isScheduled && res?.workout) {
+        // Only patch the selected workout if it is still the optimistic club
+        // workout we just created — the user may have switched cards/days
+        // while the POST was in flight, and stamping realId onto an
+        // unrelated `prev` would corrupt its id.
         const realId = res.workout.id;
-        setTodayWorkout(prev => ({ ...prev, id: realId }));
+        setTodayWorkout(prev => (prev && prev.id === tempClubId ? { ...prev, id: realId } : prev));
         setTodayWorkouts(prev => prev.map(w =>
-          (w.id?.toString().startsWith('club-') && w.name === workoutName)
-            ? { ...w, id: realId } : w
+          w.id === tempClubId ? { ...w, id: realId } : w
         ));
       }
 
@@ -3403,10 +3431,14 @@ function Workouts() {
           ...(s?.duration != null && { duration: s.duration }),
           ...(s?.distance != null && { distance: s.distance })
         }));
+        // Real position in the day (1-based, matching the finish-save's
+        // order: index + 1) — a hardcoded order collapses to DB-row order
+        // when history is rebuilt from the log.
+        const exerciseOrderIdx = currentExercises.findIndex(ex => ex?.id === updatedExercise.id);
         const exercisePayload = {
           exerciseId: updatedExercise.id,
           exerciseName: updatedExercise.name || 'Unknown',
-          order: 1,
+          order: exerciseOrderIdx >= 0 ? exerciseOrderIdx + 1 : 1,
           sets: setsPayload
         };
 
@@ -4238,6 +4270,7 @@ function Workouts() {
       );
 
       let result;
+      let completionSaveFailed = false;
       try {
         result = await Promise.race([
           apiPut('/.netlify/functions/workout-logs', {
@@ -4252,6 +4285,7 @@ function Workouts() {
       } catch (raceErr) {
         // If timed out, still show the summary (workout may have saved server-side)
         console.warn('Workout save timed out or failed, showing summary anyway:', raceErr.message);
+        completionSaveFailed = true;
         result = {};
       }
 
@@ -4262,16 +4296,35 @@ function Workouts() {
         setActualDurationMinutes(elapsedSeconds / 60);
         // Track how many exercises were covered by the guided workout timer
         setGuidedExerciseCount(exercisesOverride?.length || currentExercises.length);
+      } else {
+        // No play-mode timing for THIS finish — clear any stale duration left
+        // over from an earlier workout this session so the summary/share card
+        // doesn't display workout A's time for workout B.
+        setActualDurationMinutes(null);
+        setGuidedExerciseCount(0);
       }
-      // Clear localStorage completion cache since workout is done
-      try {
-        const workout = todayWorkoutRef.current;
-        const key = completionStorageKey(
-          workout?.id, workout?.day_index,
-          formatDate(selectedDateRef.current || new Date())
-        );
-        if (key) localStorage.removeItem(key);
-      } catch (e) { /* ignore */ }
+      // Clear localStorage completion cache since workout is done — but ONLY
+      // when the completion save actually landed. On failure/timeout the
+      // summary is still shown (deliberate — the save may have landed
+      // server-side), but the local backup must survive so the checkmarks
+      // aren't lost if it didn't.
+      if (!completionSaveFailed) {
+        try {
+          const workout = todayWorkoutRef.current;
+          const key = completionStorageKey(
+            workout?.id, workout?.day_index,
+            formatDate(selectedDateRef.current || new Date())
+          );
+          if (key) localStorage.removeItem(key);
+        } catch (e) { /* ignore */ }
+      } else if (typeof showErrorRef.current === 'function') {
+        // Non-blocking heads-up that the save didn't confirm.
+        showErrorRef.current(t('workoutsPage.couldNotSaveWorkout'));
+      }
+      // This session's start time has served its purpose — clear it so a
+      // second workout finished later the same day can't inherit it and
+      // save a multi-hour "duration".
+      setWorkoutStartTime(null);
       // Show summary modal
       setCompletingWorkout(false);
       setShowSummary(true);
@@ -5316,9 +5369,14 @@ function Workouts() {
     }
   };
 
-  // Auto-start workout when user enters detail view so completion features work immediately
+  // Auto-start workout when user enters detail view so completion features work immediately.
+  // Only when viewing TODAY — merely browsing a past/future day's detail view
+  // must not create a phantom "in_progress" log for that date (nor mark the
+  // session as started). Starting a workout on another day still works via the
+  // explicit Start/exercise-tap flow (handleReadinessComplete).
   useEffect(() => {
-    if (expandedWorkout && todayWorkout && !workoutStarted) {
+    if (expandedWorkout && todayWorkout && !workoutStarted
+        && formatDate(selectedDate) === formatDate(new Date())) {
       setWorkoutStarted(true);
       setWorkoutStartTime(prev => prev || new Date());
 
