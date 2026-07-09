@@ -87,6 +87,10 @@ function Dashboard() {
   const audioChunksRef = useRef([]);
   const preVoiceInputRef = useRef(''); // Store input text before voice started
   const logSuccessTimerRef = useRef(null);
+  // Indexes of parsedFoods already written to the diary this batch — lets a
+  // retry after a mid-batch failure skip foods that were already logged
+  // instead of duplicating them.
+  const loggedFoodIndexesRef = useRef(new Set());
 
   // Food confirmation state
   const [parsedFoods, setParsedFoods] = useState(null);
@@ -414,6 +418,7 @@ function Dashboard() {
 
       // Show confirmation with parsed foods
       setParsedFoods(aiData.foods);
+      loggedFoodIndexesRef.current = new Set(); // fresh batch — nothing logged yet
       setServings(1);
       setShowConfirmation(true);
     } catch (err) {
@@ -449,7 +454,10 @@ function Dashboard() {
       const today = getTodayKey();
       let totalAdded = { calories: 0, protein: 0, carbs: 0, fat: 0 };
 
-      for (const food of parsedFoods) {
+      for (const [foodIdx, food] of parsedFoods.entries()) {
+        // Already written by a previous attempt that failed mid-batch —
+        // POSTing it again would duplicate the diary entry.
+        if (loggedFoodIndexesRef.current.has(foodIdx)) continue;
         const adjustedCalories = Math.round((food.calories || 0) * servings);
         const adjustedProtein = Math.round((food.protein || 0) * servings);
         const adjustedCarbs = Math.round((food.carbs || 0) * servings);
@@ -479,6 +487,7 @@ function Dashboard() {
           foodSource: 'ai'
         });
 
+        loggedFoodIndexesRef.current.add(foodIdx);
         totalAdded.calories += adjustedCalories;
         totalAdded.protein += adjustedProtein;
         totalAdded.carbs += adjustedCarbs;

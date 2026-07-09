@@ -61,4 +61,5 @@ export default {
   previewAriaLabel: 'Vista previa del ejercicio',
   previewAltFallback: 'Vista previa del ejercicio',
   addThisExercise: 'Agregar este ejercicio',
+  addedTapToRemove: 'Agregado — toca para quitar',
 };
