@@ -34,6 +34,7 @@ export default {
   snapErrBusy: 'AI service is temporarily busy. Please try again in a moment.',
   snapErrFailed: 'Failed to analyze photo: {message}',
   snapErrAddFoods: 'Failed to add foods. Please try again.',
+  toastPartialAddFailed: '{failed} of {total} foods failed to add. Tap again to retry just the failed ones.',
 
   // SnapPhotoModal — results screen
   detectedFoods: 'Detected Foods',

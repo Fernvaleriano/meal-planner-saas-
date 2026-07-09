@@ -1053,7 +1053,7 @@ function Diary() {
       if (failedCount > 0) {
         // Partial failure: warn instead of reporting success — re-running
         // the copy would duplicate the entries that already succeeded.
-        showError(`Copied ${copiedCount} of ${data.entries.length} entries — ${failedCount} failed. Copying again may duplicate the ones that succeeded.`);
+        showError(t('diaryPage.toastCopiedPartial', { copied: copiedCount, total: data.entries.length, failed: failedCount }));
       } else {
         showSuccess(t('diaryPage.toastCopiedEntries', { count: copiedCount }));
       }

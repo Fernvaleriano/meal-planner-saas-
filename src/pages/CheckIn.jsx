@@ -29,11 +29,15 @@ const checkinDay = (entry) => {
 
 // Compute the real consecutive-day streak (ending today or yesterday)
 // from check-ins sorted newest-first.
+// Returns { streak, atBoundary }. `atBoundary` is true when the streak ran
+// through EVERY distinct day we were given — i.e. the oldest fetched check-in
+// is itself part of the streak, so the real streak may extend further back than
+// the fetched window and the caller should show "N+" instead of "N".
 const computeCheckinStreak = (checkins) => {
   const days = [...new Set((checkins || []).map(checkinDay).filter(Boolean))]
     .sort()
     .reverse();
-  if (days.length === 0) return 0;
+  if (days.length === 0) return { streak: 0, atBoundary: false };
 
   const dayMs = 86400000;
   // Parse as local time so the day doesn't shift west of UTC
@@ -43,7 +47,7 @@ const computeCheckinStreak = (checkins) => {
 
   // Streak must end today or yesterday, otherwise it's broken
   const gapFromToday = Math.round((today - toDate(days[0])) / dayMs);
-  if (gapFromToday > 1) return 0;
+  if (gapFromToday > 1) return { streak: 0, atBoundary: false };
 
   let streak = 1;
   for (let i = 1; i < days.length; i++) {
@@ -51,7 +55,7 @@ const computeCheckinStreak = (checkins) => {
     if (gap === 1) streak++;
     else break;
   }
-  return streak;
+  return { streak, atBoundary: streak === days.length };
 };
 
 function CheckIn() {
@@ -72,6 +76,9 @@ function CheckIn() {
   const [questions, setQuestions] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [streak, setStreak] = useState(0);
+  // True when the streak filled the entire fetched window AND older check-ins
+  // exist beyond it — the badge then shows "N+" (real streak may be longer).
+  const [streakAtBoundary, setStreakAtBoundary] = useState(false);
   const [history, setHistory] = useState([]);
   const [loadingHistory, setLoadingHistory] = useState(true);
   const [historyExpanded, setHistoryExpanded] = useState(false);
@@ -98,7 +105,11 @@ function CheckIn() {
       const data = await apiGet(`/.netlify/functions/save-checkin?clientId=${clientData.id}&limit=90`);
       if (data?.checkins) {
         setHistory(data.checkins.slice(0, 10));
-        setStreak(computeCheckinStreak(data.checkins));
+        const { streak: computedStreak, atBoundary } = computeCheckinStreak(data.checkins);
+        setStreak(computedStreak);
+        // Only flag the boundary when the server says older rows exist past the
+        // fetched window (hasMore) — otherwise "N" is the true, complete streak.
+        setStreakAtBoundary(atBoundary && !!data?.pagination?.hasMore);
       }
       if (typeof data?.pagination?.total === 'number') {
         setTotalCheckinCount(data.pagination.total);
@@ -268,7 +279,7 @@ function CheckIn() {
         {streak > 0 && (
           <div className="streak-badge">
             <Flame size={16} />
-            <span>{streak}</span>
+            <span>{streak}{streakAtBoundary ? '+' : ''}</span>
           </div>
         )}
       </div>
