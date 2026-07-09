@@ -64,15 +64,38 @@ headers in a casual conversation — stop, delete, rewrite plain.
   May 2026; baseline capture needs local DB/CLI access — not yet done.
 
 - **DECIDED (May 2026): new "premium all-inclusive" pricing** — Free 3 /
-  Starter 15·$59 / Growth 50·$129 / Scale 100·$179 / Pro-Agency
-  200·$239 / 200+ contact sales. Full rationale + implementation
+  Starter 15·$59 / Growth 50·$129 / Scale 100·$179 / Agency
+  200·$299 / 200+ contact sales. Full rationale + implementation
   checklist in **`COACH-LIMITS-AND-PRICING.md`** (now on the main
-  working branch). STRATEGY ONLY — NOT implemented (no code/Stripe
-  changes). Stripe prices must be created manually first; live-billing
-  changes need a grandfathering decision for existing subscribers.
-  (Was originally saved only on branch
+  working branch). (Was originally saved only on branch
   `claude/document-coach-limits-k8BxD` and nearly lost — consolidated
   here so it persists.)
+  - **ONLY Agency changed so far (July 2026): $199 → $299.** Founder
+    decided to move just the top tier for now (the $179→$199 gap was
+    far too soft — a roster doubling from 100→200 clients should pay
+    more). Starter/Growth/Scale are LEFT AS-IS on the live site
+    ($49 / $99 / $179, client counts unchanged) — the rest of the
+    "premium all-inclusive" set above (Starter $59/15, Growth $129) is
+    still just strategy, NOT rolled out. Do not touch those without an
+    explicit go-ahead.
+  - **Agency $299 display updated everywhere** (`index.html`,
+    `pricing.html`, `signup.html`, `billing.html`, `coach-profile.html`).
+    Client-limit code (`netlify/functions/create-client.js`
+    `CLIENT_LIMITS`) needed no change — Agency was already 200.
+  - **Agency is now CONTACT-SALES, not self-serve (July 2026).** To dodge
+    the Stripe-price setup, the founder chose to keep the $299/mo showing
+    but turn the button into "Contact sales" (mailto
+    `contact@ziquecoach.com`) on `index.html` and `pricing.html`. On
+    `signup.html` the Agency option is no longer a selectable radio — it's
+    a mailto card (the plan-select JS null-guards it; `'professional'` was
+    dropped from the `planFromUrl` allowlist). So there is NO self-serve
+    Agency checkout path in the UI anymore.
+  - **Result: NO Stripe price change needed for Agency.** Nothing self-serve
+    hits `STRIPE_PRICE_PROFESSIONAL`, so displayed $299 can't mis-charge.
+    Agency deals are handled manually now (founder sets up the subscription
+    /invoice off a "Contact sales" email). Existing $199 Agency subscribers
+    are untouched. The backend `create-checkout-session.js` still knows the
+    `professional` tier — harmless, just no UI triggers it.
 
 ## MARKETING CAROUSEL STYLE (BRAND-CONSISTENT — REUSE FOR ALL POSTS)
 

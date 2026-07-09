@@ -257,6 +257,12 @@
             opacity: 0;
         }
 
+        /* Agency card is a contact-sales mailto link, not a selectable plan */
+        .plan-card-contact {
+            display: block;
+            text-decoration: none;
+        }
+
         .plan-name {
             font-weight: 700;
             color: var(--gray-900);
@@ -693,12 +699,11 @@
                             <div class="plan-price">$179<span>/mo</span></div>
                             <div class="plan-clients">100 clients</div>
                         </label>
-                        <label class="plan-card" id="professionalCard">
-                            <input type="radio" name="plan" value="professional">
+                        <a class="plan-card plan-card-contact" href="mailto:contact@ziquecoach.com?subject=Ziquecoach%20Agency%20plan">
                             <div class="plan-name">Agency</div>
-                            <div class="plan-price">$199<span>/mo</span></div>
-                            <div class="plan-clients">200 clients + Branding</div>
-                        </label>
+                            <div class="plan-price">$299<span>/mo</span></div>
+                            <div class="plan-clients">200 clients · Contact sales</div>
+                        </a>
                     </div>
                 </div>
 
@@ -754,6 +759,7 @@
         function updatePlanSelection() {
             planCards.forEach(card => {
                 const input = card.querySelector('input');
+                if (!input) return; // contact-sales card has no radio
                 if (input.checked) {
                     card.classList.add('selected');
                 } else {
@@ -765,7 +771,7 @@
         // Get plan from URL if specified
         const urlParams = new URLSearchParams(window.location.search);
         const planFromUrl = urlParams.get('plan');
-        if (planFromUrl && ['free', 'starter', 'growth', 'scale', 'professional'].includes(planFromUrl)) {
+        if (planFromUrl && ['free', 'starter', 'growth', 'scale'].includes(planFromUrl)) {
             document.querySelector(`input[value="${planFromUrl}"]`).checked = true;
             updatePlanSelection();
         }
@@ -773,11 +779,13 @@
         // Add click handlers to plan cards
         planCards.forEach(card => {
             card.addEventListener('click', () => {
+                const input = card.querySelector('input');
+                if (!input) return; // contact-sales card: let the mailto link work
                 planCards.forEach(c => c.classList.remove('selected'));
                 card.classList.add('selected');
-                card.querySelector('input').checked = true;
+                input.checked = true;
                 // Update button text based on plan
-                const selectedPlan = card.querySelector('input').value;
+                const selectedPlan = input.value;
                 const trialBadge = document.querySelector('.trial-badge');
                 if (selectedPlan === 'free') {
                     signupBtn.textContent = 'Create Free Account →';
