@@ -6992,7 +6992,8 @@
 
         // Toggle emoji reaction on a priority item — opens reply, prefills emoji, and auto-sends
         async function toggleReaction(alertId, clientId, emoji, itemType, itemId) {
-            const btn = document.getElementById('react-' + alertId + '-' + (emoji === '👏' ? 'clap' : emoji === '👊' ? 'fist' : emoji === '💪' ? 'muscle' : 'fire'));
+            const EMOJI_BTN_IDS = { '👏': 'clap', '👊': 'fist', '💪': 'muscle', '🔥': 'fire', '🏆': 'trophy', '🙌': 'hands' };
+            const btn = document.getElementById('react-' + alertId + '-' + (EMOJI_BTN_IDS[emoji] || 'fire'));
             if (!btn) return;
 
             // Optimistic UI: highlight the clicked emoji
@@ -7594,6 +7595,8 @@
                                 <button class="activity-react-btn ${existingReaction === '👏' ? 'reacted' : ''}" onclick="sendItemReaction('${ev.clientId}','${ev.itemType}','${ev.itemId}','👏',this)" title="Clap">👏</button>
                                 <button class="activity-react-btn ${existingReaction === '💪' ? 'reacted' : ''}" onclick="sendItemReaction('${ev.clientId}','${ev.itemType}','${ev.itemId}','💪',this)" title="Muscle">💪</button>
                                 <button class="activity-react-btn ${existingReaction === '🔥' ? 'reacted' : ''}" onclick="sendItemReaction('${ev.clientId}','${ev.itemType}','${ev.itemId}','🔥',this)" title="Fire">🔥</button>
+                                <button class="activity-react-btn ${existingReaction === '🏆' ? 'reacted' : ''}" onclick="sendItemReaction('${ev.clientId}','${ev.itemType}','${ev.itemId}','🏆',this)" title="Trophy">🏆</button>
+                                <button class="activity-react-btn ${existingReaction === '🙌' ? 'reacted' : ''}" onclick="sendItemReaction('${ev.clientId}','${ev.itemType}','${ev.itemId}','🙌',this)" title="Celebrate">🙌</button>
                                 <span class="activity-item-sent" id="activity-item-sent-${itemUid}">Sent ✓</span>
                                 <button class="activity-reply-btn ${hasCommented ? 'commented' : ''}" onclick="toggleItemReply('${itemUid}','${ev.clientId}')">
                                     <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
@@ -8579,6 +8582,8 @@
                                                 <button id="react-${aid}-fist" class="priority-reaction-btn" onclick="toggleReaction('${aid}','${clientId}','👊','workout_note','${note.id}')" title="Fist bump">👊</button>
                                                 <button id="react-${aid}-muscle" class="priority-reaction-btn" onclick="toggleReaction('${aid}','${clientId}','💪','workout_note','${note.id}')" title="Muscle">💪</button>
                                                 <button id="react-${aid}-fire" class="priority-reaction-btn" onclick="toggleReaction('${aid}','${clientId}','🔥','workout_note','${note.id}')" title="Fire">🔥</button>
+                                                <button id="react-${aid}-trophy" class="priority-reaction-btn" onclick="toggleReaction('${aid}','${clientId}','🏆','workout_note','${note.id}')" title="Trophy">🏆</button>
+                                                <button id="react-${aid}-hands" class="priority-reaction-btn" onclick="toggleReaction('${aid}','${clientId}','🙌','workout_note','${note.id}')" title="Celebrate">🙌</button>
                                                 <span id="reaction-sent-${aid}" class="priority-reaction-sent">✓</span>
                                             </span>
                                             ${voicePlayerHtml}
@@ -8711,6 +8716,8 @@
                                                             <button id="react-${aid}-fist" class="priority-reaction-btn" onclick="toggleReaction('${aid}','${g.clientId}','👊','plateau','${g.clientId}-${g.exercise.replace(/\\s/g,'-')}')" title="Fist bump">👊</button>
                                                             <button id="react-${aid}-muscle" class="priority-reaction-btn" onclick="toggleReaction('${aid}','${g.clientId}','💪','plateau','${g.clientId}-${g.exercise.replace(/\\s/g,'-')}')" title="Muscle">💪</button>
                                                             <button id="react-${aid}-fire" class="priority-reaction-btn" onclick="toggleReaction('${aid}','${g.clientId}','🔥','plateau','${g.clientId}-${g.exercise.replace(/\\s/g,'-')}')" title="Fire">🔥</button>
+                                                            <button id="react-${aid}-trophy" class="priority-reaction-btn" onclick="toggleReaction('${aid}','${g.clientId}','🏆','plateau','${g.clientId}-${g.exercise.replace(/\\s/g,'-')}')" title="Trophy">🏆</button>
+                                                            <button id="react-${aid}-hands" class="priority-reaction-btn" onclick="toggleReaction('${aid}','${g.clientId}','🙌','plateau','${g.clientId}-${g.exercise.replace(/\\s/g,'-')}')" title="Celebrate">🙌</button>
                                                             <span id="reaction-sent-${aid}" class="priority-reaction-sent">✓</span>
                                                         </span>
                                                         <div id="reply-row-${aid}" class="priority-note-reply-row" style="display:none;" onclick="event.stopPropagation()">
@@ -9485,6 +9492,8 @@
                                 <button id="react-${aid}-fist" class="priority-reaction-btn" onclick="toggleReaction('${aid}','${clientId}','👊','gym_checkin','${n.id}')" title="Fist bump">👊</button>
                                 <button id="react-${aid}-muscle" class="priority-reaction-btn" onclick="toggleReaction('${aid}','${clientId}','💪','gym_checkin','${n.id}')" title="Muscle">💪</button>
                                 <button id="react-${aid}-fire" class="priority-reaction-btn" onclick="toggleReaction('${aid}','${clientId}','🔥','gym_checkin','${n.id}')" title="Fire">🔥</button>
+                                <button id="react-${aid}-trophy" class="priority-reaction-btn" onclick="toggleReaction('${aid}','${clientId}','🏆','gym_checkin','${n.id}')" title="Trophy">🏆</button>
+                                <button id="react-${aid}-hands" class="priority-reaction-btn" onclick="toggleReaction('${aid}','${clientId}','🙌','gym_checkin','${n.id}')" title="Celebrate">🙌</button>
                                 <span id="reaction-sent-${aid}" class="priority-reaction-sent">✓</span>
                             </span>
                             <div id="reply-row-${aid}" class="priority-note-reply-row" style="display:none;" onclick="event.stopPropagation()">
