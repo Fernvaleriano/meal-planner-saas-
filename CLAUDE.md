@@ -82,13 +82,20 @@ headers in a casual conversation — stop, delete, rewrite plain.
     `pricing.html`, `signup.html`, `billing.html`, `coach-profile.html`).
     Client-limit code (`netlify/functions/create-client.js`
     `CLIENT_LIMITS`) needed no change — Agency was already 200.
-  - **STILL PENDING (founder's job):** Stripe price is NOT changed —
-    checkout pulls live amounts from Stripe price IDs
-    (`create-checkout-session.js` `PRICE_IDS`, env var
-    `STRIPE_PRICE_PROFESSIONAL`), so the founder must create a new $299
-    Stripe price and repoint that env var, else displayed price ≠
-    charged price. Existing Agency subscribers keep their old $199 price
-    until moved (Stripe default = de-facto grandfathering).
+  - **Agency is now CONTACT-SALES, not self-serve (July 2026).** To dodge
+    the Stripe-price setup, the founder chose to keep the $299/mo showing
+    but turn the button into "Contact sales" (mailto
+    `contact@ziquecoach.com`) on `index.html` and `pricing.html`. On
+    `signup.html` the Agency option is no longer a selectable radio — it's
+    a mailto card (the plan-select JS null-guards it; `'professional'` was
+    dropped from the `planFromUrl` allowlist). So there is NO self-serve
+    Agency checkout path in the UI anymore.
+  - **Result: NO Stripe price change needed for Agency.** Nothing self-serve
+    hits `STRIPE_PRICE_PROFESSIONAL`, so displayed $299 can't mis-charge.
+    Agency deals are handled manually now (founder sets up the subscription
+    /invoice off a "Contact sales" email). Existing $199 Agency subscribers
+    are untouched. The backend `create-checkout-session.js` still knows the
+    `professional` tier — harmless, just no UI triggers it.
 
 ## MARKETING CAROUSEL STYLE (BRAND-CONSISTENT — REUSE FOR ALL POSTS)
 

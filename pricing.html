@@ -273,6 +273,27 @@
             background: var(--gray-200);
         }
 
+        /* Contact-sales button (Agency): looks like a secondary button but
+           is a plain mailto link, not a self-serve checkout button. */
+        .btn-contact {
+            display: block;
+            width: 100%;
+            padding: 16px;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            font-family: inherit;
+            text-decoration: none;
+            text-align: center;
+            transition: all 0.2s;
+            background: var(--gray-100);
+            color: var(--gray-700);
+        }
+
+        .btn-contact:hover {
+            background: var(--gray-200);
+        }
+
         /* Features Section */
         .features-section {
             max-width: 1000px;
@@ -801,7 +822,7 @@
                     <li>Priority support</li>
                     <li>Custom branding & logo</li>
                 </ul>
-                <a href="signup.html?plan=professional" class="btn-select secondary" data-plan="professional">Get Started</a>
+                <a href="mailto:contact@ziquecoach.com?subject=Ziquecoach%20Agency%20plan" class="btn-contact">Contact sales</a>
             </div>
         </div>
         <p style="text-align:center; margin-top:24px; color:#6b7280; font-size:0.95rem;">
