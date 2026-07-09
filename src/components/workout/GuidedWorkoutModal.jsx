@@ -2451,6 +2451,20 @@ function GuidedWorkoutModal({
   // (and any superset partners) checked. Deduped per index so going Back and
   // re-landing is harmless; the explicit Skip-for-Good flows still suppress
   // their own onExerciseComplete and run before any landing for those.
+  // "Touched" = the user actually did something with the exercise this
+  // session (set marked done, explicitly skipped, or entered weight/effort).
+  // Ref-based so timer callbacks and the landing effect see live values.
+  // Same semantics as handleCloseWithSave's inline check.
+  const isExerciseTouched = useCallback((i) => {
+    if (completedSetsRef.current[i]?.size > 0) return true;
+    if (skippedExercisesRef.current.has(i)) return true;
+    const logs = setLogsRef.current[i];
+    if (Array.isArray(logs)) {
+      if (logs.some(s => (s?.weight ?? 0) > 0 || s?.effort || s?.rpe)) return true;
+    }
+    return false;
+  }, []);
+
   const autoLandedRef = useRef(new Set());
   useEffect(() => {
     if (phase !== 'get-ready' && phase !== 'exercise') return;
@@ -2460,10 +2474,19 @@ function GuidedWorkoutModal({
       if (!ex?.id || autoLandedRef.current.has(idx)) return;
       autoLandedRef.current.add(idx);
       if (onExerciseComplete) onExerciseComplete(ex.id);
-      const persist = persistExerciseDataRef.current;
-      if (persist) persist(idx);
+      // Persist only when the user has actually logged something for this
+      // exercise. Landing alone would push the mount-time DEFAULT setLogs
+      // (prescription reps, weight 0) through the keepalive save — and if
+      // real sets were logged earlier that day (or the log merge hadn't
+      // arrived yet), those non-empty defaults would OVERWRITE them; the
+      // server's preserveExisting guard only protects against EMPTY sets.
+      // Same failure family as the May 2026 workouts-disappearing bug.
+      if (isExerciseTouched(idx)) {
+        const persist = persistExerciseDataRef.current;
+        if (persist) persist(idx);
+      }
     });
-  }, [phase, currentExIndex, exercises, onExerciseComplete]);
+  }, [phase, currentExIndex, exercises, onExerciseComplete, isExerciseTouched]);
 
   // Auto-advance if deferred review has no active exercises (edge case: user went back and completed them)
   useEffect(() => {
@@ -3800,8 +3823,14 @@ function GuidedWorkoutModal({
       return { ...ex, sets: updatedSets };
     });
 
-    // Also persist to parent state for regular view
-    exercises.forEach((_, i) => persistExerciseData(i));
+    // Also persist to parent state for regular view — touched exercises only,
+    // matching handleCloseWithSave. Persisting all of them fired a keepalive
+    // save per untouched exercise that rewrote prescription defaults over any
+    // real sets logged earlier that day (the server's preserveExisting guard
+    // only protects against EMPTY sets, and these defaults are non-empty).
+    exercises.forEach((_, i) => {
+      if (isExerciseTouched(i)) persistExerciseData(i);
+    });
     clearResumeState(assignmentIdRef.current); // Workout finished, no need to resume
     if (onWorkoutFinish) onWorkoutFinish(finalExercises, totalElapsed);
     onClose();
