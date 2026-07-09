@@ -56,7 +56,7 @@
                     <strong style="display: block; margin-bottom: 4px;">We value your privacy</strong>
                     We use cookies to enhance your experience, analyze site traffic, and for marketing purposes.
                     By clicking "Accept All", you consent to our use of cookies.
-                    <a href="/privacy.html" style="color: #60a5fa; text-decoration: underline;">Privacy Policy</a>
+                    <a href="/privacy.html" style="color: #5eead4; text-decoration: underline;">Privacy Policy</a>
                 </div>
                 <div style="display: flex; gap: 12px; flex-wrap: wrap;">
                     <button id="cookie-reject" style="
@@ -73,7 +73,7 @@
                     <button id="cookie-accept" style="
                         padding: 10px 24px;
                         border: none;
-                        background: linear-gradient(135deg, #2cb5a5, #8b5cf6);
+                        background: linear-gradient(135deg, #2dd4bf, #14b8a6);
                         color: #fff;
                         border-radius: 6px;
                         cursor: pointer;
@@ -93,7 +93,7 @@
 
         acceptBtn.addEventListener('mouseover', () => {
             acceptBtn.style.transform = 'translateY(-2px)';
-            acceptBtn.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.4)';
+            acceptBtn.style.boxShadow = '0 4px 12px rgba(20, 184, 166, 0.4)';
         });
         acceptBtn.addEventListener('mouseout', () => {
             acceptBtn.style.transform = 'translateY(0)';

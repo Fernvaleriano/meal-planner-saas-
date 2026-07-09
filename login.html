@@ -47,7 +47,10 @@
         /* Left Panel - Branding */
         .brand-panel {
             flex: 1;
-            background: var(--brand-gradient);
+            background:
+                radial-gradient(circle at 80% 10%, rgba(45,212,191,0.18), transparent 42%),
+                radial-gradient(circle at 10% 90%, rgba(20,184,166,0.14), transparent 45%),
+                linear-gradient(160deg, #10243a 0%, #0d1528 100%);
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -64,7 +67,7 @@
             left: -50%;
             width: 200%;
             height: 200%;
-            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 60%);
+            background: radial-gradient(circle, rgba(45,212,191,0.06) 0%, transparent 60%);
             animation: pulse 15s ease-in-out infinite;
         }
 
@@ -127,12 +130,15 @@
         .brand-feature-icon {
             width: 32px;
             height: 32px;
-            background: rgba(255,255,255,0.2);
+            background: rgba(45,212,191,0.16);
+            border: 1px solid rgba(45,212,191,0.3);
+            color: #5eead4;
             border-radius: 8px;
             display: flex;
             align-items: center;
             justify-content: center;
             font-size: 1rem;
+            font-weight: 700;
         }
 
         /* Right Panel - Login Form */
