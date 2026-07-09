@@ -432,6 +432,8 @@ function Messages() {
     setSending(true);
     setUploading(!!mediaPreview);
 
+    let optimisticId = null;
+
     try {
       const cId = isCoach ? coachId : activeConvo.coachId;
       const clId = isCoach ? activeConvo.clientId : clientId;
@@ -450,7 +452,7 @@ function Messages() {
 
       // Optimistic update — use a string ID prefixed with 'optimistic-' so the
       // realtime handler and polling merge can recognize and replace it.
-      const optimisticId = `optimistic-${Date.now()}`;
+      optimisticId = `optimistic-${Date.now()}`;
       const optimisticMsg = {
         id: optimisticId,
         sender_type: isCoach ? 'coach' : 'client',
@@ -501,6 +503,16 @@ function Messages() {
       showError(err.message?.includes('upload') || err.message?.includes('storage')
         ? t('messagesPage.errorUploadMedia')
         : t('messagesPage.errorSendMessage'));
+      // The send failed — remove the optimistic bubble so a phantom
+      // "sent" message doesn't linger forever.
+      if (optimisticId) {
+        setMessages(prev => prev.filter(m => m.id !== optimisticId));
+      }
+      // Restore the typed text so it isn't lost (only if the user
+      // hasn't already started typing something new).
+      if (msgText) {
+        setNewMessage(prev => (prev ? prev : msgText));
+      }
       setUploading(false);
     } finally {
       setSending(false);
@@ -533,6 +545,12 @@ function Messages() {
 
   // Toggle emoji reaction on a message
   const handleReaction = async (msgId, emoji) => {
+    // Can't react to a message the server hasn't confirmed yet — its id
+    // is a local placeholder, so a server call would post a fake id.
+    if (typeof msgId === 'string' && (msgId.startsWith('optimistic-') || msgId.startsWith('temp-'))) {
+      setReactionPickerMsgId(null);
+      return;
+    }
     const myReactorType = isCoach ? 'coach' : 'client';
     const cId = isCoach ? coachId : activeConvo.coachId;
     const clId = isCoach ? activeConvo.clientId : clientId;

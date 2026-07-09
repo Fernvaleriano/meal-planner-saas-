@@ -73,7 +73,9 @@ export default function VoiceNotePlayer({ src, onMissing }) {
     e.stopPropagation();
     const audio = audioRef.current;
     const bar = barRef.current;
-    if (!audio || !bar || !duration) return;
+    // webm voice notes can report duration = Infinity — seeking is impossible
+    // then (ratio * Infinity), so bail out until a finite duration is known.
+    if (!audio || !bar || !duration || !Number.isFinite(duration)) return;
     const rect = bar.getBoundingClientRect();
     const clientX = e.touches ? e.touches[0].clientX : e.clientX;
     const ratio = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
@@ -99,7 +101,7 @@ export default function VoiceNotePlayer({ src, onMissing }) {
         ref={barRef}
         role="slider"
         aria-valuemin={0}
-        aria-valuemax={Math.round(duration) || 0}
+        aria-valuemax={Number.isFinite(duration) ? Math.round(duration) : 0}
         aria-valuenow={Math.round(currentTime) || 0}
         onClick={handleSeek}
       >
@@ -107,7 +109,9 @@ export default function VoiceNotePlayer({ src, onMissing }) {
         <div className="vn-progress-thumb" style={{ left: `${progressPct}%` }} />
       </div>
       <span className="vn-time">
-        {isPlaying || currentTime > 0 ? formatVoiceTime(currentTime) : `-${formatVoiceTime(remaining)}`}
+        {isPlaying || currentTime > 0 || !Number.isFinite(duration)
+          ? formatVoiceTime(currentTime)
+          : `-${formatVoiceTime(remaining)}`}
       </span>
       <audio
         ref={audioRef}
@@ -118,6 +122,11 @@ export default function VoiceNotePlayer({ src, onMissing }) {
         onPause={() => setIsPlaying(false)}
         onEnded={() => { setIsPlaying(false); setCurrentTime(0); }}
         onLoadedMetadata={(e) => setDuration(e.currentTarget.duration || 0)}
+        onDurationChange={(e) => {
+          // webm reports Infinity at first; pick up the real duration once known
+          const d = e.currentTarget.duration;
+          if (Number.isFinite(d) && d > 0) setDuration(d);
+        }}
         onTimeUpdate={(e) => setCurrentTime(e.currentTarget.currentTime || 0)}
         onError={onMissing}
       />

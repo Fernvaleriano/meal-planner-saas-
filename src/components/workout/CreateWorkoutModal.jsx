@@ -42,6 +42,13 @@ function CreateWorkoutModal({ onClose, onCreateWorkout, selectedDate, coachId = 
   // Get exercises for the currently active day
   const exercises = days[activeDay]?.exercises || [];
 
+  // Tracks whether a child modal (Add Exercise / Swap) is open so the
+  // Escape/back handlers below let the child close itself instead of also
+  // closing this modal and destroying the workout draft. A ref (not a dep)
+  // so the popstate effect never re-runs and re-pushes history.
+  const childModalOpenRef = useRef(false);
+  childModalOpenRef.current = showAddExercise || swapExerciseData !== null;
+
   // Force close handler
   const forceClose = useCallback(() => {
     try {
@@ -58,6 +65,9 @@ function CreateWorkoutModal({ onClose, onCreateWorkout, selectedDate, coachId = 
     window.history.pushState(modalState, '');
 
     const handlePopState = () => {
+      // A child modal pushed its own history entry and closes itself on
+      // popstate — don't also close the parent (would lose the draft).
+      if (childModalOpenRef.current) return;
       forceClose();
     };
 
@@ -69,6 +79,8 @@ function CreateWorkoutModal({ onClose, onCreateWorkout, selectedDate, coachId = 
   useEffect(() => {
     const handleKeyDown = (event) => {
       if (event.key === 'Escape') {
+        // A child modal handles its own Escape — leave the parent open.
+        if (childModalOpenRef.current) return;
         if (editingDayName !== null) {
           setEditingDayName(null);
           return;
@@ -281,7 +293,8 @@ function CreateWorkoutModal({ onClose, onCreateWorkout, selectedDate, coachId = 
       isSwipingRef.current = true;
     }
     if (isSwipingRef.current) {
-      e.preventDefault();
+      // Note: no preventDefault here — React registers touchmove as a passive
+      // listener, so calling it only logs a browser warning and does nothing.
       const offset = Math.min(0, Math.max(-80, deltaX));
       setSwipeOffset(offset);
     }

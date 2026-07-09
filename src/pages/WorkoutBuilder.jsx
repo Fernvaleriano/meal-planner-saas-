@@ -202,10 +202,20 @@ function WorkoutBuilder() {
     return () => window.removeEventListener('click', handleClick);
   }, [dayMenuOpen]);
 
-  // Track unsaved changes
+  // Track unsaved changes — armed only after initial hydration so that
+  // loading an existing program (or the first render of a new one) doesn't
+  // spuriously mark the form dirty with zero user edits.
+  const dirtyTrackingArmedRef = useRef(false);
   useEffect(() => {
-    if (!loading) setHasUnsavedChanges(true);
+    if (dirtyTrackingArmedRef.current) setHasUnsavedChanges(true);
   }, [programName, description, difficulty, category, frequency, days]);
+
+  // Arm dirty-tracking once loading has finished. Declared AFTER the effect
+  // above so that, in the commit where hydration lands, the change-tracking
+  // effect runs first (still disarmed) and skips the hydration render.
+  useEffect(() => {
+    if (!loading) dirtyTrackingArmedRef.current = true;
+  }, [loading]);
 
   // Reset selected exercise when changing days
   useEffect(() => {

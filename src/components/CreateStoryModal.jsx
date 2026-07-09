@@ -46,6 +46,8 @@ function CreateStoryModal({ clientId, onClose, onCreated }) {
 
   const handleFile = async (e) => {
     const file = e.target.files?.[0];
+    // Reset input so picking the same file again still triggers change
+    e.target.value = '';
     if (!file) return;
     setError('');
     try {

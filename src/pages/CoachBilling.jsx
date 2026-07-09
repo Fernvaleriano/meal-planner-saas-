@@ -211,7 +211,11 @@ function PromoCodeSection({ promoCodes, onCreatePromo, onDeletePromo, plans }) {
     await onCreatePromo({
       code: form.code,
       discountType: form.discountType,
-      discountValue: parseInt(form.discountValue),
+      // Server stores fixed discounts in cents (Stripe amount_off) —
+      // the form takes dollars, so convert on submit.
+      discountValue: form.discountType === 'fixed'
+        ? Math.round(parseFloat(form.discountValue || 0) * 100)
+        : parseInt(form.discountValue),
       maxUses: form.maxUses ? parseInt(form.maxUses) : null,
       expiresAt: form.expiresAt || null,
       planIds: form.planIds.length > 0 ? form.planIds : []
@@ -243,8 +247,8 @@ function PromoCodeSection({ promoCodes, onCreatePromo, onDeletePromo, plans }) {
                 <option value="fixed">Fixed Amount Off</option>
               </select>
             </label>
-            <label style={styles.label}>Value *
-              <input style={styles.input} type="number" min="1" value={form.discountValue} onChange={e => setForm({ ...form, discountValue: e.target.value })} required placeholder={form.discountType === 'percent' ? '20' : '500'} />
+            <label style={styles.label}>{form.discountType === 'percent' ? 'Percent Off (%) *' : 'Amount Off ($) *'}
+              <input style={styles.input} type="number" min={form.discountType === 'percent' ? '1' : '0.01'} step={form.discountType === 'percent' ? '1' : '0.01'} value={form.discountValue} onChange={e => setForm({ ...form, discountValue: e.target.value })} required placeholder={form.discountType === 'percent' ? '20' : '5.00'} />
             </label>
           </div>
           <div style={styles.promoRow}>
@@ -360,7 +364,7 @@ function RevenueOverview({ revenue, subscribers, recentPayments, pastDueAlerts }
 export default function CoachBilling() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { clientData } = useAuth();
+  const { user } = useAuth();
   const { showError, showSuccess } = useToast();
 
   const [connectStatus, setConnectStatus] = useState(null);
@@ -384,7 +388,7 @@ export default function CoachBilling() {
       // plans (which would duplicate Stripe products).
       const [statusRes, plansRes, promoRes, revenueRes] = await Promise.all([
         apiPost('/.netlify/functions/stripe-connect-onboarding', { action: 'status' }).catch(() => null),
-        apiGet(`/.netlify/functions/coach-billing-plans?coachId=${clientData?.id || ''}`).catch(() => null),
+        apiGet(`/.netlify/functions/coach-billing-plans?coachId=${user?.id || ''}`).catch(() => null),
         apiGet('/.netlify/functions/coach-promo-codes').catch(() => null),
         apiGet('/.netlify/functions/coach-revenue').catch(() => null)
       ]);
@@ -398,11 +402,11 @@ export default function CoachBilling() {
     } finally {
       setLoading(false);
     }
-  }, [clientData?.id]);
+  }, [user?.id]);
 
   useEffect(() => {
-    if (clientData?.id) fetchAll();
-  }, [clientData?.id, fetchAll]);
+    if (user?.id) fetchAll();
+  }, [user?.id, fetchAll]);
 
   // Check for connect_complete return
   useEffect(() => {

@@ -15,6 +15,45 @@ import {
 } from '../utils/badges';
 import { getNewlyEarnedMilestone } from '../utils/badgeMilestones';
 
+// Get the local calendar day (YYYY-MM-DD) for a check-in entry.
+// checkin_date is already a date-only string; created_at is a timestamp
+// that must be converted using local date parts (not UTC).
+const checkinDay = (entry) => {
+  if (entry?.checkin_date) return String(entry.checkin_date).slice(0, 10);
+  if (entry?.created_at) {
+    const d = new Date(entry.created_at);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  }
+  return null;
+};
+
+// Compute the real consecutive-day streak (ending today or yesterday)
+// from check-ins sorted newest-first.
+const computeCheckinStreak = (checkins) => {
+  const days = [...new Set((checkins || []).map(checkinDay).filter(Boolean))]
+    .sort()
+    .reverse();
+  if (days.length === 0) return 0;
+
+  const dayMs = 86400000;
+  // Parse as local time so the day doesn't shift west of UTC
+  const toDate = (s) => new Date(s + 'T00:00:00');
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  // Streak must end today or yesterday, otherwise it's broken
+  const gapFromToday = Math.round((today - toDate(days[0])) / dayMs);
+  if (gapFromToday > 1) return 0;
+
+  let streak = 1;
+  for (let i = 1; i < days.length; i++) {
+    const gap = Math.round((toDate(days[i - 1]) - toDate(days[i])) / dayMs);
+    if (gap === 1) streak++;
+    else break;
+  }
+  return streak;
+};
+
 function CheckIn() {
   const navigate = useNavigate();
   const { clientData } = useAuth();
@@ -53,11 +92,13 @@ function CheckIn() {
   const loadHistory = async () => {
     setLoadingHistory(true);
     try {
-      // Use save-checkin with GET method to retrieve history
-      const data = await apiGet(`/.netlify/functions/save-checkin?clientId=${clientData.id}&limit=10`);
+      // Use save-checkin with GET method to retrieve history.
+      // Fetch 90 so the streak can be computed over real consecutive
+      // days (the history list still only shows the latest 10).
+      const data = await apiGet(`/.netlify/functions/save-checkin?clientId=${clientData.id}&limit=90`);
       if (data?.checkins) {
-        setHistory(data.checkins);
-        setStreak(data.checkins.length);
+        setHistory(data.checkins.slice(0, 10));
+        setStreak(computeCheckinStreak(data.checkins));
       }
       if (typeof data?.pagination?.total === 'number') {
         setTotalCheckinCount(data.pagination.total);
@@ -350,7 +391,12 @@ function CheckIn() {
                       <div key={idx} className="checkin-entry">
                         <div className="checkin-entry-header">
                           <span className="checkin-date">
-                            {new Date(entry.checkin_date || entry.created_at).toLocaleDateString(getDateLocale(), {
+                            {(entry.checkin_date
+                              // Date-only string: parse as local time so it
+                              // doesn't show the previous day west of UTC
+                              ? new Date(String(entry.checkin_date).slice(0, 10) + 'T00:00:00')
+                              : new Date(entry.created_at)
+                            ).toLocaleDateString(getDateLocale(), {
                               weekday: 'short',
                               month: 'short',
                               day: 'numeric'

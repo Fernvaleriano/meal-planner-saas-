@@ -26,15 +26,35 @@ export const isVoiceRecordingSupported = () =>
   !!(navigator.mediaDevices?.getUserMedia && typeof MediaRecorder !== 'undefined');
 
 export const isVoiceRecording = () =>
-  !!(active && active.recorder.state === 'recording');
+  !!(active && active.recorder?.state === 'recording');
 
 // Starts recording. Throws if the mic is unavailable/denied.
 // onTick(elapsedSeconds) fires once a second for a timer display.
 // onAutoStop(recording) fires if the 5-minute cap stops it automatically.
 export const startVoiceRecording = async ({ onTick, onAutoStop } = {}) => {
+  // Reject a second start while the first is still awaiting the mic —
+  // otherwise the first call's stream would leak when this one takes over.
+  if (active?.starting) throw new Error('Voice recording is already starting');
   if (isVoiceRecording()) cancelVoiceRecording();
 
-  const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  // Claim the active slot BEFORE the async mic request so concurrent
+  // starts hit the guard above.
+  const placeholder = { starting: true };
+  active = placeholder;
+
+  let stream;
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  } catch (err) {
+    if (active === placeholder) active = null;
+    throw err;
+  }
+  if (active !== placeholder || placeholder.cancelled) {
+    // Cancelled (e.g. unmount) while waiting for permission — release the mic.
+    stream.getTracks().forEach(t => t.stop());
+    return;
+  }
+
   const mimeType = pickMimeType();
   let recorder;
   try {
@@ -101,7 +121,7 @@ export const startVoiceRecording = async ({ onTick, onAutoStop } = {}) => {
 // { blob, mimeType, extension, durationMs }, or null if nothing was active.
 export const stopVoiceRecording = () => {
   const entry = active;
-  if (!entry || entry.recorder.state !== 'recording') return Promise.resolve(null);
+  if (!entry || entry.recorder?.state !== 'recording') return Promise.resolve(null);
   return new Promise((resolve) => {
     entry.stopResolve = resolve;
     entry.recorder.stop();
@@ -113,10 +133,12 @@ export const cancelVoiceRecording = () => {
   const entry = active;
   if (!entry) return;
   entry.cancelled = true;
-  if (entry.recorder.state === 'recording') {
+  if (entry.recorder?.state === 'recording') {
     entry.recorder.stop();
   } else {
-    entry.stream.getTracks().forEach(t => t.stop());
+    // Also covers the still-starting placeholder (no recorder/stream yet):
+    // startVoiceRecording sees `cancelled` and releases the mic itself.
+    entry.stream?.getTracks().forEach(t => t.stop());
     if (entry.timerInterval) clearInterval(entry.timerInterval);
     if (active === entry) active = null;
   }

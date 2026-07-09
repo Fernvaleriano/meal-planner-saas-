@@ -608,6 +608,13 @@ function ExerciseDetailModal({
   useEffect(() => {
     setSets(initialSets);
     setShowVideo(!!(exercise?.customVideoPath || exercise?.customVideoUrl));
+    // Drop the previous exercise's blob-fallback video so it can't play under
+    // the new exercise (playableVideoSrc prefers videoBlobUrl), and revoke the
+    // object URL so the blob's memory is actually released.
+    if (videoBlobUrl) {
+      try { URL.revokeObjectURL(videoBlobUrl); } catch { /* ignore */ }
+      setVideoBlobUrl(null);
+    }
     playRequestedRef.current = false;
     setShowSetEditor(false);
     setShowSwapModal(false);
@@ -2010,9 +2017,25 @@ function ExerciseDetailModal({
       try {
         if (!assignmentId || !currentExercise) return;
 
-        // Build updated exercises array: replace this exercise's sets/setsData
+        // The same exercise can appear twice in a day (e.g. warm-up squat +
+        // main squat) sharing one id, so an id-only match would overwrite
+        // BOTH copies. Identify THIS instance by which occurrence of its id
+        // it is in the display array — `exercises` is an order-preserving
+        // filter of the raw day data and entries with an id always survive
+        // the filter, so occurrence numbers line up between the two arrays.
+        // Falls back to currentIndex / the first occurrence if the object
+        // reference isn't found (same approach as the auto-advance below).
+        let displayIdx = exercises.indexOf(currentExercise);
+        if (displayIdx === -1) displayIdx = currentIndex;
+        let occurrence = 0;
+        for (let i = 0; i < displayIdx; i++) {
+          if (exercises[i]?.id === currentExercise.id) occurrence++;
+        }
+
+        // Build updated exercises array: replace ONLY this instance's sets/setsData
+        let seen = 0;
         const updatedExercises = allExercisesRaw.map(ex => {
-          if (ex?.id === currentExercise.id) {
+          if (ex?.id === currentExercise.id && seen++ === occurrence) {
             return { ...ex, sets: acceptedSets, setsData: acceptedSets };
           }
           return ex;
@@ -2091,7 +2114,7 @@ function ExerciseDetailModal({
     saveToWorkoutLog();
 
     setAcceptedCoachingRec(true);
-  }, [coachingRecommendation, weightUnit, clientId, getWorkoutDateStr, assignmentId, dayIndex, allExercisesRaw]);
+  }, [coachingRecommendation, weightUnit, clientId, getWorkoutDateStr, assignmentId, dayIndex, allExercisesRaw, exercises, currentIndex]);
 
   // Calculate estimated 1RM using Epley formula: weight * (1 + reps/30)
   const calculate1RM = (weight, reps) => {

@@ -106,9 +106,17 @@ function StoryViewer({
     startTimer();
   }, [startTimer]);
 
+  // Fully reset only when the story changes; un-pausing (hold released,
+  // reply/viewers closed) resumes from the accumulated elapsed time.
+  const lastIndexRef = useRef(null);
   useEffect(() => {
     if (!paused && !showReplyInput && !showViewers) {
-      resetAndStart();
+      if (lastIndexRef.current !== currentIndex) {
+        lastIndexRef.current = currentIndex;
+        resetAndStart();
+      } else {
+        startTimer();
+      }
     }
     return () => {
       if (timerRef.current) cancelAnimationFrame(timerRef.current);

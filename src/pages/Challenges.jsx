@@ -37,6 +37,12 @@ function formatDate(dateStr) {
   return new Date(dateStr + 'T00:00:00').toLocaleDateString(getDateLocale(), { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
+// YYYY-MM-DD from LOCAL date parts (toISOString would give the UTC date,
+// which is tomorrow/yesterday near midnight outside UTC).
+function toLocalDateString(d) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
 function daysUntil(dateStr) {
   const target = new Date(dateStr + 'T00:00:00');
   const now = new Date();
@@ -332,11 +338,11 @@ function CreateChallengeForm({ coachId, onClose, onCreated }) {
   const [targetValue, setTargetValue] = useState('');
   const [targetUnit, setTargetUnit] = useState('');
   const [frequency, setFrequency] = useState('daily');
-  const [startDate, setStartDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [startDate, setStartDate] = useState(() => toLocalDateString(new Date()));
   const [endDate, setEndDate] = useState(() => {
     const d = new Date();
     d.setDate(d.getDate() + 30);
-    return d.toISOString().split('T')[0];
+    return toLocalDateString(d);
   });
   const [assignTo, setAssignTo] = useState('all');
   const [clients, setClients] = useState([]);

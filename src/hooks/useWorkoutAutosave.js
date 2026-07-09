@@ -121,8 +121,16 @@ export function useWorkoutAutosave({ programId, getState, hasChanges, onDbSaved 
 
       lastSavedRef.current = stateStr;
       setAutosaveStatus('saved');
-      clearDraft();
-      onDbSavedRef.current?.();
+
+      // Only clear the draft / dirty flag when nothing changed while the PUT
+      // was in flight. If the user kept editing during the save, those edits
+      // would otherwise be silently marked as saved — leave the dirty flag
+      // alone so the next interval tick saves the newer state.
+      const currentStr = JSON.stringify(getStateRef.current());
+      if (currentStr === stateStr) {
+        clearDraft();
+        onDbSavedRef.current?.();
+      }
 
       // Reset status after 3 seconds
       setTimeout(() => setAutosaveStatus('idle'), 3000);

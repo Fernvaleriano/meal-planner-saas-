@@ -210,6 +210,15 @@ function SetEditorModal({
   const distanceUnit = exercise.distanceUnit || 'miles';
   const distanceUnitLabel = distanceUnit === 'miles' ? 'mi' : distanceUnit === 'km' ? 'km' : 'm';
   const [editMode, setEditMode] = useState(isDistanceExercise ? 'distance' : (isTimedExercise ? 'time' : 'reps'));
+  // Mode the editor OPENED with. Close-with-autosave falls back to this so
+  // merely peeking at another tab (without editing there) can't convert the
+  // exercise's tracking type — consumers (ExerciseCard/ExerciseDetailModal)
+  // rewrite trackingType/exercise_type from the mode passed to onSave.
+  const initialEditModeRef = useRef(editMode);
+  // True once the user edits sets while on the current tab; reset on tab
+  // switch. Only an actual edit on a tab makes close-with-autosave adopt
+  // that tab's mode.
+  const editedSinceModeSwitchRef = useRef(false);
   const [localSets, setLocalSets] = useState(sets.map(s => ({ ...s, rpe: s.rpe || null })));
   const [activeSetIndex, setActiveSetIndex] = useState(null);
   const [activeField, setActiveField] = useState(null);
@@ -269,60 +278,73 @@ function SetEditorModal({
       const parsed = parseVoiceInput(transcript);
 
       // Handle multiple sets (batch input)
+      // Build newSets from the FRESHEST state via a functional updater — the
+      // localSets captured when the mic started may be stale if the user kept
+      // editing while speaking (mirrors ExerciseDetailModal's voice handler).
       if (parsed.multiple && parsed.sets.length > 0) {
-        const newSets = [...localSets];
-        let lastUpdatedIndex = 0;
+        editedSinceModeSwitchRef.current = true;
+        setLocalSets(prevSets => {
+          const newSets = [...prevSets];
+          let lastUpdatedIndex = 0;
 
-        for (const setData of parsed.sets) {
-          // setNumber is 1-indexed, convert to 0-indexed
-          const targetIndex = setData.setNumber - 1;
+          for (const setData of parsed.sets) {
+            // setNumber is 1-indexed, convert to 0-indexed
+            const targetIndex = setData.setNumber - 1;
 
-          // Only update if the set exists
-          if (targetIndex >= 0 && targetIndex < newSets.length) {
-            if (setData.reps !== null) {
-              newSets[targetIndex] = { ...newSets[targetIndex], reps: setData.reps };
+            // Only update if the set exists
+            if (targetIndex >= 0 && targetIndex < newSets.length) {
+              if (setData.reps !== null) {
+                newSets[targetIndex] = { ...newSets[targetIndex], reps: setData.reps };
+              }
+              if (setData.weight !== null) {
+                const w = setData.weightUnit
+                  ? convertWeight(setData.weight, setData.weightUnit, weightUnit)
+                  : setData.weight;
+                newSets[targetIndex] = { ...newSets[targetIndex], weight: w };
+              }
+              if (setData.rest !== null) {
+                newSets[targetIndex] = { ...newSets[targetIndex], restSeconds: setData.rest };
+              }
+              lastUpdatedIndex = targetIndex;
             }
-            if (setData.weight !== null) {
-              const w = setData.weightUnit
-                ? convertWeight(setData.weight, setData.weightUnit, weightUnit)
-                : setData.weight;
-              newSets[targetIndex] = { ...newSets[targetIndex], weight: w };
-            }
-            if (setData.rest !== null) {
-              newSets[targetIndex] = { ...newSets[targetIndex], restSeconds: setData.rest };
-            }
-            lastUpdatedIndex = targetIndex;
           }
-        }
 
-        setLocalSets(newSets);
-        setActiveSetIndex(lastUpdatedIndex);
+          // Schedule outside the updater (side-effect-free updater)
+          setTimeout(() => setActiveSetIndex(lastUpdatedIndex), 0);
+          return newSets;
+        });
       } else {
         // Single set logic
-        let targetSetIndex = activeSetIndex;
-        if (parsed.setNumber && parsed.setNumber <= localSets.length) {
-          targetSetIndex = parsed.setNumber - 1;
+        if (parsed.reps !== null || parsed.weight !== null || parsed.rest !== null) {
+          editedSinceModeSwitchRef.current = true;
         }
-        if (targetSetIndex === null) {
-          targetSetIndex = 0; // Default to first set
-        }
+        setLocalSets(prevSets => {
+          let targetSetIndex = activeSetIndex;
+          if (parsed.setNumber && parsed.setNumber <= prevSets.length) {
+            targetSetIndex = parsed.setNumber - 1;
+          }
+          if (targetSetIndex === null) {
+            targetSetIndex = 0; // Default to first set
+          }
 
-        // Update the set with parsed values
-        const newSets = [...localSets];
-        if (parsed.reps !== null) {
-          newSets[targetSetIndex] = { ...newSets[targetSetIndex], reps: parsed.reps };
-        }
-        if (parsed.weight !== null) {
-          const w = parsed.weightUnit
-            ? convertWeight(parsed.weight, parsed.weightUnit, weightUnit)
-            : parsed.weight;
-          newSets[targetSetIndex] = { ...newSets[targetSetIndex], weight: w };
-        }
-        if (parsed.rest !== null) {
-          newSets[targetSetIndex] = { ...newSets[targetSetIndex], restSeconds: parsed.rest };
-        }
-        setLocalSets(newSets);
-        setActiveSetIndex(targetSetIndex);
+          // Update the set with parsed values
+          const newSets = [...prevSets];
+          if (parsed.reps !== null) {
+            newSets[targetSetIndex] = { ...newSets[targetSetIndex], reps: parsed.reps };
+          }
+          if (parsed.weight !== null) {
+            const w = parsed.weightUnit
+              ? convertWeight(parsed.weight, parsed.weightUnit, weightUnit)
+              : parsed.weight;
+            newSets[targetSetIndex] = { ...newSets[targetSetIndex], weight: w };
+          }
+          if (parsed.rest !== null) {
+            newSets[targetSetIndex] = { ...newSets[targetSetIndex], restSeconds: parsed.rest };
+          }
+          // Schedule outside the updater (side-effect-free updater)
+          setTimeout(() => setActiveSetIndex(targetSetIndex), 0);
+          return newSets;
+        });
       }
     };
 
@@ -361,6 +383,13 @@ function SetEditorModal({
     } else {
       startVoiceInput();
     }
+  };
+
+  // Switch mode tabs. A bare switch (no edit afterwards) must not change the
+  // mode that close-with-autosave reports — see handleCloseWithAutoSave.
+  const switchEditMode = (mode) => {
+    if (mode !== editMode) editedSinceModeSwitchRef.current = false;
+    setEditMode(mode);
   };
 
   // Select a field and show keyboard
@@ -440,6 +469,7 @@ function SetEditorModal({
     } else {
       newSets[setIndex] = { ...newSets[setIndex], reps: safeValue };
     }
+    editedSinceModeSwitchRef.current = true;
     setLocalSets(newSets);
   };
 
@@ -513,6 +543,7 @@ function SetEditorModal({
       const currentWeight = getCurrentValue(activeSetIndex, 'weight');
       newSets = localSets.map(s => ({ ...s, reps: currentReps, weight: currentWeight }));
     }
+    editedSinceModeSwitchRef.current = true;
     setLocalSets(newSets);
     hideKeyboard();
   };
@@ -535,12 +566,18 @@ function SetEditorModal({
   // so saving on close is safe even when nothing changed.
   const handleCloseWithAutoSave = () => {
     try {
+      // Save with the visible tab's mode only if the user actually edited on
+      // it; otherwise fall back to the mode the editor opened with, so just
+      // peeking at the Time tab and closing can't convert a reps exercise
+      // into a timed one. (The explicit Save button keeps the current tab's
+      // mode — pressing Save is a deliberate action.)
+      const modeToSave = editedSinceModeSwitchRef.current ? editMode : initialEditModeRef.current;
       const setsToSave = localSets.map(s => ({
         ...s,
-        isTimeBased: editMode === 'time',
-        isDistanceBased: editMode === 'distance'
+        isTimeBased: modeToSave === 'time',
+        isDistanceBased: modeToSave === 'distance'
       }));
-      onSave(setsToSave, editMode);
+      onSave(setsToSave, modeToSave);
     } catch { /* ignore — still close */ }
     onClose();
   };
@@ -549,6 +586,7 @@ function SetEditorModal({
   const deleteSet = (index) => {
     if (localSets.length > 1) {
       const newSets = localSets.filter((_, i) => i !== index);
+      editedSinceModeSwitchRef.current = true;
       setLocalSets(newSets);
       if (activeSetIndex >= newSets.length) {
         setActiveSetIndex(newSets.length - 1);
@@ -559,6 +597,7 @@ function SetEditorModal({
   // Add a set
   const addSet = () => {
     const lastSet = localSets[localSets.length - 1];
+    editedSinceModeSwitchRef.current = true;
     setLocalSets([...localSets, { ...lastSet, completed: false, rpe: null }]);
   };
 
@@ -566,6 +605,7 @@ function SetEditorModal({
   const updateRpe = (index, rpeValue) => {
     const newSets = [...localSets];
     newSets[index] = { ...newSets[index], rpe: rpeValue };
+    editedSinceModeSwitchRef.current = true;
     setLocalSets(newSets);
     setRpePickerIndex(null); // Close picker after selection
   };
@@ -654,19 +694,19 @@ function SetEditorModal({
         <div className="editor-mode-toggle">
           <button
             className={`mode-btn ${editMode === 'reps' ? 'active' : ''}`}
-            onClick={() => setEditMode('reps')}
+            onClick={() => switchEditMode('reps')}
           >
             {isTillFailure ? t('setEditor.modeTillFailure') : t('setEditor.modeReps')}
           </button>
           <button
             className={`mode-btn ${editMode === 'time' ? 'active' : ''}`}
-            onClick={() => setEditMode('time')}
+            onClick={() => switchEditMode('time')}
           >
             {t('setEditor.modeTime')}
           </button>
           <button
             className={`mode-btn ${editMode === 'distance' ? 'active' : ''}`}
-            onClick={() => setEditMode('distance')}
+            onClick={() => switchEditMode('distance')}
           >
             {t('setEditor.modeDistance')}
           </button>
