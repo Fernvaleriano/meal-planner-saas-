@@ -1651,8 +1651,12 @@
             e.target.value = '';
         }
 
-        function clearAttachment() {
-            if (pendingAttachment?.previewUrl) {
+        function clearAttachment(opts) {
+            // When sending, the optimistic message bubble reuses this same
+            // preview URL, so we must NOT revoke it here or the bubble's player
+            // shows "Error". The send flow revokes it after the real upload URL
+            // is ready. All other callers (cancel/remove) still revoke.
+            if (pendingAttachment?.previewUrl && !(opts && opts.keepUrl)) {
                 URL.revokeObjectURL(pendingAttachment.previewUrl);
             }
             pendingAttachment = null;
@@ -1834,7 +1838,9 @@
 
             input.value = '';
             document.getElementById('sendBtn').disabled = true;
-            clearAttachment();
+            // keepUrl: the optimistic bubble below reuses attachment.previewUrl;
+            // it's revoked after the real upload URL is swapped in.
+            clearAttachment({ keepUrl: true });
 
             // Optimistic render
             const area = document.getElementById('messagesArea');
@@ -1899,6 +1905,13 @@
 
                     mediaUrl = urlData.publicUrl;
                     mediaType = urlData.mediaType;
+
+                    // Swap the optimistic bubble from the temporary local copy to
+                    // the real uploaded URL, then release the local copy. This is
+                    // what prevents the "Error" flash on the just-sent player.
+                    const optimisticMedia = msgDiv.querySelector('audio, video, img');
+                    if (optimisticMedia) optimisticMedia.src = mediaUrl;
+                    if (attachment.previewUrl) URL.revokeObjectURL(attachment.previewUrl);
                 } catch (err) {
                     console.error('Media upload failed:', err);
                     alert('Failed to upload media. Please try again or use a smaller file.');
