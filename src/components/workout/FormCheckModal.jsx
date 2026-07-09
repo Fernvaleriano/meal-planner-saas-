@@ -1,8 +1,9 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { X, Video, Upload, Loader2, CheckCircle2, AlertTriangle, Lightbulb, Eye, Sparkles, Copy, Check } from 'lucide-react';
+import { X, Video, Upload, Loader2, CheckCircle2, AlertTriangle, Lightbulb, Eye, Sparkles, Copy, Check, Send } from 'lucide-react';
 import Portal from '../Portal';
 import { apiPost } from '../../utils/api';
 import { useLanguage } from '../../context/LanguageContext';
+import { useAuth } from '../../context/AuthContext';
 
 // AI Form Check (BETA)
 // ---------------------------------------------------------------------------
@@ -208,15 +209,25 @@ const SEVERITY_COLOR = { minor: '#E8A33D', moderate: '#E07A3F', major: '#D9534F'
 
 export default function FormCheckModal({ exerciseName, onClose }) {
   const { t, language } = useLanguage();
+  const { clientData } = useAuth();
+  // The client and their coach — needed to drop the clip into the existing
+  // coach<->client chat. A coach previewing their own builder has no coach_id,
+  // so the "Send to coach" button simply hides in that case.
+  const coachId = clientData?.coach_id || null;
+  const clientId = clientData?.id || null;
+  const canSendToCoach = !!(coachId && clientId);
+
   const [phase, setPhase] = useState('idle'); // idle | working | results | error
   const [statusText, setStatusText] = useState('');
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
   const [thumbs, setThumbs] = useState([]);
   const [copied, setCopied] = useState(false);
+  const [sendState, setSendState] = useState('idle'); // idle | sending | sent | error
   const recordRef = useRef(null);
   const uploadRef = useRef(null);
   const framesRef = useRef(null); // last successfully-extracted frames, for retry without re-filming
+  const fileRef = useRef(null); // the raw clip, kept so it can be sent to the coach
 
   const tt = (key, fallback, vars) => {
     const v = t(key, vars);
@@ -279,7 +290,9 @@ export default function FormCheckModal({ exerciseName, onClose }) {
     setError(null);
     setResult(null);
     setThumbs([]);
+    setSendState('idle');
     framesRef.current = null;
+    fileRef.current = file; // keep the clip in case they send it to their coach
     setPhase('working');
 
     try {
@@ -310,8 +323,10 @@ export default function FormCheckModal({ exerciseName, onClose }) {
     }
   }, [analyzeFrames]);
 
-  const copyFeedback = useCallback(async () => {
-    if (!result) return;
+  // Turn the AI result into a plain-text summary. Shared by "Copy feedback"
+  // and "Send to coach" so both read identically.
+  const buildFeedbackText = useCallback(() => {
+    if (!result) return '';
     const lines = [];
     lines.push(exerciseName ? `Form check — ${exerciseName}` : 'Form check');
     if (result.summary) { lines.push('', result.summary); }
@@ -327,12 +342,66 @@ export default function FormCheckModal({ exerciseName, onClose }) {
       lines.push('', 'Focus next set:');
       result.cues.forEach((c) => lines.push(`• ${c}`));
     }
+    return lines.join('\n');
+  }, [result, exerciseName]);
+
+  const copyFeedback = useCallback(async () => {
+    if (!result) return;
     try {
-      await navigator.clipboard.writeText(lines.join('\n'));
+      await navigator.clipboard.writeText(buildFeedbackText());
       setCopied(true);
       setTimeout(() => setCopied(false), 1800);
     } catch (e) { /* clipboard blocked — no-op */ }
-  }, [result, exerciseName]);
+  }, [result, buildFeedbackText]);
+
+  // Send the actual clip + the AI notes to the coach, landing as a normal
+  // video message in their existing Messages inbox. We reuse the same two-step
+  // upload the chat screen uses: grab a signed URL, PUT the file straight to
+  // storage (bypasses the function body-size limit), then post the message.
+  const sendToCoach = useCallback(async () => {
+    const file = fileRef.current;
+    if (!file || !canSendToCoach || sendState === 'sending' || sendState === 'sent') return;
+
+    setSendState('sending');
+    try {
+      const ext = file.name?.split('.').pop() || file.type.split('/')[1] || 'mp4';
+      const urlResult = await apiPost('/.netlify/functions/get-chat-upload-url', {
+        coachId,
+        clientId,
+        contentType: file.type || 'video/mp4',
+        fileExtension: ext
+      });
+      if (!urlResult.success || !urlResult.uploadUrl) {
+        throw new Error(urlResult.error || 'upload-url-failed');
+      }
+
+      const uploadRes = await fetch(urlResult.uploadUrl, {
+        method: 'PUT',
+        headers: { 'Content-Type': file.type || 'video/mp4' },
+        body: file
+      });
+      if (!uploadRes.ok) throw new Error('upload-failed');
+
+      const prefix = tt('formCheck.coachMsgPrefix', 'Form check for you to review 👇');
+      const feedback = buildFeedbackText();
+      const message = `${prefix}\n\n${feedback}`;
+
+      await apiPost('/.netlify/functions/chat', {
+        action: 'send',
+        coachId,
+        clientId,
+        senderType: 'client',
+        message,
+        mediaUrl: urlResult.publicUrl,
+        mediaType: urlResult.mediaType || 'video'
+      });
+
+      setSendState('sent');
+    } catch (err) {
+      console.error('Send form check to coach failed:', err);
+      setSendState('error');
+    }
+  }, [canSendToCoach, coachId, clientId, sendState, buildFeedbackText]);
 
   const reset = () => {
     setPhase('idle');
@@ -340,7 +409,9 @@ export default function FormCheckModal({ exerciseName, onClose }) {
     setError(null);
     setThumbs([]);
     setStatusText('');
+    setSendState('idle');
     framesRef.current = null;
+    fileRef.current = null;
   };
 
   const overlay = {
@@ -491,6 +562,50 @@ export default function FormCheckModal({ exerciseName, onClose }) {
 
               {result.disclaimer && (
                 <p style={{ fontSize: 11.5, opacity: 0.6, marginTop: 18, lineHeight: 1.45 }}>{result.disclaimer}</p>
+              )}
+
+              {/* Send the clip + notes straight to the coach's chat. Shown
+                  whenever we still have the clip and the client has a coach —
+                  even if the AI couldn't fully assess, the coach can still
+                  watch the video. */}
+              {canSendToCoach && fileRef.current && (
+                <button
+                  onClick={sendToCoach}
+                  disabled={sendState === 'sending' || sendState === 'sent'}
+                  style={{
+                    ...btnPrimary,
+                    marginTop: 16,
+                    width: '100%',
+                    flexDirection: 'row',
+                    opacity: sendState === 'sending' ? 0.8 : 1,
+                    cursor: sendState === 'sending' || sendState === 'sent' ? 'default' : 'pointer',
+                    background: sendState === 'sent' ? 'rgba(46,196,182,0.15)' : '#2EC4B6',
+                    color: sendState === 'sent' ? '#2EC4B6' : '#fff'
+                  }}
+                >
+                  {sendState === 'sending' ? (
+                    <>
+                      <Loader2 size={18} style={{ animation: 'spin 1s linear infinite' }} />
+                      <span>{tt('formCheck.sending', 'Sending to your coach…')}</span>
+                      <style>{'@keyframes spin{to{transform:rotate(360deg)}}'}</style>
+                    </>
+                  ) : sendState === 'sent' ? (
+                    <>
+                      <Check size={18} />
+                      <span>{tt('formCheck.sent', 'Sent to your coach')}</span>
+                    </>
+                  ) : (
+                    <>
+                      <Send size={18} />
+                      <span>{tt('formCheck.sendToCoach', 'Send to coach')}</span>
+                    </>
+                  )}
+                </button>
+              )}
+              {sendState === 'error' && (
+                <p style={{ fontSize: 13, color: '#D9534F', marginTop: 8, textAlign: 'center' }}>
+                  {tt('formCheck.sendError', "Couldn't send that to your coach — please try again.")}
+                </p>
               )}
 
               {result.canAssess !== false && (
