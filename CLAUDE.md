@@ -64,15 +64,31 @@ headers in a casual conversation — stop, delete, rewrite plain.
   May 2026; baseline capture needs local DB/CLI access — not yet done.
 
 - **DECIDED (May 2026): new "premium all-inclusive" pricing** — Free 3 /
-  Starter 15·$59 / Growth 50·$129 / Scale 100·$179 / Pro-Agency
-  200·$239 / 200+ contact sales. Full rationale + implementation
+  Starter 15·$59 / Growth 50·$129 / Scale 100·$179 / Agency
+  200·$299 / 200+ contact sales. Full rationale + implementation
   checklist in **`COACH-LIMITS-AND-PRICING.md`** (now on the main
-  working branch). STRATEGY ONLY — NOT implemented (no code/Stripe
-  changes). Stripe prices must be created manually first; live-billing
-  changes need a grandfathering decision for existing subscribers.
-  (Was originally saved only on branch
+  working branch). (Was originally saved only on branch
   `claude/document-coach-limits-k8BxD` and nearly lost — consolidated
   here so it persists.)
+  - **ONLY Agency changed so far (July 2026): $199 → $299.** Founder
+    decided to move just the top tier for now (the $179→$199 gap was
+    far too soft — a roster doubling from 100→200 clients should pay
+    more). Starter/Growth/Scale are LEFT AS-IS on the live site
+    ($49 / $99 / $179, client counts unchanged) — the rest of the
+    "premium all-inclusive" set above (Starter $59/15, Growth $129) is
+    still just strategy, NOT rolled out. Do not touch those without an
+    explicit go-ahead.
+  - **Agency $299 display updated everywhere** (`index.html`,
+    `pricing.html`, `signup.html`, `billing.html`, `coach-profile.html`).
+    Client-limit code (`netlify/functions/create-client.js`
+    `CLIENT_LIMITS`) needed no change — Agency was already 200.
+  - **STILL PENDING (founder's job):** Stripe price is NOT changed —
+    checkout pulls live amounts from Stripe price IDs
+    (`create-checkout-session.js` `PRICE_IDS`, env var
+    `STRIPE_PRICE_PROFESSIONAL`), so the founder must create a new $299
+    Stripe price and repoint that env var, else displayed price ≠
+    charged price. Existing Agency subscribers keep their old $199 price
+    until moved (Stripe default = de-facto grandfathering).
 
 ## MARKETING CAROUSEL STYLE (BRAND-CONSISTENT — REUSE FOR ALL POSTS)
 
