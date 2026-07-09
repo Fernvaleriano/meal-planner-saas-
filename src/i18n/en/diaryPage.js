@@ -269,6 +269,7 @@ export default {
   toastVoiceGenericError: 'Voice input error: {error}. Please try again.',
   toastNoCopyDate: 'Please select a date',
   toastCopiedEntries: 'Copied {count} entries!',
+  toastCopiedPartial: 'Copied {copied} of {total} entries — {failed} failed. Copying again may duplicate the ones that succeeded.',
   toastNoCopyEntries: 'No entries to copy from that date',
   toastCopyFailed: 'Failed to copy entries',
   toastUpdateFailed: 'Failed to update entry',

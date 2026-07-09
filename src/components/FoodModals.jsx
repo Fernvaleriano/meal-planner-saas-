@@ -271,10 +271,7 @@ export function SnapPhotoModal({ isOpen, onClose, mealType, clientData, onFoodLo
       const failures = outcomes.filter(o => o.status === 'rejected');
       if (failures.length > 0) {
         console.error('Failed to add foods:', failures[0].reason);
-        // Composed inline (not a dictionary key) because it needs live counts
-        const partialMsg = language === 'es'
-          ? `No se pudieron agregar ${failures.length} de ${pendingFoods.length} alimentos. Toca de nuevo para reintentar solo los que fallaron.`
-          : `${failures.length} of ${pendingFoods.length} foods failed to add. Tap again to retry just the failed ones.`;
+        const partialMsg = t('foodModals.toastPartialAddFailed', { failed: failures.length, total: pendingFoods.length });
         setError(partialMsg);
         isAddingRef.current = false; // Reset ref on error to allow retrying the failed ones
         showError(partialMsg);
@@ -295,7 +292,7 @@ export function SnapPhotoModal({ isOpen, onClose, mealType, clientData, onFoodLo
     } finally {
       setIsAdding(false);
     }
-  }, [results, clientData, selectedMealType, servings, onFoodLogged, showError, showSuccess, selectedDate, t, language]);
+  }, [results, clientData, selectedMealType, servings, onFoodLogged, showError, showSuccess, selectedDate, t]);
 
   const handleClose = () => {
     setPreviews([]);

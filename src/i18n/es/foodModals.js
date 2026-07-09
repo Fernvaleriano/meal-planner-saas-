@@ -34,6 +34,7 @@ export default {
   snapErrBusy: 'El servicio de IA está temporalmente ocupado. Intenta de nuevo en un momento.',
   snapErrFailed: 'Error al analizar la foto: {message}',
   snapErrAddFoods: 'Error al agregar los alimentos. Intenta de nuevo.',
+  toastPartialAddFailed: 'No se pudieron agregar {failed} de {total} alimentos. Toca de nuevo para reintentar solo los que fallaron.',
 
   // SnapPhotoModal — results screen
   detectedFoods: 'Alimentos detectados',

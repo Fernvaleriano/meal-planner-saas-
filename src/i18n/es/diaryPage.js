@@ -269,6 +269,7 @@ export default {
   toastVoiceGenericError: 'Error de entrada de voz: {error}. Intenta de nuevo.',
   toastNoCopyDate: 'Por favor selecciona una fecha',
   toastCopiedEntries: '¡Se copiaron {count} entradas!',
+  toastCopiedPartial: 'Se copiaron {copied} de {total} entradas — {failed} fallaron. Copiar de nuevo puede duplicar las que sí funcionaron.',
   toastNoCopyEntries: 'No hay entradas para copiar de esa fecha',
   toastCopyFailed: 'Error al copiar las entradas',
   toastUpdateFailed: 'Error al actualizar la entrada',

@@ -200,6 +200,42 @@ const buildResumeIdentity = (clientId, selectedDate, workoutLogId, exercises) =>
   };
 };
 
+// Build the per-set log array for a single exercise from its prescription +
+// any already-logged sets. Factored out so the setLogs initializer and the
+// value-based resync effect stay byte-for-byte identical (a divergence between
+// the two would show different numbers before vs after the merged log arrives).
+const buildSetLogForExercise = (ex, weightUnit) => {
+  const numSets = typeof ex.sets === 'number' ? ex.sets : (Array.isArray(ex.sets) ? ex.sets.length : 3);
+  const defaultReps = parseReps(ex.reps);
+  return Array.from({ length: numSets }, (_, si) => {
+    // If sets is an array with existing data, use it; also check setsData (coach workout builder source of truth)
+    const existingSet = Array.isArray(ex.sets) ? ex.sets[si] : null;
+    const setsDataSet = Array.isArray(ex.setsData) ? ex.setsData[si] : null;
+    // Coach builder defaults to 'lb' in its unit dropdown. When per-set weightUnit
+    // is missing (older prescriptions), assume 'lbs' rather than the client's
+    // profile unit so conversion still kicks in.
+    const rawPrescribed = setsDataSet?.prescribedWeight ?? setsDataSet?.weight ?? 0;
+    const fromUnit = setsDataSet?.weightUnit || (rawPrescribed > 0 ? 'lbs' : weightUnit);
+    const prescribedW = convertWeight(rawPrescribed, fromUnit, weightUnit);
+    const prescribedR = setsDataSet?.prescribedReps ?? parseReps(setsDataSet?.reps || ex.reps);
+    // Coach rep targets can be strings ("8-12", "12+") — parse to the
+    // leading number so the rep countdown arms and the saved log stays
+    // numeric (a string here disabled the counter, rendered literally in
+    // the reps box, and failed `reps > 0` checks downstream when saved).
+    const rawReps = existingSet?.reps || setsDataSet?.reps || defaultReps;
+    return {
+      reps: typeof rawReps === 'string' ? parseReps(rawReps) : rawReps,
+      weight: existingSet?.weight || 0,
+      prescribedWeight: prescribedW,
+      prescribedReps: prescribedR,
+      duration: existingSet?.duration || setsDataSet?.duration || ex.duration || null,
+      distance: existingSet?.distance || setsDataSet?.distance || ex.distance || null,
+      restSeconds: existingSet?.restSeconds ?? setsDataSet?.restSeconds ?? ex.restSeconds ?? ex.rest_seconds ?? 90,
+      effort: existingSet?.effort || setsDataSet?.effort || null
+    };
+  });
+};
+
 const matchesResumeIdentity = (saved, identity) => (
   !!saved &&
   saved.clientId === identity.clientId &&
@@ -633,35 +669,7 @@ function GuidedWorkoutModal({
   const [setLogs, setSetLogs] = useState(() => {
     const initial = {};
     exercises.forEach((ex, i) => {
-      const numSets = typeof ex.sets === 'number' ? ex.sets : (Array.isArray(ex.sets) ? ex.sets.length : 3);
-      const defaultReps = parseReps(ex.reps);
-      initial[i] = Array.from({ length: numSets }, (_, si) => {
-        // If sets is an array with existing data, use it; also check setsData (coach workout builder source of truth)
-        const existingSet = Array.isArray(ex.sets) ? ex.sets[si] : null;
-        const setsDataSet = Array.isArray(ex.setsData) ? ex.setsData[si] : null;
-        // Coach builder defaults to 'lb' in its unit dropdown. When per-set weightUnit
-        // is missing (older prescriptions), assume 'lbs' rather than the client's
-        // profile unit so conversion still kicks in.
-        const rawPrescribed = setsDataSet?.prescribedWeight ?? setsDataSet?.weight ?? 0;
-        const fromUnit = setsDataSet?.weightUnit || (rawPrescribed > 0 ? 'lbs' : weightUnit);
-        const prescribedW = convertWeight(rawPrescribed, fromUnit, weightUnit);
-        const prescribedR = setsDataSet?.prescribedReps ?? parseReps(setsDataSet?.reps || ex.reps);
-        // Coach rep targets can be strings ("8-12", "12+") — parse to the
-        // leading number so the rep countdown arms and the saved log stays
-        // numeric (a string here disabled the counter, rendered literally in
-        // the reps box, and failed `reps > 0` checks downstream when saved).
-        const rawReps = existingSet?.reps || setsDataSet?.reps || defaultReps;
-        return {
-          reps: typeof rawReps === 'string' ? parseReps(rawReps) : rawReps,
-          weight: existingSet?.weight || 0,
-          prescribedWeight: prescribedW,
-          prescribedReps: prescribedR,
-          duration: existingSet?.duration || setsDataSet?.duration || ex.duration || null,
-          distance: existingSet?.distance || setsDataSet?.distance || ex.distance || null,
-          restSeconds: existingSet?.restSeconds ?? setsDataSet?.restSeconds ?? ex.restSeconds ?? ex.rest_seconds ?? 90,
-          effort: existingSet?.effort || setsDataSet?.effort || null
-        };
-      });
+      initial[i] = buildSetLogForExercise(ex, weightUnit);
     });
     return initial;
   });
@@ -2487,6 +2495,48 @@ function GuidedWorkoutModal({
       }
     });
   }, [phase, currentExIndex, exercises, onExerciseComplete, isExerciseTouched]);
+
+  // Value-based resync of setLogs from the `exercises` prop. Workouts.jsx's
+  // exercises useMemo merges the coach plan with the client's logged sets
+  // ASYNCHRONOUSLY — the merged log (e.g. sets logged earlier that day, or a
+  // slow/failed fetch on iOS resume) can arrive AFTER this modal mounted, so
+  // the one-time setLogs snapshot above may be built purely from prescription
+  // defaults. Mirror the resync effects in ExerciseDetailModal / ExerciseCard,
+  // but ONLY refresh exercises the user hasn't touched this session so we never
+  // clobber in-progress logging — and we deliberately do NOT persist here, so
+  // the touched-gating that guards already-logged sets stays intact. This is a
+  // display-only fix (previously-logged sets now show inside Play Mode).
+  const lastSyncedExJsonRef = useRef({});
+  useEffect(() => {
+    setSetLogs(prev => {
+      let changed = false;
+      let next = prev;
+      exercises.forEach((ex, i) => {
+        if (!ex) return;
+        // Never overwrite the user's work (or re-derive over a touched exercise
+        // whose logged sets are the whole thing the touched-gating protects).
+        if (isExerciseTouched(i)) return;
+        // Compare the prop's set-relevant fields by VALUE — the parent recreates
+        // arrays with identical data on every merge, so a reference check loops.
+        let incoming;
+        try {
+          incoming = JSON.stringify([ex.sets, ex.setsData, ex.reps, ex.duration, ex.distance, ex.restSeconds, ex.rest_seconds]);
+        } catch { return; }
+        if (incoming === lastSyncedExJsonRef.current[i]) return;
+        lastSyncedExJsonRef.current[i] = incoming;
+
+        const rebuilt = buildSetLogForExercise(ex, weightUnit);
+        let differs = true;
+        try { differs = JSON.stringify(prev[i]) !== JSON.stringify(rebuilt); } catch { differs = true; }
+        if (!differs) return;
+
+        if (next === prev) next = { ...prev };
+        next[i] = rebuilt;
+        changed = true;
+      });
+      return changed ? next : prev;
+    });
+  }, [exercises, weightUnit, isExerciseTouched]);
 
   // Auto-advance if deferred review has no active exercises (edge case: user went back and completed them)
   useEffect(() => {
