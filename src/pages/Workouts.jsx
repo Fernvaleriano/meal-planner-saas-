@@ -2502,50 +2502,41 @@ function Workouts() {
       );
     } catch (e) { /* ignore */ }
 
-    // Update workout_data to clear completed flags on all exercises
-    let capturedWorkoutData = null;
-    let capturedWorkout = null;
+    // Update workout_data to clear completed flags on all exercises.
+    // Compute the cleared data from the current workout FIRST and hand the
+    // same object to both the state update and the backend PUT — capturing
+    // it via a side effect inside the state updater and reading it after a
+    // 50ms timer (the previous version) silently skipped the PUT whenever
+    // React hadn't flushed the render in time.
+    const workout = todayWorkoutRef.current;
+    if (!workout?.workout_data) return;
 
-    setTodayWorkout(prev => {
-      if (!prev?.workout_data) return prev;
+    let currentExercises = [];
+    let isUsingDays = false;
+    const dayIndex = workout.day_index || 0;
 
-      let currentExercises = [];
-      let isUsingDays = false;
-      const dayIndex = prev.day_index || 0;
-
-      if (Array.isArray(prev.workout_data.exercises) && prev.workout_data.exercises.length > 0) {
-        currentExercises = [...prev.workout_data.exercises];
-      } else if (prev.workout_data.days && Array.isArray(prev.workout_data.days)) {
-        isUsingDays = true;
-        const dayData = prev.workout_data.days[dayIndex];
-        if (dayData?.exercises && Array.isArray(dayData.exercises)) {
-          currentExercises = [...dayData.exercises];
-        }
+    if (Array.isArray(workout.workout_data.exercises) && workout.workout_data.exercises.length > 0) {
+      currentExercises = [...workout.workout_data.exercises];
+    } else if (workout.workout_data.days && Array.isArray(workout.workout_data.days)) {
+      isUsingDays = true;
+      const dayData = workout.workout_data.days[dayIndex];
+      if (dayData?.exercises && Array.isArray(dayData.exercises)) {
+        currentExercises = [...dayData.exercises];
       }
+    }
 
-      const updatedExercises = currentExercises.map(ex => ({ ...ex, completed: false }));
+    const updatedExercises = currentExercises.map(ex => ({ ...ex, completed: false }));
 
-      let updatedWorkoutData;
-      if (isUsingDays) {
-        const updatedDays = [...prev.workout_data.days];
-        updatedDays[dayIndex] = { ...updatedDays[dayIndex], exercises: updatedExercises };
-        updatedWorkoutData = { ...prev.workout_data, days: updatedDays };
-      } else {
-        updatedWorkoutData = { ...prev.workout_data, exercises: updatedExercises };
-      }
+    let updatedWorkoutData;
+    if (isUsingDays) {
+      const updatedDays = [...workout.workout_data.days];
+      updatedDays[dayIndex] = { ...updatedDays[dayIndex], exercises: updatedExercises };
+      updatedWorkoutData = { ...workout.workout_data, days: updatedDays };
+    } else {
+      updatedWorkoutData = { ...workout.workout_data, exercises: updatedExercises };
+    }
 
-      capturedWorkoutData = updatedWorkoutData;
-      capturedWorkout = prev;
-
-      return { ...prev, workout_data: updatedWorkoutData };
-    });
-
-    // Persist to backend
-    await new Promise(r => setTimeout(r, 50));
-
-    const workout = capturedWorkout || todayWorkoutRef.current;
-    const updatedWorkoutData = capturedWorkoutData;
-    if (!workout || !updatedWorkoutData) return;
+    setTodayWorkout(prev => (prev?.workout_data ? { ...prev, workout_data: updatedWorkoutData } : prev));
 
     try {
       if (workout.is_adhoc) {
@@ -3440,10 +3431,14 @@ function Workouts() {
           ...(s?.duration != null && { duration: s.duration }),
           ...(s?.distance != null && { distance: s.distance })
         }));
+        // Real position in the day (1-based, matching the finish-save's
+        // order: index + 1) — a hardcoded order collapses to DB-row order
+        // when history is rebuilt from the log.
+        const exerciseOrderIdx = currentExercises.findIndex(ex => ex?.id === updatedExercise.id);
         const exercisePayload = {
           exerciseId: updatedExercise.id,
           exerciseName: updatedExercise.name || 'Unknown',
-          order: 1,
+          order: exerciseOrderIdx >= 0 ? exerciseOrderIdx + 1 : 1,
           sets: setsPayload
         };
 
