@@ -1,0 +1,175 @@
+// Thai strings for src/pages/Recipes.jsx
+export default {
+  pageTitle: 'สูตรอาหาร',
+  headerSubtitleCoach: 'จัดการสูตรอาหารสำหรับลูกค้าของคุณ',
+  headerSubtitleClient: 'หาไอเดียมื้ออาหารสุขภาพได้ทุกเวลา',
+
+  tabMyRecipesCoach: 'สูตรของฉัน',
+  tabMyRecipesClient: 'สูตรอาหาร',
+  tabDiscover: 'ค้นพบ',
+
+  categoryAll: 'ทั้งหมด',
+  categoryGrabGo: 'หยิบแล้วไป',
+  categoryQuick: 'เร็วทันใจ',
+  categoryMealPrep: 'เตรียมล่วงหน้า',
+  categoryFamily: 'ครอบครัว',
+
+  categoryLabelGrabGo: 'หยิบแล้วไป',
+  categoryLabelQuick: 'ไม่เกิน 15 นาที',
+  categoryLabelMealPrep: 'เตรียมล่วงหน้า',
+  categoryLabelFamily: 'มื้อเย็นครอบครัว',
+
+  dietAny: 'ทุกประเภทอาหาร',
+  dietVegetarian: 'มังสวิรัติ',
+  dietVegan: 'วีแกน',
+  dietGlutenFree: 'ปลอดกลูเตน',
+  dietKeto: 'คีโต',
+  dietPaleo: 'พาลีโอ',
+
+  addNewRecipe: 'เพิ่มสูตรใหม่',
+
+  prepMin: 'เตรียม {min} นาที',
+  cookMin: 'ปรุง {min} นาที',
+
+  macroCalAbbr: 'แคล',
+  macroProteinAbbr: 'โปรตีน',
+  macroCarbsAbbr: 'คาร์บ',
+
+  hiddenFromClients: 'ซ่อนจากลูกค้า',
+
+  discoverBadgeRecipe: 'สูตรอาหาร',
+
+  discoverProteinAbbr: 'P',
+  discoverCarbsAbbr: 'C',
+
+  loadingRecipes: 'กำลังโหลดสูตรอาหาร...',
+  loadingDiscover: 'กำลังหาสูตรอร่อย ๆ...',
+
+  emptyRecipesTitle: 'ยังไม่มีสูตรอาหาร',
+  emptyRecipesCoach: 'แตะ "เพิ่มสูตรใหม่" เพื่อสร้างสูตรให้ลูกค้าเห็น!',
+  emptyRecipesClient: 'โค้ชของคุณจะเพิ่มสูตรอาหารที่นี่เร็ว ๆ นี้!',
+
+  discoverEmptyTitle: 'ค้นพบสูตรใหม่ ๆ',
+  discoverEmptyText: 'ค้นหาสูตรอาหารนับพันจากทั่วโลก!',
+
+  discoverResultsCount: 'พบ {count} สูตร',
+  discoverSurpriseMe: 'สุ่มให้หน่อย',
+
+  discoverSearchPlaceholder: 'ค้นหาสูตร... (เช่น ไก่ พาสต้า สลัด)',
+
+  metaServing: 'ที่',
+  metaServings: 'ที่',
+
+  difficultyEasy: 'ง่าย',
+  difficultyMedium: 'ปานกลาง',
+  difficultyAdvanced: 'ยาก',
+
+  sourceLinkYoutube: 'ดูใน YouTube',
+  sourceLinkInstagram: 'ดูใน Instagram',
+  sourceLinkTikTok: 'ดูใน TikTok',
+  sourceLinkDefault: 'ดูลิงก์สูตรอาหาร',
+
+  nutritionTitle: 'โภชนาการต่อหนึ่งที่',
+  nutritionKcal: 'kcal',
+  dailyGoalPct: '{pct}% ของเป้าหมายรายวัน',
+  macroAriaLabel: 'สัดส่วนสารอาหาร',
+  macroProtein: 'โปรตีน',
+  macroCarbs: 'คาร์บ',
+  macroFat: 'ไขมัน',
+  macroPct: '{pct}%',
+
+  ingredientsTitle: 'ส่วนผสม',
+  ingredientsReset: 'รีเซ็ต',
+
+  instructionsTitle: 'วิธีทำ',
+  instructionsStep: 'ขั้นตอน',
+  instructionsSteps: 'ขั้นตอน',
+  instructionsReset: 'รีเซ็ต',
+
+  ctaEditRecipe: 'แก้ไขสูตร',
+  ctaDownload: 'ดาวน์โหลด',
+  ariaDeleteRecipe: 'ลบสูตร',
+  ariaDownloadPDF: 'ดาวน์โหลด PDF',
+
+  ctaLogToDiary: 'บันทึกลงไดอารี่',
+  ariaSaveToFavorites: 'บันทึกเป็นรายการโปรด',
+
+  tagHighProtein: 'โปรตีนสูง',
+  tagLowCalorie: 'แคลอรี่ต่ำ',
+  tagLowCarb: 'คาร์บต่ำ',
+  tagMinutes: '{min} นาที',
+
+  formEditTitle: 'แก้ไขสูตร',
+  formNewTitle: 'สูตรใหม่',
+  formLabelName: 'ชื่อสูตร *',
+  formPlaceholderName: 'เช่น สมูทตี้โบวล์โปรตีน',
+  formLabelDescription: 'คำอธิบาย',
+  formPlaceholderDescription: 'คำอธิบายสั้น ๆ...',
+  formLabelCategory: 'หมวดหมู่ *',
+  formCategoryGrabGo: 'หยิบแล้วไป (5 นาที)',
+  formCategoryQuick: 'เร็วทันใจ (ไม่เกิน 15 นาที)',
+  formCategoryMealPrep: 'เตรียมล่วงหน้า',
+  formCategoryFamily: 'มื้อเย็นครอบครัว (30+ นาที)',
+  formLabelPrep: 'เตรียม (นาที)',
+  formLabelCook: 'ปรุง (นาที)',
+  formLabelServings: 'จำนวนที่',
+  formLabelNutrition: 'โภชนาการ (ต่อหนึ่งที่)',
+  formLabelIngredients: 'ส่วนผสม',
+  formPlaceholderIngredients: 'หนึ่งบรรทัดต่อหนึ่งส่วนผสม:\nอกไก่ 6 ออนซ์\nบรอกโคลี 1 ถ้วย\nน้ำมันมะกอก 1 ช้อนโต๊ะ',
+  formLabelInstructions: 'วิธีทำ',
+  formPlaceholderInstructions: 'หนึ่งบรรทัดต่อหนึ่งขั้นตอน:\n1. อุ่นเตาอบที่ 200C\n2. หมักไก่\n3. อบ 25 นาที',
+  formLabelPhoto: 'รูปสูตรอาหาร (ไม่บังคับ)',
+  formUploadPhotoTap: 'แตะเพื่ออัปโหลดรูป',
+  formUploadPhotoTypes: 'JPG, PNG ไม่เกิน 5MB',
+  formLabelSourceUrl: 'ลิงก์สูตร (ไม่บังคับ)',
+  formPlaceholderSourceUrl: 'YouTube, Instagram, ลิงก์เว็บไซต์...',
+  formSourceUrlHint: 'ลิงก์นี้จะแสดงบนสูตรให้ลูกค้าเปิดดูได้',
+  formVisibleToClients: 'ลูกค้ามองเห็น',
+  formHiddenFromClients: 'ซ่อนจากลูกค้า',
+  formBtnSaving: 'กำลังบันทึก...',
+  formBtnUpdate: 'อัปเดตสูตร',
+  formBtnCreate: 'สร้างสูตร',
+  formUploading: 'กำลังอัปโหลด...',
+
+  youtubeModalTitle: 'นำเข้าจาก YouTube',
+  youtubeDescription: 'วางลิงก์ YouTube หรือ YouTube Shorts เราจะใช้ AI ดึงสูตรจากคำบรรยายวิดีโอแล้วกรอกฟอร์มให้อัตโนมัติ',
+  youtubeLabelUrl: 'ลิงก์ YouTube',
+  youtubePlaceholderUrl: 'https://www.youtube.com/shorts/...',
+  youtubeExtracting: 'กำลังดึงสูตร...',
+  youtubeExtractingDetail: 'กำลังดึงสูตรจากวิดีโอ...',
+  youtubeExtractingCaption: 'กำลังอ่านคำบรรยายและจัดเรียงส่วนผสมด้วย AI',
+  youtubeBtnExtract: 'ดึงสูตรด้วย AI',
+  youtubeFootnote: 'ใช้ได้กับ YouTube Shorts วิดีโอปกติ และลิงก์ youtu.be',
+
+  youtubeErrorNoCaptions: 'วิดีโอนี้ไม่มีคำบรรยาย ลองวิดีโออื่นหรือกรอกสูตรเอง',
+  youtubeErrorInvalidUrl: 'ลิงก์ YouTube ไม่ถูกต้อง กรุณาวางลิงก์ YouTube หรือ Shorts ที่ใช้ได้',
+  youtubeErrorGeneric: 'ดึงสูตรจากวิดีโอนี้ไม่ได้ ลองวิดีโออื่นหรือกรอกเอง',
+
+  toastImageNotFile: 'กรุณาเลือกไฟล์รูปภาพ',
+  toastImageTooLarge: 'รูปต้องไม่เกิน 5MB',
+  toastPopupBlocked: 'เปิดหน้าพิมพ์ไม่ได้ เบราว์เซอร์บล็อกป๊อปอัป',
+  toastImageUploadFailed: 'อัปโหลดรูปไม่สำเร็จ กรุณาลองอีกครั้ง',
+  toastLoadFailed: 'โหลดสูตรอาหารไม่สำเร็จ ลากลงเพื่อรีเฟรชแล้วลองใหม่',
+  toastNameRequired: 'ต้องใส่ชื่อสูตร',
+  toastSaveFailed: 'บันทึกสูตรไม่สำเร็จ กรุณาลองอีกครั้ง',
+  toastDeleteFailed: 'ลบสูตรไม่สำเร็จ กรุณาลองอีกครั้ง',
+  toastFavoriteSaveError: 'บันทึกไม่ได้ กรุณาลองอีกครั้ง',
+  toastFavoriteSuccess: 'บันทึกสูตรเป็นรายการโปรดแล้ว!',
+  toastFavoriteFailed: 'บันทึกเป็นรายการโปรดไม่ได้ กรุณาลองอีกครั้ง',
+
+  confirmDelete: 'ลบ "{name}"? ย้อนกลับไม่ได้นะ',
+
+  pdfBackToApp: '← กลับสู่แอป',
+  pdfPrepTime: 'เวลาเตรียม: {min} นาที',
+  pdfCookTime: 'เวลาปรุง: {min} นาที',
+  pdfCalories: 'แคลอรี่',
+  pdfProtein: 'โปรตีน',
+  pdfCarbs: 'คาร์บ',
+  pdfFat: 'ไขมัน',
+  pdfIngredients: 'ส่วนผสม',
+  pdfInstructions: 'วิธีทำ',
+  pdfFooter: 'ดาวน์โหลดจาก Ziquecoach',
+  pdfSource: 'ที่มา: {url}',
+
+  pdfTitleSuffix: 'สูตรอาหาร',
+};

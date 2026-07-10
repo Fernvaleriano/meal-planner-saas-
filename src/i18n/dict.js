@@ -12,9 +12,11 @@
 // en/dashboard.js  ->  t('dashboard.someKey').
 import enCore from './en.js';
 import esCore from './es.js';
+import thCore from './th.js';
 
 const enModules = import.meta.glob('./en/*.js', { eager: true });
 const esModules = import.meta.glob('./es/*.js', { eager: true });
+const thModules = import.meta.glob('./th/*.js', { eager: true });
 
 function assemble(core, modules) {
   const dict = { ...core };
@@ -28,3 +30,4 @@ function assemble(core, modules) {
 
 export const en = assemble(enCore, enModules);
 export const es = assemble(esCore, esModules);
+export const th = assemble(thCore, thModules);

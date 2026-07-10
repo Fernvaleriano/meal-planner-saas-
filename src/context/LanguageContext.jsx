@@ -14,15 +14,16 @@
 // localStorage (key 'zique-language'), the same approach already used for the
 // dark-mode theme.
 import { createContext, useContext, useState, useCallback, useEffect, useMemo } from 'react';
-import { en, es } from '../i18n/dict';
+import { en, es, th } from '../i18n/dict';
 
-const DICTS = { en, es };
+const DICTS = { en, es, th };
 
 // Languages offered in the picker. Add a dictionary above + an entry here to
 // support another language; everything else is automatic.
 export const SUPPORTED_LANGUAGES = [
   { code: 'en', label: 'English' },
   { code: 'es', label: 'Español' },
+  { code: 'th', label: 'ไทย' },
 ];
 
 const STORAGE_KEY = 'zique-language';
