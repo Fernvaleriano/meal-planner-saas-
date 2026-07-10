@@ -1,0 +1,86 @@
+// Thai strings for src/components/workout/ClubWorkoutsModal.jsx
+export default {
+
+  categoryStrength: 'ความแข็งแรง',
+  categoryHypertrophy: 'สร้างกล้ามเนื้อ',
+  categoryEndurance: 'ความอึด',
+  categoryWeightLoss: 'ลดน้ำหนัก',
+  categoryCardio: 'คาร์ดิโอ',
+  categoryHiit: 'HIIT',
+  categoryMobility: 'ความยืดหยุ่น',
+  categoryFullBody: 'ทั้งตัว',
+  categoryGeneral: 'ทั่วไป',
+
+  difficultyBeginner: 'มือใหม่',
+  difficultyIntermediate: 'ระดับกลาง',
+  difficultyAdvanced: 'ระดับสูง',
+
+  durationAny: 'ทุกระยะเวลา',
+  durationUnder30: 'ต่ำกว่า 30 นาที',
+  duration30to60: '30-60 นาที',
+  durationOver60: '60+ นาที',
+
+  typeAll: 'ทุกเวิร์กเอาต์',
+  typeSingle: 'เวิร์กเอาต์เดี่ยว',
+  typeProgram: 'โปรแกรมหลายวัน',
+
+  daySunday: 'วันอาทิตย์',
+  dayMonday: 'วันจันทร์',
+  dayTuesday: 'วันอังคาร',
+  dayWednesday: 'วันพุธ',
+  dayThursday: 'วันพฤหัสบดี',
+  dayFriday: 'วันศุกร์',
+  daySaturday: 'วันเสาร์',
+
+  exercises: 'ท่า',
+  exercisesHeading: 'ท่าออกกำลังกาย',
+  tillFailure: 'จนหมดแรง',
+  reps: 'ครั้ง',
+  statMin: '~{minutes} นาที',
+  statCal: '~{calories} แคลอรี่',
+
+  startThisWorkout: 'เริ่มเวิร์กเอาต์นี้',
+  scheduleForAnotherDay: 'จัดตารางไว้วันอื่น',
+  confirm: 'ยืนยัน',
+
+  workoutsHeading: 'เวิร์กเอาต์',
+  days: 'วัน',
+  workoutDays: 'วันออกกำลังกาย',
+  scheduleProgram: 'จัดตารางโปรแกรม',
+
+  scheduleProgramTitle: 'จัดตารางโปรแกรม',
+  startDate: 'วันเริ่ม',
+  numberOfWeeks: 'จำนวนสัปดาห์',
+  howLongHint: 'อยากทำโปรแกรมนี้นานแค่ไหน?',
+  endsOn: 'สิ้นสุด {date}',
+  workoutDaysLabel: 'วันออกกำลังกาย',
+  selectDaysHint: 'เลือกวันในสัปดาห์ที่จะฝึก',
+  daysPerWeekFor: '{daysPerWeek} วัน/สัปดาห์ เป็นเวลา {weeks} {weeksLabel}',
+  week: 'สัปดาห์',
+  weeks: 'สัปดาห์',
+  starting: 'เริ่ม {date}',
+  ends: '— สิ้นสุด {date}',
+  selectAtLeastOneDay: 'เลือกอย่างน้อยหนึ่งวันเพื่อไปต่อ',
+  startProgram: 'เริ่มโปรแกรม',
+
+  clubWorkoutsTitle: 'เวิร์กเอาต์ของยิม',
+  countOfTotal: '{result} จาก {total}',
+  programCount: '{count} {label}',
+  program: 'โปรแกรม',
+  programs: 'โปรแกรม',
+
+  searchPlaceholder: 'ค้นหาเวิร์กเอาต์...',
+  allGoals: 'ทุกเป้าหมาย',
+  allLevels: 'ทุกระดับ',
+  anyDuration: 'ทุกระยะเวลา',
+  allWorkouts: 'ทุกเวิร์กเอาต์',
+  clearFilters: 'ล้างตัวกรอง',
+
+  loading: 'กำลังโหลดเวิร์กเอาต์ของยิม...',
+  emptyNoWorkoutsTitle: 'ยังไม่มีเวิร์กเอาต์ของยิม',
+  emptyNoWorkoutsDesc: 'โค้ชของคุณยังไม่ได้สร้างเวิร์กเอาต์ของยิม กลับมาดูใหม่ภายหลังนะ!',
+  emptyNoMatchTitle: 'ไม่พบผลลัพธ์',
+  emptyNoMatchDesc: 'ลองปรับคำค้นหาหรือตัวกรองดู',
+
+  single: 'เดี่ยว',
+};
