@@ -6,6 +6,7 @@
 const DATE_LOCALES = {
   en: 'en-US',
   es: 'es',
+  th: 'th-TH',
 };
 
 export function getDateLocale() {
