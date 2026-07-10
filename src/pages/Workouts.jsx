@@ -1142,6 +1142,17 @@ function Workouts() {
     isOnWorkoutsRef.current = location.pathname === '/workouts';
   }, [location.pathname]);
 
+  // Deep-links from the gym home cards: open the AI generator or Club Workouts
+  // straight away, then clear the nav state so it doesn't re-fire on back/refresh.
+  useEffect(() => {
+    if (!location.state) return;
+    if (location.state.openGenerate) setShowGenerateWorkout(true);
+    if (location.state.openClub) setShowClubWorkouts(true);
+    if (location.state.openGenerate || location.state.openClub) {
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location.state, location.pathname, navigate]);
+
   useEffect(() => {
     if (location.pathname !== '/workouts' || !location.search) return;
     const dateParam = new URLSearchParams(location.search).get('date');

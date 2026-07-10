@@ -124,6 +124,14 @@ export default {
   quickActionClubWorkouts: 'Club Workouts',
   quickActionProfile: 'Profile',
 
+  // ── Gym (lite mode) home ──────────────────────────────────────────────────
+  gymGreeting: 'Hey {name} 👋',
+  gymGreetingFallback: 'there',
+  gymGreetingSub: 'Ready to train? Let\'s get after it.',
+  gymAiTitle: 'Generate today\'s workout',
+  gymAiSub: 'AI builds it around your goal & gear',
+  gymTodaysWorkout: 'My Workouts',
+
   // ── Error / toast messages ────────────────────────────────────────────────
   errorNoFood: 'Could not recognize the food. Please try describing it differently.',
   errorTimeout: 'Food analysis timed out. Please check your connection and try again.',
