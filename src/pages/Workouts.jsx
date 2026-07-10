@@ -675,6 +675,49 @@ function getEffectiveCompletedExercises(workout, log, clientId = null, dateStr =
   return combined;
 }
 
+// Merge a day's assignment cards + ad-hoc cards, dropping duplicates by id.
+// For clients with NO assignments (gym/lite members), workout-assignments
+// falls back to returning the day's ad-hoc workout AS an assignment — so the
+// same ad-hoc row arrives from BOTH endpoints. Without this dedupe it renders
+// as two identical cards (the "AI workout shows up twice" bug).
+function mergeDayWorkouts(assignments, adhocWorkouts) {
+  // Key matches the card render key. Bare id would be wrong here: one
+  // program can legitimately schedule several days on the same date (same
+  // id, different day_index) and those must all survive the merge.
+  const cardKey = (w) => w.instance_id || `${w.id}-${w.day_index || 0}`;
+  const merged = [];
+  const seen = new Set();
+  (assignments || []).forEach(a => {
+    if (!a) return;
+    const key = cardKey(a);
+    if (seen.has(key)) return;
+    seen.add(key);
+    merged.push(a);
+  });
+  (adhocWorkouts || []).forEach(w => {
+    if (!w) return;
+    const key = `${w.id}-0`; // ad-hoc cards always render at day_index 0
+    if (seen.has(key)) {
+      // Same ad-hoc row arrived via the assignment fallback, which doesn't
+      // carry workout_date — backfill it so date-based save paths still work.
+      const kept = merged.find(m => cardKey(m) === key);
+      if (kept && !kept.workout_date) kept.workout_date = w.workout_date;
+      return;
+    }
+    seen.add(key);
+    merged.push({
+      id: w.id,
+      client_id: w.client_id,
+      workout_date: w.workout_date,
+      name: w.name || 'Custom Workout',
+      day_index: 0,
+      workout_data: w.workout_data,
+      is_adhoc: true
+    });
+  });
+  return merged;
+}
+
 // Reconstruct a workout card from a workout_log so past workouts stay visible
 // even when the originating assignment has been deactivated or the ad-hoc row
 // removed. The log + exercise_logs contain everything the card/detail view
@@ -1464,31 +1507,13 @@ function Workouts() {
       // day.
       todayLogsRef.current = Array.isArray(logRes?.logs) ? logRes.logs : [];
 
-      const allWorkouts = [];
-
-      // Add assignments immediately (without waiting for signed URL refresh) —
-      // matches fetchWorkout's pattern. The signed URL refresh is fired in the
-      // background AFTER state is set (see below) so the UI updates instantly
-      // on resume instead of waiting 1-3s for storage.from(...).createSignedUrls
-      // round-trips.
-      if (assignmentRes?.assignments?.length > 0) {
-        assignmentRes.assignments.forEach(a => allWorkouts.push(a));
-      }
-
-      // Process adhoc workouts
-      if (adhocRes?.workouts?.length > 0) {
-        adhocRes.workouts.forEach(w => {
-          allWorkouts.push({
-            id: w.id,
-            client_id: w.client_id,
-            workout_date: w.workout_date,
-            name: w.name || 'Custom Workout',
-            day_index: 0,
-            workout_data: w.workout_data,
-            is_adhoc: true
-          });
-        });
-      }
+      // Assignments are added immediately (without waiting for signed URL
+      // refresh) — the signed URL refresh is fired in the background AFTER
+      // state is set (see below) so the UI updates instantly on resume
+      // instead of waiting 1-3s for storage createSignedUrls round-trips.
+      // mergeDayWorkouts dedupes ad-hoc rows that the assignments endpoint
+      // also returned via its no-assignment fallback.
+      const allWorkouts = mergeDayWorkouts(assignmentRes?.assignments, adhocRes?.workouts);
 
       // Past workouts must persist even when their assignment is deactivated
       // or the ad-hoc row is removed — reconstruct the card from the log.
@@ -1784,28 +1809,11 @@ function Workouts() {
         // See refreshWorkoutData for why we cache the full logs array.
         todayLogsRef.current = Array.isArray(logRes?.logs) ? logRes.logs : [];
 
-        const allWorkouts = [];
-
-        // Add assignments immediately (WITHOUT waiting for signed URL refresh).
-        // This eliminates the 3-10s delay where the UI showed nothing while
-        // signed URLs were being fetched for custom exercise videos.
-        if (assignmentRes?.assignments?.length > 0) {
-          assignmentRes.assignments.forEach(a => allWorkouts.push(a));
-        }
-
-        if (adhocRes?.workouts?.length > 0) {
-          adhocRes.workouts.forEach(w => {
-            allWorkouts.push({
-              id: w.id,
-              client_id: w.client_id,
-              workout_date: w.workout_date,
-              name: w.name || 'Custom Workout',
-              day_index: 0,
-              workout_data: w.workout_data,
-              is_adhoc: true
-            });
-          });
-        }
+        // Assignments are added immediately (WITHOUT waiting for signed URL
+        // refresh) — eliminates the 3-10s delay where the UI showed nothing
+        // while signed URLs were fetched. mergeDayWorkouts dedupes ad-hoc rows
+        // the assignments endpoint also returned via its fallback.
+        const allWorkouts = mergeDayWorkouts(assignmentRes?.assignments, adhocRes?.workouts);
 
         // See refreshWorkoutData: only rebuild a log-only card when the
         // assignment fetch truly succeeded-and-empty. On a transient
@@ -1993,23 +2001,9 @@ function Workouts() {
           return;
         }
 
-        const allWorkouts = [];
-        if (assignmentRes?.assignments?.length > 0) {
-          assignmentRes.assignments.forEach(a => allWorkouts.push(a));
-        }
-        if (adhocRes?.workouts?.length > 0) {
-          adhocRes.workouts.forEach(w => {
-            allWorkouts.push({
-              id: w.id,
-              client_id: w.client_id,
-              workout_date: w.workout_date,
-              name: w.name || 'Custom Workout',
-              day_index: 0,
-              workout_data: w.workout_data,
-              is_adhoc: true
-            });
-          });
-        }
+        // mergeDayWorkouts dedupes ad-hoc rows the assignments endpoint also
+        // returned via its no-assignment fallback (see refreshWorkoutData).
+        const allWorkouts = mergeDayWorkouts(assignmentRes?.assignments, adhocRes?.workouts);
         if (allWorkouts.length === 0 && logRes?.logs?.length > 0) {
           const historical = buildWorkoutFromLog(logRes.logs[0]);
           if (historical) allWorkouts.push(historical);
@@ -2857,9 +2851,11 @@ function Workouts() {
           // corrupt a different workout's id.
           const realId = res.workout.id;
           setTodayWorkout(prev => (prev && prev.id === adHocWorkout.id ? { ...prev, id: realId } : prev));
-          setTodayWorkouts(prev => prev.map(w =>
-            w.id === adHocWorkout.id ? { ...w, id: realId } : w
-          ));
+          // Filter out any stale card already carrying realId (server updates
+          // a same-named ad-hoc workout in place) before stamping the id.
+          setTodayWorkouts(prev => prev
+            .filter(w => w.id !== realId)
+            .map(w => w.id === adHocWorkout.id ? { ...w, id: realId } : w));
         } else {
           console.error('No workout returned from POST:', res);
           showError(t('workoutsPage.failedSaveWorkout'));
@@ -2990,9 +2986,13 @@ function Workouts() {
         const realId = res.workout.id;
         if (isForCurrentDay) {
           setTodayWorkout(prev => (prev && prev.id === newWorkout.id ? { ...prev, id: realId } : prev));
-          setTodayWorkouts(prev => prev.map(w =>
-            w.id === newWorkout.id ? { ...w, id: realId } : w
-          ));
+          // Drop any card already carrying realId before stamping it onto the
+          // optimistic card — the server updates (not duplicates) a same-named
+          // workout on the same date, so the old card is stale. Without the
+          // filter the list would hold two entries with the same id.
+          setTodayWorkouts(prev => prev
+            .filter(w => w.id !== realId)
+            .map(w => w.id === newWorkout.id ? { ...w, id: realId } : w));
         }
         refreshWeekSchedule();
       } else {
@@ -3105,9 +3105,11 @@ function Workouts() {
         // unrelated `prev` would corrupt its id.
         const realId = res.workout.id;
         setTodayWorkout(prev => (prev && prev.id === tempClubId ? { ...prev, id: realId } : prev));
-        setTodayWorkouts(prev => prev.map(w =>
-          w.id === tempClubId ? { ...w, id: realId } : w
-        ));
+        // Filter out any stale card already carrying realId (server updates
+        // a same-named ad-hoc workout in place) before stamping the id.
+        setTodayWorkouts(prev => prev
+          .filter(w => w.id !== realId)
+          .map(w => w.id === tempClubId ? { ...w, id: realId } : w));
       }
 
       if (isScheduled) {
@@ -5673,7 +5675,15 @@ function Workouts() {
                     // program merge into a single card with a separator between days
                     const grouped = [];
                     const groupMap = new Map();
+                    // Exact duplicates (same id + day_index, no instance_id)
+                    // must render once — they'd paint as a doubled card AND
+                    // collide as React keys. Distinct days of one program
+                    // share an id but differ in day_index, so they pass.
+                    const seenCardKeys = new Set();
                     todayWorkouts.forEach((workout) => {
+                      const cardKey = workout.instance_id || `${workout.id}-${workout.day_index}`;
+                      if (seenCardKeys.has(cardKey)) return;
+                      seenCardKeys.add(cardKey);
                       const key = workout.id;
                       if (!groupMap.has(key)) {
                         const group = [workout];

@@ -240,36 +240,41 @@ exports.handler = withTimeout(async (event) => {
           }
 
           if (!activeAssignments || activeAssignments.length === 0) {
-            // Check for ad-hoc workouts created by the client on this date
+            // Check for ad-hoc workouts created by the client on this date.
+            // A client can have MULTIPLE ad-hoc workouts on one date (club +
+            // AI-generated), so fetch them all — the old .maybeSingle() threw
+            // on >1 row and silently returned no workouts at all.
             try {
-              const { data: adhocWorkout } = await supabase
+              const { data: adhocWorkouts } = await supabase
                 .from('client_adhoc_workouts')
                 .select('*')
                 .eq('client_id', clientId)
                 .eq('workout_date', date)
                 .eq('is_active', true)
-                .maybeSingle();
+                .order('created_at', { ascending: true });
 
-              if (adhocWorkout) {
-                // Enrich ad-hoc workout exercises with video URLs
-                const adhocData = adhocWorkout.workout_data || {};
-                if (adhocData.exercises) {
-                  adhocData.exercises = await enrichExercisesWithVideos(adhocData.exercises, supabase);
+              if (adhocWorkouts && adhocWorkouts.length > 0) {
+                const adhocAssignments = [];
+                for (const adhocWorkout of adhocWorkouts) {
+                  // Enrich ad-hoc workout exercises with video URLs
+                  const adhocData = adhocWorkout.workout_data || {};
+                  if (adhocData.exercises) {
+                    adhocData.exercises = await enrichExercisesWithVideos(adhocData.exercises, supabase);
+                  }
+                  adhocAssignments.push({
+                    id: adhocWorkout.id,
+                    name: adhocWorkout.name || 'Custom Workout',
+                    day_index: 0,
+                    workout_data: adhocData,
+                    client_id: clientId,
+                    is_adhoc: true
+                  });
                 }
-                // Return the ad-hoc workout as an assignment
+                // Return the ad-hoc workouts as assignments
                 return {
                   statusCode: 200,
                   headers,
-                  body: JSON.stringify({
-                    assignments: [{
-                      id: adhocWorkout.id,
-                      name: adhocWorkout.name || 'Custom Workout',
-                      day_index: 0,
-                      workout_data: adhocData,
-                      client_id: clientId,
-                      is_adhoc: true
-                    }]
-                  })
+                  body: JSON.stringify({ assignments: adhocAssignments })
                 };
               }
             } catch (adhocError) {
