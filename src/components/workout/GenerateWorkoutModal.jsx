@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { X, Sparkles, Dumbbell } from 'lucide-react';
 import { apiPost } from '../../utils/api';
 
@@ -61,6 +61,9 @@ function GenerateWorkoutModal({ onClose, onGenerated, clientId = null, coachId =
   const [source, setSource] = useState('library');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  // Prevents a double-fired tap from launching two (paid) AI generations and
+  // saving the workout twice. Reset only on error so a retry is allowed.
+  const submittingRef = useRef(false);
 
   // Close on Escape
   useEffect(() => {
@@ -70,6 +73,8 @@ function GenerateWorkoutModal({ onClose, onGenerated, clientId = null, coachId =
   }, [onClose, loading]);
 
   const handleGenerate = async () => {
+    if (submittingRef.current) return;
+    submittingRef.current = true;
     setError('');
     setLoading(true);
     try {
@@ -110,6 +115,7 @@ function GenerateWorkoutModal({ onClose, onGenerated, clientId = null, coachId =
       console.error('AI workout generation failed:', err);
       setError(err.message || 'Something went wrong. Please try again.');
       setLoading(false);
+      submittingRef.current = false;
     }
   };
 
