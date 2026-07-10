@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback, lazy, Suspense } from 'react';
 import { Link } from 'react-router-dom';
-import { Camera, Search, Heart, ScanLine, Mic, ChevronRight, ChevronDown, BarChart3, ClipboardCheck, TrendingUp, BookOpen, Pill, ChefHat, Check, CheckCircle, Minus, Plus, X, Sunrise, Sun, Sunset, Moon, Coffee, Utensils, Dumbbell, Star, Clock, Trophy, UserCircle, Scale, Users } from 'lucide-react';
+import { Camera, Search, Heart, ScanLine, Mic, ChevronRight, ChevronDown, BarChart3, ClipboardCheck, TrendingUp, BookOpen, Pill, ChefHat, Check, CheckCircle, Minus, Plus, X, Sunrise, Sun, Sunset, Moon, Coffee, Utensils, Dumbbell, Star, Clock, Trophy, UserCircle, Scale, Users, Sparkles } from 'lucide-react';
 import InstallAppBanner from '../components/InstallAppBanner';
 import StoriesBar from '../components/StoriesBar';
 import { useAuth } from '../context/AuthContext';
@@ -44,7 +44,7 @@ function Dashboard() {
   const { clientData } = useAuth();
   const { showError, showSuccess } = useToast();
   const { t, language } = useLanguage();
-  const { isModuleVisible, getLabel } = useBranding();
+  const { isModuleVisible, getLabel, branding } = useBranding();
   // Workout-only ("lite mode") gym members have the diary module turned off.
   // When nutrition is disabled we hide the food-logging / macro / weigh-in
   // sections and show a workout-focused home instead. Full coaching clients
@@ -1408,10 +1408,10 @@ function Dashboard() {
         </div>
       )}
 
-      {/* Quick Actions Grid — nutrition-oriented for full coaching clients,
-          workout-oriented for workout-only (lite mode) gym members. */}
-      <h3 className="section-heading">{nutritionEnabled ? t('dashboard.quickActionsHeading') : getLabel('workouts')}</h3>
       {nutritionEnabled ? (
+      <>
+      {/* Quick Actions Grid — nutrition-oriented for full coaching clients. */}
+      <h3 className="section-heading">{t('dashboard.quickActionsHeading')}</h3>
       <div className="quick-actions-grid">
         <Link to="/check-in" className="quick-action-card">
           <div className="quick-action-card-icon">
@@ -1450,32 +1450,63 @@ function Dashboard() {
           <span>{t('dashboard.quickActionProfile')}</span>
         </Link>
       </div>
+      </>
       ) : (
-      <div className="quick-actions-grid">
-        <Link to="/workouts" className="quick-action-card">
-          <div className="quick-action-card-icon">
-            <Dumbbell size={24} />
+      /* ── Workout-only (lite mode) GYM HOME ── */
+      <div className="gym-home">
+        {/* Greeting */}
+        <div style={{ margin: '4px 2px 16px' }}>
+          <h2 style={{ fontSize: 23, fontWeight: 800, margin: 0, letterSpacing: '-0.3px' }}>
+            {t('dashboard.gymGreeting', { name: (clientData?.client_name || '').split(' ')[0] || t('dashboard.gymGreetingFallback') })}
+          </h2>
+          <p style={{ opacity: 0.6, margin: '4px 0 0', fontSize: 14.5 }}>
+            {branding?.brand_welcome_message || t('dashboard.gymGreetingSub')}
+          </p>
+        </div>
+
+        {/* AI hero card — the headline action */}
+        <Link
+          to="/workouts"
+          state={{ openGenerate: true }}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 14, textDecoration: 'none',
+            background: 'var(--brand-primary, #FF5A1F)', color: '#fff',
+            borderRadius: 16, padding: '18px 16px', marginBottom: 14,
+            boxShadow: '0 8px 20px rgba(0,0,0,0.14)',
+          }}
+        >
+          <div style={{
+            width: 46, height: 46, borderRadius: 12, flexShrink: 0,
+            background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <Sparkles size={24} />
           </div>
-          <span>{getLabel('workouts')}</span>
-        </Link>
-        <Link to="/workouts" className="quick-action-card">
-          <div className="quick-action-card-icon">
-            <Users size={24} />
+          <div style={{ flex: 1 }}>
+            <div style={{ fontWeight: 800, fontSize: 16.5 }}>{t('dashboard.gymAiTitle')}</div>
+            <div style={{ fontSize: 13, opacity: 0.9, marginTop: 2 }}>{t('dashboard.gymAiSub')}</div>
           </div>
-          <span>{t('dashboard.quickActionClubWorkouts')}</span>
+          <ChevronRight size={22} style={{ opacity: 0.9 }} />
         </Link>
-        <Link to="/progress" className="quick-action-card">
-          <div className="quick-action-card-icon">
-            <TrendingUp size={24} />
-          </div>
-          <span>{t('dashboard.quickActionProgress')}</span>
-        </Link>
-        <Link to="/settings" className="quick-action-card">
-          <div className="quick-action-card-icon">
-            <UserCircle size={24} />
-          </div>
-          <span>{t('dashboard.quickActionProfile')}</span>
-        </Link>
+
+        {/* Tiles */}
+        <div className="quick-actions-grid">
+          <Link to="/workouts" className="quick-action-card">
+            <div className="quick-action-card-icon"><Dumbbell size={24} /></div>
+            <span>{t('dashboard.gymTodaysWorkout')}</span>
+          </Link>
+          <Link to="/workouts" state={{ openClub: true }} className="quick-action-card">
+            <div className="quick-action-card-icon"><Users size={24} /></div>
+            <span>{t('dashboard.quickActionClubWorkouts')}</span>
+          </Link>
+          <Link to="/progress" className="quick-action-card">
+            <div className="quick-action-card-icon"><TrendingUp size={24} /></div>
+            <span>{t('dashboard.quickActionProgress')}</span>
+          </Link>
+          <Link to="/settings" className="quick-action-card">
+            <div className="quick-action-card-icon"><UserCircle size={24} /></div>
+            <span>{t('dashboard.quickActionProfile')}</span>
+          </Link>
+        </div>
       </div>
       )}
 
