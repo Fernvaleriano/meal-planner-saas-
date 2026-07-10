@@ -3606,14 +3606,11 @@
                         <button id="edit-template-btn" onclick="editSelectedTemplate()" class="btn btn-ghost flex-1 text-xs py-2" title="Edit template meals & macros" disabled style="opacity: 0.5; min-width: 70px;">
                             <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:4px;"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>Edit
                         </button>
-                        <button id="assign-template-btn" onclick="assignTemplateToClient()" class="btn flex-1 text-xs py-2" style="background: #2dd4bf; color: white; border: none; opacity: 0.5; min-width: 70px;" title="Assign template to a client" disabled>
-                            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:4px;"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><polyline points="17 11 19 13 23 9"/></svg>Assign
-                        </button>
                         <button id="delete-template-btn" onclick="deleteSelectedTemplate()" class="btn flex-1 text-xs py-2" style="background: transparent; border: 1px solid #dc2626; color: #f87171; opacity: 0.5; min-width: 70px;" title="Delete template" disabled>
                             <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:4px;"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>Delete
                         </button>
-                        <button id="bulk-post-template-btn" onclick="bulkPostTemplate()" class="btn btn-ghost flex-1 text-xs py-2" title="Post to multiple clients" disabled style="opacity: 0.5; min-width: 70px;">
-                            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:4px;"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>Bulk Post
+                        <button id="bulk-post-template-btn" onclick="bulkPostTemplate()" class="btn flex-1 text-xs py-2" title="Assign to one or more clients" disabled style="background: #2dd4bf; color: white; border: none; opacity: 0.5; min-width: 70px;">
+                            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:4px;"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><polyline points="17 11 19 13 23 9"/></svg>Assign to Clients
                         </button>
                     </div>
                 </div>
@@ -6980,7 +6977,7 @@ function displayDietPlan(multiDayData) {
             <button data-action="download-pdf" class="btn plan-action-btn-utility"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:4px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Download PDF</button>
             <button data-action="share-plan" class="btn plan-action-btn-utility"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:4px;"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>Share Link</button>
             <button data-action="save-as-template" class="btn plan-action-btn-utility"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:4px;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>Save as Template</button>
-            <button id="bulkPostBtnBottom" data-action="open-bulk-post" class="btn plan-action-btn-utility"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:4px;"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>Post to Multiple</button>
+            <button id="bulkPostBtnBottom" data-action="open-bulk-post" class="btn plan-action-btn-utility"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:4px;"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><polyline points="17 11 19 13 23 9"/></svg>Assign to Clients</button>
         </div>
     </div>`;
     resultDiv.innerHTML = planHTML;
@@ -7250,12 +7247,12 @@ function openBulkPostModal(templateOverride) {
                         <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
                         <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
                     </svg>
-                    Bulk Post ${_bulkPostTemplateOverride ? 'Template' : 'Plan'}
+                    Assign ${_bulkPostTemplateOverride ? 'Template' : 'Plan'} to Clients
                 </h3>
                 <button data-action="close-bulk-post" style="background:none;border:none;font-size:22px;cursor:pointer;color:#6b7280;padding:4px;">&times;</button>
             </div>
             ${_bulkPostTemplateOverride ? '<p style="margin:0 0 8px 0;font-size:13px;font-weight:600;color:#7c3aed;">Template: ' + _bulkPostTemplateOverride.planName + '</p>' : ''}
-            <p style="margin:0 0 12px 0;font-size:13px;color:#6b7280;">Select the clients you want to post this ${_bulkPostTemplateOverride ? 'template' : 'plan'} to. Each client will get their own independent copy.</p>
+            <p style="margin:0 0 12px 0;font-size:13px;color:#6b7280;">Select the clients you want to assign this ${_bulkPostTemplateOverride ? 'template' : 'plan'} to — each gets their own independent copy, no matter who it was built for.</p>
             <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid #e5e7eb;">
                 <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;font-weight:600;color:#7c3aed;">
                     <input type="checkbox" id="bulk-post-select-all" style="width:18px;height:18px;accent-color:#7c3aed;cursor:pointer;">
@@ -7275,7 +7272,7 @@ function openBulkPostModal(templateOverride) {
             <button id="bulk-post-confirm-btn" data-action="confirm-bulk-post"
                     style="width:100%;padding:12px;background:#7c3aed;color:white;border:none;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer;transition:background 0.15s;"
                     onmouseover="this.style.background='#6d28d9'" onmouseout="this.style.background='#7c3aed'">
-                Post Plan to Selected Clients
+                Assign to Selected Clients
             </button>
         </div>
     `;
