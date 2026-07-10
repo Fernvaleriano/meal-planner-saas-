@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bulk Video Upload</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    :root { --bg:#0A1F2E; --card:#12293a; --accent:#2EC4B6; --line:#24404f; --muted:#9fb3c0; --err:#ff6b6b; --ok:#33c27f; }
+    * { box-sizing:border-box; margin:0; padding:0; }
+    body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; background:var(--bg); color:#fff; padding:20px; }
+    .wrap { max-width:1000px; margin:0 auto; }
+    h1 { font-size:24px; font-weight:800; }
+    .sub { color:var(--muted); font-size:14px; margin:6px 0 20px; }
+    .toolbar { display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin-bottom:16px; position:sticky; top:0; background:var(--bg); padding:10px 0; z-index:5; }
+    .btn { border:none; border-radius:10px; padding:11px 16px; font-size:14px; font-weight:700; cursor:pointer; }
+    .btn.primary { background:var(--accent); color:#06121a; }
+    .btn.ghost { background:transparent; border:1.5px solid var(--line); color:#fff; }
+    .btn:disabled { opacity:.5; cursor:default; }
+    .count { color:var(--muted); font-size:13px; margin-left:auto; }
+    .row { display:grid; grid-template-columns:96px 1fr; gap:12px; background:var(--card); border-radius:12px; padding:10px; margin-bottom:10px; align-items:center; }
+    .thumb { width:96px; height:72px; border-radius:8px; object-fit:cover; background:#0c1e2b; display:flex; align-items:center; justify-content:center; color:var(--muted); font-size:11px; }
+    .fields { display:grid; grid-template-columns:1.6fr 1fr 1fr 1fr; gap:8px; align-items:center; }
+    input, select { width:100%; background:#0c1e2b; border:1.5px solid var(--line); border-radius:8px; padding:9px 8px; color:#fff; font-size:14px; outline:none; }
+    input:focus, select:focus { border-color:var(--accent); }
+    .name-input { font-weight:600; }
+    .status { font-size:12px; font-weight:700; padding:2px 8px; border-radius:20px; white-space:nowrap; }
+    .s-ready { color:var(--muted); }
+    .s-uploading { color:var(--accent); }
+    .s-done { color:var(--ok); }
+    .s-error { color:var(--err); }
+    .row.done { opacity:.6; }
+    .meta-row { display:flex; align-items:center; gap:10px; margin-top:6px; font-size:12px; color:var(--muted); }
+    .uni { display:flex; align-items:center; gap:5px; }
+    .empty { text-align:center; color:var(--muted); padding:50px 0; border:1.5px dashed var(--line); border-radius:12px; }
+    .bar { height:6px; background:var(--line); border-radius:4px; overflow:hidden; margin:8px 0 16px; display:none; }
+    .bar > div { height:100%; background:var(--accent); width:0%; transition:width .2s; }
+    label.file { display:inline-block; }
+    #fileInput { display:none; }
+    .note { font-size:12px; color:var(--muted); margin-top:4px; }
+    @media (max-width:720px){ .fields { grid-template-columns:1fr 1fr; } }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Bulk Video Upload</h1>
+    <p class="sub">Drop in all your exercise clips at once. Each gets a thumbnail automatically — you name them, the AI fills the rest, then save all.</p>
+
+    <div class="toolbar">
+      <label class="file btn primary" for="fileInput">＋ Add videos</label>
+      <input id="fileInput" type="file" accept="video/*" multiple />
+      <button class="btn ghost" id="aiBtn" disabled>✨ AI-fill blanks</button>
+      <button class="btn primary" id="saveBtn" disabled>⬆ Upload &amp; save all</button>
+      <span class="count" id="count"></span>
+    </div>
+    <div class="bar" id="bar"><div></div></div>
+    <div class="note" id="who"></div>
+
+    <div id="list"></div>
+    <div class="empty" id="empty">No videos added yet. Tap “Add videos” and pick your clips.</div>
+  </div>
+
+  <script>
+    const SUPABASE_URL = 'https://qewqcjzlfqamqwbccapr.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFld3FjanpsZnFhbXF3YmNjYXByIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM2OTg0NzAsImV4cCI6MjA3OTI3NDQ3MH0.mQnMC33O88oLkLLGWD2oG-oaSHGI-NfHmtQCZxnxSLs';
+    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    let currentCoachId = null, currentAccessToken = null;
+    let rows = [];
+    let uid = 0;
+
+    const EQUIPMENT = ['dumbbell','barbell','kettlebell','cable','machine','bodyweight','bands','pullup_bar','sled','punching_bag','medicine_ball','battle_ropes','box','bench','other'];
+    const MUSCLES = ['chest','back','shoulders','biceps','triceps','legs','glutes','hamstrings','quads','calves','core','full body','cardio','mobility'];
+    const TYPES = ['strength','cardio','flexibility','warmup','cooldown'];
+    const DIFFS = ['beginner','intermediate','advanced'];
+
+    async function apiCall(url, options = {}) {
+      const headers = { 'Content-Type':'application/json', ...(currentAccessToken && { 'Authorization':`Bearer ${currentAccessToken}` }), ...options.headers };
+      const res = await fetch(url, { ...options, headers });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || data.message || 'Request failed');
+      return data;
+    }
+
+    async function checkAuth() {
+      const { data: { session } } = await supabaseClient.auth.getSession();
+      if (!session) { window.location.href = 'login.html'; return; }
+      currentCoachId = session.user.id;
+      currentAccessToken = session.access_token;
+      document.getElementById('who').textContent = `Uploading to: ${session.user.email || 'your account'} — videos will belong to this account.`;
+    }
+
+    // --- Thumbnail from first frame ---
+    function makeThumb(file) {
+      return new Promise((resolve) => {
+        const video = document.createElement('video');
+        video.preload = 'metadata'; video.muted = true; video.playsInline = true;
+        const url = URL.createObjectURL(file);
+        let done = false;
+        const finish = (v) => { if (done) return; done = true; try { URL.revokeObjectURL(url); } catch(e){} resolve(v); };
+        video.onloadedmetadata = () => { try { video.currentTime = Math.min(1, (video.duration || 2) / 2); } catch(e){ finish(null); } };
+        video.onseeked = () => {
+          try {
+            const w = 320, scale = w / (video.videoWidth || 320);
+            const c = document.createElement('canvas');
+            c.width = w; c.height = Math.round((video.videoHeight || 240) * scale);
+            c.getContext('2d').drawImage(video, 0, 0, c.width, c.height);
+            finish(c.toDataURL('image/jpeg', 0.7));
+          } catch(e){ finish(null); }
+        };
+        video.onerror = () => finish(null);
+        video.src = url;
+        setTimeout(() => finish(null), 8000);
+      });
+    }
+
+    function typeFor(file) {
+      const t = (file.type || '').toLowerCase();
+      if (t.includes('webm')) return { contentType:'video/webm', ext:'webm' };
+      if (t.includes('quicktime') || (file.name||'').toLowerCase().endsWith('.mov')) return { contentType:'video/quicktime', ext:'mov' };
+      return { contentType:'video/mp4', ext:'mp4' };
+    }
+
+    function niceName(fname) {
+      return (fname || '').replace(/\.[^.]+$/, '').replace(/[_-]+/g, ' ').replace(/\s+/g, ' ').trim()
+        .replace(/\b\w/g, c => c.toUpperCase());
+    }
+
+    function handleFiles(fileList) {
+      const files = Array.from(fileList).filter(f => (f.type || '').startsWith('video/') || /\.(mp4|mov|webm|m4v)$/i.test(f.name));
+      files.forEach((file, i) => {
+        const { contentType, ext } = typeFor(file);
+        const row = {
+          id: ++uid, file, contentType,
+          fileName: `custom-${Date.now()}-${uid}.${ext}`,
+          thumb: null,
+          name: niceName(file.name),
+          muscleGroup: 'full body', equipment: 'other', exerciseType: 'strength',
+          difficulty: 'intermediate', isUnilateral: false, instructions: '',
+          status: 'ready', error: ''
+        };
+        rows.push(row);
+        makeThumb(file).then(t => { row.thumb = t; const img = document.querySelector(`[data-thumb="${row.id}"]`); if (img && t) { img.style.backgroundImage = `url(${t})`; img.textContent=''; } });
+      });
+      render();
+    }
+
+    function render() {
+      const list = document.getElementById('list');
+      document.getElementById('empty').style.display = rows.length ? 'none' : 'block';
+      list.innerHTML = rows.map(r => {
+        const statusTxt = r.status === 'done' ? '✓ Saved' : r.status === 'uploading' ? 'Uploading…' : r.status === 'error' ? ('✕ ' + (r.error||'Error')) : 'Ready';
+        return `
+        <div class="row ${r.status==='done'?'done':''}">
+          <div class="thumb" data-thumb="${r.id}" style="${r.thumb?`background-image:url(${r.thumb})`:''}">${r.thumb?'':'…'}</div>
+          <div>
+            <div class="fields">
+              <input class="name-input" data-f="name" data-id="${r.id}" value="${(r.name||'').replace(/"/g,'&quot;')}" placeholder="Exercise name" />
+              <select data-f="equipment" data-id="${r.id}">${EQUIPMENT.map(e=>`<option value="${e}" ${r.equipment===e?'selected':''}>${e.replace(/_/g,' ')}</option>`).join('')}</select>
+              <select data-f="muscleGroup" data-id="${r.id}">${MUSCLES.map(m=>`<option value="${m}" ${r.muscleGroup===m?'selected':''}>${m}</option>`).join('')}</select>
+              <select data-f="exerciseType" data-id="${r.id}">${TYPES.map(t=>`<option value="${t}" ${r.exerciseType===t?'selected':''}>${t}</option>`).join('')}</select>
+            </div>
+            <div class="meta-row">
+              <label class="uni"><input type="checkbox" data-f="isUnilateral" data-id="${r.id}" ${r.isUnilateral?'checked':''}/> single-arm/leg</label>
+              <select data-f="difficulty" data-id="${r.id}" style="width:auto;padding:4px 8px;">${DIFFS.map(d=>`<option value="${d}" ${r.difficulty===d?'selected':''}>${d}</option>`).join('')}</select>
+              <span class="status s-${r.status}">${statusTxt}</span>
+            </div>
+          </div>
+        </div>`;
+      }).join('');
+
+      // Bind field updates (no re-render on input, to keep focus while typing)
+      list.querySelectorAll('[data-f]').forEach(el => {
+        const id = +el.getAttribute('data-id'), f = el.getAttribute('data-f');
+        const row = rows.find(r => r.id === id); if (!row) return;
+        const ev = el.type === 'checkbox' ? 'change' : (el.tagName === 'SELECT' ? 'change' : 'input');
+        el.addEventListener(ev, () => { row[f] = el.type === 'checkbox' ? el.checked : el.value; });
+      });
+      updateCount();
+    }
+
+    function updateCount() {
+      const done = rows.filter(r => r.status === 'done').length;
+      document.getElementById('count').textContent = rows.length ? `${done}/${rows.length} saved` : '';
+      document.getElementById('aiBtn').disabled = rows.length === 0;
+      document.getElementById('saveBtn').disabled = rows.length === 0;
+    }
+
+    // --- AI fill ---
+    async function aiFill() {
+      const btn = document.getElementById('aiBtn');
+      btn.disabled = true; btn.textContent = '✨ Filling…';
+      try {
+        const targets = rows.filter(r => (r.name||'').trim());
+        for (let c = 0; c < targets.length; c += 80) {
+          const chunk = targets.slice(c, c + 80);
+          const res = await apiCall('/.netlify/functions/classify-exercises', { method:'POST', body: JSON.stringify({ names: chunk.map(r => r.name.trim()) }) });
+          (res.results || []).forEach((m, idx) => {
+            const r = chunk[idx]; if (!r || !m) return;
+            r.muscleGroup = m.muscleGroup; r.equipment = m.equipment; r.exerciseType = m.exerciseType;
+            r.difficulty = m.difficulty; r.isUnilateral = m.isUnilateral; r.instructions = m.instructions || '';
+          });
+        }
+        render();
+      } catch (e) { alert('AI fill failed: ' + e.message); }
+      btn.textContent = '✨ AI-fill blanks'; btn.disabled = rows.length === 0;
+    }
+
+    // --- Upload one row through the full pipeline ---
+    async function uploadRow(row) {
+      if (!(row.name || '').trim()) { row.status = 'error'; row.error = 'Name required'; return; }
+      row.status = 'uploading'; render();
+      try {
+        const up = await apiCall('/.netlify/functions/get-video-upload-url', { method:'POST', body: JSON.stringify({ coachId: currentCoachId, fileName: row.fileName, contentType: row.contentType, folder: 'exercise-videos' }) });
+        if (!up.success) throw new Error(up.error || 'Upload URL failed');
+
+        const put = await fetch(up.uploadUrl, { method:'PUT', headers: { 'Content-Type': row.contentType }, body: row.file });
+        if (!put.ok) throw new Error('Storage upload failed');
+
+        let animationUrl = null;
+        try {
+          const signed = await apiCall('/.netlify/functions/get-signed-video-url', { method:'POST', body: JSON.stringify({ filePath: up.filePath }) });
+          if (signed.success) animationUrl = signed.url;
+        } catch(e){ /* non-fatal — re-signed on playback */ }
+
+        const created = await apiCall('/.netlify/functions/exercises', { method:'POST', body: JSON.stringify({
+          coachId: currentCoachId, name: row.name.trim(), muscleGroup: row.muscleGroup, equipment: row.equipment,
+          exerciseType: row.exerciseType, difficulty: row.difficulty, isUnilateral: row.isUnilateral,
+          instructions: row.instructions || null, animationUrl, thumbnailUrl: null
+        }) });
+        if (!created.success || !created.exercise) throw new Error('Create failed');
+
+        if (row.thumb) {
+          try { await apiCall('/.netlify/functions/upload-exercise-thumbnail', { method:'POST', body: JSON.stringify({ exerciseId: created.exercise.id, imageBase64: row.thumb, imageName: 'thumb.jpg' }) }); }
+          catch(e){ /* thumbnail is non-fatal */ }
+        }
+        row.status = 'done'; row.error = '';
+      } catch (e) {
+        row.status = 'error'; row.error = e.message || 'Failed';
+      }
+    }
+
+    // --- Save all with a small concurrency pool + progress ---
+    async function saveAll() {
+      const saveBtn = document.getElementById('saveBtn');
+      const queue = rows.filter(r => r.status !== 'done' && (r.name||'').trim());
+      if (queue.length === 0) { alert('Nothing to save — add videos and give them names first.'); return; }
+      saveBtn.disabled = true; document.getElementById('aiBtn').disabled = true;
+      const bar = document.getElementById('bar'); bar.style.display = 'block';
+      const barFill = bar.firstElementChild;
+      let done = 0;
+      const total = queue.length;
+      let i = 0;
+      const worker = async () => {
+        while (i < queue.length) {
+          const r = queue[i++];
+          await uploadRow(r);
+          done++; barFill.style.width = `${Math.round(done/total*100)}%`;
+          render();
+        }
+      };
+      await Promise.all([worker(), worker(), worker()]);
+      const failed = rows.filter(r => r.status === 'error').length;
+      bar.style.display = 'none'; barFill.style.width = '0%';
+      saveBtn.disabled = false; document.getElementById('aiBtn').disabled = false;
+      render();
+      alert(failed ? `Done — ${total - failed} saved, ${failed} failed. Fix names/connection and press Save again to retry the failed ones.` : `All ${total} videos saved! 🎉`);
+    }
+
+    document.getElementById('fileInput').addEventListener('change', (e) => { handleFiles(e.target.files); e.target.value = ''; });
+    document.getElementById('aiBtn').addEventListener('click', aiFill);
+    document.getElementById('saveBtn').addEventListener('click', saveAll);
+
+    checkAuth();
+  </script>
+</body>
+</html>
