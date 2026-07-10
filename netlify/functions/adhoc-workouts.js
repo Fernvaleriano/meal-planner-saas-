@@ -153,20 +153,29 @@ exports.handler = async (event) => {
         };
       }
 
-      // Check if there's already an ad-hoc workout for this date
+      // Multiple ad-hoc workouts can coexist on one date (e.g. a club workout
+      // plus an AI-generated one). Only a SAME-NAMED workout on the same date
+      // is replaced in place — that keeps a re-save/regenerate idempotent
+      // without destroying the day's other workouts. (The old per-date check
+      // made every new workout overwrite whatever the day already had — the
+      // "new AI workout deleted my prior one" bug.)
+      const workoutName = name || 'Custom Workout';
       const { data: existing } = await supabase
         .from('client_adhoc_workouts')
         .select('id')
         .eq('client_id', clientId)
         .eq('workout_date', workoutDate)
+        .eq('name', workoutName)
+        .order('created_at', { ascending: false })
+        .limit(1)
         .maybeSingle();
 
       if (existing) {
-        // Update existing ad-hoc workout
+        // Update existing same-named ad-hoc workout
         const { data: updated, error: updateError } = await supabase
           .from('client_adhoc_workouts')
           .update({
-            name: name || 'Custom Workout',
+            name: workoutName,
             workout_data: workoutData,
             updated_at: new Date().toISOString()
           })
@@ -192,7 +201,7 @@ exports.handler = async (event) => {
         .insert([{
           client_id: clientId,
           workout_date: workoutDate,
-          name: name || 'Custom Workout',
+          name: workoutName,
           workout_data: workoutData,
           is_active: true
         }])
@@ -239,6 +248,28 @@ exports.handler = async (event) => {
           })
           .eq('id', workoutId);
       } else if (clientId && workoutDate) {
+        // Multiple ad-hoc workouts can exist on one date, so resolve a single
+        // target row first — a bare by-date update would hit every row and
+        // make the .single() below throw. This fallback only fires while the
+        // client still holds a temp id (right after create), so the most
+        // recently updated row is the one being edited.
+        const { data: target } = await supabase
+          .from('client_adhoc_workouts')
+          .select('id')
+          .eq('client_id', clientId)
+          .eq('workout_date', workoutDate)
+          .order('updated_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (!target) {
+          return {
+            statusCode: 404,
+            headers,
+            body: JSON.stringify({ error: 'No ad-hoc workout found for that date' })
+          };
+        }
+
         query = supabase
           .from('client_adhoc_workouts')
           .update({
@@ -246,8 +277,7 @@ exports.handler = async (event) => {
             workout_data: workoutData,
             updated_at: new Date().toISOString()
           })
-          .eq('client_id', clientId)
-          .eq('workout_date', workoutDate);
+          .eq('id', target.id);
       } else {
         return {
           statusCode: 400,
