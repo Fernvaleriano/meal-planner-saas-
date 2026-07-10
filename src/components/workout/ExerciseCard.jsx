@@ -1100,6 +1100,13 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
                   })}
                 </>
               )}
+              {/* Inline add-set button — quick, visible way for the client to
+                  log an extra set without swiping or opening the editor.
+                  Mirrors the add-box in the exercise detail modal. addSet
+                  stops propagation so this tap never opens the set editor. */}
+              <div className="time-box add-box" onClick={addSet} role="button" aria-label="Add set">
+                <Plus size={18} />
+              </div>
             </div>
 
             {/* Rest Time Row - aligned with sets above */}
