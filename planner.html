@@ -4792,6 +4792,79 @@ window.addEventListener('pageshow', function(event) {
     }
 });
 
+// ─── Edit an existing plan in the planner (opened with ?planId=…) ────────────
+// The planner already saves the whole working state (lastPlanQuery) into
+// plan_data, so re-opening a saved plan is just the mirror of that: rehydrate
+// lastPlanQuery, reflect the client + name, and render it with the SAME view
+// used right after generation. Plans that predate the multi-day `currentPlan`
+// shape (or that fail to render) fall back to the classic view-plan.html viewer
+// so a plan never fails to open.
+async function loadExistingPlanIntoPlanner(planId) {
+    const goToViewer = (cid) =>
+        `view-plan.html?planId=${planId}` + (cid ? `&fromClient=${cid}` : '');
+    try {
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        const token = session?.access_token;
+        const res = await fetch(
+            `/.netlify/functions/get-coach-plan-by-id?planId=${encodeURIComponent(planId)}&coachId=${encodeURIComponent(currentCoach.id)}`,
+            { headers: token ? { 'Authorization': `Bearer ${token}` } : {} }
+        );
+        if (!res.ok) throw new Error(`Load failed (${res.status})`);
+        const { plan } = await res.json();
+        const pd = plan && plan.plan_data;
+        const clientForBack = (plan && plan.client_id) || (pd && pd.clientId) || null;
+
+        // Legacy / unsupported shape → open the classic viewer instead of risking
+        // a broken render here. displayDietPlan needs a multi-day currentPlan whose
+        // first day carries a targets object; a handful of old rows don't have it.
+        const firstDay = (pd && Array.isArray(pd.currentPlan)) ? pd.currentPlan[0] : null;
+        if (!pd || !firstDay || !firstDay.targets) {
+            window.location.href = goToViewer(clientForBack);
+            return;
+        }
+
+        // Rehydrate the working state exactly as if we had just generated this plan.
+        lastPlanQuery = Object.assign({}, pd);
+        lastPlanQuery.planId = plan.id;
+        lastPlanQuery.status = plan.status || pd.status || 'draft';
+        lastPlanQuery.clientId = clientForBack;
+        lastPlanQuery.clientName = plan.client_name || pd.clientName || '';
+        lastPlanQuery.planName = plan.plan_name || pd.planName || '';
+
+        // Reflect the name + client selection in the form so it reads like the
+        // create screen (the client dropdown was already filled by loadClients).
+        const nameInput = document.getElementById('dp_plan_name');
+        if (nameInput && lastPlanQuery.planName) nameInput.value = lastPlanQuery.planName;
+        if (lastPlanQuery.clientId) {
+            const sel = document.getElementById('dp_client_selector');
+            const hid = document.getElementById('dp_selected_client_id');
+            if (sel) sel.value = String(lastPlanQuery.clientId);
+            if (hid) hid.value = String(lastPlanQuery.clientId);
+            const backBtn = document.getElementById('backToClientBtn');
+            if (backBtn) { backBtn.style.display = 'block'; backBtn.dataset.clientId = String(lastPlanQuery.clientId); }
+        }
+
+        // Render it with the same view used right after generation.
+        try {
+            displayDietPlan(lastPlanQuery.currentPlan);
+        } catch (renderErr) {
+            console.error('Planner render failed — falling back to viewer:', renderErr);
+            window.location.href = goToViewer(clientForBack);
+            return;
+        }
+
+        // Freshly loaded == in sync with the database (no unsaved-changes prompt).
+        hasUnsavedChanges = false;
+
+        const resultEl = document.getElementById('diet-plan-result');
+        if (resultEl) resultEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } catch (err) {
+        console.error('Could not load plan for editing:', err);
+        // Last resort: hand off to the classic viewer so the coach isn't stuck.
+        window.location.href = goToViewer(null);
+    }
+}
+
 // Check authentication on page load
 document.addEventListener('DOMContentLoaded', async () => {
     try {
@@ -4860,6 +4933,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             // Load saved meals for this coach
             await loadSavedMeals();
+
+            // If opened to edit an existing plan (?planId=…), load it into the
+            // planner so editing happens on the same screen as creating.
+            const editPlanId = new URLSearchParams(window.location.search).get('planId');
+            if (editPlanId) {
+                await loadExistingPlanIntoPlanner(editPlanId);
+            }
 
             // Load unread message count for sidebar badge
             loadUnreadMessageCount(currentCoach.id);

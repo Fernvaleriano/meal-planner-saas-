@@ -1119,8 +1119,9 @@
         }
 
         function planEditUrl(p) {
-            let url = `view-plan.html?planId=${p.id}`;
-            if (p.client_id) url += `&fromClient=${p.client_id}`;
+            // Edit on the same screen used to create a plan (the full planner).
+            let url = `planner.html?planId=${p.id}`;
+            if (p.client_id) url += `&clientId=${p.client_id}`;
             return url;
         }
 
@@ -1194,7 +1195,7 @@
         // Actions
         function editPlan(id) {
             const p = plans.find(pl => pl.id === id);
-            window.location.href = p ? planEditUrl(p) : `view-plan.html?planId=${id}`;
+            window.location.href = p ? planEditUrl(p) : `planner.html?planId=${id}`;
         }
 
         async function duplicatePlan(id) {
