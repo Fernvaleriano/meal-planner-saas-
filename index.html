@@ -739,8 +739,9 @@
         /* PRICING */
         .pricing-grid {
             margin-top: 34px;
-            display: grid;
-            grid-template-columns: repeat(3, minmax(0,1fr));
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
             gap: 16px;
         }
         .price-card {
@@ -750,6 +751,7 @@
             padding: 24px;
             display: flex;
             flex-direction: column;
+            flex: 0 1 calc((100% - 32px) / 3);
         }
         .price-card.featured {
             border: 2px solid var(--brand-secondary);
@@ -860,7 +862,7 @@
             .workflow { grid-template-columns: repeat(2, minmax(0,1fr)); }
             .feature-grid { grid-template-columns: repeat(2, minmax(0,1fr)); }
             .pain-grid { grid-template-columns: 1fr; }
-            .pricing-grid { grid-template-columns: repeat(2, minmax(0,1fr)); }
+            .price-card { flex-basis: calc((100% - 16px) / 2); }
             .footer-grid { grid-template-columns: repeat(2, minmax(0,1fr)); }
             .checkin-feature { padding: 28px; }
         }
@@ -878,6 +880,7 @@
             .faq-grid,
             .footer-grid { grid-template-columns: 1fr; }
             .price-card.featured { transform: none; }
+            .price-card { flex-basis: 100%; }
             .pivot { padding: 26px; }
             .checkin-feature { padding: 22px; gap: 24px; }
 
@@ -1350,19 +1353,10 @@
                     </ul>
                     <a href="mailto:contact@ziquecoach.com?subject=Ziquecoach%20Agency%20plan" class="btn btn-secondary">Contact sales</a>
                 </article>
-                <article class="price-card">
-                    <h3>Enterprise</h3>
-                    <div class="price">Custom</div>
-                    <small>for 200+ clients</small>
-                    <ul>
-                        <li>200+ active clients</li>
-                        <li>Everything in Agency</li>
-                        <li>Volume pricing</li>
-                        <li>White-glove migration</li>
-                    </ul>
-                    <a href="mailto:contact@ziquecoach.com?subject=Ziquecoach%20Enterprise" class="btn btn-secondary">Contact sales</a>
-                </article>
             </div>
+            <p style="text-align:center; margin-top:20px; opacity:0.75; font-size:0.95rem;">
+                More than 200 clients? <a href="mailto:contact@ziquecoach.com?subject=Ziquecoach%20Enterprise">Contact sales</a> for a custom plan.
+            </p>
         </div>
     </section>
 
