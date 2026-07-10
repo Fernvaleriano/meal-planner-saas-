@@ -40,7 +40,7 @@ exports.handler = async (event, context) => {
     // Retrieve all meal plans for this coach, ordered by creation date (newest first)
     const { data, error } = await supabase
       .from('coach_meal_plans')
-      .select('id, client_name, status, created_at, updated_at')
+      .select('id, plan_name, client_name, client_id, status, created_at, updated_at')
       .eq('coach_id', coachId)
       .order('created_at', { ascending: false });
 
