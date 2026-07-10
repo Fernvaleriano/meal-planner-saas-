@@ -824,8 +824,12 @@ exports.handler = withTimeout(async (event) => {
         const effectiveStart = startDate || schedule?.startDate;
         const weeks = schedule?.weeksAmount;
         if (effectiveStart && weeks) {
+          // end_date is the INCLUSIVE last day, so an N-week window covers
+          // exactly N*7 days: start .. start + N*7 - 1. Without the -1 the
+          // window ran one day long, repeating the start weekday (e.g. a
+          // 1-week Friday plan showed a 2nd Friday).
           const end = new Date(effectiveStart);
-          end.setDate(end.getDate() + (weeks * 7));
+          end.setDate(end.getDate() + (weeks * 7) - 1);
           finalEndDate = end.toISOString().split('T')[0];
         }
       }

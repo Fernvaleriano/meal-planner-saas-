@@ -12007,9 +12007,13 @@
                         original.video_url = replacement.video_url || '';
                     }
 
-                    // Calculate end date from start + weeks
+                    // Calculate end date from start + weeks.
+                    // end_date is the INCLUSIVE last day, so an N-week window
+                    // covers exactly N*7 days: start .. start + N*7 - 1. Without
+                    // the -1 the window ran one day long, repeating the start
+                    // weekday (e.g. a 1-week Friday plan showed a 2nd Friday).
                     const endDateObj = new Date(startDate);
-                    endDateObj.setDate(endDateObj.getDate() + (weeksAmount * 7));
+                    endDateObj.setDate(endDateObj.getDate() + (weeksAmount * 7) - 1);
                     const endDate = endDateObj.toISOString().split('T')[0];
 
                     await apiCall('/.netlify/functions/workout-assignments', {
