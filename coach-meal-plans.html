@@ -1234,9 +1234,9 @@
         }
 
         function planEditUrl(p) {
-            // Templates open in the planner's template editor; plans open on the
-            // same full planner screen used to create them.
-            if (p._isTemplate) return `planner.html?editTemplate=${p.id}`;
+            // Templates open in the full planner editor as a new editable plan;
+            // plans open on that same screen for editing in place.
+            if (p._isTemplate) return `planner.html?useTemplate=${p.id}`;
             let url = `planner.html?planId=${p.id}`;
             if (p.client_id) url += `&clientId=${p.client_id}`;
             return url;
