@@ -239,6 +239,28 @@
             color: #7e22ce;
         }
 
+        .gym-checkin-stat {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 0.6875rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 16px;
+            margin-left: 8px;
+            background: linear-gradient(135deg, #d1faf5 0%, #a7f3ea 100%);
+            color: #0f766e;
+        }
+        .gym-checkin-stat-icon { text-transform: none; }
+        .gym-checkin-stat #gymCheckinStatValue { font-size: 0.8125rem; }
+        [data-theme="dark"] .gym-checkin-stat {
+            background: linear-gradient(135deg, #134e4a 0%, #115e59 100%);
+            color: #5eead4;
+        }
+
         .welcome-card h1 {
             font-size: 1.5rem;
             font-weight: 800;
@@ -5563,6 +5585,13 @@
                 <!-- Tier Badge -->
                 <span id="tierBadge" class="tier-badge" style="margin-bottom: 8px;">LOADING</span>
 
+                <!-- Total gym check-ins across all clients -->
+                <span id="gymCheckinStat" class="gym-checkin-stat" style="display:none;">
+                    <span class="gym-checkin-stat-icon">🏋️</span>
+                    <span id="gymCheckinStatValue">0</span>
+                    <span class="gym-checkin-stat-label">gym check-ins</span>
+                </span>
+
                 <!-- Three Overview Cards -->
                 <div class="overview-cards-grid">
                     <!-- Activity Card -->
@@ -6185,6 +6214,26 @@
                 } catch (e) {
                     console.warn('Could not load check-in count:', e);
                 }
+                // Total gym check-ins across all of this coach's clients (all-time).
+                // Read-only count of gym_proofs rows; failure just leaves the pill hidden.
+                try {
+                    const { count: gymCheckinCount, error: gymError } = await supabaseClient
+                        .from('gym_proofs')
+                        .select('*', { count: 'exact', head: true })
+                        .eq('coach_id', coachId);
+
+                    if (!gymError) {
+                        const gymStatEl = document.getElementById('gymCheckinStat');
+                        const gymValEl = document.getElementById('gymCheckinStatValue');
+                        if (gymStatEl && gymValEl) {
+                            gymValEl.textContent = (gymCheckinCount || 0).toLocaleString();
+                            gymStatEl.style.display = 'inline-flex';
+                        }
+                    }
+                } catch (e) {
+                    console.warn('Could not load gym check-in count:', e);
+                }
+
                 // Populate priority alerts
                 await loadPriorityAlerts(coachId, clientCount || 0, weeklyCheckIns);
             } catch (error) {
