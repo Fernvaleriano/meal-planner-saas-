@@ -385,17 +385,17 @@ The coach typed these for THIS client. They are non-negotiable and override vari
     cooldownLine = `PHASE 3 — COOL-DOWN: 1 quick stretch only (or omit). Mark "isStretch": true, "phase": "cooldown".`;
   } else if (sd <= 35) {
     budgetLine = `=== TIME BUDGET: ~${sd} MIN TOTAL ===\nKeep the whole session to about ${sd} minutes.`;
-    warmupLine = `PHASE 1 — WARM-UP (3-4 min): 1 short cardio + 1 dynamic prep. Mark "isWarmup": true, "phase": "warmup".`;
+    warmupLine = `PHASE 1 — WARM-UP (5 min): 1 short cardio + 1 dynamic prep. Mark "isWarmup": true, "phase": "warmup".`;
     mainLine = `PHASE 2 — MAIN WORKOUT: 4-5 main exercises. Mark "phase": "main".`;
     cooldownLine = `PHASE 3 — COOL-DOWN (3-4 min): 1-2 static stretches. Mark "isStretch": true, "phase": "cooldown". Reps "30s hold".`;
   } else if (sd <= 50) {
     budgetLine = `=== TIME BUDGET: ~${sd} MIN TOTAL ===\nAim for about ${sd} minutes total.`;
-    warmupLine = `PHASE 1 — WARM-UP (5 min): 1 cardio (3-4 min) + 1 dynamic prep. Mark "isWarmup": true, "phase": "warmup". Cardio reps in TIME format ("3 min").`;
+    warmupLine = `PHASE 1 — WARM-UP (5 min): 1 cardio (5 min) + 1 dynamic prep. Mark "isWarmup": true, "phase": "warmup". Cardio reps in TIME format ("5 min").`;
     mainLine = `PHASE 2 — MAIN WORKOUT: ${Math.max(5, minEx || 5)}-${Math.max(6, maxEx || 6)} main exercises. Mark "phase": "main".`;
     cooldownLine = `PHASE 3 — COOL-DOWN (5 min): 2 static stretches matching trained muscles. Mark "isStretch": true, "phase": "cooldown". Reps "30s hold".`;
   } else {
     budgetLine = `=== TIME BUDGET: ~${sd} MIN TOTAL ===\nA full session of about ${sd} minutes.`;
-    warmupLine = `PHASE 1 — WARM-UP (5-8 min): 1 cardio (3-5 min) + 1-2 dynamic prep. Mark "isWarmup": true, "phase": "warmup". Cardio reps in TIME format ("3 min", "5 min").`;
+    warmupLine = `PHASE 1 — WARM-UP (5-8 min): 1 cardio (5 min) + 1-2 dynamic prep. Mark "isWarmup": true, "phase": "warmup". Cardio reps in TIME format ("5 min").`;
     mainLine = `PHASE 2 — MAIN WORKOUT: ${minEx}-${maxEx} main exercises. Mark "phase": "main".`;
     cooldownLine = `PHASE 3 — COOL-DOWN (5-7 min): 2-3 static stretches matching trained muscles. Mark "isStretch": true, "phase": "cooldown". Reps "30s hold".`;
   }
