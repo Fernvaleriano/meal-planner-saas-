@@ -948,17 +948,17 @@ If you include even ONE press, fly, or tricep movement, the workout is WRONG. 10
       dCool = `PHASE 3 — COOL-DOWN: 1 quick stretch only (or omit). Mark "isStretch": true, "phase": "cooldown".`;
     } else if (sdSingle <= 35) {
       dBudget = `=== TIME BUDGET: ~${sdSingle} MIN TOTAL ===\nKeep the whole workout to about ${sdSingle} minutes.`;
-      dWarm = `PHASE 1 — WARM-UP (3-4 min): 1 short cardio + 1 dynamic prep. Mark "isWarmup": true, "phase": "warmup".`;
+      dWarm = `PHASE 1 — WARM-UP (5 min): 1 short cardio + 1 dynamic prep. Mark "isWarmup": true, "phase": "warmup".`;
       dMain = `PHASE 2 — MAIN WORKOUT: 4-5 main exercises. ${styleInstruction}. ${focusInstruction}`;
       dCool = `PHASE 3 — COOL-DOWN (3-4 min): 1-2 static stretches. Mark "isStretch": true, "phase": "cooldown". Reps "30s hold".`;
     } else if (sdSingle <= 50) {
       dBudget = `=== TIME BUDGET: ~${sdSingle} MIN TOTAL ===\nAim for about ${sdSingle} minutes total.`;
-      dWarm = `PHASE 1 — WARM-UP (5 min): 1 cardio (3-4 min) + 1 dynamic prep. Mark "isWarmup": true, "phase": "warmup". Cardio reps in TIME format ("3 min").`;
+      dWarm = `PHASE 1 — WARM-UP (5 min): 1 cardio (5 min) + 1 dynamic prep. Mark "isWarmup": true, "phase": "warmup". Cardio reps in TIME format ("5 min").`;
       dMain = `PHASE 2 — MAIN WORKOUT: ${exerciseCountInstruction}. ${styleInstruction}. ${focusInstruction}`;
       dCool = `PHASE 3 — COOL-DOWN (5 min): 2 static stretches. Mark "isStretch": true, "phase": "cooldown". Reps "30s hold".`;
     } else {
       dBudget = `=== TIME BUDGET: ~${sdSingle} MIN TOTAL ===\nA full workout of about ${sdSingle} minutes.`;
-      dWarm = `PHASE 1 — WARM-UP (5-8 min): 1 cardio (3-5 min) + 1-2 dynamic prep targeting that day's muscles. Mark "isWarmup": true, "phase": "warmup". For cardio reps use TIME format ("3 min", "5 min").`;
+      dWarm = `PHASE 1 — WARM-UP (5-8 min): 1 cardio (5 min) + 1-2 dynamic prep targeting that day's muscles. Mark "isWarmup": true, "phase": "warmup". For cardio reps use TIME format ("5 min").`;
       dMain = `PHASE 2 — MAIN WORKOUT: ${exerciseCountInstruction}. ${styleInstruction}. ${focusInstruction}`;
       dCool = `PHASE 3 — COOL-DOWN (5-7 min): 2-3 static stretches matching the day's muscles. Mark "isStretch": true, "phase": "cooldown". Reps must be "30s hold".`;
     }
