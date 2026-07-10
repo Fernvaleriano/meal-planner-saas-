@@ -520,6 +520,70 @@
             opacity: 0.9;
         }
 
+        .modal-btn.primary {
+            background: var(--brand-gradient);
+            color: white;
+        }
+
+        .modal-btn:disabled {
+            opacity: 0.6;
+            cursor: default;
+        }
+
+        /* Assign-to-clients modal */
+        .assign-search {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            font-family: inherit;
+            font-size: 0.9rem;
+            margin-bottom: 12px;
+        }
+
+        .assign-search:focus {
+            outline: none;
+            border-color: var(--brand-primary);
+        }
+
+        .assign-client-list {
+            max-height: 300px;
+            overflow-y: auto;
+            text-align: left;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+        }
+
+        .assign-client-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 12px;
+            cursor: pointer;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .assign-client-row:last-child { border-bottom: none; }
+        .assign-client-row:hover { background: var(--bg-tertiary); }
+
+        .assign-client-row input {
+            width: 16px;
+            height: 16px;
+            accent-color: var(--brand-primary);
+            flex-shrink: 0;
+        }
+
+        .assign-client-name { font-size: 0.9rem; color: var(--text-primary); }
+
+        .assign-empty {
+            padding: 20px;
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 0.85rem;
+        }
+
         /* Toast */
         .toast {
             position: fixed;
@@ -961,6 +1025,22 @@
         </div>
     </div>
 
+    <!-- Assign to Clients Modal -->
+    <div class="modal-overlay" id="assignModal">
+        <div class="modal-content" style="max-width: 460px;">
+            <h3 id="assignTitle">Assign to clients</h3>
+            <p style="margin-bottom: 14px;">Pick any clients — each one gets their own published copy of this plan. The original stays untouched.</p>
+            <input type="text" class="assign-search" id="assignSearch" placeholder="Search clients" oninput="renderAssignClientList()">
+            <div class="assign-client-list" id="assignClientList">
+                <div class="assign-empty">Loading clients…</div>
+            </div>
+            <div class="modal-actions" style="margin-top: 18px;">
+                <button class="modal-btn cancel" onclick="closeAssignModal()">Cancel</button>
+                <button class="modal-btn primary" id="assignConfirmBtn" onclick="confirmAssign()">Assign</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Toast -->
     <div class="toast" id="toast"></div>
 
@@ -1176,6 +1256,11 @@
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
                                 </svg>
                             </button>
+                            <button class="plan-action-btn" onclick="openAssignModal(${p.id})" title="Assign to clients">
+                                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M8.5 11a4 4 0 100-8 4 4 0 000 8zM20 8v6M23 11h-6"/>
+                                </svg>
+                            </button>
                             <button class="plan-action-btn" onclick="duplicatePlan(${p.id})" title="Duplicate">
                                 <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
@@ -1244,6 +1329,101 @@
                 await loadPlans();
             } catch (err) {
                 showToast('Failed to delete plan', 'error');
+            }
+        }
+
+        // ─── Assign a plan to any client(s) ──────────────────────────────────
+        // Uses bulk-post-meal-plan, which drops a fresh published copy on each
+        // selected client (like assigning a workout program) — regardless of who
+        // the plan was originally built for. The source plan is never modified.
+        let assignClients = null;          // cached roster
+        let assignSelected = new Set();    // selected client ids (survive search)
+        let pendingAssignPlanId = null;
+
+        async function loadClientsForAssign() {
+            if (assignClients) return assignClients;
+            const result = await apiCall(`/.netlify/functions/get-clients?coachId=${currentCoachId}`);
+            assignClients = (result.clients || []).map(c => ({ id: c.id, name: c.client_name || 'Unnamed client' }));
+            return assignClients;
+        }
+
+        async function openAssignModal(id) {
+            pendingAssignPlanId = id;
+            assignSelected = new Set();
+            const p = plans.find(pl => pl.id === id);
+            const label = p ? (p.plan_name || p.client_name || 'Plan') : 'Plan';
+            document.getElementById('assignTitle').textContent = `Assign "${label}"`;
+            document.getElementById('assignSearch').value = '';
+            const btn = document.getElementById('assignConfirmBtn');
+            btn.disabled = false;
+            btn.textContent = 'Assign';
+            document.getElementById('assignClientList').innerHTML = '<div class="assign-empty">Loading clients…</div>';
+            document.getElementById('assignModal').classList.add('active');
+            try {
+                await loadClientsForAssign();
+                renderAssignClientList();
+            } catch (e) {
+                console.error('Failed to load clients:', e);
+                document.getElementById('assignClientList').innerHTML = '<div class="assign-empty">Could not load your clients.</div>';
+            }
+        }
+
+        function closeAssignModal() {
+            document.getElementById('assignModal').classList.remove('active');
+            pendingAssignPlanId = null;
+        }
+
+        function toggleAssignClient(cb) {
+            const id = parseInt(cb.value, 10);
+            if (cb.checked) assignSelected.add(id); else assignSelected.delete(id);
+            const btn = document.getElementById('assignConfirmBtn');
+            btn.textContent = assignSelected.size ? `Assign to ${assignSelected.size}` : 'Assign';
+        }
+
+        function renderAssignClientList() {
+            const list = document.getElementById('assignClientList');
+            const q = (document.getElementById('assignSearch').value || '').toLowerCase().trim();
+            const items = (assignClients || []).filter(c => !q || c.name.toLowerCase().includes(q));
+            if (!items.length) {
+                list.innerHTML = `<div class="assign-empty">${q ? 'No clients match.' : 'No clients yet.'}</div>`;
+                return;
+            }
+            list.innerHTML = items.map(c => `
+                <label class="assign-client-row">
+                    <input type="checkbox" value="${c.id}" ${assignSelected.has(c.id) ? 'checked' : ''} onchange="toggleAssignClient(this)">
+                    <span class="assign-client-name">${escapeHtml(c.name)}</span>
+                </label>
+            `).join('');
+        }
+
+        async function confirmAssign() {
+            if (!pendingAssignPlanId) return;
+            const clientIds = Array.from(assignSelected);
+            if (!clientIds.length) { showToast('Pick at least one client', 'error'); return; }
+            const btn = document.getElementById('assignConfirmBtn');
+            btn.disabled = true;
+            btn.textContent = 'Assigning…';
+            try {
+                const result = await apiCall(`/.netlify/functions/get-coach-plan-by-id?planId=${pendingAssignPlanId}&coachId=${currentCoachId}`);
+                const plan = result.plan;
+                if (!plan || !plan.plan_data) throw new Error('Plan data missing');
+                const resp = await apiCall('/.netlify/functions/bulk-post-meal-plan', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        coachId: currentCoachId,
+                        clientIds,
+                        planData: plan.plan_data,
+                        planName: plan.plan_name || plan.client_name || 'Meal Plan'
+                    })
+                });
+                showToast(resp.message || `Assigned to ${clientIds.length} client(s)`, 'success');
+                closeAssignModal();
+                await loadPlans();
+            } catch (e) {
+                console.error('Assign failed:', e);
+                showToast('Failed to assign plan', 'error');
+                btn.disabled = false;
+                btn.textContent = assignSelected.size ? `Assign to ${assignSelected.size}` : 'Assign';
             }
         }
 
