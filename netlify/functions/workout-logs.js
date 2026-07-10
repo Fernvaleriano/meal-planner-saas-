@@ -695,17 +695,41 @@ exports.handler = async (event) => {
                 ? `${clientData.client_name} just hit a new personal record on ${pr.exerciseName}: ${pr.weight}${pr.unit} x${pr.reps} (previous best: ${pr.previousBest}${pr.unit})`
                 : `${clientData.client_name} just logged their first ${pr.exerciseName}: ${pr.weight}${pr.unit} x${pr.reps}`;
 
-              // Check for duplicate PR notification before inserting
-              const { count: existingCount } = await supabase
+              // Collapse to a single PR post per client + exercise per day.
+              // Background auto-saves during a workout fire PR detection
+              // repeatedly, minutes apart and with a growing set list, so the
+              // old 60-second window let the same record stack up as duplicate
+              // feed posts AND froze the celebrated number at a mid-session
+              // snapshot (e.g. 100kg) instead of the day's true top set
+              // (e.g. 120kg). Keep one row and only refresh it when a heavier
+              // set comes in — never downgrade.
+              const startOfDay = new Date();
+              startOfDay.setHours(0, 0, 0, 0);
+
+              const { data: existingPrs } = await supabase
                 .from('notifications')
-                .select('*', { count: 'exact', head: true })
+                .select('id, message')
                 .eq('user_id', coachUserId)
                 .eq('type', 'client_pr')
                 .eq('related_client_id', workoutLogData.client_id)
                 .eq('title', prTitle)
-                .gte('created_at', new Date(Date.now() - 60000).toISOString()); // Within last 60 seconds
+                .gte('created_at', startOfDay.toISOString())
+                .order('created_at', { ascending: false });
 
-              if (existingCount > 0) continue; // Skip duplicate
+              const existing = existingPrs && existingPrs[0];
+              if (existing) {
+                // Only replace today's post if this set is heavier, so a later
+                // partial / finish save can't downgrade a genuine top set.
+                const prevWeightMatch = /:\s*([\d.]+)\s*[a-z]*\s*x/i.exec(existing.message || '');
+                const prevWeight = prevWeightMatch ? parseFloat(prevWeightMatch[1]) : 0;
+                if (!(Number(pr.weight) > prevWeight)) continue; // not heavier — leave it
+
+                await supabase
+                  .from('notifications')
+                  .update({ title: prTitle, message: prMessage })
+                  .eq('id', existing.id);
+                continue;
+              }
 
               await supabase
                 .from('notifications')

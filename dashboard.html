@@ -7240,10 +7240,28 @@
                     events.push({ type: 'workout', icon: '💪', label: 'Completed a workout', clientId: w.client_id, detail: vol, time: w.created_at, ts: new Date(w.created_at).getTime(), itemId: String(w.id), itemType: 'workout' });
                 });
 
+                // Collapse duplicate PR rows before rendering. The same record
+                // can be written multiple times (concurrent save requests racing
+                // the write-side dedup), so without this the feed shows the same
+                // PR two–five times. Keep ONE card per client + exercise + day,
+                // preferring the heaviest set (then the latest row) so the
+                // surviving card reflects the true top set of the session.
+                const prBest = new Map();
                 (prsRes.data || []).forEach(p => {
                     const c = _activityClientMap[p.related_client_id];
                     if (!c) return;
-                    events.push({ type: 'pr', icon: '🏆', label: 'Hit a new PR', clientId: p.related_client_id, detail: p.message || '', time: p.created_at, ts: new Date(p.created_at).getTime(), itemId: String(p.id), itemType: 'client_pr' });
+                    const day = new Date(p.created_at).toISOString().slice(0, 10);
+                    const key = `${p.related_client_id}|${p.title || ''}|${day}`;
+                    const wMatch = /:\s*([\d.]+)\s*[a-z]*\s*x/i.exec(p.message || '');
+                    const weight = wMatch ? parseFloat(wMatch[1]) : 0;
+                    const ts = new Date(p.created_at).getTime();
+                    const prev = prBest.get(key);
+                    if (!prev || weight > prev.weight || (weight === prev.weight && ts > prev.ts)) {
+                        prBest.set(key, { p, weight, ts });
+                    }
+                });
+                prBest.forEach(({ p, ts }) => {
+                    events.push({ type: 'pr', icon: '🏆', label: 'Hit a new PR', clientId: p.related_client_id, detail: p.message || '', time: p.created_at, ts, itemId: String(p.id), itemType: 'client_pr' });
                 });
 
                 (checkinsRes.data || []).forEach(ci => {
