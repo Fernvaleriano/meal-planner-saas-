@@ -73,8 +73,8 @@ function sleep(ms) {
 // Generate image with Replicate Flux Schnell (cheap/fast model ~$0.003 per image)
 async function generateMealImageCheap(mealName, customPrompt = null) {
   const prompt = customPrompt
-    ? `Professional food photography: ${customPrompt}. Beautiful presentation. Top-down or 45-degree angle. Soft natural lighting. Appetizing and realistic. No text, words, or labels.`
-    : `Professional food photography of a healthy fitness meal: ${mealName}. Show this as a complete, cohesive plated dish cooked together - NOT separate ingredients laid out. The meal should look like something served at a healthy restaurant. Beautiful presentation. Top-down or 45-degree angle. Soft natural lighting. Appetizing and realistic. No text, words, or labels.`;
+    ? `Professional, photorealistic food photography. ${customPrompt}. Beautifully presented, soft natural lighting, appetizing and realistic, high detail, realistic portion size. No text, words, or labels.`
+    : `Professional, photorealistic food photography of a healthy fitness meal: ${mealName}. Show it as one complete, cohesive plated dish cooked together - NOT separate raw ingredients laid out. Shot at a 45-degree angle in soft natural daylight, plated on a simple dish or bowl against a clean light background. Appetizing and realistic, high detail, realistic portion size. No text, words, or labels.`;
 
   const response = await fetch('https://api.replicate.com/v1/models/black-forest-labs/flux-schnell/predictions', {
     method: 'POST',
@@ -142,8 +142,8 @@ async function generateMealImageCheap(mealName, customPrompt = null) {
 async function generateMealImage(mealName, customPrompt = null) {
   // Use custom prompt if provided, otherwise generate default prompt from meal name
   const prompt = customPrompt
-    ? `Professional food photography: ${customPrompt}. Beautiful presentation. Top-down or 45-degree angle. Soft natural lighting. Appetizing and realistic. No text, words, or labels.`
-    : `Professional food photography of a healthy fitness meal: ${mealName}. Show this as a complete, cohesive plated dish cooked together - NOT separate ingredients laid out. The meal should look like something served at a healthy restaurant or home-cooked in a skillet/pan. Beautiful presentation. Top-down or 45-degree angle. Soft natural lighting. Appetizing and realistic. No text, words, or labels.`;
+    ? `Professional, photorealistic food photography. ${customPrompt}. Beautifully presented, soft natural lighting, appetizing and realistic, high detail, realistic portion size. No text, words, or labels.`
+    : `Professional, photorealistic food photography of a healthy fitness meal: ${mealName}. Show it as one complete, cohesive plated dish cooked together - NOT separate raw ingredients laid out. Shot at a 45-degree angle in soft natural daylight, plated on a simple dish or bowl against a clean light background, home-cooked restaurant-quality look. Appetizing and realistic, high detail, realistic portion size. No text, words, or labels.`;
 
   // Create prediction using Google Imagen 4 Fast (fast, excellent photorealism)
   const response = await fetch('https://api.replicate.com/v1/models/google/imagen-4-fast/predictions', {
