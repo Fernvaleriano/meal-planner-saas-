@@ -114,6 +114,7 @@ export default {
   quickActionRecipes: 'Recetas',
   quickActionFavorites: 'Favoritos',
   quickActionChallenges: 'Desafíos',
+  quickActionClubWorkouts: 'Entrenamientos del club',
   quickActionProfile: 'Perfil',
 
   // ── Error / toast messages ────────────────────────────────────────────────
