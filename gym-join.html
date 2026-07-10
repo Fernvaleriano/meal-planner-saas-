@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#0A1F2E" />
+  <title>Join your gym</title>
+  <style>
+    :root {
+      --bg: #0A1F2E;
+      --card: #12293a;
+      --accent: #2EC4B6;      /* overridden by the gym's brand color */
+      --text: #ffffff;
+      --muted: #9fb3c0;
+      --error: #ff6b6b;
+      --radius: 14px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      min-height: 100dvh;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 28px 20px calc(28px + env(safe-area-inset-bottom));
+    }
+    .wrap { width: 100%; max-width: 420px; }
+    .brand { text-align: center; margin: 18px 0 22px; }
+    .brand img { max-height: 72px; max-width: 200px; object-fit: contain; margin-bottom: 12px; }
+    .brand .gym-name { font-size: 26px; font-weight: 800; letter-spacing: -0.3px; }
+    .brand .welcome { color: var(--muted); font-size: 15px; margin-top: 6px; }
+    .card {
+      background: var(--card);
+      border-radius: var(--radius);
+      padding: 22px 20px 24px;
+    }
+    .card h1 { font-size: 19px; font-weight: 700; margin-bottom: 4px; }
+    .card .sub { color: var(--muted); font-size: 14px; margin-bottom: 18px; }
+    label { display: block; font-size: 13px; color: var(--muted); margin: 14px 0 6px; font-weight: 600; }
+    input {
+      width: 100%;
+      background: #0c1e2b;
+      border: 1.5px solid #24404f;
+      border-radius: 11px;
+      padding: 14px 14px;
+      color: var(--text);
+      font-size: 16px;              /* 16px avoids iOS zoom-on-focus */
+      outline: none;
+      transition: border-color .15s;
+    }
+    input:focus { border-color: var(--accent); }
+    input.code-input { text-transform: uppercase; letter-spacing: 2px; font-weight: 700; }
+    button {
+      width: 100%;
+      margin-top: 22px;
+      background: var(--accent);
+      color: #06121a;
+      font-size: 17px;
+      font-weight: 800;
+      border: none;
+      border-radius: 12px;
+      padding: 15px;
+      cursor: pointer;
+      transition: opacity .15s, transform .05s;
+    }
+    button:active { transform: scale(0.99); }
+    button:disabled { opacity: .55; cursor: default; }
+    .msg { margin-top: 14px; font-size: 14px; text-align: center; min-height: 18px; }
+    .msg.error { color: var(--error); }
+    .foot { text-align: center; color: var(--muted); font-size: 13px; margin-top: 18px; }
+    .foot a { color: var(--accent); text-decoration: none; font-weight: 600; }
+    .spots { text-align: center; color: var(--muted); font-size: 12px; margin-top: 10px; }
+    .success { text-align: center; padding: 10px 0 4px; }
+    .success .check {
+      width: 60px; height: 60px; border-radius: 50%;
+      background: var(--accent); color: #06121a;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 34px; font-weight: 900; margin: 0 auto 16px;
+    }
+    .success h2 { font-size: 21px; margin-bottom: 6px; }
+    .success p { color: var(--muted); font-size: 15px; margin-bottom: 20px; }
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="brand">
+      <img id="gymLogo" class="hidden" alt="" />
+      <div class="gym-name" id="gymName">Join your gym</div>
+      <div class="welcome" id="gymWelcome"></div>
+    </div>
+
+    <!-- Join form -->
+    <div class="card" id="formCard">
+      <h1>Create your account</h1>
+      <div class="sub">Enter your gym code and set up your login.</div>
+
+      <form id="joinForm" autocomplete="on">
+        <label for="code">Gym code</label>
+        <input id="code" class="code-input" name="code" placeholder="KRABITEST" autocapitalize="characters" required />
+
+        <label for="name">Your name</label>
+        <input id="name" name="name" placeholder="Alex" autocomplete="name" required />
+
+        <label for="email">Email</label>
+        <input id="email" name="email" type="email" placeholder="you@email.com" autocomplete="email" required />
+
+        <label for="password">Choose a password</label>
+        <input id="password" name="password" type="password" placeholder="At least 6 characters" autocomplete="new-password" minlength="6" required />
+
+        <button type="submit" id="submitBtn">Join gym</button>
+        <div class="msg" id="msg"></div>
+      </form>
+      <div class="foot">Already have an account? <a href="/app/login">Log in</a></div>
+    </div>
+
+    <!-- Success -->
+    <div class="card hidden" id="successCard">
+      <div class="success">
+        <div class="check">✓</div>
+        <h2>You're in!</h2>
+        <p id="successText">Your account is ready. Log in to start training.</p>
+        <button type="button" onclick="window.location.href='/app/login'">Go to login</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      var params = new URLSearchParams(window.location.search);
+      var presetCode = (params.get('code') || '').trim();
+      var codeInput = document.getElementById('code');
+      if (presetCode) codeInput.value = presetCode.toUpperCase();
+
+      var msg = document.getElementById('msg');
+      var submitBtn = document.getElementById('submitBtn');
+
+      function setError(text) { msg.textContent = text || ''; msg.className = 'msg error'; }
+      function clearMsg() { msg.textContent = ''; msg.className = 'msg'; }
+
+      // Brand the screen from the code (if one is present)
+      function loadGymBranding(code) {
+        if (!code) return;
+        fetch('/.netlify/functions/gym-code-info?code=' + encodeURIComponent(code))
+          .then(function (r) { return r.json(); })
+          .then(function (data) {
+            if (!data || !data.valid) return;
+            if (data.primaryColor) {
+              document.documentElement.style.setProperty('--accent', data.primaryColor);
+            }
+            if (data.gymName) document.getElementById('gymName').textContent = data.gymName;
+            if (data.welcomeMessage) document.getElementById('gymWelcome').textContent = data.welcomeMessage;
+            if (data.logoUrl) {
+              var logo = document.getElementById('gymLogo');
+              logo.src = data.logoUrl;
+              logo.classList.remove('hidden');
+            }
+            if (data.full) {
+              setError('This gym is full right now. Please ask the gym for a new code.');
+            }
+          })
+          .catch(function () { /* keep default branding */ });
+      }
+
+      if (presetCode) loadGymBranding(presetCode);
+      // Re-brand if the member types/pastes a code themselves
+      var brandTimer = null;
+      codeInput.addEventListener('input', function () {
+        clearTimeout(brandTimer);
+        var val = codeInput.value.trim();
+        if (val.length >= 4) brandTimer = setTimeout(function () { loadGymBranding(val); }, 400);
+      });
+
+      document.getElementById('joinForm').addEventListener('submit', function (e) {
+        e.preventDefault();
+        clearMsg();
+
+        var payload = {
+          code: codeInput.value.trim(),
+          name: document.getElementById('name').value.trim(),
+          email: document.getElementById('email').value.trim(),
+          password: document.getElementById('password').value
+        };
+
+        if (!payload.code || !payload.name || !payload.email || payload.password.length < 6) {
+          setError('Please fill in every field (password 6+ characters).');
+          return;
+        }
+
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Joining…';
+
+        fetch('/.netlify/functions/gym-join', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        })
+          .then(function (r) { return r.json().then(function (b) { return { ok: r.ok, body: b }; }); })
+          .then(function (res) {
+            if (!res.ok) {
+              setError((res.body && res.body.error) || 'Could not join. Please try again.');
+              submitBtn.disabled = false;
+              submitBtn.textContent = 'Join gym';
+              return;
+            }
+            document.getElementById('formCard').classList.add('hidden');
+            document.getElementById('successCard').classList.remove('hidden');
+          })
+          .catch(function () {
+            setError('Network error. Please try again.');
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Join gym';
+          });
+      });
+    })();
+  </script>
+</body>
+</html>
