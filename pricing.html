@@ -133,8 +133,9 @@
         /* PRICING CARDS */
         .pricing-section { padding: 40px 0 80px; }
         .pricing-cards {
-            display: grid;
-            grid-template-columns: repeat(3, minmax(0,1fr));
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
             gap: 20px;
         }
         .pricing-card {
@@ -146,6 +147,7 @@
             flex-direction: column;
             position: relative;
             transition: all .2s ease;
+            flex: 0 1 calc((100% - 40px) / 3);
         }
         .pricing-card:hover {
             transform: translateY(-3px);
@@ -437,7 +439,7 @@
 
         /* Responsive - Tablets */
         @media (max-width: 1024px) {
-            .pricing-cards { grid-template-columns: repeat(2, minmax(0,1fr)); }
+            .pricing-card { flex-basis: calc((100% - 20px) / 2); }
             .features-grid { grid-template-columns: repeat(2, minmax(0,1fr)); }
         }
 
@@ -446,8 +448,8 @@
             .container { padding: 0 18px; }
             .hero { padding: 118px 0 40px; }
             .pricing-section { padding: 28px 0 60px; }
-            .pricing-cards { grid-template-columns: 1fr; gap: 16px; }
-            .pricing-card { padding: 26px 22px; }
+            .pricing-cards { gap: 16px; }
+            .pricing-card { padding: 26px 22px; flex-basis: 100%; }
             .features-section, .faq-section { padding: 60px 0; }
             .features-grid { grid-template-columns: 1fr; gap: 16px; }
             .cta-section { padding: 64px 0; }
@@ -615,25 +617,10 @@
                     </ul>
                     <a href="mailto:contact@ziquecoach.com?subject=Ziquecoach%20Agency%20plan" class="btn-contact">Contact sales</a>
                 </div>
-
-                <!-- Enterprise / custom plan (contact sales, no self-serve checkout) -->
-                <div class="pricing-card">
-                    <div class="plan-name">Enterprise</div>
-                    <div class="plan-description">For rosters bigger than 200 clients</div>
-                    <div class="plan-price">
-                        <span class="price-amount">Custom</span>
-                    </div>
-                    <div class="plan-billing">Tailored to your business.</div>
-                    <ul class="plan-features">
-                        <li>200+ active clients</li>
-                        <li>Everything in Agency</li>
-                        <li>Volume pricing</li>
-                        <li>White-glove onboarding &amp; migration</li>
-                        <li>Dedicated support</li>
-                    </ul>
-                    <a href="mailto:contact@ziquecoach.com?subject=Ziquecoach%20Enterprise" class="btn-contact">Contact sales</a>
-                </div>
             </div>
+            <p style="text-align:center; margin-top:24px; color:var(--gray-500); font-size:0.95rem;">
+                More than 200 clients? <a href="mailto:contact@ziquecoach.com?subject=Ziquecoach%20Enterprise" style="color:var(--brand-secondary); font-weight:600;">Contact sales</a> for a custom plan.
+            </p>
         </div>
     </section>
 
