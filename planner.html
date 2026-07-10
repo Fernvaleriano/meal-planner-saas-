@@ -13389,46 +13389,57 @@ function generatePromptSuggestions(mealName) {
     const parts = cleaned.split(/,|\band\b|with/i).map(s => s.trim()).filter(Boolean);
     const mainItem = parts[0] || mealName;
     const ingredients = parts.length > 1 ? parts.slice(1).join(', ') : '';
+    const sides = ingredients || 'the sides';
 
     const hasEggs = /egg/i.test(mealName);
-    const hasMeat = /turkey|chicken|beef|steak|salmon|fish|shrimp|pork|lamb/i.test(mealName);
+    const hasMeat = /turkey|chicken|beef|steak|salmon|fish|tilapia|tuna|shrimp|pork|lamb/i.test(mealName);
     const hasRice = /rice/i.test(mealName);
     const hasPasta = /pasta|spaghetti|noodle/i.test(mealName);
     const hasVeggies = /pepper|onion|broccoli|spinach|tomato|lettuce|cucumber|zucchini|asparagus|kale|carrot/i.test(mealName);
     const hasPotato = /potato|sweet potato/i.test(mealName);
-    const isBreakfast = hasEggs || /oat|pancake|waffle|toast|cereal|yogurt|smoothie/i.test(mealName);
+    const isShake = /shake|smoothie|protein powder|whey/i.test(mealName);
+    const isBreakfast = hasEggs || /oat|pancake|waffle|toast|cereal|yogurt|cottage cheese/i.test(mealName);
     const isSalad = /salad/i.test(mealName);
 
-    // Plating style
+    // Shared photography framing — this is what makes the prompts read like pro food-photo prompts
+    const FRAME = 'Photorealistic, appetizing, high detail, realistic portion size, no text or labels.';
+
+    // Suggestion 1 — clean, studio-style plating
     let plating;
-    if (isBreakfast) {
-        plating = `Breakfast spread on a clean white plate, ${mainItem} cooked golden, arranged neatly with ${ingredients || 'sides'} visible`;
+    if (isShake) {
+        plating = `Overhead photo of ${mainItem} in a tall clear glass${ingredients ? `, ${sides} arranged neatly beside it` : ''}, on a simple light surface, soft natural daylight, clean light background. ${FRAME}`;
+    } else if (isBreakfast) {
+        plating = `Overhead photo of a clean breakfast bowl: ${mainItem}${ingredients ? ` topped with ${sides}` : ''}, soft natural daylight, clean light background. ${FRAME}`;
     } else if (isSalad) {
-        plating = `Fresh colorful salad in a wide bowl, ingredients layered and vibrant, top-down view`;
+        plating = `Overhead photo of a fresh, colorful salad in a wide white bowl, ingredients layered and vibrant, soft natural daylight, clean light background. ${FRAME}`;
     } else if (hasMeat) {
-        plating = `${mainItem} seared and sliced to show the inside, plated on a white dish with ${ingredients || 'sides'} arranged around it`;
+        plating = `45-degree photo of ${mainItem} plated on a simple white dish${ingredients ? `, ${sides} arranged neatly around it` : ''}, soft natural daylight, clean light background. ${FRAME}`;
     } else {
-        plating = `${mainItem} beautifully plated on a clean white dish, ${ingredients ? ingredients + ' visible on the side' : 'garnished with fresh herbs'}`;
+        plating = `45-degree photo of ${mainItem} plated in a simple white bowl${ingredients ? `, ${sides} visible` : ''}, soft natural daylight, clean light background. ${FRAME}`;
     }
 
-    // Lifestyle/setting style
+    // Suggestion 2 — natural / lifestyle setting
     let lifestyle;
-    if (isBreakfast) {
-        lifestyle = `Morning kitchen setting, ${mainItem} on a wooden table with a coffee cup nearby, warm natural sunlight`;
+    if (isShake) {
+        lifestyle = `${mainItem} in a glass on a light wooden table${ingredients ? ` with ${sides} nearby` : ''}, warm morning sunlight, cozy kitchen feel, shallow depth of field. ${FRAME}`;
+    } else if (isBreakfast) {
+        lifestyle = `${mainItem}${ingredients ? ` with ${sides}` : ''} on a light wooden table in a bright kitchen, warm morning sunlight, a coffee cup softly blurred behind. ${FRAME}`;
     } else {
-        lifestyle = `${mainItem} served on a rustic wooden table, warm ambient lighting, restaurant-quality presentation with a linen napkin`;
+        lifestyle = `${mainItem}${ingredients ? ` with ${sides}` : ''} served on a light wooden table, warm natural window light, homemade restaurant-quality feel, shallow depth of field. ${FRAME}`;
     }
 
-    // Close-up / texture style
+    // Suggestion 3 — close-up / texture
     let closeup;
     if (hasEggs) {
-        closeup = `Close-up shot of ${mainItem} with runny yolk, steam rising, crispy edges, ${hasVeggies ? 'colorful peppers and onions sautéed alongside' : 'seasoned with herbs'}`;
+        closeup = `Close-up of ${mainItem} with a runny yolk and steam rising${hasVeggies ? `, ${sides} sautéed alongside` : ''}, natural light, shallow depth of field, textures in sharp focus. ${FRAME}`;
     } else if (hasMeat) {
-        closeup = `Close-up of juicy ${mainItem} showing texture and seasoning, ${hasVeggies ? 'grilled vegetables glistening beside it' : hasPotato ? 'golden roasted potatoes on the side' : 'garnished with fresh herbs'}`;
+        closeup = `Close-up of ${mainItem} showing juicy texture and seasoning${hasPotato ? ', golden potatoes beside it' : hasVeggies ? `, ${sides} glistening beside it` : ''}, natural light, shallow depth of field. ${FRAME}`;
     } else if (hasPasta || hasRice) {
-        closeup = `Close-up of ${mainItem} with steam rising, ${ingredients ? ingredients + ' mixed in' : 'topped with fresh herbs'}, shallow depth of field`;
+        closeup = `Close-up of ${mainItem} with steam rising${ingredients ? `, ${sides} mixed in` : ''}, natural light, shallow depth of field, textures in sharp focus. ${FRAME}`;
+    } else if (isShake) {
+        closeup = `Close-up of ${mainItem} in a glass with condensation on the surface${ingredients ? `, ${sides} in soft focus behind` : ''}, natural light, shallow depth of field. ${FRAME}`;
     } else {
-        closeup = `Macro close-up of ${mainItem} showing colors and textures, ${ingredients || 'fresh herbs'} in sharp detail, shallow depth of field`;
+        closeup = `Macro close-up of ${mainItem} showing colors and textures${ingredients ? `, ${sides} in sharp detail` : ''}, natural light, shallow depth of field. ${FRAME}`;
     }
 
     return [
