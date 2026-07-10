@@ -7376,11 +7376,10 @@
 
             if (alertsEl) renderActivityTimeline(alertsEl);
 
-            // Update activity count badge
+            // Client count intentionally not shown under the Wins heading (founder preference)
             const countEl = document.getElementById('activityCardCount');
             if (countEl) {
-                const clientCount = Object.keys(_activityGrouped).length;
-                countEl.textContent = clientCount > 0 ? `${clientCount} client${clientCount !== 1 ? 's' : ''}` : '';
+                countEl.textContent = '';
             }
         }
 
