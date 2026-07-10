@@ -172,6 +172,12 @@
 [functions."workout-cover-image"]
   timeout = 120
 
+# AI workout generator (Claude). A single-workout generation plus exercise
+# matching can run past the 10s default, so give it headroom to avoid the call
+# being cut off. Used by the coach builder and the member-facing generator.
+[functions."generate-workout-claude"]
+  timeout = 26
+
 # HTTP Caching Headers for optimal performance
 [[headers]]
   for = "/*.js"

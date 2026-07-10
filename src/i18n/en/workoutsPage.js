@@ -27,6 +27,7 @@ export default {
   // ── Quick action buttons (cards view) ───────────────────────────
   clubWorkouts: 'Club Workouts',
   createWorkout: 'Create Workout',
+  aiGenerate: 'AI Workout',
 
   // ── Gym Check-In banner ──────────────────────────────────────────
   gymCheckIn: 'Gym Check-In',
