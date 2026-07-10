@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef, useCallback, lazy, Suspense } from 'react';
 import { Link } from 'react-router-dom';
-import { Camera, Search, Heart, ScanLine, Mic, ChevronRight, ChevronDown, BarChart3, ClipboardCheck, TrendingUp, BookOpen, Pill, ChefHat, Check, CheckCircle, Minus, Plus, X, Sunrise, Sun, Sunset, Moon, Coffee, Utensils, Dumbbell, Star, Clock, Trophy, UserCircle, Scale } from 'lucide-react';
+import { Camera, Search, Heart, ScanLine, Mic, ChevronRight, ChevronDown, BarChart3, ClipboardCheck, TrendingUp, BookOpen, Pill, ChefHat, Check, CheckCircle, Minus, Plus, X, Sunrise, Sun, Sunset, Moon, Coffee, Utensils, Dumbbell, Star, Clock, Trophy, UserCircle, Scale, Users } from 'lucide-react';
 import InstallAppBanner from '../components/InstallAppBanner';
 import StoriesBar from '../components/StoriesBar';
 import { useAuth } from '../context/AuthContext';
+import { useBranding } from '../context/BrandingContext';
 import { apiGet, apiPost, apiDelete } from '../utils/api';
 import { getSpeechLang } from '../utils/speechLang';
 import { SnapPhotoModal, SearchFoodsModal, FavoritesModal, ScanLabelModal } from '../components/FoodModals';
@@ -43,6 +44,12 @@ function Dashboard() {
   const { clientData } = useAuth();
   const { showError, showSuccess } = useToast();
   const { t, language } = useLanguage();
+  const { isModuleVisible, getLabel } = useBranding();
+  // Workout-only ("lite mode") gym members have the diary module turned off.
+  // When nutrition is disabled we hide the food-logging / macro / weigh-in
+  // sections and show a workout-focused home instead. Full coaching clients
+  // (diary on — the default) see the exact same home as before.
+  const nutritionEnabled = isModuleVisible('diary');
   const today = getTodayKey();
 
   // Load all cached data for instant display
@@ -982,6 +989,9 @@ function Dashboard() {
         </div>
       )}
 
+      {/* Nutrition sections (AI food logging, weigh-in, macro progress) —
+          shown for full coaching clients, hidden for workout-only gym members. */}
+      {nutritionEnabled && (<>
       {/* AI Hero Input Section */}
       <div className="ai-hero-card">
         <div className="ai-hero-header">
@@ -1211,6 +1221,7 @@ function Dashboard() {
           {t('dashboard.viewDiary')}
         </Link>
       </div>
+      </>)}
 
       {/* Today's Supplements Section */}
       {supplements.length > 0 && (
@@ -1397,8 +1408,10 @@ function Dashboard() {
         </div>
       )}
 
-      {/* Quick Actions Grid */}
-      <h3 className="section-heading">{t('dashboard.quickActionsHeading')}</h3>
+      {/* Quick Actions Grid — nutrition-oriented for full coaching clients,
+          workout-oriented for workout-only (lite mode) gym members. */}
+      <h3 className="section-heading">{nutritionEnabled ? t('dashboard.quickActionsHeading') : getLabel('workouts')}</h3>
+      {nutritionEnabled ? (
       <div className="quick-actions-grid">
         <Link to="/check-in" className="quick-action-card">
           <div className="quick-action-card-icon">
@@ -1437,6 +1450,34 @@ function Dashboard() {
           <span>{t('dashboard.quickActionProfile')}</span>
         </Link>
       </div>
+      ) : (
+      <div className="quick-actions-grid">
+        <Link to="/workouts" className="quick-action-card">
+          <div className="quick-action-card-icon">
+            <Dumbbell size={24} />
+          </div>
+          <span>{getLabel('workouts')}</span>
+        </Link>
+        <Link to="/workouts" className="quick-action-card">
+          <div className="quick-action-card-icon">
+            <Users size={24} />
+          </div>
+          <span>{t('dashboard.quickActionClubWorkouts')}</span>
+        </Link>
+        <Link to="/progress" className="quick-action-card">
+          <div className="quick-action-card-icon">
+            <TrendingUp size={24} />
+          </div>
+          <span>{t('dashboard.quickActionProgress')}</span>
+        </Link>
+        <Link to="/settings" className="quick-action-card">
+          <div className="quick-action-card-icon">
+            <UserCircle size={24} />
+          </div>
+          <span>{t('dashboard.quickActionProfile')}</span>
+        </Link>
+      </div>
+      )}
 
       {/* Food Logging Modals */}
       <SnapPhotoModal
