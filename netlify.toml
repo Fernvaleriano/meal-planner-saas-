@@ -150,6 +150,11 @@
 [functions."send-workout-end-notifications"]
   schedule = "0 8 * * *"
 
+# Scheduled function - runs daily at 12 PM UTC (US morning): emails each coach
+# a triage digest of slipping/winning clients. Skips coaches with nothing to report.
+[functions."send-daily-coach-digest"]
+  schedule = "0 12 * * *"
+
 # Scheduled function - runs daily at 4 AM UTC. Permanently purges accounts
 # whose 30-day deletion grace has passed. DRY-RUN unless env PURGE_LIVE=true.
 [functions."purge-deleted-accounts"]
