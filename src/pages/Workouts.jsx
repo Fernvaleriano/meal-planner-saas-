@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { ChevronLeft, ChevronRight, Play, Clock, Flame, Check, CheckCircle, Dumbbell, Target, Calendar, TrendingUp, Award, Heart, MoreVertical, X, History, Settings, LogOut, Plus, Copy, ArrowRightLeft, SkipForward, PenSquare, Trash2, MoveRight, Share2, Star, Weight, Users, RotateCcw, Zap } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Play, Clock, Flame, Check, CheckCircle, Dumbbell, Target, Calendar, TrendingUp, Award, Heart, MoreVertical, X, History, Settings, LogOut, Plus, Copy, ArrowRightLeft, SkipForward, PenSquare, Trash2, MoveRight, Share2, Star, Weight, Users, RotateCcw, Zap, Sparkles } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { warmUpTickSound } from '../utils/audioTick';
 import { useAuth } from '../context/AuthContext';
+import { useBranding } from '../context/BrandingContext';
 import { useLanguage } from '../context/LanguageContext';
 import { apiGet, apiPost, apiPut, apiDelete, enableSwCacheBypass, getCachedAccessToken } from '../utils/api';
 import { onAppResume } from '../hooks/useAppLifecycle';
@@ -11,6 +12,7 @@ import ExerciseDetailModal from '../components/workout/ExerciseDetailModal';
 import AddActivityModal from '../components/workout/AddActivityModal';
 import SwapExerciseModal from '../components/workout/SwapExerciseModal';
 import CreateWorkoutModal from '../components/workout/CreateWorkoutModal';
+import GenerateWorkoutModal from '../components/workout/GenerateWorkoutModal';
 import ClubWorkoutsModal from '../components/workout/ClubWorkoutsModal';
 import GuidedWorkoutModal from '../components/workout/GuidedWorkoutModal';
 import SetEditorModal from '../components/workout/SetEditorModal';
@@ -758,6 +760,10 @@ function Workouts() {
   const navigate = useNavigate();
   const { showError, showSuccess } = useToast();
   const { t } = useLanguage();
+  const { isModuleVisible } = useBranding();
+  // Gym / lite-mode members (diary module off) get the self-serve AI workout
+  // generator. Full coaching clients don't — their coach builds their programs.
+  const isGymMember = !clientData?.is_coach && !isModuleVisible('diary');
 
   // User's preferred weight unit (default to lbs for imperial)
   const weightUnit = clientData?.unit_preference === 'metric' ? 'kg' : 'lbs';
@@ -832,6 +838,7 @@ function Workouts() {
   const [rescheduleTargetDate, setRescheduleTargetDate] = useState('');
   const [showCreateWorkout, setShowCreateWorkout] = useState(false);
   const [showClubWorkouts, setShowClubWorkouts] = useState(false);
+  const [showGenerateWorkout, setShowGenerateWorkout] = useState(false);
   const [showGuidedWorkout, setShowGuidedWorkout] = useState(false);
 
   // Soft-reset (iOS memory escape valve): bumping softResetSession remounts
@@ -5802,6 +5809,15 @@ function Workouts() {
 
                 {/* Quick action buttons below cards */}
                 <div className="cards-action-buttons">
+                  {isGymMember && (
+                    <button
+                      className="card-action-btn"
+                      onClick={() => setShowGenerateWorkout(true)}
+                    >
+                      <Sparkles size={16} />
+                      <span>{t('workoutsPage.aiGenerate')}</span>
+                    </button>
+                  )}
                   <button
                     className="card-action-btn"
                     onClick={() => setShowClubWorkouts(true)}
@@ -5930,6 +5946,15 @@ function Workouts() {
                 <h3>{t('workoutsPage.restDayTitle')}</h3>
                 <p>{t('workoutsPage.restDayDesc')}</p>
                 <div className="rest-day-actions">
+                  {isGymMember && (
+                    <button
+                      className="rest-day-create-btn"
+                      onClick={() => setShowGenerateWorkout(true)}
+                    >
+                      <Sparkles size={18} />
+                      <span>{t('workoutsPage.aiGenerate')}</span>
+                    </button>
+                  )}
                   <button
                     className="rest-day-create-btn"
                     onClick={() => setShowCreateWorkout(true)}
@@ -6663,6 +6688,15 @@ function Workouts() {
           coachId={clientData?.coach_id}
           isCoach={!!clientData?.is_coach}
           clientId={clientData?.id}
+        />
+      )}
+
+      {showGenerateWorkout && (
+        <GenerateWorkoutModal
+          onClose={() => setShowGenerateWorkout(false)}
+          onGenerated={handleCreateWorkout}
+          clientId={clientData?.id}
+          coachId={clientData?.coach_id}
         />
       )}
 
