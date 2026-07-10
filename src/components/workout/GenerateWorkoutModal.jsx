@@ -86,7 +86,9 @@ function GenerateWorkoutModal({ onClose, onGenerated, clientId = null, coachId =
       // so only the global library (all video-backed) is used.
       if (source === 'both' && coachId) payload.coachId = coachId;
 
-      const res = await apiPost('/.netlify/functions/generate-workout-claude', payload);
+      // AI generation runs longer than a normal request — give it up to 30s
+      // (the function itself is capped at 26s server-side).
+      const res = await apiPost('/.netlify/functions/generate-workout-claude', payload, { timeoutMs: 30000 });
       if (!res?.success) throw new Error(res?.error || 'Could not generate a workout. Please try again.');
 
       const workout = res.program?.weeks?.[0]?.workouts?.[0];
@@ -155,7 +157,7 @@ function GenerateWorkoutModal({ onClose, onGenerated, clientId = null, coachId =
               animation: 'giwSpin 0.8s linear infinite',
             }} />
             <div style={{ fontWeight: 700 }}>Building your workout…</div>
-            <div style={{ fontSize: 13, opacity: 0.6, marginTop: 4 }}>This takes about 15 seconds</div>
+            <div style={{ fontSize: 13, opacity: 0.6, marginTop: 4 }}>This can take up to 30 seconds</div>
             <style>{`@keyframes giwSpin { to { transform: rotate(360deg); } }`}</style>
           </div>
         ) : (

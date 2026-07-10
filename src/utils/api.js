@@ -366,6 +366,9 @@ export async function ensureFreshSession() {
 // Authenticated fetch wrapper with improved error handling and timeout
 async function authenticatedFetch(url, options = {}) {
   const method = (options.method || 'GET').toUpperCase();
+  // Per-call timeout override (e.g. slow AI generations). Defaults to the
+  // standard mobile-hang guard for every normal request.
+  const timeoutMs = options.timeoutMs || FETCH_TIMEOUT_MS;
   const token = await getAuthToken();
 
   const headers = {
@@ -384,7 +387,7 @@ async function authenticatedFetch(url, options = {}) {
 
   // Add timeout to prevent indefinite hangs on poor mobile connections
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
   let response;
   try {
@@ -396,7 +399,7 @@ async function authenticatedFetch(url, options = {}) {
   } catch (err) {
     clearTimeout(timeoutId);
     if (err.name === 'AbortError') {
-      const error = new Error(`Request timed out after ${FETCH_TIMEOUT_MS / 1000}s`);
+      const error = new Error(`Request timed out after ${timeoutMs / 1000}s`);
       error.isTimeout = true;
       throw error;
     }
@@ -415,7 +418,7 @@ async function authenticatedFetch(url, options = {}) {
         // Retry with new token
         headers['Authorization'] = `Bearer ${newToken}`;
         const retryController = new AbortController();
-        const retryTimeoutId = setTimeout(() => retryController.abort(), FETCH_TIMEOUT_MS);
+        const retryTimeoutId = setTimeout(() => retryController.abort(), timeoutMs);
         let retryResponse;
         try {
           retryResponse = await fetch(url, {
