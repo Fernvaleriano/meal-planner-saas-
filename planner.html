@@ -3388,13 +3388,13 @@
                 </div>
             </div>
 
-            <!-- Planner Mode Toggle -->
-            <div class="mode-tab-bar">
+            <!-- Planner Mode Toggle (template mode retired — templates now live in the Meal Plans library) -->
+            <div class="mode-tab-bar" style="display:none;">
                 <button id="mode-client" class="mode-tab-btn active" onclick="setPlannerMode('client')">
                     <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                     Build for Client
                 </button>
-                <button id="mode-template" class="mode-tab-btn" onclick="setPlannerMode('template')">
+                <button id="mode-template" class="mode-tab-btn" onclick="setPlannerMode('template')" style="display:none;">
                     <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
                     Create Template
                 </button>
@@ -3579,7 +3579,7 @@
                         <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:6px;"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Start from Scratch
                     </button>
 
-                    <button data-action="toggle-template" id="template-toggle-btn" class="btn btn-ghost w-full text-sm py-3" onclick="toggleUseTemplate()">
+                    <button data-action="toggle-template" id="template-toggle-btn" class="btn btn-ghost w-full text-sm py-3" onclick="toggleUseTemplate()" style="display:none;">
                         <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:6px;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>Use Template
                     </button>
 
@@ -4936,6 +4936,20 @@ document.addEventListener('DOMContentLoaded', async () => {
             const editPlanId = new URLSearchParams(window.location.search).get('planId');
             if (editPlanId) {
                 await loadExistingPlanIntoPlanner(editPlanId);
+            }
+
+            // If opened to edit a template (?editTemplate=…) from the Meal Plans
+            // library, load the templates and open the template editor directly.
+            const editTemplateId = new URLSearchParams(window.location.search).get('editTemplate');
+            if (editTemplateId) {
+                try {
+                    await loadTemplatesList();
+                    const tplSelect = document.getElementById('dp_template_select');
+                    if (tplSelect) tplSelect.value = editTemplateId;
+                    editSelectedTemplate();
+                } catch (e) {
+                    console.error('Failed to open template for editing:', e);
+                }
             }
 
             // Load unread message count for sidebar badge
