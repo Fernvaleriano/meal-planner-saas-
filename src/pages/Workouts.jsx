@@ -833,6 +833,10 @@ function Workouts() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false); // Delete confirmation dialog
   const cardMenuRef = useRef(null);
   const rescheduleWorkoutRef = useRef(null); // Track which workout is being rescheduled (for card menu context)
+  // Guards against the same ad-hoc workout being created twice in quick
+  // succession (double-tap / duplicate save), which would show two identical
+  // cards for one saved workout. Holds { sig, ts } of the last create.
+  const lastAdhocCreateRef = useRef({ sig: null, ts: 0 });
   const [swipeSwapExercise, setSwipeSwapExercise] = useState(null); // Exercise to swap from swipe action
   const [swipeDeleteExercise, setSwipeDeleteExercise] = useState(null); // Exercise to delete from swipe action
   const [rescheduleTargetDate, setRescheduleTargetDate] = useState('');
@@ -2940,6 +2944,17 @@ function Workouts() {
     const dateStr = workoutData.startDate || formatDate(selectedDate);
     const isForCurrentDay = dateStr === formatDate(selectedDate);
     const workoutName = workoutData.name || 'My Workout';
+
+    // Dedupe rapid duplicate creates (e.g. a double-fired save from the AI
+    // generator or a double-tap). Without this, one saved workout can render
+    // as two identical cards. Same date+name+exercise-count within 5s = skip.
+    const createSig = `${dateStr}|${workoutName}|${workoutData.exercises.length}`;
+    const nowTs = Date.now();
+    if (lastAdhocCreateRef.current.sig === createSig && nowTs - lastAdhocCreateRef.current.ts < 5000) {
+      return;
+    }
+    lastAdhocCreateRef.current = { sig: createSig, ts: nowTs };
+
     const newWorkout = {
       id: `custom-${dateStr}-${Date.now()}`,
       client_id: clientData?.id,
