@@ -414,6 +414,7 @@
 
         .status-badge.draft { background: rgba(148, 163, 184, 0.18); color: #94a3b8; }
         .status-badge.published { background: rgba(16, 185, 129, 0.15); color: #10b981; }
+        .status-badge.template { background: rgba(139, 92, 246, 0.18); color: #c4b5fd; }
 
         /* Empty State */
         .empty-state {
@@ -983,6 +984,14 @@
                     <input type="text" id="searchInput" placeholder="Search by plan or client" oninput="filterPlans()">
                 </div>
                 <div class="filter-section">
+                    <label class="filter-label">Show:</label>
+                    <select class="filter-select" id="typeFilter" onchange="filterPlans()">
+                        <option value="">Plans &amp; templates</option>
+                        <option value="plan">Plans only</option>
+                        <option value="template">Templates only</option>
+                    </select>
+                </div>
+                <div class="filter-section">
                     <label class="filter-label">Status:</label>
                     <select class="filter-select" id="statusFilter" onchange="filterPlans()">
                         <option value="">All plans</option>
@@ -1152,11 +1161,34 @@
             return data;
         }
 
-        // Load plans
+        // Load plans AND templates into one unified list. Plan ids and template
+        // ids can collide numerically (separate tables), so every item gets a
+        // string `_uid` ('p'+id / 't'+id) that all lookups and actions use.
         async function loadPlans() {
             try {
-                const result = await apiCall(`/.netlify/functions/get-coach-plans?coachId=${currentCoachId}`);
-                plans = result.plans || [];
+                const [plansRes, templatesRes] = await Promise.allSettled([
+                    apiCall(`/.netlify/functions/get-coach-plans?coachId=${currentCoachId}`),
+                    apiCall(`/.netlify/functions/meal-plan-templates?coachId=${currentCoachId}`)
+                ]);
+
+                const planItems = (plansRes.status === 'fulfilled' ? (plansRes.value.plans || []) : [])
+                    .map(p => ({ ...p, _uid: 'p' + p.id, _isTemplate: false }));
+
+                const templateItems = (templatesRes.status === 'fulfilled' ? (templatesRes.value.templates || []) : [])
+                    .map(t => ({
+                        id: t.id,
+                        _uid: 't' + t.id,
+                        _isTemplate: true,
+                        plan_name: t.name,
+                        client_name: '',
+                        client_id: null,
+                        status: 'template',
+                        created_at: t.created_at,
+                        plan_data: t.plan_data,
+                        _dayCount: Array.isArray(t.plan_data) ? t.plan_data.length : 0
+                    }));
+
+                plans = planItems.concat(templateItems);
                 filterPlans();
             } catch (err) {
                 console.error('Error loading plans:', err);
@@ -1169,14 +1201,17 @@
         function filterPlans() {
             const search = (document.getElementById('searchInput').value || '').toLowerCase().trim();
             const status = document.getElementById('statusFilter').value;
+            const type = document.getElementById('typeFilter').value; // '', 'plan', 'template'
             const order = document.getElementById('orderFilter').value;
 
             let filtered = plans.filter(p => {
+                if (type === 'plan' && p._isTemplate) return false;
+                if (type === 'template' && !p._isTemplate) return false;
                 const name = (p.plan_name || '').toLowerCase();
                 const client = (p.client_name || '').toLowerCase();
                 if (search && !name.includes(search) && !client.includes(search)) return false;
-                const planStatus = p.status || 'draft';
-                if (status && planStatus !== status) return false;
+                // Draft/Published status only applies to real plans, not templates.
+                if (status && (p._isTemplate || (p.status || 'draft') !== status)) return false;
                 return true;
             });
 
@@ -1199,7 +1234,9 @@
         }
 
         function planEditUrl(p) {
-            // Edit on the same screen used to create a plan (the full planner).
+            // Templates open in the planner's template editor; plans open on the
+            // same full planner screen used to create them.
+            if (p._isTemplate) return `planner.html?editTemplate=${p.id}`;
             let url = `planner.html?planId=${p.id}`;
             if (p.client_id) url += `&clientId=${p.client_id}`;
             return url;
@@ -1214,7 +1251,8 @@
 
             if (filtered.length === 0) {
                 const hasFilters = document.getElementById('searchInput').value ||
-                    document.getElementById('statusFilter').value;
+                    document.getElementById('statusFilter').value ||
+                    document.getElementById('typeFilter').value;
 
                 container.innerHTML = `
                     <div class="empty-state">
@@ -1228,14 +1266,17 @@
             }
 
             container.innerHTML = filtered.map(p => {
+                const isTpl = !!p._isTemplate;
                 const status = (p.status || 'draft').toLowerCase();
-                const statusLabel = status === 'published' ? 'Published' : 'Draft';
-                const name = escapeHtml(p.plan_name || p.client_name || 'Untitled Plan');
+                const statusLabel = isTpl ? 'Template' : (status === 'published' ? 'Published' : 'Draft');
+                const badgeClass = isTpl ? 'template' : status;
+                const name = escapeHtml(p.plan_name || p.client_name || (isTpl ? 'Untitled Template' : 'Untitled Plan'));
                 const client = escapeHtml(p.client_name || '');
-                const showClient = client && client !== name;
+                const showClient = !isTpl && client && client !== name;
                 const date = p.created_at
                     ? new Date(p.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
                     : '';
+                const tplMeta = isTpl && p._dayCount ? `<span>${p._dayCount} day${p._dayCount !== 1 ? 's' : ''}</span>` : '';
 
                 return `
                     <a href="${planEditUrl(p)}" class="plan-card">
@@ -1245,28 +1286,29 @@
                         <div class="plan-card-info">
                             <div class="plan-card-name">${name}</div>
                             <div class="plan-card-meta">
-                                <span class="status-badge ${status}">${statusLabel}</span>
+                                <span class="status-badge ${badgeClass}">${statusLabel}</span>
                                 ${showClient ? `<span>${client}</span>` : ''}
+                                ${tplMeta}
                                 ${date ? `<span>· ${date}</span>` : ''}
                             </div>
                         </div>
                         <div class="plan-card-actions" onclick="event.preventDefault(); event.stopPropagation();">
-                            <button class="plan-action-btn" onclick="editPlan(${p.id})" title="Open / Edit">
+                            <button class="plan-action-btn" onclick="editPlan('${p._uid}')" title="${isTpl ? 'Edit template' : 'Open / Edit'}">
                                 <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
                                 </svg>
                             </button>
-                            <button class="plan-action-btn" onclick="openAssignModal(${p.id})" title="Assign to clients">
+                            <button class="plan-action-btn" onclick="openAssignModal('${p._uid}')" title="Assign to clients">
                                 <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M8.5 11a4 4 0 100-8 4 4 0 000 8zM20 8v6M23 11h-6"/>
                                 </svg>
                             </button>
-                            <button class="plan-action-btn" onclick="duplicatePlan(${p.id})" title="Duplicate">
+                            <button class="plan-action-btn" onclick="duplicatePlan('${p._uid}')" title="Duplicate">
                                 <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
                                 </svg>
                             </button>
-                            <button class="plan-action-btn delete" onclick="openDeleteModal(${p.id})" title="Delete">
+                            <button class="plan-action-btn delete" onclick="openDeleteModal('${p._uid}')" title="${isTpl ? 'Delete template' : 'Delete'}">
                                 <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
                                 </svg>
@@ -1277,41 +1319,62 @@
             }).join('');
         }
 
-        // Actions
-        function editPlan(id) {
-            const p = plans.find(pl => pl.id === id);
-            window.location.href = p ? planEditUrl(p) : `planner.html?planId=${id}`;
+        // Actions (all keyed by the string _uid: 'p'+id for plans, 't'+id for templates)
+        function findItem(uid) {
+            return plans.find(pl => pl._uid === uid);
         }
 
-        async function duplicatePlan(id) {
+        function editPlan(uid) {
+            const p = findItem(uid);
+            if (p) window.location.href = planEditUrl(p);
+        }
+
+        async function duplicatePlan(uid) {
+            const item = findItem(uid);
+            if (!item) return;
             try {
-                const result = await apiCall(`/.netlify/functions/get-coach-plan-by-id?planId=${id}&coachId=${currentCoachId}`);
-                const plan = result.plan;
-                if (!plan) return;
-                const baseName = plan.plan_name || plan.client_name || 'Meal Plan';
-                await apiCall('/.netlify/functions/save-coach-plan', {
-                    method: 'POST',
-                    body: JSON.stringify({
-                        coachId: currentCoachId,
-                        clientName: plan.client_name,
-                        clientId: plan.client_id || undefined,
-                        planName: baseName + ' (Copy)',
-                        planData: plan.plan_data
-                    })
-                });
-                showToast('Plan duplicated', 'success');
+                if (item._isTemplate) {
+                    // Templates already carry their plan_data in the list.
+                    await apiCall('/.netlify/functions/meal-plan-templates', {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            coachId: currentCoachId,
+                            name: (item.plan_name || 'Template') + ' (Copy)',
+                            planData: item.plan_data
+                        })
+                    });
+                    showToast('Template duplicated', 'success');
+                } else {
+                    // Plans are lightweight in the list — fetch the full body first.
+                    const result = await apiCall(`/.netlify/functions/get-coach-plan-by-id?planId=${item.id}&coachId=${currentCoachId}`);
+                    const plan = result.plan;
+                    if (!plan) return;
+                    const baseName = plan.plan_name || plan.client_name || 'Meal Plan';
+                    await apiCall('/.netlify/functions/save-coach-plan', {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            coachId: currentCoachId,
+                            clientName: plan.client_name,
+                            clientId: plan.client_id || undefined,
+                            planName: baseName + ' (Copy)',
+                            planData: plan.plan_data
+                        })
+                    });
+                    showToast('Plan duplicated', 'success');
+                }
                 await loadPlans();
             } catch (err) {
                 console.error('Duplicate failed:', err);
-                showToast('Failed to duplicate plan', 'error');
+                showToast('Failed to duplicate', 'error');
             }
         }
 
-        function openDeleteModal(id) {
-            pendingDeleteId = id;
-            const p = plans.find(pl => pl.id === id);
-            const name = p ? (p.plan_name || p.client_name || 'this plan') : 'this plan';
-            document.getElementById('deleteMessage').textContent = `Are you sure you want to delete "${name}"? This action cannot be undone.`;
+        function openDeleteModal(uid) {
+            pendingDeleteId = uid;
+            const p = findItem(uid);
+            const name = p ? (p.plan_name || p.client_name || 'this item') : 'this item';
+            const kind = p && p._isTemplate ? 'template' : 'plan';
+            document.getElementById('deleteMessage').textContent = `Are you sure you want to delete the ${kind} "${name}"? This action cannot be undone.`;
             document.getElementById('deleteModal').classList.add('active');
         }
 
@@ -1322,13 +1385,20 @@
 
         async function confirmDelete() {
             if (!pendingDeleteId) return;
+            const item = findItem(pendingDeleteId);
+            if (!item) { closeDeleteModal(); return; }
             try {
-                await apiCall(`/.netlify/functions/delete-coach-plan?planId=${pendingDeleteId}&coachId=${currentCoachId}`, { method: 'DELETE' });
-                showToast('Plan deleted', 'success');
+                if (item._isTemplate) {
+                    await apiCall(`/.netlify/functions/meal-plan-templates?templateId=${item.id}&coachId=${currentCoachId}`, { method: 'DELETE' });
+                    showToast('Template deleted', 'success');
+                } else {
+                    await apiCall(`/.netlify/functions/delete-coach-plan?planId=${item.id}&coachId=${currentCoachId}`, { method: 'DELETE' });
+                    showToast('Plan deleted', 'success');
+                }
                 closeDeleteModal();
                 await loadPlans();
             } catch (err) {
-                showToast('Failed to delete plan', 'error');
+                showToast('Failed to delete', 'error');
             }
         }
 
@@ -1347,10 +1417,10 @@
             return assignClients;
         }
 
-        async function openAssignModal(id) {
-            pendingAssignPlanId = id;
+        async function openAssignModal(uid) {
+            pendingAssignPlanId = uid;
             assignSelected = new Set();
-            const p = plans.find(pl => pl.id === id);
+            const p = findItem(uid);
             const label = p ? (p.plan_name || p.client_name || 'Plan') : 'Plan';
             document.getElementById('assignTitle').textContent = `Assign "${label}"`;
             document.getElementById('assignSearch').value = '';
@@ -1404,16 +1474,29 @@
             btn.disabled = true;
             btn.textContent = 'Assigning…';
             try {
-                const result = await apiCall(`/.netlify/functions/get-coach-plan-by-id?planId=${pendingAssignPlanId}&coachId=${currentCoachId}`);
-                const plan = result.plan;
-                if (!plan || !plan.plan_data) throw new Error('Plan data missing');
+                const item = findItem(pendingAssignPlanId);
+                if (!item) throw new Error('Item not found');
+                let planData, planName;
+                if (item._isTemplate) {
+                    // Template body is already in the list — assign it directly.
+                    planData = item.plan_data;
+                    planName = item.plan_name || 'Meal Plan';
+                } else {
+                    // Plans are lightweight in the list — fetch the full body.
+                    const result = await apiCall(`/.netlify/functions/get-coach-plan-by-id?planId=${item.id}&coachId=${currentCoachId}`);
+                    const plan = result.plan;
+                    if (!plan || !plan.plan_data) throw new Error('Plan data missing');
+                    planData = plan.plan_data;
+                    planName = plan.plan_name || plan.client_name || 'Meal Plan';
+                }
+                if (!planData) throw new Error('Plan data missing');
                 const resp = await apiCall('/.netlify/functions/bulk-post-meal-plan', {
                     method: 'POST',
                     body: JSON.stringify({
                         coachId: currentCoachId,
                         clientIds,
-                        planData: plan.plan_data,
-                        planName: plan.plan_name || plan.client_name || 'Meal Plan'
+                        planData,
+                        planName
                     })
                 });
                 showToast(resp.message || `Assigned to ${clientIds.length} client(s)`, 'success');
