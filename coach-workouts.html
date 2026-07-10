@@ -1553,6 +1553,17 @@
             z-index: 2;
         }
 
+        /* This panel's header has several action buttons — let them wrap onto
+           extra lines instead of getting clipped by the narrow panel width. */
+        .wb-panel-days .wb-panel-header {
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .wb-panel-days .wb-panel-header > div {
+            flex-wrap: wrap;
+            justify-content: flex-end;
+        }
+
         .wb-day-row {
             display: flex;
             align-items: center;
