@@ -993,6 +993,7 @@ ${unilateralInstruction}
 
 === REP RANGES (goal: ${goal}) ===
 ${repRangeBlock}
+- Rep targets must be standard gym numbers (3, 5, 6, 8, 10, 12, 15, 20) or a range like "8-12" / "15-20". NEVER an oddball single number like 7, 9, 11, 13, 14, 16, 17, 18 or 19.
 
 === EXERCISE SELECTION ===
 - Use EXACT names from the AVAILABLE EXERCISES DATABASE (custom exercises are PREFERRED if they fit).
@@ -1117,6 +1118,19 @@ Return this exact JSON structure:
           if (!ex.name || typeof ex.name !== 'string') return false;
           if (typeof ex.sets !== 'number' || ex.sets < 1) ex.sets = 3;
           if (!ex.reps) ex.reps = '8-12';
+          // Snap oddball single-number rep targets (e.g. "17") to standard gym
+          // numbers — the model occasionally invents mid-range values that look
+          // wrong on the set chips. Ranges ("8-12") and time strings ("5 min",
+          // "30s hold") pass through untouched; low strength reps (1-6) too.
+          const plainReps = typeof ex.reps === 'number'
+            ? ex.reps
+            : (/^\s*\d+\s*$/.test(String(ex.reps)) ? parseInt(ex.reps, 10) : null);
+          if (plainReps != null && plainReps > 6) {
+            const standards = [8, 10, 12, 15, 20, 25, 30];
+            const snapped = standards.reduce((best, s) =>
+              Math.abs(s - plainReps) < Math.abs(best - plainReps) ? s : best, standards[0]);
+            ex.reps = String(snapped);
+          }
           if (typeof ex.restSeconds !== 'number') ex.restSeconds = 60;
           // Strip "(custom)" / "[equipment]" labels the AI may have copied from our prompt
           ex.name = ex.name.replace(/\s*\(custom\)\s*$/i, '').replace(/\s*\[[^\]]+\]\s*$/, '').trim();

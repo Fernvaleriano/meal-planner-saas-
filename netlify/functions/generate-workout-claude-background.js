@@ -529,6 +529,18 @@ Return this exact JSON structure:
     ex.name = (ex.name || '').replace(/\s*\(custom\)\s*$/i, '').replace(/\s*\[[^\]]+\]\s*$/, '').trim();
     if (typeof ex.sets !== 'number' || ex.sets < 1) ex.sets = 3;
     if (!ex.reps) ex.reps = '8-12';
+    // Snap oddball single-number rep targets (e.g. "17") to standard gym
+    // numbers — mirrors generate-workout-claude.js. Ranges and time strings
+    // pass through; low strength reps (1-6) too.
+    const plainReps = typeof ex.reps === 'number'
+      ? ex.reps
+      : (/^\s*\d+\s*$/.test(String(ex.reps)) ? parseInt(ex.reps, 10) : null);
+    if (plainReps != null && plainReps > 6) {
+      const standards = [8, 10, 12, 15, 20, 25, 30];
+      const snapped = standards.reduce((best, s) =>
+        Math.abs(s - plainReps) < Math.abs(best - plainReps) ? s : best, standards[0]);
+      ex.reps = String(snapped);
+    }
     if (typeof ex.restSeconds !== 'number') ex.restSeconds = 60;
     ex.notes = humanizeCue(ex.notes); // coach voice: lowercase, no em dashes
     const isWarmStretch = ex.isWarmup || ex.isStretch;

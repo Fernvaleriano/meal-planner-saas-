@@ -11,6 +11,11 @@ import { apiPost } from '../../utils/api';
  * few inputs, calls the generator in single-workout mode, and hands the result
  * back via onGenerated() to the page's normal ad-hoc save path.
  *
+ * Every option here maps 1:1 to a parameter the generator already understands:
+ * targetMuscle, trainingStyle, conditioningStyle, injuryCodes (deterministic
+ * exercise exclusion), injuries (free text, mandatory block in the prompt) and
+ * preferences (free text, mandatory block in the prompt).
+ *
  * Exercise source:
  *  - 'library' (default): our global exercise library only (all have videos).
  *    coachId is NOT sent, so the generator loads globals only.
@@ -27,12 +32,20 @@ const GOALS = [
   { value: 'endurance', label: 'Endurance' },
 ];
 
+// Values map to the generator's muscleGroupMap keys.
 const FOCUS = [
   { value: '', label: 'Full body' },
-  { value: 'upper', label: 'Upper' },
-  { value: 'lower', label: 'Lower' },
+  { value: 'upper_body', label: 'Upper' },
+  { value: 'lower_body', label: 'Lower' },
   { value: 'push', label: 'Push' },
   { value: 'pull', label: 'Pull' },
+  { value: 'chest', label: 'Chest' },
+  { value: 'back', label: 'Back' },
+  { value: 'shoulders', label: 'Shoulders' },
+  { value: 'arms', label: 'Arms' },
+  { value: 'legs', label: 'Legs' },
+  { value: 'glutes', label: 'Glutes' },
+  { value: 'core', label: 'Core / Abs' },
 ];
 
 const EXPERIENCE = [
@@ -45,6 +58,36 @@ const LENGTHS = [
   { value: 30, label: '30 min' },
   { value: 45, label: '45 min' },
   { value: 60, label: '60 min' },
+  { value: 90, label: '90 min' },
+];
+
+// Maps to the generator's trainingStyle styleMap.
+const STYLES = [
+  { value: 'straight_sets', label: 'Straight sets', hint: 'One at a time' },
+  { value: 'supersets', label: 'Supersets', hint: 'Paired exercises' },
+  { value: 'circuits', label: 'Circuits', hint: '3-5 back to back' },
+  { value: 'mixed', label: 'Mixed', hint: 'A bit of both' },
+];
+
+// Maps to the generator's conditioningStyle (finisher block).
+const CARDIO = [
+  { value: 'none', label: 'None' },
+  { value: 'hiit', label: 'HIIT finisher' },
+  { value: 'liss', label: 'Steady cardio' },
+  { value: 'mixed', label: 'Surprise me' },
+];
+
+// Maps to the generator's INJURY_EXCLUSIONS codes — these deterministically
+// remove risky exercises from the pool before the AI even sees them.
+const INJURY_OPTIONS = [
+  { value: 'lower_back', label: 'Lower back' },
+  { value: 'knee', label: 'Knee' },
+  { value: 'shoulder', label: 'Shoulder' },
+  { value: 'wrist', label: 'Wrist' },
+  { value: 'hip', label: 'Hip' },
+  { value: 'neck', label: 'Neck' },
+  { value: 'elbow', label: 'Elbow' },
+  { value: 'ankle', label: 'Ankle' },
 ];
 
 const SOURCES = [
@@ -58,6 +101,11 @@ function GenerateWorkoutModal({ onClose, onGenerated, clientId = null, coachId =
   const [focus, setFocus] = useState('');
   const [experience, setExperience] = useState('beginner');
   const [sessionDuration, setSessionDuration] = useState(45);
+  const [style, setStyle] = useState('straight_sets');
+  const [cardio, setCardio] = useState('none');
+  const [injuryCodes, setInjuryCodes] = useState([]);
+  const [injuryText, setInjuryText] = useState('');
+  const [requests, setRequests] = useState('');
   const [source, setSource] = useState('library');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -72,6 +120,12 @@ function GenerateWorkoutModal({ onClose, onGenerated, clientId = null, coachId =
     return () => window.removeEventListener('keydown', onKey);
   }, [onClose, loading]);
 
+  const toggleInjury = (value) => {
+    setInjuryCodes(prev => prev.includes(value)
+      ? prev.filter(v => v !== value)
+      : [...prev, value]);
+  };
+
   const handleGenerate = async () => {
     if (submittingRef.current) return;
     submittingRef.current = true;
@@ -83,17 +137,23 @@ function GenerateWorkoutModal({ onClose, onGenerated, clientId = null, coachId =
         goal,
         experience,
         sessionDuration,
+        trainingStyle: style,
+        conditioningStyle: cardio,
         clientId,
         varietySeed: Date.now(),
       };
       if (focus) payload.targetMuscle = focus;
+      if (injuryCodes.length > 0) payload.injuryCodes = injuryCodes;
+      if (injuryText.trim()) payload.injuries = injuryText.trim();
+      if (requests.trim()) payload.preferences = requests.trim();
       // 'both' unions the gym's custom exercises; 'library' sends no coachId
       // so only the global library (all video-backed) is used.
       if (source === 'both' && coachId) payload.coachId = coachId;
 
-      // AI generation runs longer than a normal request — give it up to 30s
-      // (the function itself is capped at 26s server-side).
-      const res = await apiPost('/.netlify/functions/generate-workout-claude', payload, { timeoutMs: 30000 });
+      // AI generation runs longer than a normal request — allow up to 60s so
+      // slow connections / cold starts don't abort a generation that is about
+      // to succeed (the function itself is capped at 26s server-side).
+      const res = await apiPost('/.netlify/functions/generate-workout-claude', payload, { timeoutMs: 60000 });
       if (!res?.success) throw new Error(res?.error || 'Could not generate a workout. Please try again.');
 
       const workout = res.program?.weeks?.[0]?.workouts?.[0];
@@ -130,6 +190,7 @@ function GenerateWorkoutModal({ onClose, onGenerated, clientId = null, coachId =
     maxHeight: '92vh', overflowY: 'auto',
   };
   const groupLabel = { fontSize: 13, fontWeight: 700, opacity: 0.7, margin: '16px 2px 8px' };
+  const groupHint = { fontSize: 12, opacity: 0.55, margin: '-4px 2px 8px' };
   const row = { display: 'flex', flexWrap: 'wrap', gap: 8 };
   const chip = (active, disabled) => ({
     flex: '1 1 auto', minWidth: 88, textAlign: 'center', cursor: disabled ? 'default' : 'pointer',
@@ -138,6 +199,15 @@ function GenerateWorkoutModal({ onClose, onGenerated, clientId = null, coachId =
     background: active ? 'var(--brand-primary, #FF5A1F)' : 'transparent',
     color: active ? '#fff' : 'inherit', opacity: disabled ? 0.4 : 1,
   });
+  const smallChip = (active) => ({
+    ...chip(active),
+    flex: '0 1 auto', minWidth: 70, padding: '9px 12px', fontSize: 13,
+  });
+  const textArea = {
+    width: '100%', minHeight: 64, borderRadius: 11, padding: '10px 12px',
+    border: '1.5px solid rgba(128,128,128,0.28)', background: 'transparent',
+    color: 'inherit', fontSize: 14, fontFamily: 'inherit', resize: 'vertical',
+  };
 
   return (
     <div style={overlay} onClick={() => !loading && onClose?.()}>
@@ -163,7 +233,7 @@ function GenerateWorkoutModal({ onClose, onGenerated, clientId = null, coachId =
               animation: 'giwSpin 0.8s linear infinite',
             }} />
             <div style={{ fontWeight: 700 }}>Building your workout…</div>
-            <div style={{ fontSize: 13, opacity: 0.6, marginTop: 4 }}>This can take up to 30 seconds</div>
+            <div style={{ fontSize: 13, opacity: 0.6, marginTop: 4 }}>This can take up to a minute</div>
             <style>{`@keyframes giwSpin { to { transform: rotate(360deg); } }`}</style>
           </div>
         ) : (
@@ -175,10 +245,10 @@ function GenerateWorkoutModal({ onClose, onGenerated, clientId = null, coachId =
               ))}
             </div>
 
-            <div style={groupLabel}>FOCUS</div>
+            <div style={groupLabel}>FOCUS / BODY PART</div>
             <div style={row}>
               {FOCUS.map((o) => (
-                <div key={o.value} style={chip(focus === o.value)} onClick={() => setFocus(o.value)}>{o.label}</div>
+                <div key={o.value} style={smallChip(focus === o.value)} onClick={() => setFocus(o.value)}>{o.label}</div>
               ))}
             </div>
 
@@ -192,9 +262,51 @@ function GenerateWorkoutModal({ onClose, onGenerated, clientId = null, coachId =
             <div style={groupLabel}>SESSION LENGTH</div>
             <div style={row}>
               {LENGTHS.map((o) => (
-                <div key={o.value} style={chip(sessionDuration === o.value)} onClick={() => setSessionDuration(o.value)}>{o.label}</div>
+                <div key={o.value} style={smallChip(sessionDuration === o.value)} onClick={() => setSessionDuration(o.value)}>{o.label}</div>
               ))}
             </div>
+
+            <div style={groupLabel}>WORKOUT STYLE</div>
+            <div style={row}>
+              {STYLES.map((o) => (
+                <div key={o.value} style={chip(style === o.value)} onClick={() => setStyle(o.value)} title={o.hint}>
+                  {o.label}
+                  <div style={{ fontSize: 10, fontWeight: 600, opacity: 0.7, marginTop: 2 }}>{o.hint}</div>
+                </div>
+              ))}
+            </div>
+
+            <div style={groupLabel}>CARDIO FINISHER</div>
+            <div style={row}>
+              {CARDIO.map((o) => (
+                <div key={o.value} style={smallChip(cardio === o.value)} onClick={() => setCardio(o.value)}>{o.label}</div>
+              ))}
+            </div>
+
+            <div style={groupLabel}>ANY INJURIES? (tap all that apply)</div>
+            <div style={groupHint}>Exercises that stress these areas are removed automatically.</div>
+            <div style={row}>
+              {INJURY_OPTIONS.map((o) => (
+                <div key={o.value} style={smallChip(injuryCodes.includes(o.value))} onClick={() => toggleInjury(o.value)}>{o.label}</div>
+              ))}
+            </div>
+            <textarea
+              style={{ ...textArea, marginTop: 8, minHeight: 48 }}
+              placeholder="Anything else? e.g. recovering from a pulled hamstring"
+              value={injuryText}
+              onChange={(e) => setInjuryText(e.target.value)}
+              maxLength={300}
+            />
+
+            <div style={groupLabel}>REQUESTS</div>
+            <div style={groupHint}>Exercises you hate, things you want included — the AI follows this.</div>
+            <textarea
+              style={textArea}
+              placeholder="e.g. no burpees, i don't like lunges, finish with abs, include hip thrusts"
+              value={requests}
+              onChange={(e) => setRequests(e.target.value)}
+              maxLength={500}
+            />
 
             <div style={groupLabel}>EXERCISES FROM</div>
             <div style={row}>
