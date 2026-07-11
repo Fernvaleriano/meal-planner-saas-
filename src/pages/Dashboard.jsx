@@ -1453,7 +1453,7 @@ function Dashboard() {
       </>
       ) : (
       /* ── Workout-only (lite mode) GYM HOME ── */
-      <div className="gym-home">
+      <div className="gym-home" style={{ display: 'flex', flexDirection: 'column', minHeight: 'calc(100dvh - 210px)' }}>
         {/* Greeting */}
         <div style={{ margin: '4px 2px 16px' }}>
           <h2 style={{ fontSize: 23, fontWeight: 800, margin: 0, letterSpacing: '-0.3px' }}>
@@ -1507,6 +1507,29 @@ function Dashboard() {
             <span>{t('dashboard.quickActionProfile')}</span>
           </Link>
         </div>
+
+        {/* Faint branded footer — fills the space below the tiles and reinforces
+            the gym's brand. Logo is optional; "Powered by <Gym>" auto-fills from
+            the gym's name so every gym gets it with no setup. */}
+        {branding?.brand_name && (
+          <div style={{
+            marginTop: 'auto', paddingTop: 28, paddingBottom: 8,
+            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
+            textAlign: 'center', opacity: 0.32,
+          }}>
+            {branding?.brand_logo_url && (
+              <img
+                src={branding.brand_logo_url}
+                alt=""
+                aria-hidden="true"
+                style={{ height: 44, maxWidth: 160, objectFit: 'contain' }}
+              />
+            )}
+            <div style={{ fontSize: 12, fontWeight: 600, letterSpacing: '0.3px', textTransform: 'uppercase' }}>
+              {t('dashboard.gymPoweredBy', { name: branding.brand_name })}
+            </div>
+          </div>
+        )}
       </div>
       )}
 

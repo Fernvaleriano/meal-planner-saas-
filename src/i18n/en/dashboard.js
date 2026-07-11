@@ -131,6 +131,7 @@ export default {
   gymAiTitle: 'Generate today\'s workout',
   gymAiSub: 'AI builds it around your goal & gear',
   gymTodaysWorkout: 'My Workouts',
+  gymPoweredBy: 'Powered by {name}',
 
   // ── Error / toast messages ────────────────────────────────────────────────
   errorNoFood: 'Could not recognize the food. Please try describing it differently.',
