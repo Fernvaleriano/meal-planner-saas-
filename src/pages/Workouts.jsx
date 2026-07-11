@@ -43,6 +43,46 @@ const findLogForWorkout = (workout, logs) => {
   return logs.find((l) => l && l.assignment_id === workout.id) || null;
 };
 
+// Delete the workout_log rows that belong to a workout being removed, so a
+// completed log can't resurrect the card via buildWorkoutFromLog on the next
+// refresh (the "deleted AI workout pops right back" bug). Assigned workouts
+// match their log by assignment_id; adhoc/AI workouts save their log with NO
+// assignment_id (assignment_id is null), so those are matched by name —
+// falling back to the lone no-assignment log when the name can't be resolved,
+// and never guessing when several ambiguous logs share a day. Best-effort: a
+// 404 just means the log is already gone.
+async function deleteLogsForWorkout(clientId, dateStr, workout) {
+  if (!clientId || !workout) return;
+  try {
+    const logRes = await apiGet(
+      `/.netlify/functions/workout-logs?clientId=${clientId}&date=${dateStr}`
+    );
+    const logs = Array.isArray(logRes?.logs) ? logRes.logs : [];
+    let matching;
+    if (workout.is_adhoc) {
+      const noAssignment = logs.filter((l) => l && !l.assignment_id);
+      const name = workout.name || workout.workout_data?.name;
+      const byName = name ? noAssignment.filter((l) => l.workout_name === name) : [];
+      matching = byName.length > 0
+        ? byName
+        : (noAssignment.length === 1 ? noAssignment : []);
+    } else {
+      matching = logs.filter((l) => l && (l.assignment_id === workout.id || l.id === workout.id));
+    }
+    for (const log of matching) {
+      try {
+        await apiDelete(`/.netlify/functions/workout-logs?workoutId=${log.id}`);
+      } catch (logErr) {
+        if (logErr.status !== 404 && !logErr.message?.includes('not found')) {
+          console.error('Error deleting workout log:', logErr);
+        }
+      }
+    }
+  } catch (lookupErr) {
+    console.error('Error looking up workout logs to delete:', lookupErr);
+  }
+}
+
 const formatDate = (date) => {
   try {
     const d = (date && date instanceof Date && !isNaN(date.getTime())) ? date : new Date();
@@ -4545,8 +4585,13 @@ function Workouts() {
       }
 
       // Also delete any workout_log row for this date so the deleted card
-      // isn't resurrected by buildWorkoutFromLog on the next fetch.
-      if (workoutLog?.id) {
+      // isn't resurrected by buildWorkoutFromLog on the next fetch. Adhoc/AI
+      // workouts never load their log into workoutLog state (it has no
+      // assignment_id), so look it up by name via the shared helper — without
+      // this the completed AI workout pops right back on refresh.
+      if (todayWorkout.is_adhoc) {
+        await deleteLogsForWorkout(clientData?.id, dateStr, todayWorkout);
+      } else if (workoutLog?.id) {
         try {
           await apiDelete(`/.netlify/functions/workout-logs?workoutId=${workoutLog.id}`);
         } catch (logErr) {
@@ -4622,27 +4667,9 @@ function Workouts() {
 
       // Also delete any workout_log row for this workout on this date so the
       // deleted card isn't resurrected by buildWorkoutFromLog on the next fetch.
-      // Look up logs for this date and match by assignment_id (logs are keyed
-      // by client + date + assignment_id).
-      try {
-        const logRes = await apiGet(
-          `/.netlify/functions/workout-logs?clientId=${clientData?.id}&date=${dateStr}`
-        );
-        const matchingLogs = (logRes?.logs || []).filter(l =>
-          l.assignment_id === workout.id || l.id === workout.id
-        );
-        for (const log of matchingLogs) {
-          try {
-            await apiDelete(`/.netlify/functions/workout-logs?workoutId=${log.id}`);
-          } catch (logErr) {
-            if (logErr.status !== 404 && !logErr.message?.includes('not found')) {
-              console.error('Error deleting workout log:', logErr);
-            }
-          }
-        }
-      } catch (lookupErr) {
-        console.error('Error looking up workout logs to delete:', lookupErr);
-      }
+      // Adhoc/AI workout logs carry no assignment_id, so the shared helper
+      // matches them by name instead of the (never-matching) assignment_id.
+      await deleteLogsForWorkout(clientData?.id, dateStr, workout);
     } catch (err) {
       console.error('Error deleting workout:', err);
       // If assignment not found (404), treat as already deleted - still update local state
@@ -4690,6 +4717,7 @@ function Workouts() {
     if (!workout?.id) return;
 
     const programName = workout.workout_data?.name || workout.name || 'this program';
+    const dateStr = formatDate(selectedDate);
 
     try {
       if (workout.is_adhoc) {
@@ -4698,6 +4726,9 @@ function Workouts() {
         if (isRealId) {
           await apiDelete(`/.netlify/functions/adhoc-workouts?workoutId=${workout.id}`);
         }
+        // Adhoc/AI workouts store their completion log with no assignment_id;
+        // delete it too or buildWorkoutFromLog resurrects the card on refresh.
+        await deleteLogsForWorkout(clientData?.id, dateStr, workout);
       } else {
         // Delete the entire assignment row — wipes this program from every
         // past and future date it covered.
