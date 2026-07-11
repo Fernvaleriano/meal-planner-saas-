@@ -948,7 +948,20 @@ function Dashboard() {
   };
 
   return (
-    <div className="dashboard" ref={bindToContainer}>
+    <div
+      className="dashboard"
+      ref={bindToContainer}
+      style={!nutritionEnabled ? {
+        // Workout-only "gym home": fill exactly the visible area (no more) so
+        // the page is static / non-scrollable, and let the branded footer
+        // center in the leftover space. Offset = top nav (~66) + page top
+        // padding (24) + page bottom padding (100, reserves room above the
+        // fixed bottom nav) + the safe-area insets those already include.
+        display: 'flex',
+        flexDirection: 'column',
+        minHeight: 'calc(100dvh - 190px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px))',
+      } : undefined}
+    >
       {/* Pull-to-refresh indicator */}
       <PullToRefreshIndicator
         indicatorRef={indicatorRef}
@@ -1453,7 +1466,7 @@ function Dashboard() {
       </>
       ) : (
       /* ── Workout-only (lite mode) GYM HOME ── */
-      <div className="gym-home" style={{ display: 'flex', flexDirection: 'column', minHeight: 'calc(100dvh - 210px)' }}>
+      <div className="gym-home" style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
         {/* Greeting */}
         <div style={{ margin: '4px 2px 16px' }}>
           <h2 style={{ fontSize: 23, fontWeight: 800, margin: 0, letterSpacing: '-0.3px' }}>
