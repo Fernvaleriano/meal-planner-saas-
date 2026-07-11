@@ -19,6 +19,7 @@ import BrandingSettings from './pages/BrandingSettings';
 import CoachBilling from './pages/CoachBilling';
 import ClientBilling from './pages/ClientBilling';
 import Challenges from './pages/Challenges';
+import Leaderboard from './pages/Leaderboard';
 import Login from './pages/Login';
 import ForgotPassword from './pages/ForgotPassword';
 import LoadingScreen from './components/LoadingScreen';
@@ -178,6 +179,7 @@ function App() {
         <Route path="billing" element={<CoachOnlyRoute><CoachBilling /></CoachOnlyRoute>} />
         <Route path="my-billing" element={<ClientBilling />} />
         <Route path="challenges" element={<Challenges />} />
+        <Route path="leaderboard" element={<Leaderboard />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
