@@ -12,9 +12,13 @@
     <meta property="og:description" content="Your personalized fitness and nutrition companion">
     <meta property="og:type" content="website">
     <meta property="og:image" content="https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/assets/icons/logo.png">
-    <link rel="manifest" href="/manifest.json" id="manifest-link">
+    <!-- Manifest + home-screen icon resolve PER-GYM on the server (via ?coachId
+         or the zq_coach cookie) so iOS shows the gym's name + icon even though
+         it reads these tags before our branding JS runs. crossorigin lets iOS
+         send the cookie with the manifest fetch. No cookie => Ziquecoach default. -->
+    <link rel="manifest" href="/.netlify/functions/dynamic-manifest" crossorigin="use-credentials" id="manifest-link">
     <link rel="icon" type="image/png" href="https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/assets/icons/logo.png">
-    <link rel="apple-touch-icon" href="https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/assets/icons/logo.png">
+    <link rel="apple-touch-icon" href="/.netlify/functions/coach-icon">
     <!-- Set data-theme BEFORE any CSS loads to prevent white flash.
          global.css uses [data-theme="dark"] to swap CSS variables;
          without this, the light defaults flash for a frame while React boots. -->
@@ -290,6 +294,13 @@
                 }
                 // Update manifest link + title + icon for branded PWA homescreen saves
                 if (coachId) {
+                    // Persist the gym id in a cookie so the server-rendered
+                    // manifest + apple-touch-icon (which iOS/Android read before
+                    // this JS runs, on the next launch) resolve to this gym.
+                    try {
+                        document.cookie = 'zq_coach=' + encodeURIComponent(coachId) + '; path=/; max-age=31536000; SameSite=Lax';
+                    } catch (e) { /* cookies disabled — dynamic links below still help */ }
+
                     var manifestLink = document.getElementById('manifest-link');
                     if (manifestLink) {
                         manifestLink.href = '/.netlify/functions/dynamic-manifest?coachId=' + coachId;
