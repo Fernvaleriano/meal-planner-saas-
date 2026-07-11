@@ -200,7 +200,7 @@ function GenerateWorkoutModal({ onClose, onGenerated, clientId = null, coachId =
     display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
   };
   const sheet = {
-    background: 'var(--brand-card-color, #fff)', color: 'var(--brand-text-color, #16222c)',
+    background: '#000', color: '#fff',
     width: '100%', maxWidth: 520, borderRadius: '18px 18px 0 0',
     padding: '18px 18px calc(20px + env(safe-area-inset-bottom))',
     maxHeight: '92vh', overflowY: 'auto',
