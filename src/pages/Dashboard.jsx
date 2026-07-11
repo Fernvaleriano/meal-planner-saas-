@@ -1513,7 +1513,7 @@ function Dashboard() {
             the gym's name so every gym gets it with no setup. */}
         {branding?.brand_name && (
           <div style={{
-            marginTop: 40, paddingTop: 28, paddingBottom: 8,
+            marginTop: 40, paddingTop: 28, paddingBottom: 40,
             display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
             textAlign: 'center', opacity: 0.32,
           }}>
