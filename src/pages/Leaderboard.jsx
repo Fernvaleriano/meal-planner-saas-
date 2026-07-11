@@ -192,7 +192,7 @@ function Leaderboard() {
 
           {board.length === 0 ? (
             <div className="lb-empty">
-              <div className="lb-empty-emoji">{currentLift?.icon}</div>
+              <div className="lb-empty-emoji">🏆</div>
               <h3>No {currentLift?.name} lifts yet</h3>
               <p>Be the first to claim the top spot. Film your set and post it.</p>
             </div>
