@@ -407,6 +407,16 @@ function applyBrandingCSS(branding) {
     }));
   } catch { /* ignore */ }
 
+  // Persist the gym/coach id in a cookie so the server-rendered PWA manifest +
+  // apple-touch-icon resolve to this brand on the NEXT launch — iOS/Android read
+  // those tags before this JS runs, so the cookie is what makes the home-screen
+  // name + icon correct per gym (not just the founder's default).
+  try {
+    if (branding.coach_id) {
+      document.cookie = `zq_coach=${encodeURIComponent(branding.coach_id)}; path=/; max-age=31536000; SameSite=Lax`;
+    }
+  } catch { /* ignore */ }
+
   // Persist a snapshot to localStorage (survives full app close, unlike
   // sessionStorage) so the pre-React inline script in app-test.html can paint
   // the exact same brand colors + splash assets on the very first frame of a
@@ -445,6 +455,9 @@ export function clearBrandingCSS() {
   // Drop the cold-start snapshot too, so a logged-out / reset device doesn't
   // replay a stale brand's colors before the next login fetches fresh ones.
   try { localStorage.removeItem(PRELOAD_KEY); } catch { /* ignore */ }
+  // Clear the per-gym PWA cookie so a shared device doesn't serve the previous
+  // gym's manifest/icon to the next person who logs in.
+  try { document.cookie = 'zq_coach=; path=/; max-age=0; SameSite=Lax'; } catch { /* ignore */ }
 }
 
 export function BrandingProvider({ children }) {

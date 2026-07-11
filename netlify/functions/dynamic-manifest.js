@@ -38,14 +38,37 @@ const DEFAULT_MANIFEST = {
     ]
 };
 
+// Pull a named cookie value out of a Cookie header.
+function readCookie(cookieHeader, name) {
+    if (!cookieHeader) return null;
+    const parts = cookieHeader.split(/;\s*/);
+    for (const part of parts) {
+        const eq = part.indexOf('=');
+        if (eq === -1) continue;
+        if (part.slice(0, eq).trim() === name) return decodeURIComponent(part.slice(eq + 1).trim());
+    }
+    return null;
+}
+
 exports.handler = async (event) => {
     const headers = {
         'Content-Type': 'application/manifest+json',
-        'Access-Control-Allow-Origin': '*',
-        'Cache-Control': 'public, max-age=3600' // 1 hour cache
+        // Per-user manifest: iOS/Safari only send cookies for the manifest fetch
+        // when the <link> has crossorigin="use-credentials", which in turn needs
+        // these credentialed CORS headers (same-origin, so echo the origin).
+        'Access-Control-Allow-Origin': event.headers?.origin || '*',
+        'Access-Control-Allow-Credentials': 'true',
+        // Short cache + Vary on cookie so different gyms don't share a cached
+        // manifest, but we still avoid re-generating on every single load.
+        'Cache-Control': 'private, max-age=300',
+        'Vary': 'Cookie'
     };
 
-    const coachId = event.queryStringParameters?.coachId;
+    // Prefer an explicit ?coachId, fall back to the zq_coach cookie so the
+    // static <link rel="manifest"> (which iOS reads before our JS runs) still
+    // resolves to the right gym.
+    const coachId = event.queryStringParameters?.coachId
+        || readCookie(event.headers?.cookie || event.headers?.Cookie, 'zq_coach');
 
     if (!coachId || !SUPABASE_SERVICE_KEY) {
         return {
