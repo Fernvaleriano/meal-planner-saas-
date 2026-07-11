@@ -1,10 +1,10 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { X, Plus, Dumbbell, Trash2, Clock, Hash, ArrowLeftRight, ChevronDown, MoreVertical, Pencil, ImagePlus } from 'lucide-react';
+import { X, Plus, Dumbbell, Trash2, Clock, Hash, ArrowLeftRight, ChevronDown, MoreVertical, Pencil, ImagePlus, Images } from 'lucide-react';
 import AddActivityModal from './AddActivityModal';
 import SwapExerciseModal from './SwapExerciseModal';
 import SmartThumbnail from './SmartThumbnail';
 import { estimateWorkoutMinutes, estimateWorkoutCalories } from '../../utils/workoutDuration';
-import { apiPost } from '../../utils/api';
+import { apiGet, apiPost } from '../../utils/api';
 
 const DIFFICULTY_OPTIONS = ['Beginner', 'Novice', 'Intermediate', 'Advanced'];
 const CATEGORY_OPTIONS = ['Main Workout Programs', 'Strength Training', 'Hypertrophy', 'Fat Loss', 'HIIT', 'Cardio', 'Mobility', 'Sport Specific', 'Rehabilitation', 'Custom'];
@@ -21,6 +21,13 @@ function CreateWorkoutModal({ onClose, onCreateWorkout, selectedDate, coachId = 
   const [uploadingImage, setUploadingImage] = useState(false);
   const [imageError, setImageError] = useState('');
   const imageInputRef = useRef(null);
+
+  // Shared cover-photo library (curated backgrounds the client can pick from
+  // instead of uploading their own). Fetched lazily the first time they open it.
+  const [showLibrary, setShowLibrary] = useState(false);
+  const [libraryCovers, setLibraryCovers] = useState([]);
+  const [libraryLoading, setLibraryLoading] = useState(false);
+  const [libraryLoaded, setLibraryLoaded] = useState(false);
 
   // Multi-day state
   const [days, setDays] = useState([{ name: 'Day 1', exercises: [] }]);
@@ -375,6 +382,28 @@ function CreateWorkoutModal({ onClose, onCreateWorkout, selectedDate, coachId = 
     if (imageInputRef.current) imageInputRef.current.value = '';
   };
 
+  // Open the curated cover-photo library, loading it once on first open.
+  const openLibrary = async () => {
+    setShowLibrary(prev => !prev);
+    if (libraryLoaded || libraryLoading) return;
+    setLibraryLoading(true);
+    try {
+      const res = await apiGet('/.netlify/functions/workout-cover-library');
+      setLibraryCovers(Array.isArray(res?.covers) ? res.covers : []);
+      setLibraryLoaded(true);
+    } catch (err) {
+      console.error('Error loading cover library:', err);
+    } finally {
+      setLibraryLoading(false);
+    }
+  };
+
+  const handlePickLibraryCover = (url) => {
+    setImageUrl(url);
+    setImageError('');
+    setShowLibrary(false);
+  };
+
   // Calculate workout duration
   const calculateWorkoutTime = (exerciseList) => estimateWorkoutMinutes(exerciseList);
 
@@ -657,15 +686,50 @@ function CreateWorkoutModal({ onClose, onCreateWorkout, selectedDate, coachId = 
                   </div>
                 </div>
               ) : (
-                <button
-                  type="button"
-                  className="create-workout-cover-upload"
-                  onClick={() => imageInputRef.current?.click()}
-                  disabled={uploadingImage}
-                >
-                  <ImagePlus size={20} />
-                  <span>{uploadingImage ? 'Uploading...' : 'Add cover photo'}</span>
-                </button>
+                <>
+                  <div className="create-workout-cover-options">
+                    <button
+                      type="button"
+                      className="create-workout-cover-upload"
+                      onClick={() => imageInputRef.current?.click()}
+                      disabled={uploadingImage}
+                    >
+                      <ImagePlus size={20} />
+                      <span>{uploadingImage ? 'Uploading...' : 'Upload photo'}</span>
+                    </button>
+                    <button
+                      type="button"
+                      className={`create-workout-cover-upload ${showLibrary ? 'active' : ''}`}
+                      onClick={openLibrary}
+                      disabled={uploadingImage}
+                    >
+                      <Images size={20} />
+                      <span>Choose from library</span>
+                    </button>
+                  </div>
+                  {showLibrary && (
+                    <div className="create-workout-cover-library">
+                      {libraryLoading ? (
+                        <div className="create-workout-cover-library-status">Loading photos…</div>
+                      ) : libraryCovers.length === 0 ? (
+                        <div className="create-workout-cover-library-status">No photos available yet.</div>
+                      ) : (
+                        <div className="create-workout-cover-library-grid">
+                          {libraryCovers.map(cover => (
+                            <button
+                              type="button"
+                              key={cover.url}
+                              className="create-workout-cover-library-item"
+                              onClick={() => handlePickLibraryCover(cover.url)}
+                            >
+                              <img src={cover.url} alt="" loading="lazy" />
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </>
               )}
               {imageError && (
                 <div className="create-workout-cover-error">{imageError}</div>

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { X, Sparkles, Dumbbell } from 'lucide-react';
-import { apiPost } from '../../utils/api';
+import { apiGet, apiPost } from '../../utils/api';
 
 /**
  * Member-facing AI workout generator (gym / lite-mode members).
@@ -162,6 +162,21 @@ function GenerateWorkoutModal({ onClose, onGenerated, clientId = null, coachId =
       const exercises = (workout?.exercises || []).filter((e) => e && e.id);
       if (!exercises.length) throw new Error('No matching exercises came back. Try again or widen the source.');
 
+      // Give the AI workout a random cover from the shared photo library so it
+      // isn't left with a blank background. Best-effort: if the library is empty
+      // or the lookup fails, the workout just saves without a cover (same as
+      // before this feature).
+      let coverUrl = null;
+      try {
+        const lib = await apiGet('/.netlify/functions/workout-cover-library');
+        const covers = Array.isArray(lib?.covers) ? lib.covers : [];
+        if (covers.length) {
+          coverUrl = covers[Math.floor(Math.random() * covers.length)].url;
+        }
+      } catch (coverErr) {
+        console.error('Could not fetch a cover for the AI workout:', coverErr);
+      }
+
       onGenerated?.({
         name: workout.name || 'AI Workout',
         description: '',
@@ -169,6 +184,7 @@ function GenerateWorkoutModal({ onClose, onGenerated, clientId = null, coachId =
         category: 'Main Workout Programs',
         frequency: 1,
         exercises,
+        image_url: coverUrl,
       });
       onClose?.();
     } catch (err) {
