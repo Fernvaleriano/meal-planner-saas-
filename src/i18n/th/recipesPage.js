@@ -168,7 +168,7 @@ export default {
   pdfFat: 'ไขมัน',
   pdfIngredients: 'ส่วนผสม',
   pdfInstructions: 'วิธีทำ',
-  pdfFooter: 'ดาวน์โหลดจาก Ziquecoach',
+  pdfFooter: 'ดาวน์โหลดจาก {name}',
   pdfSource: 'ที่มา: {url}',
 
   pdfTitleSuffix: 'สูตรอาหาร',

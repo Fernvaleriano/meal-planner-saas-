@@ -236,7 +236,7 @@ export default {
   pdfGroceryHeading: 'Lista de compras',
   pdfGrocerySubheading: 'Marca cada artículo mientras compras',
   pdfMealPrepHeading: 'Guía de preparación',
-  pdfFooter: 'Generado por Ziquecoach',
+  pdfFooter: 'Generado por {name}',
   errorSavePlan: 'No se pudo guardar tu cambio. Revisa tu conexión e inténtalo de nuevo.',
   errorPopupBlocked: 'No se pudo abrir la vista de impresión — tu navegador bloqueó la ventana emergente.',
 };

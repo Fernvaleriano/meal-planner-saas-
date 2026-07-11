@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { ChevronLeft, ChevronRight, ChevronDown, Plus, Minus, Camera, Search, Heart, Copy, ArrowLeft, FileText, Sunrise, Sun, Moon, Coffee, Apple, Droplets, Bot, Maximize2, BarChart3, Check, CheckCircle, Trash2, Dumbbell, UtensilsCrossed, Mic, X, ChefHat, Sparkles, Send, Zap, MapPin, Salad, RotateCcw, Pencil, Share2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useBranding } from '../context/BrandingContext';
 import { useLanguage } from '../context/LanguageContext';
 import { apiGet, apiPost, apiPut, apiDelete, fetchWithTimeout } from '../utils/api';
 import { getSpeechLang } from '../utils/speechLang';
@@ -56,6 +57,7 @@ const getGenderBasedDefaults = (gender) => {
 function Diary() {
   const { showError, showSuccess } = useToast();
   const { clientData, loading: authLoading } = useAuth();
+  const { branding } = useBranding();
   const { t, language } = useLanguage();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -1941,7 +1943,7 @@ function Diary() {
         ctx.fillStyle = '#9ca3af';
         ctx.font = '18px -apple-system, BlinkMacSystemFont, sans-serif';
         ctx.textAlign = 'center';
-        ctx.fillText(t('diaryPage.shareCardPoweredBy'), width / 2, height - 30);
+        ctx.fillText(t('diaryPage.shareCardPoweredBy', { name: branding?.brand_name || 'Ziquecoach' }), width / 2, height - 30);
 
         // Convert and share
         canvas.toBlob(async (blob) => {
@@ -1991,7 +1993,7 @@ function Diary() {
         }
       };
 
-      const logoUrl = 'https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/assets/ziquecoach-logo-teal.png';
+      const logoUrl = branding?.brand_logo_url || 'https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/assets/ziquecoach-logo-teal.png';
       const logo = new Image();
       logo.crossOrigin = 'anonymous';
       logo.onload = () => renderCard(logo);
@@ -2996,7 +2998,11 @@ function Diary() {
                 <div className="share-card-overlay" />
                 <div className="share-card-content diary-share-content">
                   <div className="share-card-brand">
-                    <img src="https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/assets/ziquecoach-logo-teal.png" alt="Ziquecoach" className="share-card-logo" />
+                    <img
+                      src={branding?.brand_logo_url || 'https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/assets/ziquecoach-logo-teal.png'}
+                      alt={branding?.brand_name || 'Ziquecoach'}
+                      className="share-card-logo"
+                    />
                   </div>
                   <div className="diary-share-date">{formatFullDate()}</div>
                   <div className="share-card-stats">
@@ -3069,7 +3075,7 @@ function Diary() {
                   {shareDiaryToggles.meals && entries.length > 0 && (
                     <div className="diary-share-meals">{entries.length === 1 ? t('diaryPage.shareCardFoodsLogged_one', { count: entries.length }) : t('diaryPage.shareCardFoodsLogged_other', { count: entries.length })}</div>
                   )}
-                  <div className="share-card-footer">{t('diaryPage.shareCardPoweredBy')}</div>
+                  <div className="share-card-footer">{t('diaryPage.shareCardPoweredBy', { name: branding?.brand_name || 'Ziquecoach' })}</div>
                 </div>
               </div>
             </div>

@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import { X, FileDown, Loader2 } from 'lucide-react';
 import { generateWorkoutPDF } from '../../utils/workoutPdf';
+import { useBranding } from '../../context/BrandingContext';
 
 export default function PrintPlanModal({ program, onClose }) {
+  const { branding } = useBranding();
   const [layout, setLayout] = useState('compact');
   const [separateDays, setSeparateDays] = useState(false);
   const [includeNotes, setIncludeNotes] = useState(true);
@@ -14,7 +16,8 @@ export default function PrintPlanModal({ program, onClose }) {
       await generateWorkoutPDF(program, {
         compact: layout === 'compact',
         includeNotes,
-        separateDays
+        separateDays,
+        brandName: branding?.brand_name || 'Ziquecoach'
       });
       onClose();
     } catch (err) {
