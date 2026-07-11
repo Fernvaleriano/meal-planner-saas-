@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { Home, NotebookPen, Dumbbell, MessageCircle, UtensilsCrossed } from 'lucide-react';
+import { Home, NotebookPen, Dumbbell, MessageCircle, UtensilsCrossed, Trophy } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useBranding } from '../context/BrandingContext';
 import { apiGet } from '../utils/api';
@@ -80,11 +80,15 @@ function BottomNav({ currentPath }) {
     ];
 
     if (isCoach) return allItems;
-    return allItems.filter(item => !item.moduleKey || isModuleVisible(item.moduleKey));
+    const visible = allItems.filter(item => !item.moduleKey || isModuleVisible(item.moduleKey));
+    // Gym members get a Leaderboard tab. It's a member-only competition surface,
+    // so coaches (who see the full coaching toolset) don't get it here.
+    visible.push({ path: '/leaderboard', icon: Trophy, label: 'Ranks', moduleKey: null });
+    return visible;
   }, [isCoach, isModuleVisible, getLabel, unreadMessages]);
 
   return (
-    <nav className="bottom-nav" role="navigation" aria-label="Main navigation">
+    <nav className={`bottom-nav ${navItems.length >= 6 ? 'has-six' : ''}`} role="navigation" aria-label="Main navigation">
       {navItems.map(({ path, icon: Icon, label, badge }) => (
         <Link
           key={path}
