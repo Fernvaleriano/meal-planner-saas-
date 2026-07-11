@@ -74,6 +74,9 @@ export default {
     nutritionCoach: 'โค้ชโภชนาการ',
     message: 'ส่งข้อความ',
     messageYourCoach: 'ส่งข้อความหาโค้ชของคุณ',
+    // ตัวเลือกสำหรับยิม (เฉพาะการออกกำลังกาย) — เมื่อปิดโมดูลไดอารี่
+    myGym: 'ยิมของฉัน',
+    messageYourGym: 'ส่งข้อความหายิมของคุณ',
 
     myProfile: 'โปรไฟล์ของฉัน',
     editProfileAria: 'แก้ไขโปรไฟล์',

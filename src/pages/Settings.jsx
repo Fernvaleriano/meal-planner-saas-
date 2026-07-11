@@ -26,10 +26,14 @@ const setCache = (key, data) => {
 
 function Settings() {
   const { clientData, theme, toggleTheme, logout, refreshClientData } = useAuth();
-  const { branding } = useBranding();
+  const { branding, isModuleVisible } = useBranding();
   const { showError, showSuccess } = useToast();
   const { t, language, setLanguage, supportedLanguages } = useLanguage();
   const isCoach = clientData?.is_coach === true;
+  // Gym (workout-only) members have the diary module off. For them we drop the
+  // "coach"/"Nutrition Coach" wording and hide all the food & nutrition fields,
+  // since a plain gym app has nothing to do with nutrition.
+  const isGymMember = !isCoach && !isModuleVisible('diary');
 
   // Coach-controlled app tutorial video: built-in default, the coach's own
   // upload, or nothing — depending on their Branding Settings.
@@ -572,7 +576,7 @@ function Settings() {
       {/* My Coach Section */}
       {clientData?.coach_id && (
         <div className="settings-card">
-          <div className="settings-card-title">{t('settings.myCoach')}</div>
+          <div className="settings-card-title">{isGymMember ? t('settings.myGym') : t('settings.myCoach')}</div>
           <div className="settings-item coach-item">
             <div className="coach-info">
               {coachData?.profile_photo_url ? (
@@ -588,10 +592,10 @@ function Settings() {
               )}
               <div className="coach-details">
                 <div className="coach-name">{coachData?.coach_name || t('common.loading')}</div>
-                <div className="coach-label">{t('settings.nutritionCoach')}</div>
+                {!isGymMember && <div className="coach-label">{t('settings.nutritionCoach')}</div>}
               </div>
             </div>
-            <Link to="/messages" className="coach-message-btn" aria-label={t('settings.messageYourCoach')}>
+            <Link to="/messages" className="coach-message-btn" aria-label={isGymMember ? t('settings.messageYourGym') : t('settings.messageYourCoach')}>
               {t('settings.message')}
             </Link>
           </div>
@@ -645,6 +649,7 @@ function Settings() {
           </div>
         </div>
 
+        {!isGymMember && (<>
         <div className="settings-divider"></div>
 
         <div className="settings-item">
@@ -725,6 +730,7 @@ function Settings() {
             </div>
           </>
         )}
+        </>)}
       </div>
 
       {/* Preferences Section */}
@@ -1342,7 +1348,8 @@ function Settings() {
                 </label>
               </div>
 
-              {/* Diet Preferences */}
+              {/* Diet Preferences — hidden for gym (workout-only) members */}
+              {!isGymMember && (<>
               <div style={{ marginBottom: '20px' }}>
                 <div style={{ fontWeight: 600, fontSize: '0.85rem', color: 'var(--gray-500)', marginBottom: '12px', textTransform: 'uppercase' }}>{t('settings.dietFoodPreferences')}</div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
@@ -1441,6 +1448,7 @@ function Settings() {
                   </div>
                 )}
               </div>
+              </>)}
 
               <button
                 onClick={handleProfileSave}

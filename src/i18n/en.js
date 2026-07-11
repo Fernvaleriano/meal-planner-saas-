@@ -86,6 +86,9 @@ export default {
     nutritionCoach: 'Nutrition Coach',
     message: 'Message',
     messageYourCoach: 'Message your coach',
+    // Gym (workout-only) variants — shown when the diary module is off
+    myGym: 'MY GYM',
+    messageYourGym: 'Message your gym',
 
     // My Profile
     myProfile: 'MY PROFILE',

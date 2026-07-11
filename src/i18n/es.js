@@ -73,6 +73,9 @@ export default {
     nutritionCoach: 'Entrenador de nutrición',
     message: 'Mensaje',
     messageYourCoach: 'Envía un mensaje a tu entrenador',
+    // Variantes para gimnasio (solo entrenamiento) — cuando el módulo de diario está desactivado
+    myGym: 'MI GIMNASIO',
+    messageYourGym: 'Envía un mensaje a tu gimnasio',
 
     myProfile: 'MI PERFIL',
     editProfileAria: 'Editar perfil',

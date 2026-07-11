@@ -19,10 +19,15 @@ export default {
   // Visibility buttons
   visibilityGroup: 'Compartir con miembros',
   visibilityCoach: 'Solo mi coach',
+  // Variante para gimnasio (solo entrenamiento)
+  visibilityGym: 'Solo mi gimnasio',
 
   // Visibility hints
   visHintGroup: 'Tu coach y las demás personas que entrena verán esto durante 24 horas.',
   visHintCoach: 'Solo tu coach lo verá. Igual desaparece después de 24 horas.',
+  // Variantes para gimnasio (solo entrenamiento)
+  visHintGymGroup: 'Tu gimnasio y los demás miembros verán esto durante 24 horas.',
+  visHintGymOnly: 'Solo tu gimnasio lo verá. Igual desaparece después de 24 horas.',
 
   // Submit button
   shareStory: 'Compartir historia',

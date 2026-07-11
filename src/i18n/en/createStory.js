@@ -19,10 +19,15 @@ export default {
   // Visibility buttons
   visibilityGroup: 'Share with members',
   visibilityCoach: 'Only my coach',
+  // Gym (workout-only) variant — shown when the diary module is off
+  visibilityGym: 'Only my gym',
 
   // Visibility hints
   visHintGroup: 'Your coach and the other people they coach will see this for 24 hours.',
   visHintCoach: 'Only your coach will see this. It still disappears after 24 hours.',
+  // Gym (workout-only) variants
+  visHintGymGroup: 'Your gym and other members will see this for 24 hours.',
+  visHintGymOnly: 'Only your gym will see this. It still disappears after 24 hours.',
 
   // Submit button
   shareStory: 'Share story',
