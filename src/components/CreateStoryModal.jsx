@@ -3,6 +3,8 @@ import { createPortal } from 'react-dom';
 import { X, Image as ImageIcon, Loader2, Users, Lock } from 'lucide-react';
 import { apiPost } from '../utils/api';
 import { useLanguage } from '../context/LanguageContext';
+import { useAuth } from '../context/AuthContext';
+import { useBranding } from '../context/BrandingContext';
 
 // Downscale a selected image to a max dimension and re-encode as JPEG so the
 // upload payload stays small (Netlify function bodies are size-limited).
@@ -37,6 +39,11 @@ function fileToDownscaledDataUrl(file, maxDim = 1080, quality = 0.82) {
 
 function CreateStoryModal({ clientId, onClose, onCreated }) {
   const { t } = useLanguage();
+  const { clientData } = useAuth();
+  const { isModuleVisible } = useBranding();
+  // Gym (workout-only) members have the diary module off — swap "coach" wording
+  // for "gym" so nothing coaching-specific shows in a plain gym app.
+  const isGymMember = !clientData?.is_coach && !isModuleVisible('diary');
   const [imageData, setImageData] = useState(null); // data URL preview + payload
   const [text, setText] = useState(''); // caption when a photo is attached, else the message
   const [visibility, setVisibility] = useState('group'); // 'group' | 'coach'
@@ -133,13 +140,13 @@ function CreateStoryModal({ clientId, onClose, onCreated }) {
             style={{ ...styles.visBtn, ...(visibility === 'coach' ? styles.visBtnActive : {}) }}
             onClick={() => setVisibility('coach')}
           >
-            <Lock size={15} /> {t('createStory.visibilityCoach')}
+            <Lock size={15} /> {isGymMember ? t('createStory.visibilityGym') : t('createStory.visibilityCoach')}
           </button>
         </div>
         <div style={styles.visHint}>
           {visibility === 'group'
-            ? t('createStory.visHintGroup')
-            : t('createStory.visHintCoach')}
+            ? (isGymMember ? t('createStory.visHintGymGroup') : t('createStory.visHintGroup'))
+            : (isGymMember ? t('createStory.visHintGymOnly') : t('createStory.visHintCoach'))}
         </div>
 
         {error && <div style={styles.error}>{error}</div>}
