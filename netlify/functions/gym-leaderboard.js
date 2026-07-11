@@ -49,9 +49,10 @@ const TOTAL_LIFTS = ['bench_press', 'back_squat', 'deadlift'];
 
 const KG_TO_LBS = 2.20462;
 
-// Estimated 1-rep max (Epley), normalized to lbs. Reps beyond 12 make the
-// estimate balloon unrealistically, so the formula clamps there while the raw
-// rep count is still stored for display.
+// Estimated 1-rep max (Epley), normalized to lbs. A single rep is taken as-is
+// (it already IS a 1RM); only multi-rep sets are estimated. Reps beyond 12 make
+// the estimate balloon unrealistically, so the formula clamps there while the
+// raw rep count is still stored for display.
 function computeScore(lift, weight, weightUnit, reps) {
   const w = Number(weight) || 0;
   const r = Math.max(1, Number(reps) || 1);
@@ -62,6 +63,10 @@ function computeScore(lift, weight, weightUnit, reps) {
     return Math.round((r + addedLbs / 45) * 100) / 100;
   }
   const wLbs = weightUnit === 'kg' ? w * KG_TO_LBS : w;
+  // A lift done for a single rep already IS the 1-rep max — don't inflate it
+  // with the Epley estimate (which would add ~3.3%). Only multi-rep sets get
+  // estimated, capped at 12 reps so the estimate doesn't balloon.
+  if (r <= 1) return Math.round(wLbs * 100) / 100;
   const cappedReps = Math.min(r, 12);
   const e1rm = wLbs * (1 + cappedReps / 30);
   return Math.round(e1rm * 100) / 100;
