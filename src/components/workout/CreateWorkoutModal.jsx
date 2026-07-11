@@ -809,12 +809,17 @@ function CreateWorkoutModal({ onClose, onCreateWorkout, selectedDate, coachId = 
               {/* Start Date */}
               <div className="create-workout-dropdown">
                 <label>Start Date</label>
-                <input
-                  type="date"
-                  value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
-                  className="create-workout-date-input"
-                />
+                <div className="create-workout-date-wrap">
+                  <input
+                    type="date"
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
+                    className={`create-workout-date-input${startDate ? '' : ' is-empty'}`}
+                  />
+                  {!startDate && (
+                    <span className="create-workout-date-placeholder">Optional</span>
+                  )}
+                </div>
               </div>
             </div>
 
