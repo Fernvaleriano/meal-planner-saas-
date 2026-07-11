@@ -277,8 +277,11 @@ function SubmitLiftModal({ isOpen, lifts, initialLiftKey, onClose, onSubmitted }
                   </button>
                 </div>
               )}
+              {/* No `capture` attribute: on phones this lets the user choose
+                  between recording a new clip and uploading an existing one.
+                  Forcing `capture` would jump straight to the camera. */}
               <input
-                ref={fileInputRef} type="file" accept="video/*" capture="environment"
+                ref={fileInputRef} type="file" accept="video/*"
                 onChange={handleVideoPick} style={{ display: 'none' }}
               />
 
