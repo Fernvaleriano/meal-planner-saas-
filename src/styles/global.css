@@ -33220,6 +33220,69 @@ textarea,
     font-size: 0.8rem;
 }
 
+/* Cover photo: "Upload" + "Choose from library" side-by-side options */
+.create-workout-cover-options {
+    display: flex;
+    gap: 8px;
+}
+
+.create-workout-cover-options .create-workout-cover-upload {
+    flex: 1;
+    padding: 16px 12px;
+    font-size: 0.9rem;
+}
+
+.create-workout-cover-upload.active {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: var(--brand-primary, #4ec5b7);
+    color: white;
+}
+
+/* Curated cover-photo library grid */
+.create-workout-cover-library {
+    margin-top: 10px;
+}
+
+.create-workout-cover-library-status {
+    padding: 18px 12px;
+    text-align: center;
+    color: #94a3b8;
+    font-size: 0.85rem;
+}
+
+.create-workout-cover-library-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    max-height: 260px;
+    overflow-y: auto;
+    padding: 2px;
+}
+
+.create-workout-cover-library-item {
+    position: relative;
+    padding: 0;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 10px;
+    overflow: hidden;
+    background: rgba(0, 0, 0, 0.2);
+    cursor: pointer;
+    aspect-ratio: 16 / 10;
+    transition: border-color 0.15s, transform 0.15s;
+}
+
+.create-workout-cover-library-item:hover {
+    border-color: var(--brand-primary, #4ec5b7);
+    transform: translateY(-1px);
+}
+
+.create-workout-cover-library-item img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
 /* Dropdown selectors row */
 .create-workout-dropdowns {
     display: grid;
