@@ -83,6 +83,29 @@ async function deleteLogsForWorkout(clientId, dateStr, workout) {
   }
 }
 
+// Historical cards (buildWorkoutFromLog) are rebuilt purely from a
+// workout_log row — the assignment/ad-hoc row behind them is already gone.
+// Their id/instance_id is synthetic (`log-<logId>`), so the normal delete and
+// move paths hit endpoints that can't find anything: the card silently
+// survives every delete/move attempt (the "ghost AI workout" bug). Removing
+// such a card = deleting its workout_log row directly; this extracts that
+// log id, or returns null for ordinary cards.
+const getHistoricalLogId = (workout) => {
+  if (!workout?.is_historical) return null;
+  const key = String(workout.instance_id || workout.id || '');
+  return key.startsWith('log-') ? key.slice(4) : null;
+};
+
+// Best-effort delete of a single workout_log row; a 404 means it's already
+// gone, which is fine.
+async function deleteLogRow(logId) {
+  try {
+    await apiDelete(`/.netlify/functions/workout-logs?workoutId=${logId}`);
+  } catch (err) {
+    if (err.status !== 404 && !err.message?.includes('not found')) throw err;
+  }
+}
+
 const formatDate = (date) => {
   try {
     const d = (date && date instanceof Date && !isNaN(date.getTime())) ? date : new Date();
@@ -4433,8 +4456,25 @@ function Workouts() {
 
     let succeeded = false;
     try {
-      // Check if this is an adhoc workout
-      if (targetWorkout.is_adhoc) {
+      const histLogId = getHistoricalLogId(targetWorkout);
+      if (histLogId) {
+        // Historical/ghost card rebuilt from a workout_log row. The original
+        // assignment/ad-hoc row is gone, so move/duplicate re-materialize it
+        // as a fresh ad-hoc workout on the target date; move and skip then
+        // drop the backing log row so the card leaves this day.
+        if (rescheduleAction === 'duplicate' || rescheduleAction === 'reschedule') {
+          await apiPost('/.netlify/functions/adhoc-workouts', {
+            clientId: targetWorkout.client_id || clientData?.id,
+            workoutDate: rescheduleTargetDate,
+            workoutData: buildFreshDuplicateData(targetWorkout.workout_data),
+            name: targetWorkout.name || targetWorkout.workout_data?.name || 'Workout'
+          });
+        }
+        if (rescheduleAction === 'reschedule' || rescheduleAction === 'skip') {
+          await deleteLogRow(histLogId);
+        }
+        succeeded = true;
+      } else if (targetWorkout.is_adhoc) {
         const isRealId = targetWorkout.id && !String(targetWorkout.id).startsWith('adhoc-') && !String(targetWorkout.id).startsWith('custom-') && !String(targetWorkout.id).startsWith('club-');
 
         if (rescheduleAction === 'skip') {
@@ -4561,9 +4601,15 @@ function Workouts() {
     if (!confirmed) return;
 
     const dateStr = formatDate(selectedDate);
+    const histLogId = getHistoricalLogId(todayWorkout);
     let deleteSucceeded = false;
     try {
-      if (todayWorkout.is_adhoc) {
+      if (histLogId) {
+        // Historical/ghost card rebuilt from a workout_log row — deleting
+        // that row is the whole delete (there's no assignment/ad-hoc row).
+        await deleteLogRow(histLogId);
+        deleteSucceeded = true;
+      } else if (todayWorkout.is_adhoc) {
         // Delete adhoc workout using HTTP DELETE with query params
         const isRealId = todayWorkout.id && !String(todayWorkout.id).startsWith('adhoc-') && !String(todayWorkout.id).startsWith('custom-') && !String(todayWorkout.id).startsWith('club-');
         if (isRealId) {
@@ -4644,9 +4690,15 @@ function Workouts() {
     if (!workout?.id) return;
 
     const dateStr = formatDate(selectedDate);
+    const histLogId = getHistoricalLogId(workout);
     let deleteSucceeded = false;
     try {
-      if (workout.is_adhoc) {
+      if (histLogId) {
+        // Historical/ghost card: the only thing backing it is a workout_log
+        // row — delete that row and the card is gone for good.
+        await deleteLogRow(histLogId);
+        deleteSucceeded = true;
+      } else if (workout.is_adhoc) {
         const isRealId = workout.id && !String(workout.id).startsWith('adhoc-') && !String(workout.id).startsWith('custom-') && !String(workout.id).startsWith('club-');
         if (isRealId) {
           await apiDelete(`/.netlify/functions/adhoc-workouts?workoutId=${workout.id}`);
@@ -4664,12 +4716,6 @@ function Workouts() {
         });
         deleteSucceeded = true;
       }
-
-      // Also delete any workout_log row for this workout on this date so the
-      // deleted card isn't resurrected by buildWorkoutFromLog on the next fetch.
-      // Adhoc/AI workout logs carry no assignment_id, so the shared helper
-      // matches them by name instead of the (never-matching) assignment_id.
-      await deleteLogsForWorkout(clientData?.id, dateStr, workout);
     } catch (err) {
       console.error('Error deleting workout:', err);
       // If assignment not found (404), treat as already deleted - still update local state
@@ -4679,6 +4725,17 @@ function Workouts() {
         showError(t('workoutsPage.failedDeleteWorkout'));
         return;
       }
+    }
+
+    // Also delete any workout_log row for this workout on this date so the
+    // deleted card isn't resurrected by buildWorkoutFromLog on the next fetch.
+    // Adhoc/AI workout logs carry no assignment_id, so the shared helper
+    // matches them by name instead of the (never-matching) assignment_id.
+    // Runs OUTSIDE the try above so a 404 from a stale assignment can't skip
+    // the log cleanup (that skip is exactly how ghost cards were born), and
+    // skips historical cards whose exact log row was already removed.
+    if (deleteSucceeded && !histLogId) {
+      await deleteLogsForWorkout(clientData?.id, dateStr, workout);
     }
 
     if (deleteSucceeded) {
@@ -4720,7 +4777,12 @@ function Workouts() {
     const dateStr = formatDate(selectedDate);
 
     try {
-      if (workout.is_adhoc) {
+      const histLogId = getHistoricalLogId(workout);
+      if (histLogId) {
+        // Historical/ghost card rebuilt from a workout_log row — single-day,
+        // and deleting that log row removes it completely.
+        await deleteLogRow(histLogId);
+      } else if (workout.is_adhoc) {
         // Ad-hoc workouts are single-day — just delete this one
         const isRealId = workout.id && !String(workout.id).startsWith('adhoc-') && !String(workout.id).startsWith('custom-') && !String(workout.id).startsWith('club-');
         if (isRealId) {
