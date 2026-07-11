@@ -124,6 +124,7 @@ export default {
   gymAiTitle: 'Genera el entrenamiento de hoy',
   gymAiSub: 'La IA lo crea según tu meta y equipo',
   gymTodaysWorkout: 'Mis entrenamientos',
+  gymPoweredBy: 'Con tecnología de {name}',
 
   // ── Error / toast messages ────────────────────────────────────────────────
   errorNoFood: 'No se reconoció el alimento. Intenta describirlo de otra manera.',
