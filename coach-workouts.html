@@ -16062,6 +16062,21 @@
                     }
 
                 } else {
+                    // Enrich with AI-generated coaching detail (secondary muscles,
+                    // coaching cues, common mistakes, calorie estimate, tags) so a
+                    // custom exercise isn't bare. Best-effort — the coach's own
+                    // selections (muscle group, equipment, difficulty) always win;
+                    // this only fills the extra fields the modal doesn't collect.
+                    let aiDetail = {};
+                    try {
+                        saveBtn.innerHTML = '<span class="spinner"></span> Adding coaching detail...';
+                        const cls = await apiCall('/.netlify/functions/classify-exercises', {
+                            method: 'POST',
+                            body: JSON.stringify({ names: [name] })
+                        });
+                        if (cls && Array.isArray(cls.results) && cls.results[0]) aiDetail = cls.results[0];
+                    } catch (e) { /* non-fatal — save the exercise anyway */ }
+
                     // CREATE new custom exercise via POST
                     const result = await apiCall('/.netlify/functions/exercises', {
                         method: 'POST',
@@ -16074,6 +16089,13 @@
                             exerciseType,
                             instructions: instructions || null,
                             isUnilateral,
+                            isCompound: aiDetail.isCompound === true,
+                            secondaryMuscles: Array.isArray(aiDetail.secondaryMuscles) ? aiDetail.secondaryMuscles : [],
+                            description: aiDetail.description || null,
+                            caloriesPerMinute: (typeof aiDetail.caloriesPerMinute === 'number') ? aiDetail.caloriesPerMinute : null,
+                            coachingCues: Array.isArray(aiDetail.coachingCues) ? aiDetail.coachingCues : [],
+                            commonMistakes: Array.isArray(aiDetail.commonMistakes) ? aiDetail.commonMistakes : [],
+                            tags: Array.isArray(aiDetail.tags) ? aiDetail.tags : [],
                             animationUrl: videoUrl,
                             thumbnailUrl: null,
                             referenceLinks: ceReferenceLinks.length > 0 ? ceReferenceLinks : []

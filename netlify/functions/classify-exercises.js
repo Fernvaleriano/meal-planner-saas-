@@ -46,6 +46,32 @@ function extractJSON(text) {
 const oneOf = (val, allowed, fallback) =>
   (typeof val === 'string' && allowed.includes(val.toLowerCase().trim())) ? val.toLowerCase().trim() : fallback;
 
+// Normalise an array of short strings: coerce, trim, cap length + count, drop blanks.
+const strList = (val, maxItems, maxLen) => {
+  if (!Array.isArray(val)) return [];
+  return val
+    .map(v => (typeof v === 'string' ? v.trim() : ''))
+    .filter(Boolean)
+    .slice(0, maxItems)
+    .map(v => v.slice(0, maxLen));
+};
+
+// Normalise an array against an allowed vocab (lowercased), unique, capped.
+const enumList = (val, allowed, maxItems, exclude) => {
+  if (!Array.isArray(val)) return [];
+  const seen = new Set();
+  const out = [];
+  for (const v of val) {
+    const s = typeof v === 'string' ? v.toLowerCase().trim() : '';
+    if (allowed.includes(s) && s !== exclude && !seen.has(s)) {
+      seen.add(s);
+      out.push(s);
+      if (out.length >= maxItems) break;
+    }
+  }
+  return out;
+};
+
 exports.handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') return { statusCode: 204, headers, body: '' };
   if (event.httpMethod !== 'POST') {
@@ -60,8 +86,10 @@ exports.handler = async (event) => {
     if (!Array.isArray(names) || names.length === 0) {
       return { statusCode: 400, headers, body: JSON.stringify({ error: 'names[] required' }) };
     }
-    // Cap per request so the prompt stays small; the client chunks larger sets.
-    const clean = names.map(n => String(n || '').trim()).filter(Boolean).slice(0, 80);
+    // Cap per request so the response fits the token budget; the client chunks
+    // larger sets. Richer per-item output (cues, mistakes, tags) means fewer
+    // items per call than the old name-only classifier.
+    const clean = names.map(n => String(n || '').trim()).filter(Boolean).slice(0, 30);
     if (clean.length === 0) {
       return { statusCode: 200, headers, body: JSON.stringify({ results: [] }) };
     }
@@ -69,19 +97,20 @@ exports.handler = async (event) => {
     const anthropic = new Anthropic({ apiKey: ANTHROPIC_API_KEY });
 
     const system = `You classify gym exercises/machines for a fitness app. For each name, return metadata as a JSON array (one object per input, same order). Each object:
-{"name": string (echo input exactly), "muscleGroup": one of ${JSON.stringify(MUSCLES)}, "equipment": one of ${JSON.stringify(EQUIPMENT)}, "exerciseType": one of ${JSON.stringify(TYPES)}, "difficulty": one of ${JSON.stringify(DIFFICULTIES)}, "isCompound": boolean, "isUnilateral": boolean, "instructions": one short form cue (max ~140 chars)}
+{"name": string (echo input exactly), "muscleGroup": one of ${JSON.stringify(MUSCLES)}, "secondaryMuscles": array of 0-3 OTHER muscles from ${JSON.stringify(MUSCLES)} (never repeat muscleGroup), "equipment": one of ${JSON.stringify(EQUIPMENT)}, "exerciseType": one of ${JSON.stringify(TYPES)}, "difficulty": one of ${JSON.stringify(DIFFICULTIES)}, "isCompound": boolean, "isUnilateral": boolean, "instructions": one short form cue (max ~140 chars), "description": one plain-English sentence describing the movement (max ~140 chars), "caloriesPerMinute": number (typical calories burned per minute, 3-15), "coachingCues": array of 2-3 short form cues (each max ~80 chars), "commonMistakes": array of 2-3 short common mistakes (each max ~80 chars), "tags": array of 3-6 lowercase keyword tags (e.g. "push", "leg day", "beginner", "compound")}
 
 Rules:
-- Pick the SINGLE primary muscle group.
+- Pick the SINGLE primary muscle group; secondaryMuscles are supporting movers only.
 - "warmup" for dynamic warm-ups, "cooldown"/"flexibility" for stretches.
 - isUnilateral true only for single-arm/single-leg movements.
+- Keep coachingCues and commonMistakes actionable and specific to this exercise.
 - Respond with ONLY the JSON array, no prose, no markdown.`;
 
     const userContent = `Classify these ${clean.length} exercises:\n${clean.map((n, i) => `${i + 1}. ${n}`).join('\n')}`;
 
     const message = await anthropic.messages.create({
       model: MODEL,
-      max_tokens: 4096,
+      max_tokens: 8192,
       temperature: 0.2,
       system,
       messages: [{ role: 'user', content: userContent }]
@@ -95,15 +124,23 @@ Rules:
     // to safe defaults if the model dropped or reordered an entry).
     const results = clean.map((name, i) => {
       const r = arr[i] && typeof arr[i] === 'object' ? arr[i] : {};
+      const muscleGroup = oneOf(r.muscleGroup, MUSCLES, 'full body');
+      const cals = Number(r.caloriesPerMinute);
       return {
         name,
-        muscleGroup: oneOf(r.muscleGroup, MUSCLES, 'full body'),
+        muscleGroup,
+        secondaryMuscles: enumList(r.secondaryMuscles, MUSCLES, 3, muscleGroup),
         equipment: oneOf(r.equipment, EQUIPMENT, 'other'),
         exerciseType: oneOf(r.exerciseType, TYPES, 'strength'),
         difficulty: oneOf(r.difficulty, DIFFICULTIES, 'intermediate'),
         isCompound: r.isCompound === true,
         isUnilateral: r.isUnilateral === true,
-        instructions: (typeof r.instructions === 'string' ? r.instructions : '').slice(0, 200)
+        instructions: (typeof r.instructions === 'string' ? r.instructions : '').slice(0, 200),
+        description: (typeof r.description === 'string' ? r.description : '').slice(0, 200),
+        caloriesPerMinute: (Number.isFinite(cals) && cals > 0) ? Math.min(Math.round(cals * 10) / 10, 30) : null,
+        coachingCues: strList(r.coachingCues, 3, 120),
+        commonMistakes: strList(r.commonMistakes, 3, 120),
+        tags: strList(r.tags, 6, 40).map(t => t.toLowerCase())
       };
     });
 
