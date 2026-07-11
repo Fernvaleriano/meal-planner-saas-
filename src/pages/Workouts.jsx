@@ -5331,7 +5331,7 @@ function Workouts() {
         ctx.fillStyle = '#cbd5e1';
         ctx.font = '18px -apple-system, BlinkMacSystemFont, sans-serif';
         ctx.textAlign = 'center';
-        ctx.fillText(t('workoutsPage.poweredBy'), width / 2, height - 30);
+        ctx.fillText(t('workoutsPage.poweredBy', { name: coachBranding?.brand_name || 'Ziquecoach' }), width / 2, height - 30);
         ctx.restore();
 
         // Convert and share
@@ -5396,7 +5396,10 @@ function Workouts() {
         img.src = src;
       });
 
-      const logoUrl = 'https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/assets/ziquecoach-logo-teal.png';
+      // Use the gym/coach's own logo on the share card (falls back to the
+      // Ziquecoach logo if the coach has no custom branding).
+      const logoUrl = coachBranding?.brand_logo_url
+        || 'https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/assets/ziquecoach-logo-teal.png';
       const logo = await loadImage(logoUrl, 'logo');
       renderCard(logo);
     } catch (err) {
@@ -6546,7 +6549,11 @@ function Workouts() {
                 <div className="share-card-scrim-bottom" />
                 <div className="share-card-content">
                   <div className="share-card-brand">
-                    <img src="https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/assets/ziquecoach-logo-teal.png" alt="Ziquecoach" className="share-card-logo" />
+                    <img
+                      src={coachBranding?.brand_logo_url || 'https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/assets/ziquecoach-logo-teal.png'}
+                      alt={coachBranding?.brand_name || 'Ziquecoach'}
+                      className="share-card-logo"
+                    />
                   </div>
                   <div className="share-card-stats">
                     {shareToggles.duration && (

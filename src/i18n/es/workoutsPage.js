@@ -146,7 +146,7 @@ export default {
   toggleActivities: 'Actividades',
   toggleNewPrs: 'Nuevos récords',
 
-  poweredBy: 'Desarrollado por Ziquecoach',
+  poweredBy: 'Desarrollado por {name}',
 
   // Share stat labels (canvas render)
   shareStatDuration: 'Duración',
