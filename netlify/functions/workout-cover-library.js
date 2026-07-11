@@ -3,17 +3,17 @@
 // The founder curates a set of good-looking workout background photos that
 // clients can pick from when creating a custom workout, and that AI-generated
 // workouts pull from at random (so an AI program is never left with a blank
-// cover). Those photos live in the existing public `exercise-thumbnails`
-// bucket under the `workout-cover-library/` prefix — reusing that bucket
-// avoids provisioning a new one and matches how workout covers are already
-// stored (see upload-workout-cover.js / workout-cover-image.js).
+// cover). Those photos live in the existing public "Default Workout Pictures"
+// bucket — the founder drops curated photos straight into it, and this endpoint
+// lists whatever image files are there. No prefix: the photos sit at the root
+// of that bucket.
 const { createClient } = require('@supabase/supabase-js');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
 
-const BUCKET_NAME = 'exercise-thumbnails';
-const LIBRARY_PREFIX = 'workout-cover-library';
+const BUCKET_NAME = 'Default Workout Pictures';
+const LIBRARY_PREFIX = '';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -64,7 +64,7 @@ exports.handler = async (event) => {
     const covers = (files || [])
       .filter(f => f && f.name && !f.name.startsWith('.') && /\.(jpe?g|png|webp|gif)$/i.test(f.name))
       .map(f => {
-        const path = `${LIBRARY_PREFIX}/${f.name}`;
+        const path = LIBRARY_PREFIX ? `${LIBRARY_PREFIX}/${f.name}` : f.name;
         const { data } = supabase.storage.from(BUCKET_NAME).getPublicUrl(path);
         return { name: f.name, url: data.publicUrl };
       });
