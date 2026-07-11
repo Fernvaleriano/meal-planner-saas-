@@ -593,12 +593,11 @@ exports.handler = async (event) => {
       varietySeed = Date.now()       // NEW: deterministic randomization for "regenerate"
     } = body;
 
-    // Authenticate (optional — we accept unauthed for back-compat, but log it)
-    let authedUser = null;
-    try {
-      const auth = await authenticateRequest(event);
-      authedUser = auth.user;
-    } catch (e) { /* keep going */ }
+    // Auth is MANDATORY: this endpoint pulls the client's private context
+    // (health flags, injuries, intake, training history) into the prompt and
+    // burns paid Anthropic tokens — anonymous access was an IDOR (July 2026).
+    const { user: authedUser, error: authError } = await authenticateRequest(event);
+    if (authError) return authError;
 
     const isSingleWorkout = mode === 'single';
     const anthropic = new Anthropic({ apiKey: ANTHROPIC_API_KEY });
@@ -610,6 +609,28 @@ exports.handler = async (event) => {
       };
     }
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+
+    // Ownership: a clientId may only be used by that client or their coach; a
+    // coachId may only be the caller's own coach account (or, for a client
+    // caller, their own coach — the member modal sends the gym's coachId to
+    // include the gym's custom exercises).
+    if (clientId) {
+      const { data: authClient } = await supabase
+        .from('clients')
+        .select('id, coach_id, user_id')
+        .eq('id', clientId)
+        .maybeSingle();
+      const isClient = authClient && authClient.user_id === authedUser.id;
+      const isCoach = authClient && authClient.coach_id === authedUser.id;
+      if (!authClient || (!isClient && !isCoach)) {
+        return { statusCode: 403, headers, body: JSON.stringify({ success: false, error: 'Not authorized for this client' }) };
+      }
+      if (coachId && coachId !== authedUser.id && coachId !== authClient.coach_id) {
+        return { statusCode: 403, headers, body: JSON.stringify({ success: false, error: 'Not authorized for this coach' }) };
+      }
+    } else if (coachId && coachId !== authedUser.id) {
+      return { statusCode: 403, headers, body: JSON.stringify({ success: false, error: 'Not authorized for this coach' }) };
+    }
 
     // Fetch exercises (cached) — includes coach's custom exercises if coachId given
     const allExercises = await loadExercises(supabase, coachId);

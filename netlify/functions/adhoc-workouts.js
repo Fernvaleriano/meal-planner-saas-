@@ -1,4 +1,5 @@
 const { createClient } = require('@supabase/supabase-js');
+const { authenticateClientAccess, authenticateRequest } = require('./utils/auth');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -88,6 +89,18 @@ exports.handler = async (event) => {
 
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
+  // Resolve which client a workoutId-only PUT/DELETE touches, so the auth
+  // check below can run against the row's REAL owner (never a caller-supplied
+  // id). Returns null when the row doesn't exist.
+  async function getWorkoutOwner(workoutId) {
+    const { data } = await supabase
+      .from('client_adhoc_workouts')
+      .select('client_id')
+      .eq('id', workoutId)
+      .maybeSingle();
+    return data?.client_id || null;
+  }
+
   try {
     // GET - Fetch ad-hoc workouts for a specific client and date
     if (event.httpMethod === 'GET') {
@@ -100,6 +113,12 @@ exports.handler = async (event) => {
           body: JSON.stringify({ error: 'clientId is required' })
         };
       }
+
+      // Auth: caller must be this client or their coach (this endpoint used to
+      // be fully open — any anonymous caller could read/overwrite/delete any
+      // client's ad-hoc workouts).
+      const { error: authError } = await authenticateClientAccess(event, clientId);
+      if (authError) return authError;
 
       let query = supabase
         .from('client_adhoc_workouts')
@@ -152,6 +171,10 @@ exports.handler = async (event) => {
           body: JSON.stringify({ error: 'clientId and workoutDate are required' })
         };
       }
+
+      // Auth: caller must be this client or their coach
+      const { error: authError } = await authenticateClientAccess(event, clientId);
+      if (authError) return authError;
 
       // Multiple ad-hoc workouts can coexist on one date (e.g. a club workout
       // plus an AI-generated one). Only a SAME-NAMED workout on the same date
@@ -236,6 +259,24 @@ exports.handler = async (event) => {
       const body = JSON.parse(event.body || '{}');
       const { workoutId, clientId, workoutDate, workoutData, name } = body;
 
+      // Auth: verify against the row's real owner for by-id updates, or the
+      // supplied clientId for the client+date fallback.
+      if (workoutId) {
+        const ownerClientId = await getWorkoutOwner(workoutId);
+        if (!ownerClientId) {
+          return {
+            statusCode: 404,
+            headers,
+            body: JSON.stringify({ error: 'Workout not found' })
+          };
+        }
+        const { error: authError } = await authenticateClientAccess(event, ownerClientId);
+        if (authError) return authError;
+      } else if (clientId) {
+        const { error: authError } = await authenticateClientAccess(event, clientId);
+        if (authError) return authError;
+      }
+
       // Can update by ID or by client+date
       let query;
       if (workoutId) {
@@ -305,6 +346,18 @@ exports.handler = async (event) => {
       const { workoutId, clientId, date } = event.queryStringParameters || {};
 
       if (workoutId) {
+        // Auth against the row's real owner. A missing row means it's already
+        // gone — keep the delete idempotent (success) like before, but only
+        // for an authenticated caller.
+        const ownerClientId = await getWorkoutOwner(workoutId);
+        if (ownerClientId) {
+          const { error: authError } = await authenticateClientAccess(event, ownerClientId);
+          if (authError) return authError;
+        } else {
+          const { error: authError } = await authenticateRequest(event);
+          if (authError) return authError;
+        }
+
         const { error } = await supabase
           .from('client_adhoc_workouts')
           .delete()
@@ -312,6 +365,9 @@ exports.handler = async (event) => {
 
         if (error) throw error;
       } else if (clientId && date) {
+        const { error: authError } = await authenticateClientAccess(event, clientId);
+        if (authError) return authError;
+
         const { error } = await supabase
           .from('client_adhoc_workouts')
           .delete()

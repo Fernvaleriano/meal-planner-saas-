@@ -13,7 +13,7 @@
 // the canonical generator.
 const Anthropic = require('@anthropic-ai/sdk');
 const { createClient } = require('@supabase/supabase-js');
-const { corsHeaders, handleCors } = require('./utils/auth');
+const { corsHeaders, handleCors, authenticateCoach } = require('./utils/auth');
 const { analyzeClientHistory, formatAnalysisForPrompt, applyMovementScreenExclusions } = require('./utils/client-analysis');
 const { exerciseMatchesEquipment, filterUnavailableEquipment } = require('./utils/equipment-filter');
 const { buildConditioningFinisher } = require('./utils/finisher');
@@ -755,12 +755,32 @@ exports.handler = async (event) => {
     return { statusCode: 400, headers, body: JSON.stringify({ error: 'jobId and coachId are required' }) };
   }
 
+  // Auth: only the coach who owns coachId may start a job — the job blob at
+  // {coachId}/{jobId}.json embeds the client's private context (health flags,
+  // training history). Mirrors the ownership check in get-workout-job.js.
+  const { error: authError } = await authenticateCoach(event, coachId);
+  if (authError) return authError;
+
   // Allowlist the generation model — only the two tiers the UI offers. Anything
   // else (or a typo) falls back to Sonnet rather than erroring or hitting an
   // unexpected/unbilled model.
   const genModel = ['claude-opus-4-8', 'claude-sonnet-4-5'].includes(model) ? model : 'claude-sonnet-4-5';
 
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+
+  // A clientId must belong to the authed coach — otherwise any coach could
+  // pull another coach's client context into their own job blob.
+  if (clientId) {
+    const { data: authClient } = await supabase
+      .from('clients')
+      .select('coach_id')
+      .eq('id', clientId)
+      .maybeSingle();
+    if (!authClient || authClient.coach_id !== coachId) {
+      return { statusCode: 403, headers, body: JSON.stringify({ error: 'Client does not belong to this coach' }) };
+    }
+  }
+
   await ensureBucket(supabase);
 
   // Mark as queued before kicking off (so the polling endpoint sees something)
