@@ -83,9 +83,10 @@ const getExerciseSearchText = (ex) => {
   const secondary = Array.isArray(ex.secondary_muscles)
     ? ex.secondary_muscles.join(' ')
     : (ex.secondary_muscles || '');
+  const tags = Array.isArray(ex.tags) ? ex.tags.join(' ') : (ex.tags || '');
   const baseParts = [
     ex.name, ex.muscle_group, ex.primary_muscles,
-    secondary, ex.equipment, ex.exercise_type, ex.category
+    secondary, ex.equipment, ex.exercise_type, ex.category, tags
   ].filter(Boolean).join(' ');
   let combined = normalizeForSearch(baseParts);
   const aliasTerms = [];

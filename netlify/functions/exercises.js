@@ -176,7 +176,10 @@ exports.handler = async (event) => {
         caloriesPerMinute,
         isCompound,
         isUnilateral,
-        referenceLinks
+        referenceLinks,
+        coachingCues,
+        commonMistakes,
+        tags
       } = body;
 
       if (!coachId || !name) {
@@ -203,7 +206,10 @@ exports.handler = async (event) => {
         is_compound: isCompound || false,
         is_unilateral: isUnilateral || false,
         is_custom: true,
-        reference_links: referenceLinks || []
+        reference_links: referenceLinks || [],
+        coaching_cues: coachingCues || [],
+        common_mistakes: commonMistakes || [],
+        tags: tags || []
       };
 
       let { data: exercise, error } = await supabase
@@ -212,13 +218,16 @@ exports.handler = async (event) => {
         .select()
         .single();
 
-      // If reference_links column doesn't exist in schema cache, retry without it
-      if (error && error.message && error.message.includes("'reference_links'") && error.message.includes('schema cache')) {
-        console.warn('reference_links column not found in schema cache, retrying without it');
-        const { reference_links, ...insertDataWithoutLinks } = insertData;
+      // Some optional columns (reference_links, tags) may not be in PostgREST's
+      // schema cache yet on a fresh deploy. If the insert fails citing a missing
+      // column in the schema cache, drop the optional extras and retry so the
+      // core exercise still saves.
+      if (error && error.message && error.message.includes('schema cache')) {
+        console.warn('Optional column not in schema cache, retrying without extras:', error.message);
+        const { reference_links, coaching_cues, common_mistakes, tags: _tags, ...core } = insertData;
         const retryResult = await supabase
           .from('exercises')
-          .insert([insertDataWithoutLinks])
+          .insert([core])
           .select()
           .single();
         exercise = retryResult.data;
@@ -263,6 +272,9 @@ exports.handler = async (event) => {
       if (updateData.isCompound !== undefined) updateFields.is_compound = updateData.isCompound;
       if (updateData.isUnilateral !== undefined) updateFields.is_unilateral = updateData.isUnilateral;
       if (updateData.referenceLinks !== undefined) updateFields.reference_links = updateData.referenceLinks;
+      if (updateData.coachingCues !== undefined) updateFields.coaching_cues = updateData.coachingCues;
+      if (updateData.commonMistakes !== undefined) updateFields.common_mistakes = updateData.commonMistakes;
+      if (updateData.tags !== undefined) updateFields.tags = updateData.tags;
 
       let { data: exercise, error } = await supabase
         .from('exercises')
@@ -272,13 +284,14 @@ exports.handler = async (event) => {
         .select()
         .single();
 
-      // If reference_links column doesn't exist in schema cache, retry without it
-      if (error && error.message && error.message.includes("'reference_links'") && error.message.includes('schema cache')) {
-        console.warn('reference_links column not found in schema cache, retrying update without it');
-        const { reference_links, ...updateFieldsWithoutLinks } = updateFields;
+      // If an optional column (reference_links, tags) isn't in the schema cache
+      // yet, retry the update without the optional extras.
+      if (error && error.message && error.message.includes('schema cache')) {
+        console.warn('Optional column not in schema cache, retrying update without extras:', error.message);
+        const { reference_links, coaching_cues, common_mistakes, tags, ...core } = updateFields;
         const retryResult = await supabase
           .from('exercises')
-          .update(updateFieldsWithoutLinks)
+          .update(core)
           .eq('id', exerciseId)
           .eq('is_custom', true)
           .select()

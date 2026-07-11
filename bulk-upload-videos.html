@@ -30,8 +30,10 @@
     .s-done { color:var(--ok); }
     .s-error { color:var(--err); }
     .row.done { opacity:.6; }
-    .meta-row { display:flex; align-items:center; gap:10px; margin-top:6px; font-size:12px; color:var(--muted); }
+    .meta-row { display:flex; align-items:center; flex-wrap:wrap; gap:10px; margin-top:6px; font-size:12px; color:var(--muted); }
     .uni { display:flex; align-items:center; gap:5px; }
+    .tags-input { font-size:12px; }
+    .ai-badge { font-size:11px; font-weight:700; color:var(--accent); white-space:nowrap; }
     .empty { text-align:center; color:var(--muted); padding:50px 0; border:1.5px dashed var(--line); border-radius:12px; }
     .bar { height:6px; background:var(--line); border-radius:4px; overflow:hidden; margin:8px 0 16px; display:none; }
     .bar > div { height:100%; background:var(--accent); width:0%; transition:width .2s; }
@@ -136,7 +138,10 @@
           thumb: null,
           name: niceName(file.name),
           muscleGroup: 'full body', equipment: 'other', exerciseType: 'strength',
-          difficulty: 'intermediate', isUnilateral: false, instructions: '',
+          difficulty: 'intermediate', isUnilateral: false, isCompound: false, instructions: '',
+          // AI-filled detail (saved with the exercise; not all shown in the grid)
+          description: '', secondaryMuscles: [], caloriesPerMinute: null,
+          coachingCues: [], commonMistakes: [], tags: [], enriched: false,
           status: 'ready', error: ''
         };
         rows.push(row);
@@ -163,6 +168,8 @@
             <div class="meta-row">
               <label class="uni"><input type="checkbox" data-f="isUnilateral" data-id="${r.id}" ${r.isUnilateral?'checked':''}/> single-arm/leg</label>
               <select data-f="difficulty" data-id="${r.id}" style="width:auto;padding:4px 8px;">${DIFFS.map(d=>`<option value="${d}" ${r.difficulty===d?'selected':''}>${d}</option>`).join('')}</select>
+              <input data-f="tags" data-id="${r.id}" class="tags-input" value="${(Array.isArray(r.tags)?r.tags.join(', '):'').replace(/"/g,'&quot;')}" placeholder="tags: push, leg day…" style="flex:1;min-width:120px;padding:4px 8px;" />
+              ${r.enriched ? '<span class="ai-badge" title="AI added coaching cues, common mistakes, secondary muscles &amp; calorie estimate">✨ detail added</span>' : ''}
               <span class="status s-${r.status}">${statusTxt}</span>
             </div>
           </div>
@@ -174,7 +181,13 @@
         const id = +el.getAttribute('data-id'), f = el.getAttribute('data-f');
         const row = rows.find(r => r.id === id); if (!row) return;
         const ev = el.type === 'checkbox' ? 'change' : (el.tagName === 'SELECT' ? 'change' : 'input');
-        el.addEventListener(ev, () => { row[f] = el.type === 'checkbox' ? el.checked : el.value; });
+        el.addEventListener(ev, () => {
+          if (f === 'tags') {
+            row.tags = el.value.split(',').map(t => t.toLowerCase().trim()).filter(Boolean);
+          } else {
+            row[f] = el.type === 'checkbox' ? el.checked : el.value;
+          }
+        });
       });
       updateCount();
     }
@@ -192,13 +205,24 @@
       btn.disabled = true; btn.textContent = '✨ Filling…';
       try {
         const targets = rows.filter(r => (r.name||'').trim());
-        for (let c = 0; c < targets.length; c += 80) {
-          const chunk = targets.slice(c, c + 80);
+        // Chunk small: the classifier now returns rich detail per item, so it
+        // handles fewer names per call.
+        for (let c = 0; c < targets.length; c += 25) {
+          const chunk = targets.slice(c, c + 25);
           const res = await apiCall('/.netlify/functions/classify-exercises', { method:'POST', body: JSON.stringify({ names: chunk.map(r => r.name.trim()) }) });
           (res.results || []).forEach((m, idx) => {
             const r = chunk[idx]; if (!r || !m) return;
             r.muscleGroup = m.muscleGroup; r.equipment = m.equipment; r.exerciseType = m.exerciseType;
             r.difficulty = m.difficulty; r.isUnilateral = m.isUnilateral; r.instructions = m.instructions || '';
+            r.isCompound = m.isCompound === true;
+            r.secondaryMuscles = Array.isArray(m.secondaryMuscles) ? m.secondaryMuscles : [];
+            r.description = m.description || '';
+            r.caloriesPerMinute = (typeof m.caloriesPerMinute === 'number') ? m.caloriesPerMinute : null;
+            r.coachingCues = Array.isArray(m.coachingCues) ? m.coachingCues : [];
+            r.commonMistakes = Array.isArray(m.commonMistakes) ? m.commonMistakes : [];
+            // Don't clobber tags the coach typed by hand.
+            if ((!r.tags || !r.tags.length) && Array.isArray(m.tags)) r.tags = m.tags;
+            r.enriched = true;
           });
         }
         render();
@@ -226,6 +250,10 @@
         const created = await apiCall('/.netlify/functions/exercises', { method:'POST', body: JSON.stringify({
           coachId: currentCoachId, name: row.name.trim(), muscleGroup: row.muscleGroup, equipment: row.equipment,
           exerciseType: row.exerciseType, difficulty: row.difficulty, isUnilateral: row.isUnilateral,
+          isCompound: row.isCompound, secondaryMuscles: row.secondaryMuscles || [],
+          description: row.description || null, caloriesPerMinute: row.caloriesPerMinute,
+          coachingCues: row.coachingCues || [], commonMistakes: row.commonMistakes || [],
+          tags: (row.tags || []).map(t => String(t).toLowerCase().trim()).filter(Boolean),
           instructions: row.instructions || null, animationUrl, thumbnailUrl: null
         }) });
         if (!created.success || !created.exercise) throw new Error('Create failed');
