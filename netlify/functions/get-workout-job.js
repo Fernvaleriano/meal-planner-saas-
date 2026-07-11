@@ -64,5 +64,28 @@ exports.handler = async (event) => {
     return { statusCode: 500, headers, body: JSON.stringify({ error: 'Job file is malformed' }) };
   }
 
+  // A job killed by the platform (15-min background cap, OOM) never gets its
+  // blob flipped to 'failed' — it would stay 'queued'/'running' forever and
+  // the coach's spinner just times out silently. Report it as failed once it
+  // has been running well past any legitimate duration. startedAt is stamped
+  // by the background function; createdAt/updatedAt cover jobs that died
+  // before the 'running' write.
+  const STALE_JOB_MS = 20 * 60 * 1000;
+  if (payload.status === 'running' || payload.status === 'queued') {
+    const startedTs = Date.parse(payload.startedAt || payload.createdAt || payload.updatedAt || '');
+    if (startedTs && Date.now() - startedTs > STALE_JOB_MS) {
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify({
+          ...payload,
+          status: 'failed',
+          error: 'Generation timed out — please try again.',
+          timedOut: true
+        })
+      };
+    }
+  }
+
   return { statusCode: 200, headers, body: JSON.stringify(payload) };
 };
