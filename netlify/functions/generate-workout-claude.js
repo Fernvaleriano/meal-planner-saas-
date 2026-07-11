@@ -1241,6 +1241,34 @@ Return this exact JSON structure:
       }
     }
 
+    // Normalize working-set rep targets to the round numbers coaches actually
+    // prescribe (8, 10, 12, 15, 20...). The model returns ranges like "10-12",
+    // and every set chip shows a SINGLE number — averaging a range lands on odd
+    // values (9, 11, 14) the founder never programs. Collapsing to a clean
+    // single number here fixes it at the source for every surface, and because
+    // it happens server-side a stale cached copy of the web app can't undo it.
+    // Time-based reps ("5 min", "30s hold"), warm-up/stretch reps, decimals
+    // (distance) and low strength reps (1-6) are left exactly as-is. Progression
+    // notes carry their own range text, so this only affects the displayed target.
+    const GYM_REPS = [8, 10, 12, 15, 20, 25, 30];
+    const cleanRepTarget = (ex) => {
+      if (!ex || ex.isWarmup || ex.isStretch || ex.phase === 'warmup' || ex.phase === 'cooldown') return;
+      if (ex.reps == null) return;
+      const str = String(ex.reps).trim();
+      let n;
+      const rangeMatch = str.match(/^(\d+)\s*[-–]\s*(\d+)$/);
+      if (rangeMatch) n = Math.round((parseInt(rangeMatch[1], 10) + parseInt(rangeMatch[2], 10)) / 2);
+      else if (/^\d+$/.test(str)) n = parseInt(str, 10);
+      else return; // time string, decimal, or anything unexpected — leave untouched
+      if (n < 7) { ex.reps = String(n); return; }
+      ex.reps = String(GYM_REPS.reduce((best, s) => (Math.abs(s - n) < Math.abs(best - n) ? s : best), GYM_REPS[0]));
+    };
+    for (const week of programData.weeks) {
+      for (const workout of (week.workouts || [])) {
+        for (const ex of (workout.exercises || [])) cleanRepTarget(ex);
+      }
+    }
+
     // Volume sanity check (after auto-fix so it reflects the actual program)
     const volumeSummary = computeVolumeSummary(programData);
 
