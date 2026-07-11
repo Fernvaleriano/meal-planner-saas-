@@ -151,7 +151,7 @@ export default {
   toggleActivities: 'Activities',
   toggleNewPrs: 'New PRs',
 
-  poweredBy: 'Powered by Ziquecoach',
+  poweredBy: 'Powered by {name}',
 
   // Share stat labels (canvas render)
   shareStatDuration: 'Duration',

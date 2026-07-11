@@ -119,7 +119,7 @@ export default {
   toggleActivities: 'กิจกรรม',
   toggleNewPrs: 'สถิติใหม่',
 
-  poweredBy: 'ขับเคลื่อนโดย Ziquecoach',
+  poweredBy: 'ขับเคลื่อนโดย {name}',
 
   shareStatDuration: 'ระยะเวลา',
   shareStatCalories: 'แคลอรี่',
