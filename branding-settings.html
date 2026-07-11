@@ -2874,25 +2874,35 @@
                 const { data: { session } } = await supabaseClient.auth.getSession();
                 if (!session) throw new Error('Not authenticated');
 
-                const coachId = session.user.id;
-                const ext = file.name.split('.').pop().toLowerCase();
-                const filePath = `branding/${coachId}/${type}.${ext}`;
+                // Read the file as a base64 data URL so the server function can
+                // decode it. We route through the netlify upload-brand-logo
+                // function (service-key, admin access) instead of uploading to
+                // storage directly from the browser — direct storage uploads
+                // were being rejected by row-level security, this path is not.
+                const imageData = await new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = () => resolve(reader.result);
+                    reader.onerror = () => reject(new Error('Could not read file'));
+                    reader.readAsDataURL(file);
+                });
 
-                // Upload to Supabase Storage
-                const { error: uploadError } = await supabaseClient.storage
-                    .from('assets')
-                    .upload(filePath, file, { upsert: true, contentType: file.type });
+                const resp = await fetch('/.netlify/functions/upload-brand-logo', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${session.access_token}`
+                    },
+                    body: JSON.stringify({ logoType: type, imageData })
+                });
 
-                if (uploadError) throw uploadError;
+                const result = await resp.json().catch(() => ({}));
+                if (!resp.ok || !result.success) {
+                    throw new Error(result.error || 'Upload failed');
+                }
 
-                // Get public URL
-                const { data: urlData } = supabaseClient.storage
-                    .from('assets')
-                    .getPublicUrl(filePath);
+                // Cache-bust so the new image shows immediately in the preview.
+                const logoUrl = result.logoUrl + '?t=' + Date.now();
 
-                const logoUrl = urlData.publicUrl + '?t=' + Date.now();
-
-                // Update coach record
                 const fieldMap = {
                     'logo': 'brand_logo_url',
                     'favicon': 'brand_favicon_url',
@@ -2900,17 +2910,10 @@
                 };
                 const dbField = fieldMap[type];
 
-                const { error: dbError } = await supabaseClient
-                    .from('coaches')
-                    .update({ [dbField]: logoUrl, branding_updated_at: new Date().toISOString() })
-                    .eq('id', coachId);
-
-                if (dbError) throw dbError;
-
-                // Update state
+                // The server function already saved the URL to the coach record;
+                // just mirror it into local state + preview.
                 currentBranding[dbField] = logoUrl;
 
-                // Update preview
                 updateLogoPreview(type, logoUrl);
                 updatePreview();
 
@@ -2934,20 +2937,28 @@
                 const { data: { session } } = await supabaseClient.auth.getSession();
                 if (!session) throw new Error('Not authenticated');
 
-                // Update coach record to remove logo URL
+                // Route through the server function so the stored file is also
+                // deleted (and the DB field cleared) with admin access.
+                const resp = await fetch('/.netlify/functions/upload-brand-logo', {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${session.access_token}`
+                    },
+                    body: JSON.stringify({ logoType: type })
+                });
+
+                const result = await resp.json().catch(() => ({}));
+                if (!resp.ok || !result.success) {
+                    throw new Error(result.error || 'Remove failed');
+                }
+
                 const fieldMap = {
                     'logo': 'brand_logo_url',
                     'favicon': 'brand_favicon_url',
                     'email_logo': 'brand_email_logo_url'
                 };
                 const dbField = fieldMap[type];
-
-                const { error } = await supabaseClient
-                    .from('coaches')
-                    .update({ [dbField]: null, branding_updated_at: new Date().toISOString() })
-                    .eq('id', session.user.id);
-
-                if (error) throw error;
 
                 // Update state
                 currentBranding[dbField] = null;
