@@ -423,6 +423,7 @@ function applyBrandingCSS(branding) {
     localStorage.setItem(PRELOAD_KEY, JSON.stringify({
       cssVars,
       logo: branding.brand_logo_url || null,
+      favicon: branding.brand_favicon_url || null,
       primary: branding.brand_primary_color || null,
       coachId: branding.coach_id || null,
       brandName: branding.brand_name || null,
