@@ -13627,6 +13627,15 @@
             return cpAssignInflight;
         }
 
+        // The adhoc-workouts endpoint requires the coach's JWT (it used to be
+        // open — closed July 2026). Every call to it below must send this.
+        async function acAuthHeader() {
+            try {
+                const { data: { session } } = await supabaseClient.auth.getSession();
+                return session?.access_token ? { 'Authorization': `Bearer ${session.access_token}` } : {};
+            } catch { return {}; }
+        }
+
         async function cpGetAdhoc() {
             if (cpAdhocCache && (Date.now() - cpAdhocCache.ts) < CP_CACHE_TTL) {
                 return cpAdhocCache.workouts;
@@ -13634,7 +13643,9 @@
             if (cpAdhocInflight) return cpAdhocInflight;
             cpAdhocInflight = (async () => {
                 try {
-                    const res = await fetch(`/.netlify/functions/adhoc-workouts?clientId=${clientId}`);
+                    const res = await fetch(`/.netlify/functions/adhoc-workouts?clientId=${clientId}`, {
+                        headers: await acAuthHeader()
+                    });
                     const data = await res.json();
                     cpAdhocCache = { ts: Date.now(), workouts: data.workouts || [] };
                     return cpAdhocCache.workouts;
@@ -14175,10 +14186,11 @@
                 // serially — ~3x faster day load / post-save reconcile. A
                 // network failure resolves to null and is treated as empty,
                 // preserving the original per-fetch try/catch behaviour.
+                const acDayAuth = await acAuthHeader();
                 const [acLogResP, acAsgResP, acAdhocResP] = await Promise.all([
                     fetch(`/.netlify/functions/workout-logs?clientId=${clientId}&date=${dateStr}`).catch(() => null),
                     fetch(`/.netlify/functions/workout-assignments?clientId=${clientId}&date=${dateStr}`).catch(() => null),
-                    fetch(`/.netlify/functions/adhoc-workouts?clientId=${clientId}&date=${dateStr}`).catch(() => null)
+                    fetch(`/.netlify/functions/adhoc-workouts?clientId=${clientId}&date=${dateStr}`, { headers: acDayAuth }).catch(() => null)
                 ]);
 
                 // Build a map of all workout logs for this date keyed by assignment_id,
@@ -14788,7 +14800,9 @@
                     exercises.push(...exercisesToAdd);
                     await acSaveExercises(exercises, assignment.id, assignment.day_index || 0, !!assignment.is_adhoc, targetDate);
                 } else {
-                    const adhocRes = await fetch(`/.netlify/functions/adhoc-workouts?clientId=${clientId}&date=${targetDate}`);
+                    const adhocRes = await fetch(`/.netlify/functions/adhoc-workouts?clientId=${clientId}&date=${targetDate}`, {
+                        headers: await acAuthHeader()
+                    });
                     const adhocData = await adhocRes.json();
                     const adhocWorkout = (adhocData.workouts || [])[0];
 
@@ -14797,13 +14811,13 @@
                         exercises.push(...exercisesToAdd);
                         await fetch('/.netlify/functions/adhoc-workouts', {
                             method: 'PUT',
-                            headers: { 'Content-Type': 'application/json' },
+                            headers: { 'Content-Type': 'application/json', ...(await acAuthHeader()) },
                             body: JSON.stringify({ workoutId: adhocWorkout.id, workoutData: { exercises } })
                         });
                     } else {
                         await fetch('/.netlify/functions/adhoc-workouts', {
                             method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
+                            headers: { 'Content-Type': 'application/json', ...(await acAuthHeader()) },
                             body: JSON.stringify({
                                 clientId,
                                 workoutDate: targetDate,
@@ -14936,7 +14950,7 @@
                     console.log('[acSave] → PUT /adhoc-workouts');
                     await fetch('/.netlify/functions/adhoc-workouts', {
                         method: 'PUT',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: { 'Content-Type': 'application/json', ...(await acAuthHeader()) },
                         body: JSON.stringify({ workoutId: assignmentId, workoutData: { exercises } })
                     });
                 } else {
@@ -15453,7 +15467,7 @@
             try {
                 const res = await fetch('/.netlify/functions/adhoc-workouts', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'application/json', ...(await acAuthHeader()) },
                     body: JSON.stringify({
                         clientId,
                         workoutDate: dateStr,
@@ -15587,7 +15601,7 @@
             try {
                 await fetch('/.netlify/functions/adhoc-workouts', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'application/json', ...(await acAuthHeader()) },
                     body: JSON.stringify({
                         clientId,
                         workoutDate: dateStr,
@@ -16082,7 +16096,8 @@
                 let delRes;
                 if (isAdhoc) {
                     delRes = await fetch(`/.netlify/functions/adhoc-workouts?workoutId=${assignmentId}`, {
-                        method: 'DELETE'
+                        method: 'DELETE',
+                        headers: await acAuthHeader()
                     });
                 } else {
                     delRes = await fetch('/.netlify/functions/client-workout-log', {
@@ -16140,7 +16155,7 @@
                         // app's adhoc reschedule path (POST upserts by client+date).
                         await fetch('/.netlify/functions/adhoc-workouts', {
                             method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
+                            headers: { 'Content-Type': 'application/json', ...(await acAuthHeader()) },
                             body: JSON.stringify({
                                 clientId,
                                 workoutDate: targetDate,
@@ -16149,7 +16164,8 @@
                             })
                         });
                         await fetch(`/.netlify/functions/adhoc-workouts?workoutId=${assignmentId}`, {
-                            method: 'DELETE'
+                            method: 'DELETE',
+                            headers: await acAuthHeader()
                         });
                     } else {
                         const res = await fetch('/.netlify/functions/client-workout-log', {
@@ -16233,7 +16249,7 @@
                     // and editing either date changed both.
                     const res = await fetch('/.netlify/functions/adhoc-workouts', {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: { 'Content-Type': 'application/json', ...(await acAuthHeader()) },
                         body: JSON.stringify({
                             clientId,
                             workoutDate: targetDate,

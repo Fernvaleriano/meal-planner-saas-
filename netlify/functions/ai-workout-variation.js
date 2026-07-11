@@ -20,6 +20,7 @@
  */
 const Anthropic = require('@anthropic-ai/sdk').default;
 const { createClient } = require('@supabase/supabase-js');
+const { authenticateRequest, authenticateClientAccess } = require('./utils/auth');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -44,6 +45,16 @@ exports.handler = async (event) => {
   const { workout, equipment = 'gym', clientId } = body;
   if (!workout || !Array.isArray(workout.days)) {
     return { statusCode: 400, headers: corsHeaders, body: JSON.stringify({ error: 'workout.days required' }) };
+  }
+
+  // Auth: no anonymous access (paid Anthropic call + client row read). When a
+  // clientId is supplied, the caller must be that client or their coach.
+  if (clientId) {
+    const { error: authError } = await authenticateClientAccess(event, clientId);
+    if (authError) return authError;
+  } else {
+    const { error: authError } = await authenticateRequest(event);
+    if (authError) return authError;
   }
 
   let clientContext = '';

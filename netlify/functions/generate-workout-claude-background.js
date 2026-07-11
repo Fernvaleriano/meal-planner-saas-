@@ -13,7 +13,7 @@
 // the canonical generator.
 const Anthropic = require('@anthropic-ai/sdk');
 const { createClient } = require('@supabase/supabase-js');
-const { corsHeaders, handleCors } = require('./utils/auth');
+const { corsHeaders, handleCors, authenticateCoach } = require('./utils/auth');
 const { analyzeClientHistory, formatAnalysisForPrompt, applyMovementScreenExclusions } = require('./utils/client-analysis');
 const { exerciseMatchesEquipment, filterUnavailableEquipment } = require('./utils/equipment-filter');
 const { buildConditioningFinisher } = require('./utils/finisher');
@@ -47,6 +47,32 @@ async function writeJob(supabase, coachId, jobId, payload) {
     .from(BUCKET_NAME)
     .upload(path, body, { contentType: 'application/json', upsert: true });
   if (error) throw new Error(`writeJob failed: ${error.message}`);
+}
+
+// Best-effort cleanup: job blobs were never deleted, so the bucket grew
+// forever. Each new job sweeps blobs older than 24h under this coach's
+// prefix — a job result is only polled for minutes, so a day-old blob is
+// long dead. Never throws; a failed sweep just leaves files for next time.
+async function cleanupOldJobs(supabase, coachId) {
+  try {
+    const { data: files } = await supabase.storage
+      .from(BUCKET_NAME)
+      .list(coachId, { limit: 100 });
+    if (!files || files.length === 0) return;
+    const cutoff = Date.now() - 24 * 60 * 60 * 1000;
+    const stale = files
+      .filter(f => {
+        const ts = Date.parse(f.updated_at || f.created_at || '');
+        return ts && ts < cutoff;
+      })
+      .map(f => `${coachId}/${f.name}`);
+    if (stale.length > 0) {
+      await supabase.storage.from(BUCKET_NAME).remove(stale);
+      console.log(`Cleaned up ${stale.length} stale job blob(s) for coach ${coachId}`);
+    }
+  } catch (e) {
+    console.warn('Job blob cleanup failed (non-fatal):', e.message);
+  }
 }
 
 // ─── Exercise DB cache ────────────────────────────────────────────────────────
@@ -108,9 +134,30 @@ function findBestMatch(aiName, exercises) {
   const target = normalizeName(aiName);
   const exact = exercises.find(e => normalizeName(e.name) === target);
   if (exact) return exact;
+  // Tightened substring fallback (July 2026): the contained name must be at
+  // least 6 chars AND sit on token boundaries inside the containing one
+  // (with a trailing plural "s" tolerated), so a short AI name like "squat"
+  // or "curl" can never bind to an unrelated longer library name (e.g.
+  // "jump squat" for a knee-injured client). Verified against the live
+  // library: exact names still win first, and the plural rule keeps
+  // legitimate pairs like "arm circle" → "arm circles backward" matching.
+  const containsOnTokenBoundary = (longer, shorter) => {
+    if (shorter.length < 6) return false;
+    let from = 0;
+    while (true) {
+      const idx = longer.indexOf(shorter, from);
+      if (idx < 0) return false;
+      const beforeOk = idx === 0 || longer[idx - 1] === ' ';
+      let end = idx + shorter.length;
+      if (longer[end] === 's') end++; // plural tolerance
+      const afterOk = end === longer.length || longer[end] === ' ';
+      if (beforeOk && afterOk) return true;
+      from = idx + 1;
+    }
+  };
   return exercises.find(e => {
     const n = normalizeName(e.name);
-    return n.includes(target) || target.includes(n);
+    return containsOnTokenBoundary(n, target) || containsOnTokenBoundary(target, n);
   }) || null;
 }
 
@@ -510,6 +557,13 @@ Return this exact JSON structure:
     system: systemPrompt
   });
 
+  // A response cut off at max_tokens is truncated JSON — fail this day
+  // explicitly (the caller retries once) instead of letting JSON.parse throw
+  // a cryptic error.
+  if (message.stop_reason === 'max_tokens') {
+    throw new Error(`Day ${daySpec.dayNumber}: response truncated at the token limit`);
+  }
+
   const responseText = message.content[0]?.text || '';
   let dayData;
   try { dayData = JSON.parse(responseText.trim()); }
@@ -524,7 +578,7 @@ Return this exact JSON structure:
   }
 
   // Match exercises to DB
-  const matched = (dayData.exercises || []).map(ex => {
+  const processed = (dayData.exercises || []).map(ex => {
     if (!ex.name) return null;
     ex.name = (ex.name || '').replace(/\s*\(custom\)\s*$/i, '').replace(/\s*\[[^\]]+\]\s*$/, '').trim();
     if (typeof ex.sets !== 'number' || ex.sets < 1) ex.sets = 3;
@@ -570,6 +624,13 @@ Return this exact JSON structure:
     return { ...ex, muscle_group: ex.muscleGroup, matched: false };
   }).filter(Boolean);
 
+  // Hallucinated exercises (no DB match → no id, no video) must never reach
+  // the final program. The member modal already filters them client-side;
+  // this coach flow kept them, so a made-up name rendered as a blank card
+  // for the client. Drop them here and report the names in unmatchedNames.
+  const unmatchedNames = processed.filter(ex => !ex.matched).map(ex => ex.name);
+  const matched = processed.filter(ex => ex.matched);
+
   // Auto-fix split violations
   let removedViolations = [];
   if (targetMuscle === 'push' || targetMuscle === 'pull') {
@@ -596,7 +657,8 @@ Return this exact JSON structure:
       name: daySpec.dayName,
       targetMuscles: dayData.targetMuscles || [targetMuscle],
       exercises: kept,
-      violations: removedViolations
+      violations: removedViolations,
+      unmatchedNames
     };
   }
 
@@ -605,7 +667,8 @@ Return this exact JSON structure:
     name: daySpec.dayName,
     targetMuscles: dayData.targetMuscles || [targetMuscle],
     exercises: matched,
-    violations: []
+    violations: [],
+    unmatchedNames
   };
 }
 
@@ -755,13 +818,34 @@ exports.handler = async (event) => {
     return { statusCode: 400, headers, body: JSON.stringify({ error: 'jobId and coachId are required' }) };
   }
 
+  // Auth: only the coach who owns coachId may start a job — the job blob at
+  // {coachId}/{jobId}.json embeds the client's private context (health flags,
+  // training history). Mirrors the ownership check in get-workout-job.js.
+  const { error: authError } = await authenticateCoach(event, coachId);
+  if (authError) return authError;
+
   // Allowlist the generation model — only the two tiers the UI offers. Anything
   // else (or a typo) falls back to Sonnet rather than erroring or hitting an
   // unexpected/unbilled model.
   const genModel = ['claude-opus-4-8', 'claude-sonnet-4-5'].includes(model) ? model : 'claude-sonnet-4-5';
 
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+
+  // A clientId must belong to the authed coach — otherwise any coach could
+  // pull another coach's client context into their own job blob.
+  if (clientId) {
+    const { data: authClient } = await supabase
+      .from('clients')
+      .select('coach_id')
+      .eq('id', clientId)
+      .maybeSingle();
+    if (!authClient || authClient.coach_id !== coachId) {
+      return { statusCode: 403, headers, body: JSON.stringify({ error: 'Client does not belong to this coach' }) };
+    }
+  }
+
   await ensureBucket(supabase);
+  await cleanupOldJobs(supabase, coachId);
 
   // Mark as queued before kicking off (so the polling endpoint sees something)
   try {
@@ -1042,10 +1126,15 @@ If one does not fit today's muscle group, skip it (it belongs on another day). O
     const splitDays = computeSplitDays(daysPerWeek, split);
     const totalDays = splitDays.length;
 
+    // startedAt must be re-sent on every progress write below — writeJob
+    // replaces the whole blob, and get-workout-job uses this timestamp to
+    // detect jobs killed by the platform (15-min cap / OOM) that would
+    // otherwise stay 'running' forever.
+    const startedAt = new Date().toISOString();
     await writeJob(supabase, coachId, jobId, {
       status: 'running',
       progress: { totalDays, completedDays: 0 },
-      startedAt: new Date().toISOString()
+      startedAt
     });
 
     // Generate days SEQUENTIALLY (Sonnet is slow; running in parallel risks
@@ -1053,6 +1142,7 @@ If one does not fit today's muscle group, skip it (it belongs on another day). O
     // to report progress on.)
     const day1Workouts = [];
     const allViolations = [];
+    const allUnmatchedNames = [];
     // Track main exercises already used PER muscle-group-type, so two push days
     // (or two pull/leg days) don't end up as near-copies. Keyed by targetMuscle.
     // Upper/lower days overlap the push/pull/legs days that precede them in the
@@ -1072,7 +1162,7 @@ If one does not fit today's muscle group, skip it (it belongs on another day). O
         ...(usedByType[typeKey] || []),
         ...((RELATED_AVOID_TYPES[typeKey] || []).flatMap(k => usedByType[k] || []))
       ];
-      const dayResult = await generateOneDay(anthropic, {
+      const dayParams = {
         daySpec, exercisesByMuscleGroupSampled: sampled,
         exercisesAfterInjuries, exercisesWithVideos,
         equipment, goal, experience, sessionDuration, trainingStyle, exerciseCount,
@@ -1080,7 +1170,21 @@ If one does not fit today's muscle group, skip it (it belongs on another day). O
         unilateralPreference, conditioningStyle, clientContextBlock,
         warmupSuitable, stretchExercises, avoidExercises, keepMandate,
         weightUnit: clientWeightUnit, model: genModel, focusAreas
-      });
+      };
+      // One retry per day with a short backoff — a single transient failure
+      // (429/529, truncated/unparseable JSON) used to fail the ENTIRE
+      // multi-day job and discard every completed day. Rate-limit/overload
+      // errors get a longer pause before the retry.
+      let dayResult;
+      try {
+        dayResult = await generateOneDay(anthropic, dayParams);
+      } catch (dayErr) {
+        const rateLimited = dayErr.status === 429 || dayErr.status === 529 ||
+          /rate limit|overloaded/i.test(dayErr.message || '');
+        console.warn(`Day ${daySpec.dayNumber} failed (${dayErr.message}), retrying once...`);
+        await new Promise(r => setTimeout(r, rateLimited ? 15000 : 3000));
+        dayResult = await generateOneDay(anthropic, dayParams);
+      }
       // Record this day's MAIN exercises so later same-type days avoid them.
       // Accumulate same-type only — related types are unioned at read time
       // above; storing them here too would snowball the lists.
@@ -1088,6 +1192,11 @@ If one does not fit today's muscle group, skip it (it belongs on another day). O
         .filter(ex => ex && !ex.isWarmup && !ex.isStretch && ex.name)
         .map(ex => ex.name);
       usedByType[typeKey] = [...(usedByType[typeKey] || []), ...usedNow];
+      if (Array.isArray(dayResult.unmatchedNames) && dayResult.unmatchedNames.length) {
+        console.log(`Day ${daySpec.dayNumber}: dropped unmatched exercises:`, dayResult.unmatchedNames.join(', '));
+        allUnmatchedNames.push(...dayResult.unmatchedNames);
+      }
+      delete dayResult.unmatchedNames; // stats-only — keep it out of program JSON
       day1Workouts.push(dayResult);
       if (dayResult.violations?.length) {
         for (const v of dayResult.violations) allViolations.push({ ...v, day: daySpec.dayName });
@@ -1096,7 +1205,8 @@ If one does not fit today's muscle group, skip it (it belongs on another day). O
       await writeJob(supabase, coachId, jobId, {
         status: 'running',
         progress: { totalDays, completedDays: day1Workouts.length, currentlyBuilding: null },
-        partialResult: { day1Workouts: day1Workouts.length }
+        partialResult: { day1Workouts: day1Workouts.length },
+        startedAt
       });
     }
 
@@ -1167,7 +1277,13 @@ If one does not fit today's muscle group, skip it (it belongs on another day). O
         success: true,
         program,
         matchStats: {
-          total, matched, unmatched: total - matched, unmatchedNames: [],
+          // Unmatched exercises were dropped from the program in generateOneDay,
+          // so `total` counts only kept (matched) ones — add the dropped count
+          // back so the stats reflect what the model actually produced.
+          total: total + allUnmatchedNames.length,
+          matched,
+          unmatched: allUnmatchedNames.length,
+          unmatchedNames: allUnmatchedNames,
           databaseExercises: allExercises.length,
           customExerciseCount: allExercises.filter(e => e.coach_id).length,
           exercisesWithVideos: exercisesWithVideos.length
@@ -1186,10 +1302,20 @@ If one does not fit today's muscle group, skip it (it belongs on another day). O
 
   } catch (err) {
     console.error('Background generation failed:', err);
+    // Map API errors to a friendly message (mirrors refine-workout-claude.js)
+    // instead of surfacing the raw SDK error to the coach.
+    let friendlyError = err.message || String(err);
+    if (err.status === 429 || /rate limit/i.test(friendlyError)) {
+      friendlyError = 'AI service is busy. Please wait a moment and try again.';
+    } else if (err.status === 529 || /overloaded/i.test(friendlyError)) {
+      friendlyError = 'AI service is temporarily overloaded. Please try again in a few minutes.';
+    } else if (/could not parse|truncated/i.test(friendlyError)) {
+      friendlyError = 'AI returned an unexpected response. Please try again — this usually works on retry.';
+    }
     try {
       await writeJob(supabase, coachId, jobId, {
         status: 'failed',
-        error: err.message || String(err),
+        error: friendlyError,
         failedAt: new Date().toISOString()
       });
     } catch (writeErr) {

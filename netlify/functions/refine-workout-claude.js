@@ -7,7 +7,7 @@
 // Output: same program JSON shape with the requested edits applied.
 const Anthropic = require('@anthropic-ai/sdk');
 const { createClient } = require('@supabase/supabase-js');
-const { corsHeaders, handleCors } = require('./utils/auth');
+const { corsHeaders, handleCors, authenticateCoach, authenticateRequest } = require('./utils/auth');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -125,6 +125,17 @@ exports.handler = async (event) => {
     }
     if (!instruction || typeof instruction !== 'string' || instruction.trim().length < 3) {
       return { statusCode: 400, headers, body: JSON.stringify({ success: false, error: 'Instruction is required (e.g. "make day 3 harder")' }) };
+    }
+
+    // Auth: mandatory (paid Anthropic call). A coachId scopes the coach's
+    // custom exercise library into the prompt, so it must be the caller's own
+    // coach account — not an attacker-supplied one.
+    if (coachId) {
+      const { error: authError } = await authenticateCoach(event, coachId);
+      if (authError) return authError;
+    } else {
+      const { error: authError } = await authenticateRequest(event);
+      if (authError) return authError;
     }
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);

@@ -47,10 +47,16 @@ const findLogForWorkout = (workout, logs) => {
 // completed log can't resurrect the card via buildWorkoutFromLog on the next
 // refresh (the "deleted AI workout pops right back" bug). Assigned workouts
 // match their log by assignment_id; adhoc/AI workouts save their log with NO
-// assignment_id (assignment_id is null), so those are matched by name —
-// falling back to the lone no-assignment log when the name can't be resolved,
-// and never guessing when several ambiguous logs share a day. Best-effort: a
-// 404 just means the log is already gone.
+// assignment_id (assignment_id is null), so those are matched by name. A log
+// is only deleted when it can be POSITIVELY attributed to this workout:
+// exactly one no-assignment log carrying this workout's name. No name match
+// or several same-named candidates → delete nothing. (The old "lone
+// no-assignment log" fallback deleted OTHER workouts' completion logs:
+// deleting a never-started ad-hoc card erased the day's completed one, and
+// two same-named ad-hoc workouts lost both logs when one was deleted.) A
+// ghost card this leaves behind can still be removed from its own menu — a
+// deleted completion log cannot be recovered. Best-effort: a 404 just means
+// the log is already gone.
 async function deleteLogsForWorkout(clientId, dateStr, workout) {
   if (!clientId || !workout) return;
   try {
@@ -63,9 +69,7 @@ async function deleteLogsForWorkout(clientId, dateStr, workout) {
       const noAssignment = logs.filter((l) => l && !l.assignment_id);
       const name = workout.name || workout.workout_data?.name;
       const byName = name ? noAssignment.filter((l) => l.workout_name === name) : [];
-      matching = byName.length > 0
-        ? byName
-        : (noAssignment.length === 1 ? noAssignment : []);
+      matching = byName.length === 1 ? byName : [];
     } else {
       matching = logs.filter((l) => l && (l.assignment_id === workout.id || l.id === workout.id));
     }
@@ -793,6 +797,20 @@ function buildWorkoutFromLog(log) {
     .sort((a, b) => (a?.exercise_order || 0) - (b?.exercise_order || 0))
     .map((ex, i) => {
       const sets = Array.isArray(ex?.sets_data) ? ex.sets_data : [];
+      // exercise_logs don't persist trackingType/section/rest at the exercise
+      // level, so recover them from what IS stored — otherwise a rebuilt card
+      // renders a time-based warm-up as "0 reps" and loses its rest timer:
+      //  - trackingType: sets carrying durations and no reps are time-based
+      //  - restSeconds: the per-set prescription survives in sets_data
+      //  - section: seeded templates prefix warm-up/cool-down notes with
+      //    "WARM-UP —"/"COOL-DOWN —"; recover only that explicit convention
+      const notes = ex?.notes || '';
+      const hasDuration = sets.some(s => s && s.duration != null);
+      const hasReps = sets.some(s => s && Number(s.reps) > 0);
+      const restSeconds = sets.find(s => s && s.restSeconds != null)?.restSeconds;
+      const section = /^WARM[- ]?UP\b/i.test(notes) ? 'warm-up'
+        : /^COOL[- ]?DOWN\b/i.test(notes) ? 'cool-down'
+        : null;
       // Derive completed from per-set flags instead of hardcoding true.
       // A log row can exist for an exercise the user merely opened (the
       // detail modal's auto-save writes placeholder sets_data with
@@ -803,7 +821,13 @@ function buildWorkoutFromLog(log) {
         name: ex?.exercise_name || 'Exercise',
         sets: sets.length || 1,
         setsData: sets,
-        notes: ex?.notes || '',
+        notes,
+        // Only assert 'time' when the logged sets prove it — anything else is
+        // left unset so the exercises useMemo's richer inference (duration/
+        // phase/section aware) still decides the default.
+        ...(hasDuration && !hasReps ? { trackingType: 'time' } : {}),
+        ...(restSeconds != null ? { restSeconds } : {}),
+        ...(section ? { section } : {}),
         completed: sets.length > 0 && sets.every(s => s?.completed === true),
         ...(ex?.swapped_from_name ? { swappedFromName: ex.swapped_from_name } : {}),
         ...(ex?.client_notes ? { clientNotes: ex.client_notes } : {}),
@@ -4454,9 +4478,33 @@ function Workouts() {
     const targetWorkout = rescheduleWorkoutRef.current || todayWorkout;
     if (!targetWorkout?.id || !rescheduleAction || !rescheduleTargetDate) return;
 
+    const histLogId = getHistoricalLogId(targetWorkout);
+
+    // Dedupe rapid duplicate creates — same 5s signature guard as
+    // handleCreateWorkout. Move/Duplicate create rows via adhoc-workouts too,
+    // and a double-fired tap here used to create two identical rows on the
+    // target date (and for Move, a retry after a partial failure created a
+    // second copy). Only applied to the paths that actually create a row.
+    const createsAdhocRow =
+      rescheduleAction === 'duplicate' ||
+      (rescheduleAction === 'reschedule' && (histLogId || targetWorkout.is_adhoc));
+    if (createsAdhocRow) {
+      const sigName = targetWorkout.name || targetWorkout.workout_data?.name || 'Workout';
+      const createSig = `${rescheduleTargetDate}|${sigName}|${targetWorkout.workout_data?.exercises?.length || 0}`;
+      const nowTs = Date.now();
+      if (lastAdhocCreateRef.current.sig === createSig && nowTs - lastAdhocCreateRef.current.ts < 5000) {
+        setShowRescheduleModal(false);
+        setRescheduleAction(null);
+        setRescheduleTargetDate('');
+        rescheduleWorkoutRef.current = null;
+        return;
+      }
+      lastAdhocCreateRef.current = { sig: createSig, ts: nowTs };
+    }
+
     let succeeded = false;
+    let partialMoveWarned = false;
     try {
-      const histLogId = getHistoricalLogId(targetWorkout);
       if (histLogId) {
         // Historical/ghost card rebuilt from a workout_log row. The original
         // assignment/ad-hoc row is gone, so move/duplicate re-materialize it
@@ -4466,7 +4514,14 @@ function Workouts() {
           await apiPost('/.netlify/functions/adhoc-workouts', {
             clientId: targetWorkout.client_id || clientData?.id,
             workoutDate: rescheduleTargetDate,
-            workoutData: buildFreshDuplicateData(targetWorkout.workout_data),
+            // MOVE keeps the card exactly as it is — logged weights,
+            // completion state, the lot. Stripping to a blank prescription
+            // (buildFreshDuplicateData) is only right for DUPLICATE, which
+            // starts fresh; a moved completed workout losing its history was
+            // a data-loss bug.
+            workoutData: rescheduleAction === 'duplicate'
+              ? buildFreshDuplicateData(targetWorkout.workout_data)
+              : targetWorkout.workout_data,
             name: targetWorkout.name || targetWorkout.workout_data?.name || 'Workout'
           });
         }
@@ -4501,9 +4556,18 @@ function Workouts() {
             workoutData: targetWorkout.workout_data,
             name: targetWorkout.name || targetWorkout.workout_data?.name || 'Workout'
           });
-          // Delete the original
+          // Delete the original. If this half fails, the copy already exists
+          // on the target date — say exactly that instead of a generic error
+          // (which read as "nothing happened" and invited a retry; the
+          // dedupe guard above stops that retry from making a second copy).
           if (isRealId) {
-            await apiDelete(`/.netlify/functions/adhoc-workouts?workoutId=${targetWorkout.id}`);
+            try {
+              await apiDelete(`/.netlify/functions/adhoc-workouts?workoutId=${targetWorkout.id}`);
+            } catch (delErr) {
+              console.error('Move: copy created but source delete failed:', delErr);
+              partialMoveWarned = true;
+              showError('The workout was copied to the new date, but the original could not be removed — delete it from this day if it still shows.'); // eslint-disable-line -- partial-failure message left in English like the other reschedule strings
+            }
           }
           succeeded = true;
         }
@@ -4567,8 +4631,11 @@ function Workouts() {
       refreshWorkoutData();
       refreshWeekSchedule();
 
-      // Show success feedback
-      showSuccess(`Workout ${action === 'duplicate' ? 'duplicated' : action === 'skip' ? 'skipped' : 'rescheduled'} successfully!`); // eslint-disable-line -- success message left in English; reschedule action words are app internals
+      // Show success feedback (unless the partial-move warning already told
+      // the user what actually happened)
+      if (!partialMoveWarned) {
+        showSuccess(`Workout ${action === 'duplicate' ? 'duplicated' : action === 'skip' ? 'skipped' : 'rescheduled'} successfully!`); // eslint-disable-line -- success message left in English; reschedule action words are app internals
+      }
     } else {
       // Unexpected state — close modal and inform user
       setShowRescheduleModal(false);
@@ -4795,6 +4862,23 @@ function Workouts() {
         // Delete the entire assignment row — wipes this program from every
         // past and future date it covered.
         await apiDelete(`/.netlify/functions/workout-assignments?assignmentId=${workout.id}`);
+        // The assignment is gone, but its completed workout_log rows would
+        // resurrect ghost cards via buildWorkoutFromLog on every date they
+        // cover. Delete them too — matching by assignment_id, so other
+        // workouts' logs are untouched (mirrors what the ad-hoc branch does
+        // via deleteLogsForWorkout). Best-effort: a failure here leaves
+        // ghost cards, never lost workouts.
+        try {
+          const logRes = await apiGet(
+            `/.netlify/functions/workout-logs?clientId=${clientData?.id}&assignmentId=${workout.id}&limit=500`
+          );
+          const assignmentLogs = Array.isArray(logRes?.logs) ? logRes.logs : [];
+          for (const log of assignmentLogs) {
+            if (log?.id) await deleteLogRow(log.id);
+          }
+        } catch (logErr) {
+          console.error('Error deleting logs for removed program:', logErr);
+        }
       }
 
       // Remove only this program's cards from local state — leave any other
