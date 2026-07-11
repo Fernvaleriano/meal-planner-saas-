@@ -17,7 +17,7 @@ const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
 
 const BUCKET_NAME = 'brand-assets';
 const MAX_FILE_SIZE = 1024000; // 1MB for logos
-const FAVICON_MAX_SIZE = 102400; // 100KB for favicons
+const FAVICON_MAX_SIZE = 512000; // 500KB — enough for a full-res 512x512 home-screen icon
 
 const LOGO_TYPES = {
     logo: {

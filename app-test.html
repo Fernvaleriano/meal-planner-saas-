@@ -251,14 +251,16 @@
                 // 2. Resolve splash assets (prefer the persistent preload, fall
                 //    back to the per-tab sessionStorage cache).
                 var logoUrl = preload && preload.logo;
+                var faviconUrl = preload && preload.favicon;
                 var primary = preload && preload.primary;
                 var coachId = preload && preload.coachId;
                 var brandName = preload && preload.brandName;
-                if (!logoUrl || !primary) {
+                if (!logoUrl || !primary || !faviconUrl) {
                     var cached = sessionStorage.getItem('zique_branding');
                     var b = cached ? (JSON.parse(cached).branding || null) : null;
                     if (b) {
                         logoUrl = logoUrl || b.brand_logo_url;
+                        faviconUrl = faviconUrl || b.brand_favicon_url;
                         primary = primary || b.brand_primary_color;
                         coachId = coachId || b.coach_id;
                         brandName = brandName || b.brand_name;
@@ -293,9 +295,14 @@
                         manifestLink.href = '/.netlify/functions/dynamic-manifest?coachId=' + coachId;
                     }
                     if (brandName) document.title = brandName;
-                    if (logoUrl) {
+                    // Home-screen icon: prefer the square favicon (looks right as
+                    // an app icon); only fall back to the wide logo if no favicon
+                    // is set. Using the wide/transparent logo here makes the phone
+                    // icon look blank.
+                    var homeIcon = faviconUrl || logoUrl;
+                    if (homeIcon) {
                         var touchIcon = document.querySelector('link[rel="apple-touch-icon"]');
-                        if (touchIcon) touchIcon.href = logoUrl;
+                        if (touchIcon) touchIcon.href = homeIcon;
                     }
                 }
             } catch (e) { /* silent fail — fall back to default branding */ }

@@ -2849,7 +2849,7 @@
             // upload-brand-logo function enforces (1MB logos / 100KB favicons,
             // image types only) — this page uploads directly to storage, so
             // without this check a coach could upload arbitrarily large files.
-            const MAX_SIZES = { logo: 1024000, email_logo: 1024000, favicon: 102400 };
+            const MAX_SIZES = { logo: 1024000, email_logo: 1024000, favicon: 512000 };
             const ALLOWED_TYPES = {
                 logo: ['image/png', 'image/jpeg', 'image/jpg', 'image/svg+xml'],
                 email_logo: ['image/png', 'image/jpeg', 'image/jpg', 'image/svg+xml'],
