@@ -15086,6 +15086,12 @@
                     } else {
                         reps = parseFloat(exercise.reps) || 10;
                     }
+                    // Snap off numbers (9, 11, 14...) to the round reps coaches
+                    // actually prescribe. Leave decimals and low strength reps (1-6) alone.
+                    if (Number.isInteger(reps) && reps >= 7) {
+                        const gym = [8, 10, 12, 15, 20, 25, 30];
+                        reps = gym.reduce((best, s) => (Math.abs(s - reps) < Math.abs(best - reps) ? s : best), gym[0]);
+                    }
                 }
                 const dur = acParseTimeSeconds(exercise.duration) || 30;
                 for (let i = 0; i < numSets; i++) {

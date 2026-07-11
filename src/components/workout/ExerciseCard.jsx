@@ -9,17 +9,27 @@ import { convertWeight } from '../../utils/workoutProgression';
 import { getSpeechLang } from '../../utils/speechLang';
 import { useLanguage } from '../../context/LanguageContext';
 
+// Standard gym rep targets coaches actually prescribe. Averaging a range like
+// "8-10" lands on off numbers (9, 11, 14...) that look wrong on the set chips,
+// so we snap the result to the nearest round number. Decimals (distance, e.g.
+// 1.5 miles) and low strength reps (1-6) are left exactly as-is.
+const GYM_REPS = [8, 10, 12, 15, 20, 25, 30];
+const snapReps = (n) => {
+  if (!Number.isInteger(n) || n < 7) return n;
+  return GYM_REPS.reduce((best, s) => (Math.abs(s - n) < Math.abs(best - n) ? s : best), GYM_REPS[0]);
+};
+
 // Parse reps - if it's a range like "8-12", average the range instead of truncating
 // Supports decimals like "1.5" (e.g. 1.5 miles)
 // Defined outside component so it's available during initialization
 const parseReps = (reps) => {
-  if (typeof reps === 'number') return reps;
+  if (typeof reps === 'number') return snapReps(reps);
   if (typeof reps === 'string') {
-    // Handle range strings like "8-12" by averaging
+    // Handle range strings like "8-12" by averaging, then snapping to a round number
     const rangeMatch = reps.match(/^(\d+)\s*-\s*(\d+)$/);
-    if (rangeMatch) return Math.round((parseInt(rangeMatch[1], 10) + parseInt(rangeMatch[2], 10)) / 2);
+    if (rangeMatch) return snapReps(Math.round((parseInt(rangeMatch[1], 10) + parseInt(rangeMatch[2], 10)) / 2));
     const match = reps.match(/^(\d+(?:\.\d+)?)/);
-    if (match) return parseFloat(match[1]);
+    if (match) return snapReps(parseFloat(match[1]));
   }
   return 12;
 };
