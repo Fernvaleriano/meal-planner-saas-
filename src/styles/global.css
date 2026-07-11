@@ -354,6 +354,14 @@ textarea,
     object-fit: contain;
 }
 
+/* Gym-member apps use compact/badge logos — bump the cap so they read at a
+   comfortable size in the header. Scoped to the gym app; the standard
+   Ziquecoach logo keeps the sizes above. */
+.nav-logo-left--gym {
+    height: 56px;
+    max-width: 220px;
+}
+
 .nav-logo-fallback {
     font-size: 1.125rem;
     font-weight: 700;
@@ -371,12 +379,20 @@ textarea,
         height: 36px;
         max-width: 150px;
     }
+    .nav-logo-left--gym {
+        height: 50px;
+        max-width: 190px;
+    }
 }
 
 @media (max-width: 380px) {
     .nav-logo-left {
         height: 32px;
         max-width: 130px;
+    }
+    .nav-logo-left--gym {
+        height: 44px;
+        max-width: 170px;
     }
 }
 

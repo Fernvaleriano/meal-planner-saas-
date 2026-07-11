@@ -28,12 +28,16 @@ export function clearTopNavCaches() {
 
 function TopNav() {
   const { clientData } = useAuth();
-  const { branding } = useBranding();
+  const { branding, isModuleVisible } = useBranding();
   const { t } = useLanguage();
   const navigate = useNavigate();
   const [logoFailed, setLogoFailed] = useState(false);
   const logoUrl = branding?.brand_logo_url || DEFAULT_LOGO_URL;
   const logoAlt = branding?.brand_name || 'Ziquecoach';
+  // Gym-member (workout-only) apps often use a compact/badge logo that looks
+  // tiny at the default header size — give those a larger cap. Scoped to gym
+  // members so the standard Ziquecoach wide logo is untouched.
+  const isGymMember = clientData?.is_coach !== true && !isModuleVisible('diary');
   useEffect(() => { setLogoFailed(false); }, [logoUrl]);
   const [unreadCount, setUnreadCount] = useState(() => {
     if (notificationCache.data &&
@@ -112,7 +116,7 @@ function TopNav() {
           <img
             src={logoUrl}
             alt={logoAlt}
-            className="nav-logo-left"
+            className={`nav-logo-left${isGymMember ? ' nav-logo-left--gym' : ''}`}
             onError={() => setLogoFailed(true)}
           />
         ) : (
