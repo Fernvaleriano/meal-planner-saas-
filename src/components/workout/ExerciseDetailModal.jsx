@@ -2267,6 +2267,27 @@ function ExerciseDetailModal({
     }
   }, [showVideo, videoKey, videoBlobUrl, playableVideoSrc]);
 
+  // Watchdog for a spinner that never resolves. Normally the <video> fires
+  // onCanPlay/onPlaying (hide spinner) or onError (show retry). But if the load
+  // just stalls — flaky network, a signed URL that expired while the app sat
+  // open in the background, or iOS releasing the video decoder after a while
+  // (audio keeps going, picture freezes) — none of those events fire and the
+  // spinner spins forever. After a grace period, drop into the Retry state so
+  // the user has a way out. If the video quietly recovers on its own first,
+  // onCanPlay clears the error, so this only ever surfaces on a real hang.
+  useEffect(() => {
+    const waiting = showVideo && !videoError &&
+      (customVideoResolving || (videoLoading && !!playableVideoSrc));
+    if (!waiting) return;
+    const timer = setTimeout(() => {
+      if (isMountedRef.current) {
+        setVideoLoading(false);
+        setVideoError(true);
+      }
+    }, 15000);
+    return () => clearTimeout(timer);
+  }, [showVideo, videoLoading, videoError, playableVideoSrc, customVideoResolving, videoKey]);
+
   // Fallback: when video fails, re-fetch a fresh signed URL if this is a custom video
   const handleVideoError = useCallback(async (e) => {
     const mediaError = e?.target?.error;
