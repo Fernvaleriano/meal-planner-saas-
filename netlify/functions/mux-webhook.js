@@ -70,6 +70,19 @@ exports.handler = async (event) => {
   try {
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
     await supabase.from(table).update(update).eq('id', rowId);
+
+    // For exercise videos, propagate the new playback id into every stored
+    // workout snapshot that already references this exercise. Workouts built
+    // BEFORE the video converted only carry the id after this — without it they
+    // fall back to the raw file. (Leaderboard lifts read the row directly, so
+    // they need no snapshot healing.)
+    if (table === 'exercises' && update.mux_status === 'ready' && update.mux_playback_id) {
+      try {
+        await supabase.rpc('heal_workout_mux', { p_exercise_id: rowId, p_playback_id: update.mux_playback_id });
+      } catch (healErr) {
+        console.error('heal_workout_mux failed (non-fatal):', healErr.message);
+      }
+    }
   } catch (e) {
     return { statusCode: 500, body: `db error: ${e.message}` };
   }
