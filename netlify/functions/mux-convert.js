@@ -61,8 +61,9 @@ async function createMuxAsset(sourceUrl, exerciseId) {
     body: JSON.stringify({
       input: [{ url: sourceUrl }],
       playback_policy: ['public'],
-      mp4_support: 'standard',      // also make a plain MP4 available as a fallback
-      normalize_audio: true,
+      // NOTE: mp4_support/normalize_audio are rejected on free-tier ("basic")
+      // assets. We rely on the adaptive HLS stream (always included), which is
+      // what gives smooth playback on poor connections anyway.
       passthrough: String(exerciseId) // lets the webhook map the asset back to us
     })
   });

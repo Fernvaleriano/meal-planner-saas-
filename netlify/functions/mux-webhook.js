@@ -52,12 +52,9 @@ exports.handler = async (event) => {
   if (type === 'video.asset.ready') {
     const playbackId = data.playback_ids?.[0]?.id || null;
     update.mux_status = 'ready';
-    if (playbackId) {
-      update.mux_playback_id = playbackId;
-      // Plain MP4 fallback (mp4_support: 'standard'). Used only if a device
-      // can't do the adaptive stream; the client prefers the .m3u8.
-      update.mux_mp4_url = `https://stream.mux.com/${playbackId}/high.mp4`;
-    }
+    if (playbackId) update.mux_playback_id = playbackId;
+    // No MP4 fallback on free-tier assets; the client plays the adaptive
+    // HLS stream at https://stream.mux.com/<playbackId>.m3u8
   } else if (type === 'video.asset.errored') {
     update.mux_status = 'errored';
   } else {
