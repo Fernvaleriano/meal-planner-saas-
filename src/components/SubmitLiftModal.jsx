@@ -194,7 +194,6 @@ function SubmitLiftModal({ isOpen, lifts, initialLiftKey, onClose, onSubmitted }
                     style={l.key === liftKey ? { borderColor: l.color, background: l.color + '18', color: l.color } : undefined}
                     onClick={() => setLiftKey(l.key)}
                   >
-                    <span className="lb-lift-chip-emoji">{l.icon}</span>
                     {l.name}
                   </button>
                 ))}
