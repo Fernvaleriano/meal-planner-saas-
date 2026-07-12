@@ -21,9 +21,11 @@ ON client_adhoc_workouts(client_id, workout_date);
 CREATE INDEX IF NOT EXISTS idx_adhoc_workouts_active
 ON client_adhoc_workouts(client_id, is_active) WHERE is_active = true;
 
--- Add unique constraint to prevent duplicate workouts on same date
-ALTER TABLE client_adhoc_workouts
-ADD CONSTRAINT unique_client_adhoc_date UNIQUE (client_id, workout_date);
+-- NOTE: This table originally had a per-date unique constraint
+--   unique_client_adhoc_date UNIQUE (client_id, workout_date)
+-- It has since been DROPPED (see supabase/migrations/028_drop_adhoc_workout_unique_date.sql)
+-- because multiple ad-hoc workouts are now allowed to coexist on one date
+-- (e.g. a club workout plus an AI-generated one). Do not re-add it.
 
 -- Enable RLS
 ALTER TABLE client_adhoc_workouts ENABLE ROW LEVEL SECURITY;
