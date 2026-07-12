@@ -34,18 +34,24 @@ const headers = {
 // The lifts the gym competes on. `metric` decides how a submission is scored:
 //   weight → estimated 1-rep max (Epley), normalized to lbs so kg lifters
 //            rank fairly against lbs lifters.
-//   reps   → most reps in a single set (bodyweight movement).
+//   reps   → most reps in a single set (bodyweight movement, no added weight).
+// Conventional and sumo deadlifts are ranked as separate lifts — they're
+// different movements, so they get their own boards. The conventional board
+// keeps the original `deadlift` key so lifts logged before the split still count.
 const LIFTS = [
-  { key: 'bench_press',    name: 'Bench Press',    metric: 'weight', icon: '🏋️', color: '#ef4444' },
-  { key: 'back_squat',     name: 'Squat',          metric: 'weight', icon: '🦵', color: '#8b5cf6' },
-  { key: 'deadlift',       name: 'Deadlift',       metric: 'weight', icon: '🪨', color: '#0ea5e9' },
-  { key: 'overhead_press', name: 'Overhead Press', metric: 'weight', icon: '💪', color: '#f59e0b' },
-  { key: 'barbell_row',    name: 'Barbell Row',    metric: 'weight', icon: '🚣', color: '#10b981' },
-  { key: 'pull_up',        name: 'Pull-Ups',       metric: 'reps',   icon: '🧗', color: '#ec4899' }
+  { key: 'bench_press',      name: 'Bench Press',          metric: 'weight', icon: '🏋️', color: '#ef4444' },
+  { key: 'back_squat',       name: 'Squat',                metric: 'weight', icon: '🦵', color: '#8b5cf6' },
+  { key: 'deadlift',         name: 'Conventional Deadlift', metric: 'weight', icon: '🪨', color: '#0ea5e9' },
+  { key: 'deadlift_sumo',    name: 'Sumo Deadlift',        metric: 'weight', icon: '🤼', color: '#14b8a6' },
+  { key: 'overhead_press',   name: 'Overhead Press',       metric: 'weight', icon: '💪', color: '#f59e0b' },
+  { key: 'pull_up',          name: 'Pull-Ups',             metric: 'reps',   icon: '🧗', color: '#ec4899' },
+  { key: 'push_up',          name: 'Push-Ups',             metric: 'reps',   icon: '🤸', color: '#10b981' }
 ];
 const LIFT_MAP = Object.fromEntries(LIFTS.map(l => [l.key, l]));
-// Lifts that make up the classic powerlifting total.
-const TOTAL_LIFTS = ['bench_press', 'back_squat', 'deadlift'];
+// Lifts that make up the classic powerlifting total. The deadlift contribution
+// is the best of either deadlift style, so a sumo puller still gets a total.
+const TOTAL_SLOTS = ['bench_press', 'back_squat', 'deadlift'];
+const DEADLIFT_KEYS = ['deadlift', 'deadlift_sumo'];
 
 const KG_TO_LBS = 2.20462;
 
@@ -156,20 +162,25 @@ exports.handler = async (event) => {
 
       if (view === 'challenges') {
         // ── Powerlifting Total: sum of best e1RM across bench/squat/deadlift ──
-        const totals = new Map(); // clientId → { name, photo, parts:{}, lifts:count }
+        const totals = new Map(); // clientId → { name, photo, parts:{} }
         for (const [k, row] of bestByMemberLift) {
           const liftKey = k.split(':')[1];
-          if (!TOTAL_LIFTS.includes(liftKey)) continue;
+          // Both deadlift styles feed the same total slot — keep the better one.
+          const slot = DEADLIFT_KEYS.includes(liftKey) ? 'deadlift' : liftKey;
+          if (!TOTAL_SLOTS.includes(slot)) continue;
           let t = totals.get(row.client_id);
           if (!t) {
-            t = { clientId: row.client_id, name: row.client_name || 'Member', photo: row.clients?.profile_photo_url || null, total: 0, parts: {} };
+            t = { clientId: row.client_id, name: row.client_name || 'Member', photo: row.clients?.profile_photo_url || null, parts: {} };
             totals.set(row.client_id, t);
           }
-          t.parts[liftKey] = Number(row.score);
-          t.total += Number(row.score);
+          t.parts[slot] = Math.max(t.parts[slot] || 0, Number(row.score));
         }
         const totalBoard = [...totals.values()]
-          .map(t => ({ ...t, total: Math.round(t.total), complete: TOTAL_LIFTS.every(l => t.parts[l] != null) }))
+          .map(t => ({
+            ...t,
+            total: Math.round(TOTAL_SLOTS.reduce((sum, l) => sum + (t.parts[l] || 0), 0)),
+            complete: TOTAL_SLOTS.every(l => t.parts[l] != null)
+          }))
           .sort((a, b) => b.total - a.total)
           .map((t, i) => ({ ...t, rank: i + 1, isMe: t.clientId === myId }));
 
@@ -208,7 +219,7 @@ exports.handler = async (event) => {
 
         return json(200, {
           month: monthLabel,
-          totalLifts: TOTAL_LIFTS.map(k => LIFT_MAP[k].name),
+          totalLifts: ['Bench Press', 'Squat', 'Deadlift'],
           powerliftingTotal: totalBoard,
           checkinChampions: checkinBoard,
           prRace: prBoard

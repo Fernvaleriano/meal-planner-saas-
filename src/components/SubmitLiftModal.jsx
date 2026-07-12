@@ -227,30 +227,14 @@ function SubmitLiftModal({ isOpen, lifts, initialLiftKey, onClose, onSubmitted }
                     </div>
                   </>
                 ) : (
-                  <>
-                    <div className="lb-input-group lb-input-reps">
-                      <label className="lb-label" htmlFor="lb-reps">Reps in one set</label>
-                      <input
-                        id="lb-reps" type="number" inputMode="numeric" min="1" max="100" step="1"
-                        className="lb-input" placeholder="0" value={reps}
-                        onChange={(e) => setReps(e.target.value)}
-                      />
-                    </div>
-                    <div className="lb-input-group lb-input-weight">
-                      <label className="lb-label" htmlFor="lb-weight">Added weight <span className="lb-optional">(optional)</span></label>
-                      <div className="lb-weight-row">
-                        <input
-                          id="lb-weight" type="number" inputMode="decimal" min="0" max="500" step="0.5"
-                          className="lb-input" placeholder="0" value={weight}
-                          onChange={(e) => setWeight(e.target.value)}
-                        />
-                        <div className="lb-unit-toggle">
-                          <button type="button" className={unit === 'lbs' ? 'active' : ''} onClick={() => setUnit('lbs')}>lbs</button>
-                          <button type="button" className={unit === 'kg' ? 'active' : ''} onClick={() => setUnit('kg')}>kg</button>
-                        </div>
-                      </div>
-                    </div>
-                  </>
+                  <div className="lb-input-group lb-input-reps">
+                    <label className="lb-label" htmlFor="lb-reps">Reps in one set</label>
+                    <input
+                      id="lb-reps" type="number" inputMode="numeric" min="1" max="100" step="1"
+                      className="lb-input" placeholder="0" value={reps}
+                      onChange={(e) => setReps(e.target.value)}
+                    />
+                  </div>
                 )}
               </div>
 
