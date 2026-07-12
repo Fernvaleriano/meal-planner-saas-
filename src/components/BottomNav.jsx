@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { Home, NotebookPen, Dumbbell, MessageCircle, UtensilsCrossed, Trophy } from 'lucide-react';
+import { Home, NotebookPen, Dumbbell, MessageCircle, UtensilsCrossed, Trophy, Info } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useBranding } from '../context/BrandingContext';
 import { apiGet } from '../utils/api';
@@ -87,6 +87,12 @@ function BottomNav({ currentPath }) {
     // stays on by default (isModuleVisible returns true unless explicitly off).
     if (isModuleVisible('leaderboard')) {
       visible.push({ path: '/leaderboard', icon: Trophy, label: 'Ranks', moduleKey: 'leaderboard' });
+    }
+    // Gym members (nutrition/diary turned off -> the workout-only "gym home")
+    // get a Gym Info tab here instead of a home-screen tile. Full coaching
+    // clients keep the diary and don't get this tab (their nav is already full).
+    if (!isModuleVisible('diary')) {
+      visible.push({ path: '/gym-info', icon: Info, label: 'Gym Info', moduleKey: null });
     }
     return visible;
   }, [isCoach, isModuleVisible, getLabel, unreadMessages]);
