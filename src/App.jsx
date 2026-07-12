@@ -10,6 +10,7 @@ import Settings from './pages/Settings';
 import Recipes from './pages/Recipes';
 import CheckIn from './pages/CheckIn';
 import Progress from './pages/Progress';
+import GymInfo from './pages/GymInfo';
 import Feed from './pages/Feed';
 import WorkoutHistory from './pages/WorkoutHistory';
 import WorkoutPlans from './pages/WorkoutPlans';
@@ -169,6 +170,7 @@ function App() {
         <Route path="recipes" element={<Recipes />} />
         <Route path="check-in" element={<CheckIn />} />
         <Route path="progress" element={<Progress />} />
+        <Route path="gym-info" element={<GymInfo />} />
         <Route path="feed" element={<CoachOnlyRoute><Feed /></CoachOnlyRoute>} />
         <Route path="workout-history" element={<WorkoutHistory />} />
         <Route path="workout-plans" element={<WorkoutPlans />} />
