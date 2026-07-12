@@ -784,7 +784,8 @@ function Settings() {
 
         <div className="settings-divider"></div>
 
-        {/* Exercise Demonstration Gender Preference */}
+        {/* Exercise Demonstration Gender Preference — hidden for gym (workout-only) members */}
+        {!isGymMember && (<>
         <div className="settings-item">
           <div className="settings-item-left">
             <div className="settings-icon-box neutral">
@@ -814,6 +815,7 @@ function Settings() {
         </div>
 
         <div className="settings-divider"></div>
+        </>)}
 
         {/* Weight Unit Preference */}
         <div className="settings-item">
@@ -843,9 +845,10 @@ function Settings() {
           </div>
         </div>
 
+        {/* Water Intake Goal — hidden for gym (workout-only) members */}
+        {!isGymMember && (<>
         <div className="settings-divider"></div>
 
-        {/* Water Intake Goal */}
         <div className="settings-item">
           <div className="settings-item-left">
             <div className="settings-icon-box water">
@@ -889,6 +892,7 @@ function Settings() {
             )}
           </div>
         </div>
+        </>)}
       </div>
 
       {/* Branding Section - Coach Only */}
@@ -925,8 +929,8 @@ function Settings() {
         </div>
       )}
 
-      {/* Client Billing - Non-coach users */}
-      {!isCoach && (
+      {/* Client Billing - Non-coach users (hidden for gym-only members) */}
+      {!isCoach && !isGymMember && (
         <div className="settings-card">
           <div className="settings-card-title">{t('settings.billing')}</div>
           <Link to="/my-billing" className="settings-item clickable" style={{ textDecoration: 'none', color: 'inherit' }}>
