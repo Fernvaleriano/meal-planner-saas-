@@ -42761,6 +42761,52 @@ textarea,
     box-shadow: 0 2px 8px -2px rgba(0, 0, 0, 0.25);
 }
 
+/* ── Division selector (men / women) ── */
+.lb-gender-tabs {
+    display: flex;
+    gap: 6px;
+    padding: 14px 16px 0;
+    background: transparent;
+}
+.lb-gender-tabs button {
+    flex: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    border: 1px solid var(--border-color, #e2e8f0);
+    background: var(--bg-card, #fff);
+    color: var(--text-secondary, #64748b);
+    font-size: 14px;
+    font-weight: 700;
+    padding: 9px 8px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.18s ease;
+}
+.lb-gender-tabs button.active {
+    background: var(--brand-primary, #2cb5a5);
+    border-color: var(--brand-primary, #2cb5a5);
+    color: #fff;
+    box-shadow: 0 4px 12px -4px var(--brand-shadow-soft, rgba(44, 181, 165, 0.4));
+}
+.lb-gender-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 20px;
+    height: 20px;
+    padding: 0 6px;
+    border-radius: 10px;
+    font-size: 12px;
+    font-weight: 700;
+    background: rgba(100, 116, 139, 0.16);
+    color: inherit;
+}
+.lb-gender-tabs button.active .lb-gender-count {
+    background: rgba(255, 255, 255, 0.28);
+}
+
 /* ── Lift selector (horizontal scroll) ── */
 .lb-lift-scroller {
     display: flex;

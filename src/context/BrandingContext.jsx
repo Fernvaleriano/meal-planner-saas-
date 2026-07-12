@@ -37,6 +37,7 @@ const DEFAULT_BRANDING = {
     recipes: true,
     check_in: true,
     progress: true,
+    leaderboard: true,
   },
   custom_terminology: null,
   brand_client_theme: 'dark',

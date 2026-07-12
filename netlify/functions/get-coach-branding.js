@@ -35,7 +35,7 @@ const DEFAULT_BRANDING = {
     brand_welcome_message: null,
     brand_app_name: null,
     brand_short_name: null,
-    client_modules: { diary: true, plans: true, workouts: true, messages: true, recipes: true, check_in: true, progress: true },
+    client_modules: { diary: true, plans: true, workouts: true, messages: true, recipes: true, check_in: true, progress: true, leaderboard: true },
     custom_terminology: null,
     brand_client_theme: 'dark',
     use_default_tutorial_video: false,
