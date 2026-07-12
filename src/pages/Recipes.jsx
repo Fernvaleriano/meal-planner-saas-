@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { ChevronLeft, Clock, X, Search, Sparkles, Globe, BookOpen, Heart, Download, Plus, Trash2, Edit3, Eye, EyeOff, Upload, Link, Camera, Youtube, Loader, Zap, Package, Users, Check, Flame, ChefHat } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useBranding } from '../context/BrandingContext';
 import { apiGet, apiPost, apiPut, apiDelete } from '../utils/api';
 import { usePullToRefreshEvent } from '../hooks/usePullToRefreshEvent';
 import { useLanguage } from '../context/LanguageContext';
@@ -55,6 +56,7 @@ const EMPTY_FORM = {
 function Recipes() {
   const navigate = useNavigate();
   const { user, clientData } = useAuth();
+  const { branding } = useBranding();
   const { showError, showSuccess } = useToast();
   const { t } = useLanguage();
   const isCoach = clientData?.is_coach === true;
@@ -513,7 +515,7 @@ function Recipes() {
 
         <div class="footer">
           ${selectedRecipe.source_url ? `${t('recipesPage.pdfSource', { url: selectedRecipe.source_url })}<br>` : ''}
-          ${t('recipesPage.pdfFooter')}
+          ${t('recipesPage.pdfFooter', { name: branding?.brand_name || 'Ziquecoach' })}
         </div>
       </body>
       </html>

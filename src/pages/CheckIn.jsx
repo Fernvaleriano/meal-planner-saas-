@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronDown, Flame, NotebookPen, Calendar, Zap, Moon, Utensils, AlertCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useBranding } from '../context/BrandingContext';
 import { apiGet, apiPost } from '../utils/api';
 import { usePullToRefreshEvent } from '../hooks/usePullToRefreshEvent';
 import { useToast } from '../components/Toast';
@@ -61,6 +62,7 @@ const computeCheckinStreak = (checkins) => {
 function CheckIn() {
   const navigate = useNavigate();
   const { clientData } = useAuth();
+  const { branding } = useBranding();
   const { showError, showSuccess } = useToast();
   const { t } = useLanguage();
 
@@ -213,6 +215,7 @@ function CheckIn() {
         earnedTiers,
         clientName: clientData?.client_name,
         bgImage: shareBgImage,
+        logoUrl: branding?.brand_logo_url,
       });
       const caption = t('checkInPage.badgeShareCaption', { name: tier.name, icon: tier.icon, count: newCount });
       const result = await shareOrDownloadBadge(blob, tier, caption);

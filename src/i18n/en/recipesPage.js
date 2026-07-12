@@ -200,7 +200,7 @@ export default {
   pdfFat: 'Fat',
   pdfIngredients: 'Ingredients',
   pdfInstructions: 'Instructions',
-  pdfFooter: 'Downloaded from Ziquecoach',
+  pdfFooter: 'Downloaded from {name}',
   pdfSource: 'Source: {url}',
 
   // Recipe title suffix used in the PDF <title> tag

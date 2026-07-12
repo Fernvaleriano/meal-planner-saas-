@@ -168,6 +168,7 @@ export async function generateBadgeShareCard({
   earnedTiers,
   clientName = null,
   bgImage = null,
+  logoUrl = ZIQUECOACH_LOGO_URL,
 }) {
   const width = 1080;
   const height = 1080;
@@ -186,7 +187,7 @@ export async function generateBadgeShareCard({
   const medalNodes = getIconNodesFor('Medal');
   const miniTiers = (earnedTiers || []).slice(-5);
   const [logoImg, bgImg, heroIconImg, medalIconImg, miniIconImgs] = await Promise.all([
-    loadCanvasImage(ZIQUECOACH_LOGO_URL),
+    loadCanvasImage(logoUrl || ZIQUECOACH_LOGO_URL),
     loadCanvasImage(bgImage),
     svgToImage(buildLucideSvg(heroNodes, { size: 230, color: '#ffffff', strokeWidth: 1.6 })),
     svgToImage(buildLucideSvg(medalNodes, { size: 48, color: '#fcd34d', strokeWidth: 2 })),

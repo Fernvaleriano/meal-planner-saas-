@@ -213,11 +213,16 @@ function generateReminderEmail({
         }
     }
 
-    // Footer text - different for white-label
-    const footerText = whiteLabel ? coachName : 'Ziquecoach';
-    const footerHtml = whiteLabel
-        ? `<p>${coachName}</p>`
-        : `<p>Ziquecoach</p><p><a href="${APP_URL}" style="color: #2cb5a5;">Visit Dashboard</a></p>`;
+    // Visible brand for the client: the coach's custom brand name if they've
+    // set one, otherwise their name (white-label) or the platform default.
+    // Keeps the footer consistent with the branded header/logo above.
+    const displayBrand = branding.brand_name || (whiteLabel ? coachName : 'Ziquecoach');
+
+    // Footer text
+    const footerText = displayBrand;
+    const footerHtml = (whiteLabel || branding.brand_name)
+        ? `<p>${displayBrand}</p>`
+        : `<p>${displayBrand}</p><p><a href="${APP_URL}" style="color: #2cb5a5;">Visit Dashboard</a></p>`;
 
     // Default message
     let textBody = `Hi ${clientName},

@@ -90,7 +90,7 @@ function drawTableHeader(doc, x, y, colWidths, labels) {
  * @param {boolean} options.separateDays
  */
 export async function generateWorkoutPDF(program, options = {}) {
-  const { compact = true, includeNotes = true, separateDays = false } = options;
+  const { compact = true, includeNotes = true, separateDays = false, brandName = 'Ziquecoach' } = options;
 
   const jsPDF = await loadJsPDF();
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
@@ -292,7 +292,7 @@ export async function generateWorkoutPDF(program, options = {}) {
     doc.setFontSize(7);
     doc.setTextColor(...MEDIUM_GRAY);
     doc.text(`Page ${i} of ${totalPages}`, pageWidth / 2, pageHeight - 5, { align: 'center' });
-    doc.text('Ziquecoach', pageWidth - margin, pageHeight - 5, { align: 'right' });
+    doc.text(brandName || 'Ziquecoach', pageWidth - margin, pageHeight - 5, { align: 'right' });
   }
 
   const safeName = (program.name || 'workout-plan').replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
