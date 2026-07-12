@@ -44,9 +44,15 @@ exports.handler = async (event) => {
 
   const type = payload.type;
   const data = payload.data || {};
-  const passthrough = data.passthrough;
-  const exerciseId = passthrough && /^\d+$/.test(passthrough) ? parseInt(passthrough, 10) : null;
-  if (!exerciseId) return { statusCode: 200, body: 'no passthrough' };
+  const passthrough = String(data.passthrough || '');
+
+  // Route the asset back to the right table. `lift:<id>` → leaderboard proofs;
+  // a bare number → exercise demos (original behavior).
+  let table, rowId;
+  const liftMatch = passthrough.match(/^lift:(\d+)$/);
+  if (liftMatch) { table = 'gym_leaderboard_lifts'; rowId = parseInt(liftMatch[1], 10); }
+  else if (/^\d+$/.test(passthrough)) { table = 'exercises'; rowId = parseInt(passthrough, 10); }
+  else return { statusCode: 200, body: 'no passthrough' };
 
   const update = {};
   if (type === 'video.asset.ready') {
@@ -63,7 +69,7 @@ exports.handler = async (event) => {
 
   try {
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
-    await supabase.from('exercises').update(update).eq('id', exerciseId);
+    await supabase.from(table).update(update).eq('id', rowId);
   } catch (e) {
     return { statusCode: 500, body: `db error: ${e.message}` };
   }

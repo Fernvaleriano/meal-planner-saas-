@@ -83,8 +83,40 @@ exports.handler = async (event) => {
 
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
   const scopeAll = params.scope === 'all';
+  const scopeLifts = params.scope === 'lifts';
   const started = Date.now();
   let converted = 0, skipped = 0, failed = 0;
+
+  // Leaderboard proof videos live in their own table; convert those instead.
+  if (scopeLifts) {
+    while (Date.now() - started < TIME_BUDGET_MS) {
+      const { data: lifts, error } = await supabase.from('gym_leaderboard_lifts')
+        .select('id, video_url')
+        .is('mux_asset_id', null).is('mux_status', null)
+        .not('video_url', 'is', null)
+        .limit(PAGE);
+      if (error) { console.error('lift backfill query error', error.message); break; }
+      if (!lifts || lifts.length === 0) break;
+      for (const lift of lifts) {
+        try {
+          const asset = await createMuxAsset(lift.video_url, `lift:${lift.id}`);
+          await supabase.from('gym_leaderboard_lifts').update({
+            mux_asset_id: asset.id,
+            mux_playback_id: asset.playback_ids?.[0]?.id || null,
+            mux_status: asset.status || 'preparing'
+          }).eq('id', lift.id);
+          converted++;
+        } catch (e) {
+          failed++;
+          console.error(`lift backfill failed for ${lift.id}:`, e.message);
+          await supabase.from('gym_leaderboard_lifts').update({ mux_status: 'error_creating' }).eq('id', lift.id);
+        }
+        await new Promise(r => setTimeout(r, 400));
+      }
+    }
+    console.log(`[mux-backfill lifts] DONE converted=${converted} failed=${failed}`);
+    return { statusCode: 200, body: JSON.stringify({ converted, failed }) };
+  }
 
   // Loop: pull a page of not-yet-touched rows, convert, repeat. Each row gets a
   // mux_status (or mux_asset_id) written, so it drops out of the next page —
