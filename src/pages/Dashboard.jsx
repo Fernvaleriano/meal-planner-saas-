@@ -1462,12 +1462,6 @@ function Dashboard() {
           </div>
           <span>{t('dashboard.quickActionProfile')}</span>
         </Link>
-        <Link to="/gym-info" className="quick-action-card">
-          <div className="quick-action-card-icon">
-            <Clock size={24} />
-          </div>
-          <span>{t('dashboard.quickActionGymInfo')}</span>
-        </Link>
       </div>
       </>
       ) : (
