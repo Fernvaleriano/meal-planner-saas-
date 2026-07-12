@@ -108,9 +108,14 @@ exports.handler = async (event) => {
       } catch (e) {
         failed++;
         console.error(`backfill failed for ${ex.id} (${ex.name}):`, e.message);
-        // Mark errored so it doesn't wedge the loop on the same row forever.
-        await supabase.from('exercises').update({ mux_status: 'error_creating' }).eq('id', ex.id);
+        // Record the reason so we can see WHY from the DB, and mark errored so
+        // the loop doesn't wedge on the same row forever.
+        await supabase.from('exercises')
+          .update({ mux_status: 'error_creating', mux_error: String(e.message).slice(0, 500) })
+          .eq('id', ex.id);
       }
+      // Gentle pace to avoid tripping Mux's create-asset rate limit.
+      await new Promise(r => setTimeout(r, 400));
     }
     console.log(`[mux-backfill] converted=${converted} skipped=${skipped} failed=${failed}`);
   }

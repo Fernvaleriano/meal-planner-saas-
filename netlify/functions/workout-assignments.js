@@ -39,7 +39,7 @@ async function fetchExercisesByIds(supabase, ids) {
   if (missing.length > 0) {
     const { data, error } = await supabase
       .from('exercises')
-      .select('id, equipment, video_url, animation_url, thumbnail_url, is_custom')
+      .select('id, equipment, video_url, animation_url, thumbnail_url, is_custom, mux_playback_id, mux_status')
       .in('id', missing);
     if (!error && data) {
       for (const ex of data) {
@@ -81,6 +81,10 @@ async function enrichExercisesWithVideos(exercises, supabase) {
     // Old workout snapshots dropped this flag, leaving custom-exercise videos
     // muted on the client even though they have voice cues.
     if (fresh.is_custom === true && ex.is_custom !== true) updates.is_custom = true;
+    // Attach the Mux playback id ONLY when the transcode is fully ready, so the
+    // client streams the fast/adaptive Mux copy. Not-ready or unconverted
+    // videos leave this null and the client plays the original file as before.
+    if (fresh.mux_status === 'ready' && fresh.mux_playback_id && fresh.mux_playback_id !== ex.mux_playback_id) updates.mux_playback_id = fresh.mux_playback_id;
     if (Object.keys(updates).length === 0) return ex;
     return { ...ex, ...updates };
   });
@@ -554,6 +558,8 @@ exports.handler = withTimeout(async (event) => {
                     if (fresh.animation_url && !ex.animation_url) updates.animation_url = fresh.animation_url;
                     // Backfill is_custom so coach-recorded videos play unmuted on the client
                     if (fresh.is_custom === true && ex.is_custom !== true) updates.is_custom = true;
+                    // Attach Mux playback id only when the transcode is ready (see enrichExercisesWithVideos)
+                    if (fresh.mux_status === 'ready' && fresh.mux_playback_id && fresh.mux_playback_id !== ex.mux_playback_id) updates.mux_playback_id = fresh.mux_playback_id;
                     if (Object.keys(updates).length === 0) return ex;
                     return { ...ex, ...updates };
                   });

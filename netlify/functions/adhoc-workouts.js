@@ -33,7 +33,7 @@ async function fetchExercisesByIds(supabase, ids) {
   if (missing.length > 0) {
     const { data, error } = await supabase
       .from('exercises')
-      .select('id, video_url, animation_url, thumbnail_url, is_custom')
+      .select('id, video_url, animation_url, thumbnail_url, is_custom, mux_playback_id, mux_status')
       .in('id', missing);
     if (!error && data) {
       for (const ex of data) {
@@ -69,6 +69,9 @@ async function enrichExercisesWithMedia(exercises, supabase) {
     if (fresh.animation_url && !ex.animation_url) updates.animation_url = fresh.animation_url;
     // Backfill is_custom so coach-recorded videos play unmuted on the client
     if (fresh.is_custom === true && ex.is_custom !== true) updates.is_custom = true;
+    // Attach the Mux playback id only when the transcode is ready; the client
+    // streams the Mux copy when present and falls back to the original file.
+    if (fresh.mux_status === 'ready' && fresh.mux_playback_id && fresh.mux_playback_id !== ex.mux_playback_id) updates.mux_playback_id = fresh.mux_playback_id;
     if (Object.keys(updates).length === 0) return ex;
     return { ...ex, ...updates };
   });
