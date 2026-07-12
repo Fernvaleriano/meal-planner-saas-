@@ -2506,8 +2506,10 @@ function ExerciseDetailModal({
                   playsInline
                   autoPlay={!videoHasAudio}
                   preload={videoHasAudio ? 'auto' : 'metadata'}
+                  onLoadedData={() => { setVideoLoading(false); setVideoError(false); }}
                   onCanPlay={() => { setVideoLoading(false); setVideoError(false); }}
-                  onPlaying={() => setVideoLoading(false)}
+                  onPlaying={() => { setVideoLoading(false); setVideoError(false); }}
+                  onTimeUpdate={() => { if (videoLoading) { setVideoLoading(false); setVideoError(false); } }}
                   onWaiting={() => { if (!videoHasAudio) setVideoLoading(true); }}
                   onError={handleVideoError}
                 />
