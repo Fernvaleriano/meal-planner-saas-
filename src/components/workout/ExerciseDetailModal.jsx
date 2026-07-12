@@ -4,6 +4,7 @@ import { apiGet, apiPost, apiPut, apiDelete, getOrCreateWorkoutLogId } from '../
 import { supabase } from '../../utils/supabase';
 import { generateProgression, generateSetNudge, EFFORT_OPTIONS, parseSetsData, getMaxWeight, convertWeight } from '../../utils/workoutProgression';
 import { getSpeechLang } from '../../utils/speechLang';
+import { getExerciseVideoSrc } from '../../utils/exerciseVideo';
 import { onAppSuspend, onAppResume } from '../../hooks/useAppLifecycle';
 import Portal from '../Portal';
 import SetEditorModal from './SetEditorModal';
@@ -2206,9 +2207,10 @@ function ExerciseDetailModal({
   // to an animation image and the <video> renders iOS's broken-media glyph.
   const playableVideoSrc =
     videoBlobUrl ||
-    exercise?.customVideoUrl ||
-    (isVideoUrl(exercise?.video_url) ? exercise?.video_url : null) ||
-    (isVideoUrl(exercise?.animation_url) ? exercise?.animation_url : null);
+    getExerciseVideoSrc(exercise,
+      exercise?.customVideoUrl ||
+      (isVideoUrl(exercise?.video_url) ? exercise?.video_url : null) ||
+      (isVideoUrl(exercise?.animation_url) ? exercise?.animation_url : null));
   // A known coach video whose signed URL hasn't been resolved yet — show a
   // spinner instead of a broken <video>.
   const customVideoResolving =

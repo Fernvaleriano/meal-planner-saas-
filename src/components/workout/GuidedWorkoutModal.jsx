@@ -7,6 +7,7 @@ import FormCheckModal from './FormCheckModal';
 import { apiGet, apiPost, apiPut, apiDelete, getOrCreateWorkoutLogId } from '../../utils/api';
 import { onAppResume } from '../../hooks/useAppLifecycle';
 import { parseDurationToSeconds } from '../../utils/workoutDuration';
+import { getExerciseVideoSrc } from '../../utils/exerciseVideo';
 import { generateProgression, EFFORT_OPTIONS, EFFORT_TO_RIR, estimate1RM, parseSetsData, getMaxWeight, parseReps, isCompoundExercise, getWeightIncrement, convertWeight } from '../../utils/workoutProgression';
 import { playTickSound, playCompleteChime, warmUpTickSound, resumeAudio, startTickKeepAlive, stopTickKeepAlive, setAudioEnabled } from '../../utils/audioTick';
 import { useBranding } from '../../context/BrandingContext';
@@ -3907,7 +3908,7 @@ function GuidedWorkoutModal({
 
   // Detect "transition rest" — resting after last set before moving to next exercise
   const isTransitionRest = phase === 'rest' && isExerciseCompleted(currentExIndex) && nextExercise;
-  const nextExerciseVideoUrl = nextExercise?.customVideoUrl || nextExercise?.video_url || nextExercise?.animation_url;
+  const nextExerciseVideoUrl = getExerciseVideoSrc(nextExercise, nextExercise?.customVideoUrl || nextExercise?.video_url || nextExercise?.animation_url);
 
   // Helper to check if URL is a video format (avoid loading .mp4 as <img>)
   const isVideoUrl = (url) => {
@@ -4116,7 +4117,7 @@ function GuidedWorkoutModal({
       {nextExercise?.customVideoUrl && (
         <video
           key={`prefetch-${nextExercise.customVideoUrl}`}
-          src={nextExercise.customVideoUrl}
+          src={getExerciseVideoSrc(nextExercise, nextExercise.customVideoUrl)}
           preload="auto"
           muted
           playsInline
@@ -4774,7 +4775,7 @@ function GuidedWorkoutModal({
                 // iOS autoplay still has sound and grabs the audio session.
                 if (el) el.muted = IS_IOS ? videoMuted : (!videoHasAudio || videoMuted);
               }}
-              src={guidedVideoBlobUrl || currentExercise.customVideoUrl || currentExercise.video_url || currentExercise.animation_url}
+              src={guidedVideoBlobUrl || getExerciseVideoSrc(currentExercise, currentExercise.customVideoUrl || currentExercise.video_url || currentExercise.animation_url)}
               autoPlay
               loop
               muted={IS_IOS ? videoMuted : (!videoHasAudio || videoMuted)}
@@ -5563,7 +5564,7 @@ function GuidedWorkoutModal({
               {(currentExercise?.customVideoUrl || currentExercise?.video_url || currentExercise?.animation_url) ? (
                 <video
                   ref={miniVideoRef}
-                  src={currentExercise.customVideoUrl || currentExercise.video_url || currentExercise.animation_url}
+                  src={getExerciseVideoSrc(currentExercise, currentExercise.customVideoUrl || currentExercise.video_url || currentExercise.animation_url)}
                   autoPlay
                   loop
                   muted
