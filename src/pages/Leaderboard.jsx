@@ -216,7 +216,7 @@ function Leaderboard() {
                 style={l.key === activeLift ? { background: l.color, borderColor: l.color } : undefined}
                 onClick={() => setActiveLift(l.key)}
               >
-                <span className="lb-lift-tab-emoji">{l.icon}</span>{l.name}
+                {l.name}
               </button>
             ))}
           </div>
