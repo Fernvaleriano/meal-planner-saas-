@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Trainers · Ziquecoach</title>
+  <style>
+    :root {
+      --navy: #0A1F2E;
+      --turq: #2EC4B6;
+      --turq-dark: #1fa295;
+      --bg: #f4f6f8;
+      --card: #ffffff;
+      --line: #e3e8ee;
+      --text: #1b2a35;
+      --muted: #6b7a88;
+      --danger: #d9534f;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: var(--bg); color: var(--text);
+    }
+    header.topbar {
+      background: var(--navy); color: #fff; padding: 14px 20px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    header.topbar .brand { font-weight: 700; font-size: 18px; }
+    header.topbar .brand span { color: var(--turq); }
+    header.topbar a { color: #cfe9e6; text-decoration: none; font-size: 14px; }
+    .wrap { max-width: 900px; margin: 0 auto; padding: 24px 16px 80px; }
+    h1 { font-size: 22px; margin: 8px 0 4px; }
+    .sub { color: var(--muted); margin: 0 0 24px; font-size: 14px; }
+    .card {
+      background: var(--card); border: 1px solid var(--line); border-radius: 12px;
+      padding: 18px; margin-bottom: 20px;
+    }
+    .card h2 { font-size: 16px; margin: 0 0 14px; }
+    .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+    label.fld { display: flex; flex-direction: column; font-size: 12px; color: var(--muted); gap: 4px; }
+    input[type=text], input[type=email], input[type=password], select {
+      padding: 9px 11px; border: 1px solid var(--line); border-radius: 8px; font-size: 14px; min-width: 180px; background:#fff;
+    }
+    button {
+      background: var(--turq); color: #fff; border: none; border-radius: 8px; padding: 9px 16px;
+      font-size: 14px; font-weight: 600; cursor: pointer;
+    }
+    button:hover { background: var(--turq-dark); }
+    button.ghost { background: transparent; color: var(--muted); border: 1px solid var(--line); }
+    button.ghost:hover { background: #f0f3f6; }
+    button.danger { background: transparent; color: var(--danger); border: 1px solid #f0d3d2; }
+    button.danger:hover { background: #fbeceb; }
+    button.small { padding: 5px 10px; font-size: 12px; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { text-align: left; padding: 10px 8px; border-bottom: 1px solid var(--line); font-size: 14px; vertical-align: middle; }
+    th { color: var(--muted); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: .03em; }
+    .pill { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+    .pill.active { background: #e2f6f3; color: var(--turq-dark); }
+    .pill.disabled { background: #f0f0f0; color: #999; }
+    .empty { color: var(--muted); font-size: 14px; padding: 12px 0; }
+    .notice { padding: 14px 16px; border-radius: 10px; font-size: 14px; margin-bottom: 20px; }
+    .notice.info { background: #eaf6ff; color: #1a5f8a; border: 1px solid #cfe6f5; }
+    .notice.warn { background: #fff6e5; color: #8a5a1a; border: 1px solid #f5e2bf; }
+    .notice.ok { background: #e6f7ec; color: #1c7a3e; border: 1px solid #c4ecd0; }
+    .toast {
+      position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+      background: var(--navy); color: #fff; padding: 12px 20px; border-radius: 10px; font-size: 14px;
+      opacity: 0; transition: opacity .2s; pointer-events: none; z-index: 50; max-width: 90%;
+    }
+    .toast.show { opacity: 1; }
+    .muted { color: var(--muted); font-size: 13px; }
+    code { background: #f0f3f6; padding: 2px 6px; border-radius: 5px; font-size: 13px; }
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">Zique<span>coach</span> · Trainers</div>
+    <a href="dashboard.html">← Back to dashboard</a>
+  </header>
+
+  <div class="wrap">
+    <h1>Gym trainers</h1>
+    <p class="sub">Add trainers under your gym and choose which clients each one coaches. You still own every client — trainers only see the ones you assign to them.</p>
+
+    <div id="loading" class="empty">Loading…</div>
+
+    <!-- Disabled / not-enabled state -->
+    <div id="disabledState" class="notice warn hidden">
+      Multi-trainer isn't switched on for your account yet. Once it's enabled you'll be able to add trainers here.
+    </div>
+
+    <div id="main" class="hidden">
+      <!-- Add trainer -->
+      <div class="card">
+        <h2>Add a trainer</h2>
+        <div class="row">
+          <label class="fld">Name
+            <input type="text" id="tName" placeholder="Jane Trainer" />
+          </label>
+          <label class="fld">Email (their login)
+            <input type="email" id="tEmail" placeholder="jane@example.com" />
+          </label>
+          <label class="fld">Password (optional)
+            <input type="password" id="tPassword" placeholder="auto-generated if blank" />
+          </label>
+          <label class="fld" style="justify-content:flex-end;">
+            <span>&nbsp;</span>
+            <button id="addBtn">Add trainer</button>
+          </label>
+        </div>
+        <p class="muted" style="margin:10px 0 0;">Leave the password blank and we'll generate a temporary one to share with them. They can change it after logging in.</p>
+      </div>
+
+      <!-- Trainers list -->
+      <div class="card">
+        <h2>Your trainers</h2>
+        <div id="trainersWrap">
+          <div class="empty">No trainers yet.</div>
+        </div>
+      </div>
+
+      <!-- Client assignment -->
+      <div class="card">
+        <h2>Who coaches whom</h2>
+        <p class="muted" style="margin:-6px 0 14px;">Assign each client to a trainer, or keep them with yourself.</p>
+        <div id="clientsWrap">
+          <div class="empty">No clients yet.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    const SUPABASE_URL = 'https://qewqcjzlfqamqwbccapr.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFld3FjanpsZnFhbXF3YmNjYXByIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM2OTg0NzAsImV4cCI6MjA3OTI3NDQ3MH0.mQnMC33O88oLkLLGWD2oG-oaSHGI-NfHmtQCZxnxSLs';
+    const { createClient } = supabase;
+    const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    const API = '/.netlify/functions/gym-trainers';
+    let COACH_ID = null;
+    let TOKEN = null;
+    let trainers = [];
+    let clients = [];
+
+    const $ = (id) => document.getElementById(id);
+
+    function toast(msg) {
+      const t = $('toast');
+      t.textContent = msg;
+      t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), 2600);
+    }
+
+    async function api(method, opts = {}) {
+      const { query = '', body = null } = opts;
+      const res = await fetch(API + query, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + TOKEN
+        },
+        body: body ? JSON.stringify(body) : undefined
+      });
+      let data = {};
+      try { data = await res.json(); } catch (e) { /* ignore */ }
+      return { ok: res.ok, status: res.status, data };
+    }
+
+    function esc(s) {
+      return String(s == null ? '' : s).replace(/[&<>"']/g, c => (
+        { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
+      ));
+    }
+
+    function renderTrainers() {
+      const wrap = $('trainersWrap');
+      if (!trainers.length) {
+        wrap.innerHTML = '<div class="empty">No trainers yet. Add one above.</div>';
+        return;
+      }
+      let html = '<table><thead><tr><th>Name</th><th>Email</th><th>Clients</th><th>Status</th><th></th></tr></thead><tbody>';
+      for (const t of trainers) {
+        const statusPill = t.status === 'active'
+          ? '<span class="pill active">Active</span>'
+          : '<span class="pill disabled">' + esc(t.status) + '</span>';
+        const toggleLabel = t.status === 'active' ? 'Disable' : 'Enable';
+        html += '<tr>' +
+          '<td>' + esc(t.name || '—') + '</td>' +
+          '<td>' + esc(t.email) + '</td>' +
+          '<td>' + (t.client_count || 0) + '</td>' +
+          '<td>' + statusPill + '</td>' +
+          '<td class="row" style="gap:6px; justify-content:flex-end;">' +
+            '<button class="ghost small" data-toggle="' + t.id + '" data-next="' + (t.status === 'active' ? 'disabled' : 'active') + '">' + toggleLabel + '</button>' +
+            '<button class="danger small" data-del="' + t.id + '">Remove</button>' +
+          '</td>' +
+        '</tr>';
+      }
+      html += '</tbody></table>';
+      wrap.innerHTML = html;
+
+      wrap.querySelectorAll('[data-toggle]').forEach(b => b.onclick = () =>
+        updateTrainer(b.getAttribute('data-toggle'), { status: b.getAttribute('data-next') }));
+      wrap.querySelectorAll('[data-del]').forEach(b => b.onclick = () =>
+        removeTrainer(b.getAttribute('data-del')));
+    }
+
+    function renderClients() {
+      const wrap = $('clientsWrap');
+      if (!clients.length) {
+        wrap.innerHTML = '<div class="empty">No clients yet.</div>';
+        return;
+      }
+      const options = (selected) => {
+        let o = '<option value="">— Me (gym owner) —</option>';
+        for (const t of trainers) {
+          o += '<option value="' + t.id + '"' + (String(selected) === String(t.id) ? ' selected' : '') + '>' + esc(t.name || t.email) + '</option>';
+        }
+        return o;
+      };
+      let html = '<table><thead><tr><th>Client</th><th>Coached by</th></tr></thead><tbody>';
+      for (const c of clients) {
+        html += '<tr>' +
+          '<td>' + esc(c.client_name || '—') + '<div class="muted">' + esc(c.email || '') + '</div></td>' +
+          '<td><select data-client="' + c.id + '">' + options(c.trainer_id) + '</select></td>' +
+        '</tr>';
+      }
+      html += '</tbody></table>';
+      wrap.innerHTML = html;
+
+      wrap.querySelectorAll('[data-client]').forEach(sel => sel.onchange = () => {
+        const clientId = Number(sel.getAttribute('data-client'));
+        const trainerId = sel.value ? Number(sel.value) : null;
+        assignClient(clientId, trainerId);
+      });
+    }
+
+    async function loadAll() {
+      const [tRes, cRes] = await Promise.all([
+        api('GET', { query: '?coachId=' + COACH_ID }),
+        api('GET', { query: '?coachId=' + COACH_ID + '&resource=clients' })
+      ]);
+      if (tRes.status === 403 && tRes.data.code === 'MULTI_TRAINER_DISABLED') {
+        $('loading').classList.add('hidden');
+        $('disabledState').classList.remove('hidden');
+        return false;
+      }
+      if (!tRes.ok) { toast(tRes.data.error || 'Failed to load trainers'); return false; }
+      trainers = tRes.data.trainers || [];
+      clients = (cRes.ok && cRes.data.clients) ? cRes.data.clients : [];
+      renderTrainers();
+      renderClients();
+      return true;
+    }
+
+    async function addTrainer() {
+      const email = $('tEmail').value.trim();
+      const name = $('tName').value.trim();
+      const password = $('tPassword').value;
+      if (!email) { toast('Enter an email'); return; }
+      $('addBtn').disabled = true;
+      const { ok, data } = await api('POST', { body: {
+        coachId: COACH_ID, action: 'create', email, name, password: password || undefined
+      }});
+      $('addBtn').disabled = false;
+      if (!ok) { toast(data.error || 'Could not add trainer'); return; }
+      $('tEmail').value = ''; $('tName').value = ''; $('tPassword').value = '';
+      if (data.tempPassword) {
+        alert('Trainer added.\n\nShare these login details with them:\nEmail: ' + email + '\nTemporary password: ' + data.tempPassword + '\n\nThey can change the password after logging in.');
+      } else {
+        toast('Trainer added');
+      }
+      await loadAll();
+    }
+
+    async function updateTrainer(trainerId, fields) {
+      const { ok, data } = await api('PUT', { body: { coachId: COACH_ID, trainerId: Number(trainerId), ...fields }});
+      if (!ok) { toast(data.error || 'Update failed'); return; }
+      toast('Updated');
+      await loadAll();
+    }
+
+    async function removeTrainer(trainerId) {
+      const t = trainers.find(x => String(x.id) === String(trainerId));
+      const n = t ? (t.name || t.email) : 'this trainer';
+      if (!confirm('Remove ' + n + '? Their clients will move back to you (the gym owner). This does not delete any client data.')) return;
+      const { ok, data } = await api('DELETE', { query: '?coachId=' + COACH_ID + '&trainerId=' + trainerId });
+      if (!ok) { toast(data.error || 'Remove failed'); return; }
+      toast('Trainer removed');
+      await loadAll();
+    }
+
+    async function assignClient(clientId, trainerId) {
+      const { ok, data } = await api('POST', { body: {
+        coachId: COACH_ID, action: 'assign', clientId, trainerId
+      }});
+      if (!ok) { toast(data.error || 'Assign failed'); await loadAll(); return; }
+      // Update local copy without a full reload for snappiness; refresh counts.
+      const c = clients.find(x => x.id === clientId);
+      if (c) c.trainer_id = trainerId;
+      const tRes = await api('GET', { query: '?coachId=' + COACH_ID });
+      if (tRes.ok) { trainers = tRes.data.trainers || []; renderTrainers(); }
+      toast('Saved');
+    }
+
+    async function init() {
+      const { data: { session } } = await supabaseClient.auth.getSession();
+      if (!session) { window.location.href = 'login.html'; return; }
+      COACH_ID = session.user.id;
+      TOKEN = session.access_token;
+
+      // Must be a real coach account (owner). Trainers don't manage trainers.
+      const { data: coach } = await supabaseClient.from('coaches').select('id').eq('id', COACH_ID).maybeSingle();
+      if (!coach) { window.location.href = 'dashboard.html'; return; }
+
+      const shown = await loadAll();
+      $('loading').classList.add('hidden');
+      if (shown) $('main').classList.remove('hidden');
+    }
+
+    $('addBtn').onclick = addTrainer;
+    init();
+  </script>
+</body>
+</html>
