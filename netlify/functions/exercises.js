@@ -2,6 +2,8 @@ const { createClient } = require('@supabase/supabase-js');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
+const MUX_TOKEN_ID = process.env.MUX_TOKEN_ID;
+const MUX_TOKEN_SECRET = process.env.MUX_TOKEN_SECRET;
 
 const headers = {
   'Access-Control-Allow-Origin': '*',
@@ -9,6 +11,41 @@ const headers = {
   'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
   'Content-Type': 'application/json'
 };
+
+// Auto-convert a coach's custom exercise video to Mux the moment it's saved, so
+// every new upload streams fast (and adapts on weak signal) with no manual step.
+// Only fires for videos in the private workout-assets bucket (coach uploads);
+// stock library URLs are ignored. Never throws — if Mux is unavailable the save
+// still succeeds and the raw file plays as the fallback until it's converted.
+async function triggerMuxConversion(supabase, exerciseId, videoUrl) {
+  if (!MUX_TOKEN_ID || !MUX_TOKEN_SECRET || !exerciseId || !videoUrl) return;
+  if (!/workout-assets/.test(videoUrl)) return;
+  try {
+    // Re-sign a fresh URL Mux can pull (stored token may be near expiry).
+    let sourceUrl = videoUrl;
+    const m = videoUrl.match(/\/object\/(?:sign|public)\/workout-assets\/([^?]+)/);
+    if (m) {
+      const path = decodeURIComponent(m[1]);
+      const { data } = await supabase.storage.from('workout-assets').createSignedUrl(path, 3600);
+      if (data?.signedUrl) sourceUrl = data.signedUrl;
+    }
+    const auth = Buffer.from(`${MUX_TOKEN_ID}:${MUX_TOKEN_SECRET}`).toString('base64');
+    const resp = await fetch('https://api.mux.com/video/v1/assets', {
+      method: 'POST',
+      headers: { Authorization: `Basic ${auth}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ input: [{ url: sourceUrl }], playback_policy: ['public'], passthrough: String(exerciseId) })
+    });
+    const data = await resp.json();
+    if (!resp.ok) { console.error('Mux create (exercise) failed:', resp.status, JSON.stringify(data).slice(0, 200)); return; }
+    await supabase.from('exercises').update({
+      mux_asset_id: data.data.id,
+      mux_playback_id: data.data.playback_ids?.[0]?.id || null,
+      mux_status: data.data.status || 'preparing'
+    }).eq('id', exerciseId);
+  } catch (e) {
+    console.error('Mux trigger (exercise) error:', e.message);
+  }
+}
 
 exports.handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') {
@@ -236,6 +273,9 @@ exports.handler = async (event) => {
 
       if (error) throw error;
 
+      // Auto-convert the uploaded coach video to Mux (no-op for non-custom URLs).
+      await triggerMuxConversion(supabase, exercise?.id, exercise?.animation_url);
+
       return {
         statusCode: 200,
         headers,
@@ -301,6 +341,11 @@ exports.handler = async (event) => {
       }
 
       if (error) throw error;
+
+      // If this edit set or replaced the video, (re)convert it to Mux.
+      if (updateData.animationUrl !== undefined && exercise?.animation_url) {
+        await triggerMuxConversion(supabase, exercise?.id, exercise?.animation_url);
+      }
 
       return {
         statusCode: 200,
