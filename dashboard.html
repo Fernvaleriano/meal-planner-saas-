@@ -5070,6 +5070,146 @@
 
 
         /* Client Activity Grid */
+        /* ===== Gym Info card (gym version of the app) ===== */
+        .gyminfo-section {
+            margin-top: 20px;
+            background: #fff;
+            border-radius: 16px;
+            border: 1px solid #e2e8f0;
+            overflow: hidden;
+        }
+        .gyminfo-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 16px 18px;
+            border-bottom: 1px solid #f1f5f9;
+        }
+        .gyminfo-title { font-size: 16px; font-weight: 700; color: #1e293b; }
+        .gyminfo-subtitle { font-size: 12px; color: #94a3b8; font-weight: 500; margin-top: 2px; }
+        .gyminfo-edit-btn {
+            flex-shrink: 0;
+            background: var(--brand-primary, #2dd4bf);
+            color: #fff;
+            border: none;
+            border-radius: 9px;
+            padding: 8px 16px;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: opacity .15s;
+        }
+        .gyminfo-edit-btn:hover { opacity: .9; }
+        .gyminfo-body, .gyminfo-edit { padding: 16px 18px; }
+
+        /* Display mode */
+        .gyminfo-block { margin-bottom: 18px; }
+        .gyminfo-block:last-child { margin-bottom: 0; }
+        .gyminfo-block-label {
+            font-size: 11px; font-weight: 800; letter-spacing: .6px;
+            text-transform: uppercase; color: #94a3b8; margin-bottom: 8px;
+        }
+        .gyminfo-hours-row {
+            display: flex; justify-content: space-between; gap: 12px;
+            padding: 5px 0; font-size: 14px; color: #334155;
+            border-bottom: 1px dashed #f1f5f9;
+        }
+        .gyminfo-hours-row:last-child { border-bottom: none; }
+        .gyminfo-hours-row .day { font-weight: 600; }
+        .gyminfo-hours-row .closed { color: #cbd5e1; }
+        .gyminfo-hours-all { font-size: 15px; font-weight: 600; color: #334155; }
+        .gyminfo-class {
+            display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+            padding: 8px 0; font-size: 14px; color: #334155;
+            border-bottom: 1px dashed #f1f5f9;
+        }
+        .gyminfo-class:last-child { border-bottom: none; }
+        .gyminfo-class .cname { font-weight: 700; }
+        .gyminfo-class .csched { color: #64748b; }
+        .gyminfo-badge-free {
+            font-size: 11px; font-weight: 700; color: #059669;
+            background: #ecfdf5; border-radius: 6px; padding: 2px 8px;
+        }
+        .gyminfo-socials { display: flex; flex-wrap: wrap; gap: 8px 20px; }
+        .gyminfo-social {
+            display: inline-flex; align-items: center; gap: 6px;
+            font-size: 14px; color: #334155;
+        }
+        .gyminfo-social a { color: var(--brand-primary, #14b8a6); text-decoration: none; font-weight: 600; }
+        .gyminfo-empty { font-size: 13px; color: #94a3b8; font-style: italic; }
+
+        /* Edit form */
+        .gyminfo-edit label.fld {
+            display: block; font-size: 12px; font-weight: 700; color: #475569; margin: 12px 0 5px;
+        }
+        .gyminfo-edit input[type="text"], .gyminfo-edit input[type="time"] {
+            background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 9px;
+            padding: 9px 11px; font-size: 14px; color: #1e293b; font-family: inherit;
+        }
+        .gyminfo-edit input[type="text"] { width: 100%; }
+        .gyminfo-edit input[type="time"] { flex: 1 1 100px; min-width: 92px; }
+        .gyminfo-edit input:focus { outline: none; border-color: var(--brand-primary, #2dd4bf); }
+        .gyminfo-hours-edit-row {
+            display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+            padding: 7px 0; border-bottom: 1px dashed #f1f5f9;
+        }
+        .gyminfo-hours-edit-row .day-lbl { width: 42px; font-size: 13px; font-weight: 700; color: #334155; }
+        .gyminfo-hours-edit-row .dash { color: #94a3b8; }
+        .gyminfo-toggle {
+            font-size: 12px; color: #64748b; display: inline-flex; align-items: center;
+            gap: 5px; white-space: nowrap; cursor: pointer; user-select: none;
+        }
+        .gyminfo-class-edit-row {
+            display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+            margin-bottom: 10px;
+        }
+        .gyminfo-class-edit-row input[type="text"] { flex: 1 1 130px; }
+        .gyminfo-remove-btn {
+            background: #fef2f2; color: #ef4444; border: none; border-radius: 8px;
+            width: 32px; height: 32px; font-size: 18px; cursor: pointer; line-height: 1; flex-shrink: 0;
+        }
+        .gyminfo-add-btn {
+            background: transparent; color: var(--brand-primary, #14b8a6);
+            border: 1px dashed #cbd5e1; border-radius: 9px; padding: 8px 12px;
+            font-size: 13px; font-weight: 600; cursor: pointer; margin-top: 4px;
+        }
+        .gyminfo-copy-btn {
+            background: transparent; color: #64748b; border: 1px solid #e2e8f0;
+            border-radius: 8px; padding: 6px 10px; font-size: 12px; font-weight: 600;
+            cursor: pointer; margin: 8px 0 4px;
+        }
+        .gyminfo-edit-actions { display: flex; gap: 10px; margin-top: 20px; flex-wrap: wrap; }
+        .gyminfo-save-btn {
+            background: var(--brand-primary, #2dd4bf); color: #fff; border: none;
+            border-radius: 10px; padding: 11px 22px; font-size: 14px; font-weight: 700; cursor: pointer;
+        }
+        .gyminfo-save-btn:disabled { opacity: .6; cursor: default; }
+        .gyminfo-cancel-btn {
+            background: transparent; color: #64748b; border: 1px solid #e2e8f0;
+            border-radius: 10px; padding: 11px 22px; font-size: 14px; font-weight: 600; cursor: pointer;
+        }
+        .gyminfo-msg { font-size: 13px; margin-top: 10px; min-height: 16px; color: #059669; }
+        .gyminfo-msg.err { color: #ef4444; }
+        .gyminfo-edit-sub { font-size: 12px; color: #94a3b8; margin: 2px 0 6px; }
+
+        /* Dark theme */
+        [data-theme="dark"] .gyminfo-section { background: #1e293b; border-color: #334155; }
+        [data-theme="dark"] .gyminfo-header { border-color: #334155; }
+        [data-theme="dark"] .gyminfo-title { color: #f1f5f9; }
+        [data-theme="dark"] .gyminfo-hours-row { color: #cbd5e1; border-color: #334155; }
+        [data-theme="dark"] .gyminfo-hours-all { color: #e2e8f0; }
+        [data-theme="dark"] .gyminfo-class { color: #cbd5e1; border-color: #334155; }
+        [data-theme="dark"] .gyminfo-class .csched { color: #94a3b8; }
+        [data-theme="dark"] .gyminfo-social { color: #cbd5e1; }
+        [data-theme="dark"] .gyminfo-edit label.fld { color: #cbd5e1; }
+        [data-theme="dark"] .gyminfo-edit input[type="text"],
+        [data-theme="dark"] .gyminfo-edit input[type="time"] { background: #0f172a; border-color: #334155; color: #f1f5f9; }
+        [data-theme="dark"] .gyminfo-hours-edit-row { border-color: #334155; }
+        [data-theme="dark"] .gyminfo-hours-edit-row .day-lbl { color: #cbd5e1; }
+        [data-theme="dark"] .gyminfo-badge-free { background: #064e3b; color: #6ee7b7; }
+        [data-theme="dark"] .gyminfo-cancel-btn, [data-theme="dark"] .gyminfo-copy-btn { color: #cbd5e1; border-color: #334155; }
+
         .cag-section {
             margin-top: 20px;
             background: #fff;
@@ -5672,6 +5812,18 @@
                 <a href="manage-clients.html" class="action-center-link" style="margin-top:8px;">View Clients</a>
             </div>
 
+            <!-- Gym Info (gym version only — stays hidden until gym features are confirmed) -->
+            <div class="gyminfo-section" id="gymInfoSection" style="display:none;">
+                <div class="gyminfo-header">
+                    <div>
+                        <div class="gyminfo-title">🏠 Gym Info</div>
+                        <div class="gyminfo-subtitle">Hours, classes &amp; socials your members can see</div>
+                    </div>
+                    <button class="gyminfo-edit-btn" id="gymInfoEditBtn" onclick="toggleGymInfoEdit(true)">Edit</button>
+                </div>
+                <div class="gyminfo-body" id="gymInfoDisplay"></div>
+                <div class="gyminfo-edit" id="gymInfoEdit" style="display:none;"></div>
+            </div>
 
             <!-- Notifications now merged into Today's Priority above -->
 
@@ -9237,6 +9389,9 @@
                     initGymFeatures({ email: user.email });
                 }
 
+                // Gym Info card (gym version only) — safe no-op for non-gym coaches
+                initGymInfoCard(user, coachData);
+
                 // Show success message if just reactivated or subscribed
                 if (justReactivated) {
                     showSuccessToast('Subscription reactivated successfully!');
@@ -10386,6 +10541,333 @@
             const div = document.createElement('div');
             div.textContent = text;
             return div.innerHTML;
+        }
+
+        /* =====================================================================
+         * GYM INFO CARD (gym version of the app)
+         * Lets a gym owner edit hours of operation, member classes and socials
+         * straight from the dashboard. Stored in coaches.gym_info (JSONB) and
+         * written directly under the coach's own-row RLS policy. Additive:
+         * the whole card is hidden unless gym features are on for this account,
+         * so nothing changes for regular personal-trainer coaches.
+         * ===================================================================== */
+        const GYM_INFO_DAYS = [
+            ['mon', 'Monday', 'Mon'], ['tue', 'Tuesday', 'Tue'], ['wed', 'Wednesday', 'Wed'],
+            ['thu', 'Thursday', 'Thu'], ['fri', 'Friday', 'Fri'], ['sat', 'Saturday', 'Sat'],
+            ['sun', 'Sunday', 'Sun']
+        ];
+        // Example data so the card is never blank — matches what the founder
+        // described (6am–10pm every day; Zumba + Muay Thai free with membership).
+        function gymInfoDefaults() {
+            const hours = {};
+            GYM_INFO_DAYS.forEach(([k]) => { hours[k] = { closed: false, open: '06:00', close: '22:00' }; });
+            return {
+                hours,
+                classes: [
+                    { name: 'Zumba', schedule: 'Twice a week', included: true },
+                    { name: 'Muay Thai', schedule: 'Twice a week', included: true }
+                ],
+                instagram: '@yourgym',
+                phone: '',
+                address: '',
+                website: ''
+            };
+        }
+        let gymInfoState = null;   // current normalized info object
+        let gymInfoCoachId = null; // coaches.id to write to
+
+        function normalizeGymInfo(raw) {
+            const base = gymInfoDefaults();
+            if (!raw || typeof raw !== 'object') return base;
+            const out = { hours: {}, classes: [], instagram: '', phone: '', address: '', website: '' };
+            GYM_INFO_DAYS.forEach(([k]) => {
+                const d = (raw.hours && raw.hours[k]) || {};
+                out.hours[k] = {
+                    closed: !!d.closed,
+                    open: typeof d.open === 'string' ? d.open : base.hours[k].open,
+                    close: typeof d.close === 'string' ? d.close : base.hours[k].close
+                };
+            });
+            if (Array.isArray(raw.classes)) {
+                out.classes = raw.classes.map(c => ({
+                    name: (c && c.name) ? String(c.name) : '',
+                    schedule: (c && c.schedule) ? String(c.schedule) : '',
+                    included: !!(c && c.included)
+                }));
+            }
+            ['instagram', 'phone', 'address', 'website'].forEach(f => {
+                out[f] = (raw[f] != null) ? String(raw[f]) : '';
+            });
+            return out;
+        }
+
+        function fmtGymTime(hhmm) {
+            if (typeof hhmm !== 'string' || !/^\d{1,2}:\d{2}$/.test(hhmm)) return hhmm || '';
+            let [h, m] = hhmm.split(':').map(Number);
+            const ampm = h >= 12 ? 'PM' : 'AM';
+            h = h % 12; if (h === 0) h = 12;
+            return `${h}:${String(m).padStart(2, '0')} ${ampm}`;
+        }
+
+        async function initGymInfoCard(user, coachData) {
+            try {
+                gymInfoCoachId = user.id;
+                gymInfoState = normalizeGymInfo(coachData ? coachData.gym_info : null);
+
+                // Only surface this for gym-version accounts. If the gym already
+                // has data saved, show it regardless (belt-and-suspenders).
+                let enabled = !!(coachData && coachData.gym_info);
+                if (!enabled) {
+                    try {
+                        // coachId path honors both the beta list and coach_settings.gym_features_enabled
+                        const r = await fetch('/.netlify/functions/gym-features?coachId=' + encodeURIComponent(user.id));
+                        if (r.ok) { const j = await r.json(); enabled = !!j.enabled; }
+                    } catch (e) { /* network hiccup — leave hidden */ }
+                }
+                if (!enabled) return;
+
+                renderGymInfoDisplay();
+                const section = document.getElementById('gymInfoSection');
+                if (section) section.style.display = 'block';
+            } catch (e) {
+                console.warn('Gym info card init failed:', e);
+            }
+        }
+
+        function renderGymInfoDisplay() {
+            const el = document.getElementById('gymInfoDisplay');
+            if (!el || !gymInfoState) return;
+            const info = gymInfoState;
+
+            // Hours — collapse to "Open daily" when every day shares the same window.
+            const dayCells = GYM_INFO_DAYS.map(([k]) => info.hours[k]);
+            const allOpen = dayCells.every(d => d && !d.closed);
+            const first = info.hours.mon;
+            const identical = allOpen && dayCells.every(d => d.open === first.open && d.close === first.close);
+            let hoursHtml;
+            if (identical) {
+                hoursHtml = `<div class="gyminfo-hours-all">Open daily · ${fmtGymTime(first.open)} – ${fmtGymTime(first.close)}</div>`;
+            } else {
+                hoursHtml = GYM_INFO_DAYS.map(([k, , abbr]) => {
+                    const d = info.hours[k];
+                    const val = d.closed
+                        ? '<span class="closed">Closed</span>'
+                        : `${fmtGymTime(d.open)} – ${fmtGymTime(d.close)}`;
+                    return `<div class="gyminfo-hours-row"><span class="day">${abbr}</span><span>${val}</span></div>`;
+                }).join('');
+            }
+
+            // Classes
+            const realClasses = (info.classes || []).filter(c => c.name && c.name.trim());
+            let classesHtml;
+            if (realClasses.length) {
+                classesHtml = realClasses.map(c => `
+                    <div class="gyminfo-class">
+                        <span class="cname">${escapeHtml(c.name)}</span>
+                        ${c.schedule ? `<span class="csched">${escapeHtml(c.schedule)}</span>` : ''}
+                        ${c.included ? '<span class="gyminfo-badge-free">Free with membership</span>' : ''}
+                    </div>`).join('');
+            } else {
+                classesHtml = '<div class="gyminfo-empty">No classes added yet.</div>';
+            }
+
+            // Socials
+            const socials = [];
+            if (info.instagram && info.instagram.trim()) {
+                const handle = info.instagram.trim().replace(/^@/, '');
+                socials.push(`<span class="gyminfo-social">📷 <a href="https://instagram.com/${encodeURIComponent(handle)}" target="_blank" rel="noopener">@${escapeHtml(handle)}</a></span>`);
+            }
+            if (info.phone && info.phone.trim()) socials.push(`<span class="gyminfo-social">📞 ${escapeHtml(info.phone)}</span>`);
+            if (info.website && info.website.trim()) {
+                const w = info.website.trim();
+                const href = /^https?:\/\//i.test(w) ? w : ('https://' + w);
+                socials.push(`<span class="gyminfo-social">🌐 <a href="${escapeHtml(href)}" target="_blank" rel="noopener">${escapeHtml(w)}</a></span>`);
+            }
+            if (info.address && info.address.trim()) socials.push(`<span class="gyminfo-social">📍 ${escapeHtml(info.address)}</span>`);
+            const socialsHtml = socials.length
+                ? `<div class="gyminfo-socials">${socials.join('')}</div>`
+                : '<div class="gyminfo-empty">No contact details added yet.</div>';
+
+            el.innerHTML = `
+                <div class="gyminfo-block">
+                    <div class="gyminfo-block-label">Hours of operation</div>
+                    ${hoursHtml}
+                </div>
+                <div class="gyminfo-block">
+                    <div class="gyminfo-block-label">Classes</div>
+                    ${classesHtml}
+                </div>
+                <div class="gyminfo-block">
+                    <div class="gyminfo-block-label">Find us</div>
+                    ${socialsHtml}
+                </div>`;
+        }
+
+        function gymInfoClassRowHtml(c) {
+            c = c || { name: '', schedule: '', included: true };
+            return `
+                <div class="gyminfo-class-edit-row">
+                    <input type="text" class="gym-class-name" placeholder="Class name (e.g. Zumba)" value="${escapeHtml(c.name || '')}">
+                    <input type="text" class="gym-class-sched" placeholder="Schedule (e.g. Twice a week)" value="${escapeHtml(c.schedule || '')}">
+                    <label class="gyminfo-toggle"><input type="checkbox" class="gym-class-free" ${c.included ? 'checked' : ''}> Free</label>
+                    <button type="button" class="gyminfo-remove-btn" title="Remove" onclick="this.closest('.gyminfo-class-edit-row').remove()">×</button>
+                </div>`;
+        }
+
+        function renderGymInfoEditForm() {
+            const el = document.getElementById('gymInfoEdit');
+            if (!el || !gymInfoState) return;
+            const info = gymInfoState;
+
+            const hoursRows = GYM_INFO_DAYS.map(([k, name]) => {
+                const d = info.hours[k];
+                return `
+                    <div class="gyminfo-hours-edit-row">
+                        <span class="day-lbl">${name.slice(0, 3)}</span>
+                        <input type="time" class="gym-open-at" data-day="${k}" value="${escapeHtml(d.open || '06:00')}" ${d.closed ? 'disabled' : ''}>
+                        <span class="dash">–</span>
+                        <input type="time" class="gym-close-at" data-day="${k}" value="${escapeHtml(d.close || '22:00')}" ${d.closed ? 'disabled' : ''}>
+                        <label class="gyminfo-toggle"><input type="checkbox" class="gym-open-chk" data-day="${k}" ${d.closed ? '' : 'checked'} onchange="gymInfoToggleDay('${k}', this.checked)"> Open</label>
+                    </div>`;
+            }).join('');
+
+            const classRows = (info.classes && info.classes.length ? info.classes : [{ name: '', schedule: '', included: true }])
+                .map(gymInfoClassRowHtml).join('');
+
+            el.innerHTML = `
+                <div class="gyminfo-block">
+                    <div class="gyminfo-block-label">Hours of operation</div>
+                    <div class="gyminfo-edit-sub">Untick “Open” for days you’re closed.</div>
+                    <div id="gymHoursEditList">${hoursRows}</div>
+                    <button type="button" class="gyminfo-copy-btn" onclick="gymInfoCopyMonToAll()">Copy Monday to every day</button>
+                </div>
+                <div class="gyminfo-block">
+                    <div class="gyminfo-block-label">Classes</div>
+                    <div class="gyminfo-edit-sub">Tick “Free” if it’s included with membership.</div>
+                    <div id="gymClassesEditList">${classRows}</div>
+                    <button type="button" class="gyminfo-add-btn" onclick="gymInfoAddClass()">+ Add class</button>
+                </div>
+                <div class="gyminfo-block">
+                    <div class="gyminfo-block-label">Find us</div>
+                    <label class="fld">Instagram</label>
+                    <input type="text" id="gymInstagram" placeholder="@yourgym" value="${escapeHtml(info.instagram || '')}">
+                    <label class="fld">Phone</label>
+                    <input type="text" id="gymPhone" placeholder="e.g. +66 12 345 6789" value="${escapeHtml(info.phone || '')}">
+                    <label class="fld">Website</label>
+                    <input type="text" id="gymWebsite" placeholder="e.g. yourgym.com" value="${escapeHtml(info.website || '')}">
+                    <label class="fld">Address</label>
+                    <input type="text" id="gymAddress" placeholder="Street, city" value="${escapeHtml(info.address || '')}">
+                </div>
+                <div class="gyminfo-edit-actions">
+                    <button type="button" class="gyminfo-save-btn" id="gymInfoSaveBtn" onclick="saveGymInfo()">Save</button>
+                    <button type="button" class="gyminfo-cancel-btn" onclick="toggleGymInfoEdit(false)">Cancel</button>
+                </div>
+                <div class="gyminfo-msg" id="gymInfoMsg"></div>`;
+        }
+
+        function gymInfoToggleDay(key, isOpen) {
+            document.querySelectorAll(`#gymHoursEditList [data-day="${key}"]`).forEach(inp => {
+                if (inp.type === 'time') inp.disabled = !isOpen;
+            });
+        }
+
+        function gymInfoCopyMonToAll() {
+            const list = document.getElementById('gymHoursEditList');
+            if (!list) return;
+            const monOpen = list.querySelector('.gym-open-at[data-day="mon"]');
+            const monClose = list.querySelector('.gym-close-at[data-day="mon"]');
+            const monChk = list.querySelector('.gym-open-chk[data-day="mon"]');
+            if (!monOpen || !monClose || !monChk) return;
+            GYM_INFO_DAYS.forEach(([k]) => {
+                if (k === 'mon') return;
+                const o = list.querySelector(`.gym-open-at[data-day="${k}"]`);
+                const c = list.querySelector(`.gym-close-at[data-day="${k}"]`);
+                const chk = list.querySelector(`.gym-open-chk[data-day="${k}"]`);
+                if (o) o.value = monOpen.value;
+                if (c) c.value = monClose.value;
+                if (chk) { chk.checked = monChk.checked; gymInfoToggleDay(k, monChk.checked); }
+            });
+        }
+
+        function gymInfoAddClass() {
+            const list = document.getElementById('gymClassesEditList');
+            if (!list) return;
+            list.insertAdjacentHTML('beforeend', gymInfoClassRowHtml({ name: '', schedule: '', included: true }));
+        }
+
+        function toggleGymInfoEdit(on) {
+            const display = document.getElementById('gymInfoDisplay');
+            const edit = document.getElementById('gymInfoEdit');
+            const btn = document.getElementById('gymInfoEditBtn');
+            if (!display || !edit) return;
+            if (on) {
+                renderGymInfoEditForm();
+                display.style.display = 'none';
+                edit.style.display = 'block';
+                if (btn) btn.style.display = 'none';
+            } else {
+                edit.style.display = 'none';
+                display.style.display = 'block';
+                if (btn) btn.style.display = '';
+            }
+        }
+
+        function readGymInfoForm() {
+            const info = { hours: {}, classes: [], instagram: '', phone: '', address: '', website: '' };
+            const list = document.getElementById('gymHoursEditList');
+            GYM_INFO_DAYS.forEach(([k]) => {
+                const chk = list.querySelector(`.gym-open-chk[data-day="${k}"]`);
+                const o = list.querySelector(`.gym-open-at[data-day="${k}"]`);
+                const c = list.querySelector(`.gym-close-at[data-day="${k}"]`);
+                const isOpen = chk ? chk.checked : true;
+                info.hours[k] = {
+                    closed: !isOpen,
+                    open: (o && o.value) ? o.value : '06:00',
+                    close: (c && c.value) ? c.value : '22:00'
+                };
+            });
+            document.querySelectorAll('#gymClassesEditList .gyminfo-class-edit-row').forEach(row => {
+                const name = (row.querySelector('.gym-class-name')?.value || '').trim();
+                const schedule = (row.querySelector('.gym-class-sched')?.value || '').trim();
+                const included = !!row.querySelector('.gym-class-free')?.checked;
+                if (name) info.classes.push({ name, schedule, included });
+            });
+            info.instagram = (document.getElementById('gymInstagram')?.value || '').trim();
+            info.phone = (document.getElementById('gymPhone')?.value || '').trim();
+            info.website = (document.getElementById('gymWebsite')?.value || '').trim();
+            info.address = (document.getElementById('gymAddress')?.value || '').trim();
+            return info;
+        }
+
+        function gymInfoMsg(text, isErr) {
+            const m = document.getElementById('gymInfoMsg');
+            if (!m) return;
+            m.textContent = text || '';
+            m.className = 'gyminfo-msg' + (isErr ? ' err' : '');
+        }
+
+        async function saveGymInfo() {
+            if (!gymInfoCoachId) { gymInfoMsg('Could not save — please refresh and try again.', true); return; }
+            const btn = document.getElementById('gymInfoSaveBtn');
+            const info = readGymInfoForm();
+            if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
+            gymInfoMsg('');
+            try {
+                const { error } = await supabaseClient
+                    .from('coaches')
+                    .update({ gym_info: info })
+                    .eq('id', gymInfoCoachId);
+                if (error) throw error;
+                gymInfoState = normalizeGymInfo(info);
+                renderGymInfoDisplay();
+                toggleGymInfoEdit(false);
+                if (typeof showSuccessToast === 'function') showSuccessToast('Gym info saved');
+            } catch (e) {
+                console.error('Save gym info failed:', e);
+                gymInfoMsg('Could not save. Please try again.', true);
+            } finally {
+                if (btn) { btn.disabled = false; btn.textContent = 'Save'; }
+            }
         }
 
         function openDeleteModal(storyId) {
