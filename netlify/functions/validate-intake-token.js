@@ -117,6 +117,11 @@ exports.handler = async (event, context) => {
                 coach: coach ? {
                     full_name: coach.full_name || coach.name,
                     email: coach.email,
+                    // The coach's default unit system, so the intake form can
+                    // pre-select kg/cm vs lbs/ft for gyms that work in metric.
+                    // The client can still switch it on the form (and later in
+                    // Settings). Defaults to imperial when the coach never set one.
+                    unit_preference: coach.unit_preference || 'imperial',
                     // Coach branding so the intake form (a prospect's first
                     // in-product touch) carries the coach's brand, not the
                     // platform's. Display-only — same policy as
