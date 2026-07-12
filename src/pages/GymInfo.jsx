@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, Clock, Calendar, MapPin, Phone, Instagram, Globe } from 'lucide-react';
+import { ChevronLeft, Clock, Calendar, MapPin, Phone, Instagram, Globe, Tag, Dumbbell } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { apiGet } from '../utils/api';
 
@@ -49,6 +49,12 @@ export default function GymInfo() {
   const classes = info && Array.isArray(info.classes)
     ? info.classes.filter((c) => c && c.name && c.name.trim()) : [];
 
+  const packages = info && Array.isArray(info.packages)
+    ? info.packages.filter((p) => p && p.label && p.label.trim()) : [];
+
+  const amenities = info && Array.isArray(info.amenities)
+    ? info.amenities.filter((a) => a && String(a).trim()) : [];
+
   const instagram = ((info && info.instagram) || '').trim();
   const igHandle = instagram.replace(/^@/, '');
   const phone = ((info && info.phone) || '').trim();
@@ -56,7 +62,7 @@ export default function GymInfo() {
   const websiteHref = website && !/^https?:\/\//i.test(website) ? `https://${website}` : website;
   const address = ((info && info.address) || '').trim();
   const hasSocials = instagram || phone || website || address;
-  const isEmpty = !hasHours && !classes.length && !hasSocials;
+  const isEmpty = !hasHours && !classes.length && !packages.length && !amenities.length && !hasSocials;
 
   const S = {
     content: { padding: '18px 16px calc(90px + env(safe-area-inset-bottom))' },
@@ -90,6 +96,18 @@ export default function GymInfo() {
     free: {
       fontSize: 11, fontWeight: 700, color: '#059669',
       background: 'rgba(5,150,105,0.12)', borderRadius: 6, padding: '3px 9px',
+    },
+    pkg: {
+      display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
+      padding: '10px 0', fontSize: 15, color: 'var(--text-primary, #334155)',
+      borderBottom: '1px dashed var(--border-primary, #f1f5f9)',
+    },
+    plabel: { fontWeight: 700 },
+    pprice: { fontWeight: 800, color: 'var(--brand-primary, #14b8a6)', whiteSpace: 'nowrap' },
+    amenities: { display: 'flex', flexWrap: 'wrap', gap: 8 },
+    amenity: {
+      fontSize: 13, fontWeight: 600, color: 'var(--text-primary, #334155)',
+      background: 'var(--bg-subtle, #f1f5f9)', borderRadius: 8, padding: '6px 12px',
     },
     social: {
       display: 'flex', alignItems: 'center', gap: 9,
@@ -145,6 +163,29 @@ export default function GymInfo() {
                     {c.included ? <span style={S.free}>Free with membership</span> : null}
                   </div>
                 ))}
+              </div>
+            )}
+
+            {packages.length > 0 && (
+              <div style={S.block}>
+                <div style={S.label}><Tag size={14} /> Membership packages</div>
+                {packages.map((p, i) => (
+                  <div key={i} style={i === packages.length - 1 ? { ...S.pkg, ...lastRow } : S.pkg}>
+                    <span style={S.plabel}>{p.label}</span>
+                    {p.price ? <span style={S.pprice}>{p.price}</span> : null}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {amenities.length > 0 && (
+              <div style={S.block}>
+                <div style={S.label}><Dumbbell size={14} /> Facilities</div>
+                <div style={S.amenities}>
+                  {amenities.map((a, i) => (
+                    <span key={i} style={S.amenity}>{a}</span>
+                  ))}
+                </div>
               </div>
             )}
 
