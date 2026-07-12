@@ -164,6 +164,98 @@ async function authenticateClientAccess(event, clientId) {
 }
 
 /**
+ * Resolve an authenticated user to their "gym context" for the multi-trainer
+ * feature.
+ *
+ * Returns one of:
+ *   role: 'owner'   → the login owns the gym (an existing coaches row). Their
+ *                     gymCoachId is their own id and trainerId is null. This is
+ *                     every normal coach today — nothing about them changes.
+ *   role: 'trainer' → the login is an active trainer under a gym. gymCoachId is
+ *                     the GYM OWNER's id (which is what coach_id points at on all
+ *                     clients/assignments), and trainerId scopes them to their
+ *                     assigned clients (clients.trainer_id).
+ *
+ * IMPORTANT: this NEVER changes behavior for a plain coach — an owner always
+ * resolves to {role:'owner', gymCoachId: self, trainerId: null}, identical to
+ * the old authenticateCoach world. Trainers are the only new case.
+ *
+ * @param {object} event - Netlify event object
+ * @returns {Promise<{user, role, gymCoachId, trainerId, trainer, error}>}
+ */
+async function resolveGymContext(event) {
+  const token = extractToken(event);
+  if (!token) {
+    return { user: null, role: null, gymCoachId: null, trainerId: null, trainer: null, error: unauthorizedResponse('Missing authorization token') };
+  }
+
+  const { user, error } = await verifyToken(token);
+  if (error || !user) {
+    return { user: null, role: null, gymCoachId: null, trainerId: null, trainer: null, error: unauthorizedResponse(error || 'Invalid token') };
+  }
+
+  const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+
+  // Owner wins: if this user has a coaches row, they ARE a gym. This keeps every
+  // existing coach on exactly the old path (gymCoachId = self, no trainer scope).
+  const { data: coachRow } = await supabase
+    .from('coaches')
+    .select('id')
+    .eq('id', user.id)
+    .maybeSingle();
+
+  if (coachRow) {
+    return { user, role: 'owner', gymCoachId: user.id, trainerId: null, trainer: null, error: null };
+  }
+
+  // Otherwise, are they an active trainer under some gym?
+  const { data: trainerRow } = await supabase
+    .from('gym_trainers')
+    .select('*')
+    .eq('trainer_user_id', user.id)
+    .eq('status', 'active')
+    .maybeSingle();
+
+  if (trainerRow) {
+    return {
+      user,
+      role: 'trainer',
+      gymCoachId: trainerRow.gym_coach_id,
+      trainerId: trainerRow.id,
+      trainer: trainerRow,
+      error: null
+    };
+  }
+
+  // Neither a coach nor a trainer — not part of any gym.
+  return { user, role: null, gymCoachId: null, trainerId: null, trainer: null, error: forbiddenResponse('Not a coach or trainer') };
+}
+
+/**
+ * Authenticate a request against a gym, allowing EITHER the gym owner OR one of
+ * that gym's active trainers. Use this on endpoints that both should reach
+ * (e.g. listing clients, assigning workouts) instead of authenticateCoach.
+ *
+ * The caller passes the gymCoachId it's operating on (the coach_id it would have
+ * used before). Owners must match it exactly; trainers must belong to it.
+ *
+ * @param {object} event
+ * @param {string} gymCoachId - the coach_id the request targets
+ * @returns {Promise<{user, role, gymCoachId, trainerId, trainer, error}>}
+ */
+async function authenticateGymMember(event, gymCoachId) {
+  const ctx = await resolveGymContext(event);
+  if (ctx.error) return ctx;
+
+  if (ctx.gymCoachId !== gymCoachId) {
+    console.warn(`Gym mismatch: user ${ctx.user?.id} (role ${ctx.role}) tried to access gym ${gymCoachId}`);
+    return { ...ctx, user: null, error: forbiddenResponse('Not authorized to access this gym') };
+  }
+
+  return ctx;
+}
+
+/**
  * Simple authentication - just verify the token is valid
  * @param {object} event - Netlify event object
  * @returns {Promise<{user: object|null, error: object|null}>}
