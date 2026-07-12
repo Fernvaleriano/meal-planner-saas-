@@ -116,6 +116,7 @@ export default {
   quickActionChallenges: 'Desafíos',
   quickActionClubWorkouts: 'Entrenamientos del club',
   quickActionProfile: 'Perfil',
+  quickActionGymInfo: 'Info del gym',
 
   // ── Gym (lite mode) home ──────────────────────────────────────────────────
   gymGreeting: '¡Hola {name}! 👋',

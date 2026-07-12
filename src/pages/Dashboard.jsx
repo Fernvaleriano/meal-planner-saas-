@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom';
 import { Camera, Search, Heart, ScanLine, Mic, ChevronRight, ChevronDown, BarChart3, ClipboardCheck, TrendingUp, BookOpen, Pill, ChefHat, Check, CheckCircle, Minus, Plus, X, Sunrise, Sun, Sunset, Moon, Coffee, Utensils, Dumbbell, Star, Clock, Trophy, UserCircle, Scale, Users, Sparkles } from 'lucide-react';
 import InstallAppBanner from '../components/InstallAppBanner';
 import StoriesBar from '../components/StoriesBar';
-import GymInfoCard from '../components/GymInfoCard';
 import { useAuth } from '../context/AuthContext';
 import { useBranding } from '../context/BrandingContext';
 import { apiGet, apiPost, apiDelete } from '../utils/api';
@@ -1463,8 +1462,13 @@ function Dashboard() {
           </div>
           <span>{t('dashboard.quickActionProfile')}</span>
         </Link>
+        <Link to="/gym-info" className="quick-action-card">
+          <div className="quick-action-card-icon">
+            <Clock size={24} />
+          </div>
+          <span>{t('dashboard.quickActionGymInfo')}</span>
+        </Link>
       </div>
-      {clientData?.coach_id && <GymInfoCard coachId={clientData.coach_id} />}
       </>
       ) : (
       /* ── Workout-only (lite mode) GYM HOME ── */
@@ -1521,9 +1525,11 @@ function Dashboard() {
             <div className="quick-action-card-icon"><UserCircle size={24} /></div>
             <span>{t('dashboard.quickActionProfile')}</span>
           </Link>
+          <Link to="/gym-info" className="quick-action-card">
+            <div className="quick-action-card-icon"><Clock size={24} /></div>
+            <span>{t('dashboard.quickActionGymInfo')}</span>
+          </Link>
         </div>
-
-        {clientData?.coach_id && <GymInfoCard coachId={clientData.coach_id} />}
 
         {/* Faint branded footer — fills the space below the tiles and reinforces
             the gym's brand. Logo is optional; "Powered by <Gym>" auto-fills from

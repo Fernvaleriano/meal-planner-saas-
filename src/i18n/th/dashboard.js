@@ -99,6 +99,7 @@ export default {
   quickActionChallenges: 'ชาเลนจ์',
   quickActionClubWorkouts: 'เวิร์กเอาต์ของยิม',
   quickActionProfile: 'โปรไฟล์',
+  quickActionGymInfo: 'ข้อมูลยิม',
 
   gymGreeting: 'สวัสดี {name} 👋',
   gymGreetingFallback: 'เพื่อน',
