@@ -80,11 +80,22 @@ function json(statusCode, payload) {
 async function resolveMember(supabase, clientId) {
   const { data, error } = await supabase
     .from('clients')
-    .select('id, coach_id, client_name, profile_photo_url, user_id')
+    .select('id, coach_id, client_name, profile_photo_url, user_id, gender')
     .eq('id', clientId)
     .maybeSingle();
   if (error || !data) return null;
   return data;
+}
+
+// Strength differs by sex, so the Big Lifts boards are split into men's and
+// women's divisions to keep the ranking fair. Anything without a recorded
+// gender falls into an "other" division so those members never vanish from the
+// board (intake requires male/female, so this bucket is normally empty).
+function normGender(g) {
+  const v = (g || '').toString().trim().toLowerCase();
+  if (v === 'male' || v === 'm') return 'male';
+  if (v === 'female' || v === 'f') return 'female';
+  return 'other';
 }
 
 exports.handler = async (event) => {
@@ -111,7 +122,7 @@ exports.handler = async (event) => {
       // Pull every approved lift in the gym once; both views derive from it.
       const { data: allLifts, error: liftsErr } = await supabase
         .from('gym_leaderboard_lifts')
-        .select('id, client_id, client_name, lift_key, weight, weight_unit, reps, score, verified, video_url, created_at, clients!inner(profile_photo_url)')
+        .select('id, client_id, client_name, lift_key, weight, weight_unit, reps, score, verified, video_url, created_at, clients!inner(profile_photo_url, gender)')
         .eq('coach_id', coachId)
         .eq('status', 'approved')
         .order('score', { ascending: false });
@@ -204,27 +215,51 @@ exports.handler = async (event) => {
         });
       }
 
-      // Default: per-lift leaderboards + this member's personal bests.
-      const leaderboards = {};
+      // Default: per-lift leaderboards, split into men's / women's divisions,
+      // + this member's personal bests. Each division is ranked on its own so a
+      // woman isn't ranked below every man on absolute weight.
+      const myGender = normGender(member.gender);
+      const GENDERS = ['male', 'female', 'other'];
+      const leaderboardsByGender = { male: {}, female: {}, other: {} };
+      for (const lift of LIFTS) {
+        const rowsByGender = { male: [], female: [], other: [] };
+        for (const [k, row] of bestByMemberLift) {
+          if (!k.endsWith(`:${lift.key}`)) continue;
+          rowsByGender[normGender(row.clients?.gender)].push(row);
+        }
+        for (const g of GENDERS) {
+          rowsByGender[g].sort((a, b) => Number(b.score) - Number(a.score));
+          leaderboardsByGender[g][lift.key] = rowsByGender[g].map((row, i) => shape(row, i + 1));
+        }
+      }
+
+      // The member's personal bests carry their rank within their OWN division.
       const myBests = {};
       for (const lift of LIFTS) {
-        const rows = [...bestByMemberLift.entries()]
-          .filter(([k]) => k.endsWith(`:${lift.key}`))
-          .map(([, row]) => row)
-          .sort((a, b) => Number(b.score) - Number(a.score));
-        leaderboards[lift.key] = rows.map((row, i) => shape(row, i + 1));
-        const mine = leaderboards[lift.key].find(r => r.isMe);
+        const mine = (leaderboardsByGender[myGender][lift.key] || []).find(r => r.isMe);
         if (mine) myBests[lift.key] = mine;
       }
 
-      const memberIds = new Set(lifts.map(l => l.client_id));
+      // Distinct competitors overall and per division (for the header counts).
+      const memberIds = new Set();
+      const memberIdsByGender = { male: new Set(), female: new Set(), other: new Set() };
+      for (const row of lifts) {
+        memberIds.add(row.client_id);
+        memberIdsByGender[normGender(row.clients?.gender)].add(row.client_id);
+      }
 
       return json(200, {
         lifts: LIFTS,
-        leaderboards,
+        leaderboardsByGender,
         myBests,
+        myGender,
         myClientId: myId,
-        athleteCount: memberIds.size
+        athleteCount: memberIds.size,
+        athleteCountByGender: {
+          male: memberIdsByGender.male.size,
+          female: memberIdsByGender.female.size,
+          other: memberIdsByGender.other.size
+        }
       });
     }
 

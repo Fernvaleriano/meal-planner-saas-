@@ -13,6 +13,7 @@ const MODULE_OPTIONS = [
   { key: 'recipes', label: 'Recipes', description: 'Recipe library' },
   { key: 'check_in', label: 'Check-In', description: 'Weekly progress check-ins' },
   { key: 'progress', label: 'Progress', description: 'Photos, measurements, weight' },
+  { key: 'leaderboard', label: 'Ranks', description: 'Gym leaderboard — best lifts, ranked by division' },
 ];
 
 const COLOR_PRESETS = [
@@ -110,7 +111,7 @@ function BrandingSettings() {
     brand_app_name: '',
     brand_short_name: '',
     brand_email_footer: '',
-    client_modules: { diary: true, plans: true, workouts: true, messages: true, recipes: true, check_in: true, progress: true },
+    client_modules: { diary: true, plans: true, workouts: true, messages: true, recipes: true, check_in: true, progress: true, leaderboard: true },
     custom_terminology: {},
   });
 
@@ -315,7 +316,7 @@ function BrandingSettings() {
       brand_app_name: '',
       brand_short_name: '',
       brand_email_footer: '',
-      client_modules: { diary: true, plans: true, workouts: true, messages: true, recipes: true, check_in: true, progress: true },
+      client_modules: { diary: true, plans: true, workouts: true, messages: true, recipes: true, check_in: true, progress: true, leaderboard: true },
       custom_terminology: {},
     });
     setSaved(false);

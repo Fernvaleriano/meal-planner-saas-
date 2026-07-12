@@ -1,9 +1,11 @@
 import { useState, useEffect, useCallback, lazy, Suspense } from 'react';
+import { Navigate } from 'react-router-dom';
 import {
   Trophy, Crown, Plus, Play, BadgeCheck, Users, Loader2,
   Flame, Zap, Medal, X, Dumbbell
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useBranding } from '../context/BrandingContext';
 import { apiGet } from '../utils/api';
 import { useToast } from '../components/Toast';
 import { usePullToRefreshEvent } from '../hooks/usePullToRefreshEvent';
@@ -101,6 +103,7 @@ function ChallengeCard({ icon: Icon, title, subtitle, accent, rows, renderStat, 
 
 function Leaderboard() {
   const { clientData } = useAuth();
+  const { isModuleVisible } = useBranding();
   const { showError } = useToast();
   const isCoach = clientData?.is_coach === true;
 
@@ -109,10 +112,27 @@ function Leaderboard() {
   const [challenges, setChallenges] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeLift, setActiveLift] = useState('bench_press');
+  const [gender, setGender] = useState(null); // male | female | other — null until data loads
   const [showSubmit, setShowSubmit] = useState(false);
   const [watch, setWatch] = useState(null); // entry being watched
 
   const lifts = data?.lifts || FALLBACK_LIFTS;
+
+  // Default the division to the viewer's own gender once the board loads, but
+  // never override a division the viewer has tapped themselves.
+  useEffect(() => {
+    if (gender === null && data?.myGender) {
+      setGender(['male', 'female', 'other'].includes(data.myGender) ? data.myGender : 'male');
+    }
+  }, [data?.myGender, gender]);
+  const activeGender = gender || (data?.myGender && ['male', 'female', 'other'].includes(data.myGender) ? data.myGender : 'male');
+
+  // Men + Women always; the "Other" division only appears if anyone is in it.
+  const genderTabs = [
+    { key: 'male', label: 'Men' },
+    { key: 'female', label: 'Women' },
+  ];
+  if ((data?.athleteCountByGender?.other || 0) > 0) genderTabs.push({ key: 'other', label: 'Other' });
 
   const fetchAll = useCallback(async () => {
     if (!clientData?.id) return;
@@ -134,8 +154,16 @@ function Leaderboard() {
   useEffect(() => { fetchAll(); }, [fetchAll]);
   usePullToRefreshEvent(fetchAll);
 
-  const board = data?.leaderboards?.[activeLift] || [];
+  const board = data?.leaderboardsByGender?.[activeGender]?.[activeLift] || [];
   const currentLift = lifts.find(l => l.key === activeLift) || lifts[0];
+  // Your best only ranks you within your own division, so only show the callout
+  // when the viewer is looking at their own division.
+  const showMyBest = data?.myBests?.[activeLift] && activeGender === data?.myGender;
+
+  // Coach turned Ranks off for their clients → don't show the page at all.
+  if (!isCoach && !isModuleVisible('leaderboard')) {
+    return <Navigate to="/" replace />;
+  }
 
   return (
     <div className="leaderboard-page">
@@ -163,6 +191,22 @@ function Leaderboard() {
         <div className="lb-loading"><Loader2 size={26} className="lb-spin" /> Loading the board…</div>
       ) : tab === 'lifts' ? (
         <div className="lb-lifts-view">
+          {/* Division selector (men / women) — keeps the strength ranking fair */}
+          <div className="lb-gender-tabs" role="tablist" aria-label="Division">
+            {genderTabs.map(g => (
+              <button
+                key={g.key}
+                role="tab"
+                aria-selected={g.key === activeGender}
+                className={g.key === activeGender ? 'active' : ''}
+                onClick={() => setGender(g.key)}
+              >
+                {g.label}
+                <span className="lb-gender-count">{data?.athleteCountByGender?.[g.key] || 0}</span>
+              </button>
+            ))}
+          </div>
+
           {/* Lift selector */}
           <div className="lb-lift-scroller">
             {lifts.map(l => (
@@ -178,7 +222,7 @@ function Leaderboard() {
           </div>
 
           {/* My best callout */}
-          {data?.myBests?.[activeLift] && (
+          {showMyBest && (
             <div className="lb-mybest" style={{ borderColor: currentLift?.color }}>
               <span className="lb-mybest-label">Your best</span>
               <span className="lb-mybest-val" style={{ color: currentLift?.color }}>

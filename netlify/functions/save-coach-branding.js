@@ -194,7 +194,7 @@ exports.handler = async (event, context) => {
         }
 
         // Validate client_modules structure
-        const validModuleKeys = ['diary', 'plans', 'workouts', 'messages', 'recipes', 'check_in', 'progress'];
+        const validModuleKeys = ['diary', 'plans', 'workouts', 'messages', 'recipes', 'check_in', 'progress', 'leaderboard'];
         if (client_modules) {
             if (typeof client_modules !== 'object' || Array.isArray(client_modules)) {
                 return {

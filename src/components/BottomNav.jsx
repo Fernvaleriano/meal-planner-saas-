@@ -81,9 +81,13 @@ function BottomNav({ currentPath }) {
 
     if (isCoach) return allItems;
     const visible = allItems.filter(item => !item.moduleKey || isModuleVisible(item.moduleKey));
-    // Gym members get a Leaderboard tab. It's a member-only competition surface,
-    // so coaches (who see the full coaching toolset) don't get it here.
-    visible.push({ path: '/leaderboard', icon: Trophy, label: 'Ranks', moduleKey: null });
+    // Gym members get a Leaderboard ("Ranks") tab. It's a member-only competition
+    // surface, so coaches (who see the full coaching toolset) don't get it here.
+    // Coaches can hide it from their clients via the Ranks module toggle; it
+    // stays on by default (isModuleVisible returns true unless explicitly off).
+    if (isModuleVisible('leaderboard')) {
+      visible.push({ path: '/leaderboard', icon: Trophy, label: 'Ranks', moduleKey: 'leaderboard' });
+    }
     return visible;
   }, [isCoach, isModuleVisible, getLabel, unreadMessages]);
 
