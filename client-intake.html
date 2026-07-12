@@ -1149,6 +1149,14 @@
                 // prospect's first touch is the coach's brand, not the platform's
                 applyCoachBranding(coachData && coachData.branding);
 
+                // Default the weight/height units to the coach's own system.
+                // Gyms that work in metric (e.g. outside the US) get kg/cm
+                // pre-selected instead of lbs/ft. The client can still tap the
+                // other toggle here, and change it later in Settings.
+                if (coachData && coachData.unit_preference === 'metric') {
+                    setUnitSystem('metric');
+                }
+
                 // Apply form config — hide disabled sections
                 if (intakeFormConfig && intakeFormConfig.sections) {
                     Object.entries(intakeFormConfig.sections).forEach(([sectionKey, cfg]) => {
