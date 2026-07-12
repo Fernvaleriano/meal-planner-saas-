@@ -16,10 +16,11 @@ const SubmitLiftModal = lazy(() => import('../components/SubmitLiftModal'));
 const FALLBACK_LIFTS = [
   { key: 'bench_press', name: 'Bench Press', metric: 'weight', icon: '🏋️', color: '#ef4444' },
   { key: 'back_squat', name: 'Squat', metric: 'weight', icon: '🦵', color: '#8b5cf6' },
-  { key: 'deadlift', name: 'Deadlift', metric: 'weight', icon: '🪨', color: '#0ea5e9' },
+  { key: 'deadlift', name: 'Conventional Deadlift', metric: 'weight', icon: '🪨', color: '#0ea5e9' },
+  { key: 'deadlift_sumo', name: 'Sumo Deadlift', metric: 'weight', icon: '🤼', color: '#14b8a6' },
   { key: 'overhead_press', name: 'Overhead Press', metric: 'weight', icon: '💪', color: '#f59e0b' },
-  { key: 'barbell_row', name: 'Barbell Row', metric: 'weight', icon: '🚣', color: '#10b981' },
-  { key: 'pull_up', name: 'Pull-Ups', metric: 'reps', icon: '🧗', color: '#ec4899' }
+  { key: 'pull_up', name: 'Pull-Ups', metric: 'reps', icon: '🧗', color: '#ec4899' },
+  { key: 'push_up', name: 'Push-Ups', metric: 'reps', icon: '🤸', color: '#10b981' }
 ];
 
 function initials(name) {
