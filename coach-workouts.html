@@ -10425,6 +10425,22 @@
 
         function addSelectedExercises() {
             if (selectedExercises.size === 0) return;
+
+            // Make sure there's a real day to drop the exercises into. When the
+            // builder has no days yet, activeDayIndex/currentDayIndex is -1, so
+            // workoutDays[currentDayIndex] is undefined and the push below used
+            // to crash ("Cannot read properties of undefined") — nothing got
+            // added and the selected exercises appeared to vanish.
+            if (!workoutDays[currentDayIndex]) {
+                if (workoutDays.length === 0) {
+                    workoutDays.push({ name: 'Day 1', exercises: [] });
+                }
+                // Clamp to a valid day (currentDayIndex is -1 when there were none)
+                currentDayIndex = Math.min(workoutDays.length - 1, Math.max(0, currentDayIndex || 0));
+                activeDayIndex = currentDayIndex;
+                insertExerciseAtIndex = null; // no valid insert slot in a fresh day
+            }
+
             const exercises = Array.from(selectedExercises.values());
             const newExercises = exercises.map(exercise => {
                 const { isWarmup, isStretch } = detectExerciseType(exercise);
