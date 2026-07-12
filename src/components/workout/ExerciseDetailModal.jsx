@@ -381,10 +381,12 @@ function ExerciseDetailModal({
   const [showSwapModal, setShowSwapModal] = useState(false);
   const [showFormCheck, setShowFormCheck] = useState(false);
   const [showSetEditor, setShowSetEditor] = useState(false);
-  // Coach custom videos open straight into the loaded player (first frame +
-  // native controls) instead of a thumbnail + play button. Stock library
-  // animations still show the thumbnail first.
-  const [showVideo, setShowVideo] = useState(() => !!(exercise?.customVideoPath || exercise?.customVideoUrl));
+  // Always start on the thumbnail + play button — do NOT auto-open into the
+  // <video>. On iOS a paused, auto-opened video (especially a Mux HLS stream)
+  // won't actually load until play() is called from a real user tap, so
+  // auto-opening left some videos stuck on a spinner that never resolved.
+  // Requiring the tap makes playback reliable for every video (Mux or original).
+  const [showVideo, setShowVideo] = useState(false);
   const [videoLoading, setVideoLoading] = useState(true);
   const [videoError, setVideoError] = useState(false);
   const [videoKey, setVideoKey] = useState(0);
@@ -608,7 +610,7 @@ function ExerciseDetailModal({
   // Reset sets when exercise changes
   useEffect(() => {
     setSets(initialSets);
-    setShowVideo(!!(exercise?.customVideoPath || exercise?.customVideoUrl));
+    setShowVideo(false); // start on thumbnail + play button; user tap loads the video reliably
     // Drop the previous exercise's blob-fallback video so it can't play under
     // the new exercise (playableVideoSrc prefers videoBlobUrl), and revoke the
     // object URL so the blob's memory is actually released.
