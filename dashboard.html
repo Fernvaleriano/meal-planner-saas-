@@ -5131,6 +5131,19 @@
             font-size: 11px; font-weight: 700; color: #059669;
             background: #ecfdf5; border-radius: 6px; padding: 2px 8px;
         }
+        .gyminfo-pkg {
+            display: flex; align-items: center; justify-content: space-between; gap: 12px;
+            padding: 8px 0; font-size: 14px; color: #334155;
+            border-bottom: 1px dashed #f1f5f9;
+        }
+        .gyminfo-pkg:last-child { border-bottom: none; }
+        .gyminfo-pkg .plabel { font-weight: 700; }
+        .gyminfo-pkg .pprice { font-weight: 800; color: var(--brand-primary, #14b8a6); white-space: nowrap; }
+        .gyminfo-amenities { display: flex; flex-wrap: wrap; gap: 8px; }
+        .gyminfo-amenity {
+            font-size: 13px; font-weight: 600; color: #334155;
+            background: #f1f5f9; border-radius: 8px; padding: 5px 11px;
+        }
         .gyminfo-socials { display: flex; flex-wrap: wrap; gap: 8px 20px; }
         .gyminfo-social {
             display: inline-flex; align-items: center; gap: 6px;
@@ -5202,6 +5215,8 @@
         [data-theme="dark"] .gyminfo-class { color: #cbd5e1; border-color: #334155; }
         [data-theme="dark"] .gyminfo-class .csched { color: #94a3b8; }
         [data-theme="dark"] .gyminfo-social { color: #cbd5e1; }
+        [data-theme="dark"] .gyminfo-pkg { color: #cbd5e1; border-color: #334155; }
+        [data-theme="dark"] .gyminfo-amenity { background: #0f172a; color: #cbd5e1; }
         [data-theme="dark"] .gyminfo-edit label.fld { color: #cbd5e1; }
         [data-theme="dark"] .gyminfo-edit input[type="text"],
         [data-theme="dark"] .gyminfo-edit input[type="time"] { background: #0f172a; border-color: #334155; color: #f1f5f9; }
@@ -10567,6 +10582,8 @@
                     { name: 'Zumba', schedule: 'Twice a week', included: true },
                     { name: 'Muay Thai', schedule: 'Twice a week', included: true }
                 ],
+                packages: [],
+                amenities: [],
                 instagram: '@yourgym',
                 phone: '',
                 address: '',
@@ -10579,7 +10596,7 @@
         function normalizeGymInfo(raw) {
             const base = gymInfoDefaults();
             if (!raw || typeof raw !== 'object') return base;
-            const out = { hours: {}, classes: [], instagram: '', phone: '', address: '', website: '' };
+            const out = { hours: {}, classes: [], packages: [], amenities: [], instagram: '', phone: '', address: '', website: '' };
             GYM_INFO_DAYS.forEach(([k]) => {
                 const d = (raw.hours && raw.hours[k]) || {};
                 out.hours[k] = {
@@ -10594,6 +10611,15 @@
                     schedule: (c && c.schedule) ? String(c.schedule) : '',
                     included: !!(c && c.included)
                 }));
+            }
+            if (Array.isArray(raw.packages)) {
+                out.packages = raw.packages.map(p => ({
+                    label: (p && p.label) ? String(p.label) : '',
+                    price: (p && p.price) ? String(p.price) : ''
+                }));
+            }
+            if (Array.isArray(raw.amenities)) {
+                out.amenities = raw.amenities.map(a => (a != null ? String(a) : '')).filter(a => a.trim());
             }
             ['instagram', 'phone', 'address', 'website'].forEach(f => {
                 out[f] = (raw[f] != null) ? String(raw[f]) : '';
@@ -10671,6 +10697,32 @@
                 classesHtml = '<div class="gyminfo-empty">No classes added yet.</div>';
             }
 
+            // Membership packages (pricing)
+            const realPackages = (info.packages || []).filter(p => p.label && p.label.trim());
+            let packagesHtml = '';
+            if (realPackages.length) {
+                packagesHtml = `
+                <div class="gyminfo-block">
+                    <div class="gyminfo-block-label">Membership packages</div>
+                    ${realPackages.map(p => `
+                        <div class="gyminfo-pkg">
+                            <span class="plabel">${escapeHtml(p.label)}</span>
+                            ${p.price ? `<span class="pprice">${escapeHtml(p.price)}</span>` : ''}
+                        </div>`).join('')}
+                </div>`;
+            }
+
+            // Amenities / facilities
+            const realAmenities = (info.amenities || []).filter(a => a && a.trim());
+            let amenitiesHtml = '';
+            if (realAmenities.length) {
+                amenitiesHtml = `
+                <div class="gyminfo-block">
+                    <div class="gyminfo-block-label">Facilities</div>
+                    <div class="gyminfo-amenities">${realAmenities.map(a => `<span class="gyminfo-amenity">${escapeHtml(a)}</span>`).join('')}</div>
+                </div>`;
+            }
+
             // Socials
             const socials = [];
             if (info.instagram && info.instagram.trim()) {
@@ -10697,6 +10749,8 @@
                     <div class="gyminfo-block-label">Classes</div>
                     ${classesHtml}
                 </div>
+                ${packagesHtml}
+                ${amenitiesHtml}
                 <div class="gyminfo-block">
                     <div class="gyminfo-block-label">Find us</div>
                     ${socialsHtml}
@@ -10712,6 +10766,36 @@
                     <label class="gyminfo-toggle"><input type="checkbox" class="gym-class-free" ${c.included ? 'checked' : ''}> Free</label>
                     <button type="button" class="gyminfo-remove-btn" title="Remove" onclick="this.closest('.gyminfo-class-edit-row').remove()">×</button>
                 </div>`;
+        }
+
+        function gymInfoPackageRowHtml(p) {
+            p = p || { label: '', price: '' };
+            return `
+                <div class="gyminfo-class-edit-row gyminfo-pkg-edit-row">
+                    <input type="text" class="gym-pkg-label" placeholder="Package (e.g. 1 Month)" value="${escapeHtml(p.label || '')}">
+                    <input type="text" class="gym-pkg-price" placeholder="Price (e.g. ฿1,499)" value="${escapeHtml(p.price || '')}">
+                    <button type="button" class="gyminfo-remove-btn" title="Remove" onclick="this.closest('.gyminfo-class-edit-row').remove()">×</button>
+                </div>`;
+        }
+
+        function gymInfoAddPackage() {
+            const list = document.getElementById('gymPackagesEditList');
+            if (!list) return;
+            list.insertAdjacentHTML('beforeend', gymInfoPackageRowHtml({ label: '', price: '' }));
+        }
+
+        function gymInfoAmenityRowHtml(a) {
+            return `
+                <div class="gyminfo-class-edit-row gyminfo-amenity-edit-row">
+                    <input type="text" class="gym-amenity-name" placeholder="Facility (e.g. Boxing Zone)" value="${escapeHtml(a || '')}">
+                    <button type="button" class="gyminfo-remove-btn" title="Remove" onclick="this.closest('.gyminfo-class-edit-row').remove()">×</button>
+                </div>`;
+        }
+
+        function gymInfoAddAmenity() {
+            const list = document.getElementById('gymAmenitiesEditList');
+            if (!list) return;
+            list.insertAdjacentHTML('beforeend', gymInfoAmenityRowHtml(''));
         }
 
         function renderGymInfoEditForm() {
@@ -10734,6 +10818,12 @@
             const classRows = (info.classes && info.classes.length ? info.classes : [{ name: '', schedule: '', included: true }])
                 .map(gymInfoClassRowHtml).join('');
 
+            const packageRows = (info.packages && info.packages.length ? info.packages : [{ label: '', price: '' }])
+                .map(gymInfoPackageRowHtml).join('');
+
+            const amenityRows = (info.amenities && info.amenities.length ? info.amenities : [''])
+                .map(gymInfoAmenityRowHtml).join('');
+
             el.innerHTML = `
                 <div class="gyminfo-block">
                     <div class="gyminfo-block-label">Hours of operation</div>
@@ -10746,6 +10836,18 @@
                     <div class="gyminfo-edit-sub">Tick “Free” if it’s included with membership.</div>
                     <div id="gymClassesEditList">${classRows}</div>
                     <button type="button" class="gyminfo-add-btn" onclick="gymInfoAddClass()">+ Add class</button>
+                </div>
+                <div class="gyminfo-block">
+                    <div class="gyminfo-block-label">Membership packages</div>
+                    <div class="gyminfo-edit-sub">Add each price option members can buy.</div>
+                    <div id="gymPackagesEditList">${packageRows}</div>
+                    <button type="button" class="gyminfo-add-btn" onclick="gymInfoAddPackage()">+ Add package</button>
+                </div>
+                <div class="gyminfo-block">
+                    <div class="gyminfo-block-label">Facilities</div>
+                    <div class="gyminfo-edit-sub">Highlights members will see (e.g. Boxing Zone, Ice Bath).</div>
+                    <div id="gymAmenitiesEditList">${amenityRows}</div>
+                    <button type="button" class="gyminfo-add-btn" onclick="gymInfoAddAmenity()">+ Add facility</button>
                 </div>
                 <div class="gyminfo-block">
                     <div class="gyminfo-block-label">Find us</div>
@@ -10813,7 +10915,7 @@
         }
 
         function readGymInfoForm() {
-            const info = { hours: {}, classes: [], instagram: '', phone: '', address: '', website: '' };
+            const info = { hours: {}, classes: [], packages: [], amenities: [], instagram: '', phone: '', address: '', website: '' };
             const list = document.getElementById('gymHoursEditList');
             GYM_INFO_DAYS.forEach(([k]) => {
                 const chk = list.querySelector(`.gym-open-chk[data-day="${k}"]`);
@@ -10831,6 +10933,15 @@
                 const schedule = (row.querySelector('.gym-class-sched')?.value || '').trim();
                 const included = !!row.querySelector('.gym-class-free')?.checked;
                 if (name) info.classes.push({ name, schedule, included });
+            });
+            document.querySelectorAll('#gymPackagesEditList .gyminfo-pkg-edit-row').forEach(row => {
+                const label = (row.querySelector('.gym-pkg-label')?.value || '').trim();
+                const price = (row.querySelector('.gym-pkg-price')?.value || '').trim();
+                if (label) info.packages.push({ label, price });
+            });
+            document.querySelectorAll('#gymAmenitiesEditList .gyminfo-amenity-edit-row').forEach(row => {
+                const name = (row.querySelector('.gym-amenity-name')?.value || '').trim();
+                if (name) info.amenities.push(name);
             });
             info.instagram = (document.getElementById('gymInstagram')?.value || '').trim();
             info.phone = (document.getElementById('gymPhone')?.value || '').trim();
