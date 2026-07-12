@@ -43,6 +43,17 @@ export function getExerciseVideoSrc(exercise, fallbackSrc) {
   return fallbackSrc;
 }
 
+// Generic version for any Mux-backed video (e.g. leaderboard lift proofs):
+// given a playback id + a fallback URL, returns the Mux HLS stream on
+// native-HLS browsers, otherwise the fallback. Same safe behavior as
+// getExerciseVideoSrc but not tied to an exercise object.
+export function getMuxOrFallbackSrc(muxPlaybackId, fallbackSrc) {
+  if (muxPlaybackId && supportsNativeHls()) {
+    return `https://stream.mux.com/${muxPlaybackId}.m3u8`;
+  }
+  return fallbackSrc;
+}
+
 // True when the currently-playing src is the exercise's Mux stream. Lets a
 // player's error handler skip the raw-file blob fallbacks (which don't apply to
 // an .m3u8) and drop straight back to the original file instead.

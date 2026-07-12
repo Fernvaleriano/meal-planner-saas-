@@ -7,6 +7,7 @@ import {
 import { useAuth } from '../context/AuthContext';
 import { useBranding } from '../context/BrandingContext';
 import { apiGet } from '../utils/api';
+import { getMuxOrFallbackSrc } from '../utils/exerciseVideo';
 import { useToast } from '../components/Toast';
 import { usePullToRefreshEvent } from '../hooks/usePullToRefreshEvent';
 
@@ -309,7 +310,7 @@ function Leaderboard() {
               </div>
               <button className="gym-proof-close" onClick={() => setWatch(null)}><X size={22} /></button>
             </div>
-            <video src={watch.videoUrl} controls autoPlay playsInline className="lb-video-full" />
+            <video src={getMuxOrFallbackSrc(watch.muxPlaybackId, watch.videoUrl)} controls autoPlay playsInline className="lb-video-full" />
           </div>
         </div>
       )}

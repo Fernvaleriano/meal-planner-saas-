@@ -24,6 +24,35 @@ const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
 
 const BUCKET_NAME = 'gym-lift-videos';
 
+const MUX_TOKEN_ID = process.env.MUX_TOKEN_ID;
+const MUX_TOKEN_SECRET = process.env.MUX_TOKEN_SECRET;
+
+// Hand a member's proof video to Mux for transcoding so it streams fast (and
+// adapts on weak signal) instead of downloading the raw file. Returns
+// { assetId, playbackId, status } or null. NEVER throws — a Mux problem must
+// not stop a lift from posting; the raw video_url stays as the fallback.
+async function createMuxAssetFromUrl(sourceUrl, liftId) {
+  if (!MUX_TOKEN_ID || !MUX_TOKEN_SECRET || !sourceUrl) return null;
+  try {
+    const auth = Buffer.from(`${MUX_TOKEN_ID}:${MUX_TOKEN_SECRET}`).toString('base64');
+    const resp = await fetch('https://api.mux.com/video/v1/assets', {
+      method: 'POST',
+      headers: { Authorization: `Basic ${auth}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        input: [{ url: sourceUrl }],
+        playback_policy: ['public'],
+        passthrough: `lift:${liftId}` // webhook routes this back to gym_leaderboard_lifts
+      })
+    });
+    const data = await resp.json();
+    if (!resp.ok) { console.error('Mux create (lift) failed:', resp.status, JSON.stringify(data).slice(0, 200)); return null; }
+    return { assetId: data.data.id, playbackId: data.data.playback_ids?.[0]?.id || null, status: data.data.status || 'preparing' };
+  } catch (e) {
+    console.error('Mux create (lift) error:', e.message);
+    return null;
+  }
+}
+
 const headers = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'Content-Type, Authorization',
@@ -128,7 +157,7 @@ exports.handler = async (event) => {
       // Pull every approved lift in the gym once; both views derive from it.
       const { data: allLifts, error: liftsErr } = await supabase
         .from('gym_leaderboard_lifts')
-        .select('id, client_id, client_name, lift_key, weight, weight_unit, reps, score, verified, video_url, created_at, clients!inner(profile_photo_url, gender)')
+        .select('id, client_id, client_name, lift_key, weight, weight_unit, reps, score, verified, video_url, mux_playback_id, mux_status, created_at, clients!inner(profile_photo_url, gender)')
         .eq('coach_id', coachId)
         .eq('status', 'approved')
         .order('score', { ascending: false });
@@ -156,6 +185,9 @@ exports.handler = async (event) => {
         score: Number(row.score),
         verified: row.verified,
         videoUrl: row.video_url,
+        // Fast Mux stream, only once transcoding is ready; client falls back to
+        // videoUrl otherwise (and on non-native-HLS browsers).
+        muxPlaybackId: row.mux_status === 'ready' ? row.mux_playback_id : null,
         createdAt: row.created_at,
         isMe: row.client_id === myId
       });
@@ -358,6 +390,19 @@ exports.handler = async (event) => {
           try { await supabase.storage.from(BUCKET_NAME).remove([videoPath]); } catch (_) { /* ignore */ }
           return json(500, { error: 'Could not save your lift: ' + insertErr.message });
         }
+
+        // Kick off Mux transcoding so the proof streams fast on any connection.
+        // Non-blocking to correctness: on any Mux failure we still return
+        // success and the raw video_url plays; the webhook fills in the
+        // playback id once transcoding finishes.
+        try {
+          const mux = await createMuxAssetFromUrl(urlData.publicUrl, inserted.id);
+          if (mux) {
+            await supabase.from('gym_leaderboard_lifts')
+              .update({ mux_asset_id: mux.assetId, mux_playback_id: mux.playbackId, mux_status: mux.status })
+              .eq('id', inserted.id);
+          }
+        } catch (_) { /* non-fatal — raw video_url remains the fallback */ }
 
         // Let the gym owner know a new lift landed (non-critical).
         try {
