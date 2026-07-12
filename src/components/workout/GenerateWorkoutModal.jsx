@@ -28,7 +28,6 @@ import { apiGet, apiPost } from '../../utils/api';
 const GOALS = [
   { value: 'hypertrophy', label: 'Build muscle' },
   { value: 'strength', label: 'Get stronger' },
-  { value: 'weight_loss', label: 'Lose fat' },
   { value: 'endurance', label: 'Endurance' },
 ];
 
@@ -88,6 +87,7 @@ const INJURY_OPTIONS = [
   { value: 'neck', label: 'Neck' },
   { value: 'elbow', label: 'Elbow' },
   { value: 'ankle', label: 'Ankle' },
+  { value: 'pregnancy', label: 'Pregnancy' },
 ];
 
 const SOURCES = [
@@ -96,19 +96,50 @@ const SOURCES = [
   { value: 'gym', label: 'Gym only', hint: 'Add videos first', disabled: true },
 ];
 
+// Remembered answers from the member's last generation, so returning members
+// don't refill the whole form (injuries especially). Stored per client on
+// this device; every value is validated against the current option lists so
+// a removed option can never come back from an old save.
+const prefsKey = (clientId) => `aiWorkoutPrefs:${clientId || 'anon'}`;
+
+function loadSavedPrefs(clientId) {
+  try {
+    const raw = localStorage.getItem(prefsKey(clientId));
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+const BUCKET_LABELS = { push: 'push', pull: 'pull', legs: 'legs', core: 'core' };
+
 function GenerateWorkoutModal({ onClose, onGenerated, clientId = null, coachId = null }) {
-  const [goal, setGoal] = useState('hypertrophy');
+  const savedRef = useRef(undefined);
+  if (savedRef.current === undefined) savedRef.current = loadSavedPrefs(clientId);
+  const saved = savedRef.current;
+  const pick = (value, options, fallback) =>
+    options.some((o) => o.value === value && !o.disabled) ? value : fallback;
+
+  const [goal, setGoal] = useState(() => pick(saved?.goal, GOALS, 'hypertrophy'));
   const [focus, setFocus] = useState('');
-  const [experience, setExperience] = useState('beginner');
-  const [sessionDuration, setSessionDuration] = useState(45);
-  const [style, setStyle] = useState('straight_sets');
-  const [cardio, setCardio] = useState('none');
-  const [injuryCodes, setInjuryCodes] = useState([]);
-  const [injuryText, setInjuryText] = useState('');
-  const [requests, setRequests] = useState('');
-  const [source, setSource] = useState('library');
+  const [experience, setExperience] = useState(() => pick(saved?.experience, EXPERIENCE, 'beginner'));
+  const [sessionDuration, setSessionDuration] = useState(() =>
+    LENGTHS.some((o) => o.value === saved?.sessionDuration) ? saved.sessionDuration : 45);
+  const [style, setStyle] = useState(() => pick(saved?.style, STYLES, 'straight_sets'));
+  const [cardio, setCardio] = useState(() => pick(saved?.cardio, CARDIO, 'none'));
+  const [injuryCodes, setInjuryCodes] = useState(() =>
+    Array.isArray(saved?.injuryCodes)
+      ? saved.injuryCodes.filter((v) => INJURY_OPTIONS.some((o) => o.value === v))
+      : []);
+  const [injuryText, setInjuryText] = useState(() => (typeof saved?.injuryText === 'string' ? saved.injuryText : ''));
+  const [requests, setRequests] = useState(() => (typeof saved?.requests === 'string' ? saved.requests : ''));
+  const [source, setSource] = useState(() => pick(saved?.source, SOURCES, 'library'));
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  // Recent training history: powers the focus suggestion and the
+  // don't-repeat-what-they-just-did exclusion list.
+  const [memory, setMemory] = useState(null);
+  const focusTouchedRef = useRef(false);
   // Prevents a double-fired tap from launching two (paid) AI generations and
   // saving the workout twice. Reset only on error so a retry is allowed.
   const submittingRef = useRef(false);
@@ -119,6 +150,34 @@ function GenerateWorkoutModal({ onClose, onGenerated, clientId = null, coachId =
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [onClose, loading]);
+
+  // Load recent training history. Best-effort: if it fails, the modal works
+  // exactly like before (no suggestion, no exclusions). Pre-selects the
+  // suggested focus only if the member hasn't tapped one themselves yet.
+  useEffect(() => {
+    if (!clientId) return undefined;
+    let cancelled = false;
+    apiGet(`/.netlify/functions/ai-workout-memory?clientId=${encodeURIComponent(clientId)}`)
+      .then((res) => {
+        if (cancelled || !res?.success) return;
+        setMemory(res);
+        if (res.suggestedFocus && !focusTouchedRef.current && FOCUS.some((o) => o.value === res.suggestedFocus)) {
+          setFocus(res.suggestedFocus);
+        }
+      })
+      .catch((err) => console.error('Could not load workout memory:', err));
+    return () => { cancelled = true; };
+  }, [clientId]);
+
+  const suggestionLine = (() => {
+    if (!memory?.lastWorkout) return '';
+    const trained = (memory.lastWorkout.buckets || []).map((b) => BUCKET_LABELS[b] || b).join(' + ');
+    if (!trained) return '';
+    const suggested = FOCUS.find((o) => o.value === memory.suggestedFocus)?.label;
+    return suggested
+      ? `Last workout hit ${trained} — ${suggested.toLowerCase()} looks good today.`
+      : `Last workout hit ${trained}.`;
+  })();
 
   const toggleInjury = (value) => {
     setInjuryCodes(prev => prev.includes(value)
@@ -149,6 +208,9 @@ function GenerateWorkoutModal({ onClose, onGenerated, clientId = null, coachId =
       // 'both' unions the gym's custom exercises; 'library' sends no coachId
       // so only the global library (all video-backed) is used.
       if (source === 'both' && coachId) payload.coachId = coachId;
+      // Skip exercises from the last few days so back-to-back visits don't
+      // get the same moves (lifts they're PRing are kept by the generator).
+      if (memory?.recentExerciseNames?.length) payload.excludeExerciseNames = memory.recentExerciseNames;
 
       // AI generation runs longer than a normal request — allow up to 60s so
       // slow connections / cold starts don't abort a generation that is about
@@ -176,6 +238,15 @@ function GenerateWorkoutModal({ onClose, onGenerated, clientId = null, coachId =
       } catch (coverErr) {
         console.error('Could not fetch a cover for the AI workout:', coverErr);
       }
+
+      // Remember this run's answers so next time the form comes pre-filled.
+      // Focus is deliberately NOT saved — the suggestion picks it fresh each
+      // visit from what they actually trained.
+      try {
+        localStorage.setItem(prefsKey(clientId), JSON.stringify({
+          goal, experience, sessionDuration, style, cardio, injuryCodes, injuryText, requests, source,
+        }));
+      } catch { /* storage full/blocked — remembering is optional */ }
 
       onGenerated?.({
         name: workout.name || 'AI Workout',
@@ -262,9 +333,16 @@ function GenerateWorkoutModal({ onClose, onGenerated, clientId = null, coachId =
             </div>
 
             <div style={groupLabel}>FOCUS / BODY PART</div>
+            {suggestionLine && <div style={groupHint}>{suggestionLine}</div>}
             <div style={row}>
               {FOCUS.map((o) => (
-                <div key={o.value} style={smallChip(focus === o.value)} onClick={() => setFocus(o.value)}>{o.label}</div>
+                <div
+                  key={o.value}
+                  style={smallChip(focus === o.value)}
+                  onClick={() => { focusTouchedRef.current = true; setFocus(o.value); }}
+                >
+                  {o.label}
+                </div>
               ))}
             </div>
 
