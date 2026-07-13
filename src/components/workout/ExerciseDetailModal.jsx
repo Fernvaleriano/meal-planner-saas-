@@ -2280,8 +2280,15 @@ function ExerciseDetailModal({
   // the user has a way out. If the video quietly recovers on its own first,
   // onCanPlay clears the error, so this only ever surfaces on a real hang.
   useEffect(() => {
+    // Only watchdog the cases that actually show a spinner: a signed URL still
+    // resolving, or a *silent stock animation* still loading. Coach videos
+    // (videoHasAudio) render native controls + a poster frame and never show
+    // the spinner, so they must NOT be flipped into the Retry state just because
+    // iOS deferred loading a paused-with-controls video (no onCanPlay fires) —
+    // that was surfacing a false "video failed" screen on perfectly good videos.
+    // Genuine coach-video failures still surface via the <video> onError handler.
     const waiting = showVideo && !videoError &&
-      (customVideoResolving || (videoLoading && !!playableVideoSrc));
+      (customVideoResolving || (videoLoading && !!playableVideoSrc && !videoHasAudio));
     if (!waiting) return;
     const timer = setTimeout(() => {
       if (isMountedRef.current) {
@@ -2290,7 +2297,7 @@ function ExerciseDetailModal({
       }
     }, 15000);
     return () => clearTimeout(timer);
-  }, [showVideo, videoLoading, videoError, playableVideoSrc, customVideoResolving, videoKey]);
+  }, [showVideo, videoLoading, videoError, playableVideoSrc, customVideoResolving, videoHasAudio, videoKey]);
 
   // Fallback: when video fails, re-fetch a fresh signed URL if this is a custom video
   const handleVideoError = useCallback(async (e) => {
@@ -2518,7 +2525,13 @@ function ExerciseDetailModal({
                   onError={handleVideoError}
                 />
               )}
-              {!videoError && (customVideoResolving || (videoLoading && !!playableVideoSrc)) && (
+              {/* Spinner only for a signed URL still resolving (no video/poster
+                  on screen yet) or a silent stock animation still loading. Coach
+                  videos (videoHasAudio) already show a poster frame + native play
+                  button, so the opaque black spinner just covered a working video
+                  and stuck forever on iOS when onCanPlay didn't fire on a paused,
+                  controls-enabled video. Matches GuidedWorkoutModal's behaviour. */}
+              {!videoError && (customVideoResolving || (videoLoading && !!playableVideoSrc && !videoHasAudio)) && (
                 <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#000', zIndex: 2, pointerEvents: 'none' }}>
                   <Loader2 size={36} style={{ color: 'white', animation: 'spin 1s linear infinite' }} />
                 </div>
