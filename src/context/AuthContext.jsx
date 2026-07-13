@@ -507,12 +507,17 @@ export function AuthProvider({ children }) {
     // this device can't see the previous user's data. Theme + install-
     // prompt prefs are device-level and deliberately preserved.
     clearAllUserScopedCaches();
-    // Pre-auth branding hint — separate explicit remove since it doesn't
-    // match the user-data patterns.
-    localStorage.removeItem('login_coach_id');
+    // 'login_coach_id' is deliberately KEPT: it's the device's gym
+    // association, not user data. Logging out of a Huracan Fitness account
+    // must land on the Huracan-branded login — the same way a gym's own app
+    // is still the gym's app after sign-out. A different gym's member
+    // signing in later overwrites it (see Login's handleLogin), and it
+    // holds nothing private — it only picks which brand the login shows.
     // Reset the previous user's brand colors on :root and drop the
     // 'zique_branding_preload' cold-start snapshot, so the next account on
     // a shared device doesn't see (or replay) the old coach's branding.
+    // (The Login page immediately re-applies the right gym's branding from
+    // login_coach_id, so the member-facing result is a branded login.)
     clearBrandingCSS();
     // Clear API session cache
     clearSessionCache();
