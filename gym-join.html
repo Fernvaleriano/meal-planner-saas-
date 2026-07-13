@@ -114,7 +114,7 @@
         <button type="submit" id="submitBtn">Join gym</button>
         <div class="msg" id="msg"></div>
       </form>
-      <div class="foot">Already have an account? <a href="/app/login">Log in</a></div>
+      <div class="foot">Already have an account? <a href="/app/login" id="loginLink">Log in</a></div>
     </div>
 
     <!-- Success -->
@@ -123,7 +123,7 @@
         <div class="check">✓</div>
         <h2>You're in!</h2>
         <p id="successText">Your account is ready. Log in to start training.</p>
-        <button type="button" onclick="window.location.href='/app/login'">Go to login</button>
+        <button type="button" id="goToLoginBtn">Go to login</button>
       </div>
     </div>
   </div>
@@ -141,6 +141,18 @@
       function setError(text) { msg.textContent = text || ''; msg.className = 'msg error'; }
       function clearMsg() { msg.textContent = ''; msg.className = 'msg'; }
 
+      // The gym this code belongs to — once known, every path off this page
+      // goes to the gym's BRANDED login, never the plain Ziquecoach one.
+      var gymCoachId = null;
+      function loginUrl() {
+        return gymCoachId
+          ? '/app/login?coachId=' + encodeURIComponent(gymCoachId)
+          : '/app/login';
+      }
+      document.getElementById('goToLoginBtn').addEventListener('click', function () {
+        window.location.href = loginUrl();
+      });
+
       // Brand the screen from the code (if one is present)
       function loadGymBranding(code) {
         if (!code) return;
@@ -148,6 +160,10 @@
           .then(function (r) { return r.json(); })
           .then(function (data) {
             if (!data || !data.valid) return;
+            if (data.coachId) {
+              gymCoachId = data.coachId;
+              document.getElementById('loginLink').href = loginUrl();
+            }
             if (data.primaryColor) {
               document.documentElement.style.setProperty('--accent', data.primaryColor);
             }
