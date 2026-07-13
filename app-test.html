@@ -18,7 +18,57 @@
          send the cookie with the manifest fetch. No cookie => Ziquecoach default. -->
     <link rel="manifest" href="/.netlify/functions/dynamic-manifest" crossorigin="use-credentials" id="manifest-link">
     <link rel="icon" type="image/png" href="https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/assets/icons/logo.png">
-    <link rel="apple-touch-icon" href="/.netlify/functions/coach-icon">
+    <link rel="apple-touch-icon" href="/.netlify/functions/coach-icon" id="touch-icon-link">
+    <!-- PWA home-screen identity — must run here IN <head>, before the browser
+         reads the manifest / apple-touch-icon links above. Android is the
+         strict one: when Chrome installs the app it hands the manifest URL to
+         a Google server that packages it, and that server fetches the URL
+         WITHOUT our cookies — so the gym id must be in the URL itself, not
+         just the zq_coach cookie. iOS reads apple-mobile-web-app-title for
+         the "Add to Home Screen" NAME (falling back to <title>), so both are
+         set here too. This replays the brand cached by a previous launch;
+         BrandingContext (applyBrandingCSS) applies the same identity live
+         once fresh branding loads, which covers a client's very first
+         session. -->
+    <script>
+      (function() {
+        try {
+          var preloadRaw = localStorage.getItem('zique_branding_preload');
+          var p = preloadRaw ? JSON.parse(preloadRaw) : null;
+          var coachId = p && p.coachId;
+          var brandName = p && p.brandName;
+          var homeIcon = p && (p.favicon || p.logo);
+          if (!coachId) {
+            var cached = sessionStorage.getItem('zique_branding');
+            var b = cached ? (JSON.parse(cached).branding || null) : null;
+            if (b) {
+              coachId = b.coach_id;
+              brandName = brandName || b.brand_name;
+              homeIcon = homeIcon || b.brand_favicon_url || b.brand_logo_url;
+            }
+          }
+          if (!coachId) return;
+          // Keep the server-side fallback (cookie) fresh too.
+          document.cookie = 'zq_coach=' + encodeURIComponent(coachId) + '; path=/; max-age=31536000; SameSite=Lax';
+          var m = document.getElementById('manifest-link');
+          if (m) m.href = '/.netlify/functions/dynamic-manifest?coachId=' + encodeURIComponent(coachId);
+          // Prefer the square favicon as the home-screen icon; the wide
+          // transparent logo looks blank as an app icon.
+          var t = document.getElementById('touch-icon-link');
+          if (t) t.href = homeIcon || ('/.netlify/functions/coach-icon?coachId=' + encodeURIComponent(coachId));
+          if (brandName) {
+            document.title = brandName;
+            var meta = document.querySelector('meta[name="apple-mobile-web-app-title"]');
+            if (!meta) {
+              meta = document.createElement('meta');
+              meta.setAttribute('name', 'apple-mobile-web-app-title');
+              document.head.appendChild(meta);
+            }
+            meta.setAttribute('content', brandName);
+          }
+        } catch (e) { /* fall back to the default Ziquecoach identity */ }
+      })();
+    </script>
     <!-- Set data-theme BEFORE any CSS loads to prevent white flash.
          global.css uses [data-theme="dark"] to swap CSS variables;
          without this, the light defaults flash for a frame while React boots. -->
@@ -292,47 +342,12 @@
                     var themeMeta = document.querySelector('meta[name="theme-color"]');
                     if (themeMeta) themeMeta.content = primary;
                 }
-                // Update manifest link + title + icon for branded PWA homescreen saves
-                if (coachId) {
-                    // Persist the gym id in a cookie so the server-rendered
-                    // manifest + apple-touch-icon (which iOS/Android read before
-                    // this JS runs, on the next launch) resolve to this gym.
-                    try {
-                        document.cookie = 'zq_coach=' + encodeURIComponent(coachId) + '; path=/; max-age=31536000; SameSite=Lax';
-                    } catch (e) { /* cookies disabled — dynamic links below still help */ }
-
-                    var manifestLink = document.getElementById('manifest-link');
-                    if (manifestLink) {
-                        manifestLink.href = '/.netlify/functions/dynamic-manifest?coachId=' + coachId;
-                    }
-                    if (brandName) {
-                        document.title = brandName;
-                        // iOS takes the "Add to Home Screen" NAME from the
-                        // apple-mobile-web-app-title meta tag (highest priority) —
-                        // it does NOT reliably use document.title or the manifest
-                        // short_name here. The served HTML has no such tag, which is
-                        // why the homescreen save fell back to the default
-                        // "Ziquecoach" even when the icon was correctly branded.
-                        // Create/set it with the gym's name so the save shows e.g.
-                        // "Huracan Fitness".
-                        var appTitleMeta = document.querySelector('meta[name="apple-mobile-web-app-title"]');
-                        if (!appTitleMeta) {
-                            appTitleMeta = document.createElement('meta');
-                            appTitleMeta.setAttribute('name', 'apple-mobile-web-app-title');
-                            document.head.appendChild(appTitleMeta);
-                        }
-                        appTitleMeta.setAttribute('content', brandName);
-                    }
-                    // Home-screen icon: prefer the square favicon (looks right as
-                    // an app icon); only fall back to the wide logo if no favicon
-                    // is set. Using the wide/transparent logo here makes the phone
-                    // icon look blank.
-                    var homeIcon = faviconUrl || logoUrl;
-                    if (homeIcon) {
-                        var touchIcon = document.querySelector('link[rel="apple-touch-icon"]');
-                        if (touchIcon) touchIcon.href = homeIcon;
-                    }
-                }
+                // PWA home-screen identity (manifest URL, apple-touch-icon,
+                // apple-mobile-web-app-title, document.title, zq_coach cookie)
+                // is applied by the <head> script next to the link tags — it
+                // must run BEFORE the browser reads those tags, which is
+                // earlier than this body script. Fresh-session updates are
+                // handled by BrandingContext's applyBrandingCSS.
             } catch (e) { /* silent fail — fall back to default branding */ }
         })();
     </script>

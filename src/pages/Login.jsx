@@ -3,7 +3,7 @@ import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { supabase } from '../utils/supabase';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
-import { seedBrandingCache } from '../context/BrandingContext';
+import { seedBrandingCache, applyPWAIdentity } from '../context/BrandingContext';
 
 const DEFAULT_LOGO = 'https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/assets/ziquecoach-logo-teal.png';
 const DEFAULT_PRIMARY = '#2cb5a5';
@@ -79,6 +79,14 @@ function Login() {
       })
       .catch(() => { /* use defaults */ });
   }, [coachIdParam]);
+
+  // Stamp the PWA home-screen identity as soon as we know which gym this
+  // login page belongs to. A client who lands on a branded login link and
+  // saves to their home screen BEFORE ever signing in should get the gym's
+  // name + icon, not the Ziquecoach defaults.
+  useEffect(() => {
+    if (brandingData?.coach_id) applyPWAIdentity(brandingData);
+  }, [brandingData]);
 
   // Redirect if already logged in
   useEffect(() => {

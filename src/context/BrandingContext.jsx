@@ -408,15 +408,10 @@ function applyBrandingCSS(branding) {
     }));
   } catch { /* ignore */ }
 
-  // Persist the gym/coach id in a cookie so the server-rendered PWA manifest +
-  // apple-touch-icon resolve to this brand on the NEXT launch — iOS/Android read
-  // those tags before this JS runs, so the cookie is what makes the home-screen
-  // name + icon correct per gym (not just the founder's default).
-  try {
-    if (branding.coach_id) {
-      document.cookie = `zq_coach=${encodeURIComponent(branding.coach_id)}; path=/; max-age=31536000; SameSite=Lax`;
-    }
-  } catch { /* ignore */ }
+  // Stamp the PWA home-screen identity (manifest URL, home-screen icon, iOS
+  // app title, zq_coach cookie) onto the live document RIGHT NOW — see
+  // applyPWAIdentity for why the cookie alone was not enough.
+  applyPWAIdentity(branding);
 
   // Persist a snapshot to localStorage (survives full app close, unlike
   // sessionStorage) so the pre-React inline script in app-test.html can paint
@@ -443,6 +438,65 @@ function applyBrandingCSS(branding) {
 }
 
 /**
+ * Stamp the PWA home-screen identity for a coach onto the live document:
+ * manifest URL (with the coach id IN the URL), home-screen icon links,
+ * iOS "Add to Home Screen" title, and the zq_coach cookie.
+ *
+ * Why the cookie alone was not enough:
+ *  (a) a client who saves to their home screen during their FIRST session
+ *      has never reloaded, so the static tags still said "Ziquecoach" —
+ *      that was the "icon right, name wrong" Add-to-Home-Screen bug;
+ *  (b) Android install: Chrome hands the manifest URL to a Google server
+ *      that packages the app, and that server fetches the URL WITHOUT our
+ *      cookies — the coach id must be in the manifest URL itself. (Samsung
+ *      Internet / Firefox read the manifest too, so they get this for free.)
+ *
+ * The <head> script in app-test.html replays the same identity from the
+ * localStorage snapshot on later cold starts; keep the two in sync.
+ *
+ * Exported so the pre-login Login page can brand the home-screen save for
+ * clients who arrive via a branded login link and save BEFORE signing in.
+ */
+export function applyPWAIdentity(branding) {
+  if (!branding?.coach_id) return;
+  try {
+    const coachId = encodeURIComponent(branding.coach_id);
+
+    document.cookie = `zq_coach=${coachId}; path=/; max-age=31536000; SameSite=Lax`;
+
+    const manifestLink = document.getElementById('manifest-link');
+    if (manifestLink) {
+      manifestLink.setAttribute('href', `/.netlify/functions/dynamic-manifest?coachId=${coachId}`);
+    }
+
+    // Prefer the square favicon as the home-screen icon (the wide transparent
+    // logo looks blank as an app icon); if neither URL is known yet, point at
+    // the coach-icon endpoint which resolves it server-side.
+    const homeIcon = branding.brand_favicon_url || branding.brand_logo_url;
+    const touchIcon = document.getElementById('touch-icon-link')
+      || document.querySelector('link[rel="apple-touch-icon"]');
+    if (touchIcon) {
+      touchIcon.setAttribute('href', homeIcon || `/.netlify/functions/coach-icon?coachId=${coachId}`);
+    }
+
+    // iOS takes the "Add to Home Screen" NAME from apple-mobile-web-app-title
+    // (highest priority), falling back to <title> — the manifest name is not
+    // reliably used there.
+    const appTitle = branding.brand_app_name || branding.brand_name;
+    if (appTitle) {
+      document.title = appTitle;
+      let appTitleMeta = document.querySelector('meta[name="apple-mobile-web-app-title"]');
+      if (!appTitleMeta) {
+        appTitleMeta = document.createElement('meta');
+        appTitleMeta.setAttribute('name', 'apple-mobile-web-app-title');
+        document.head.appendChild(appTitleMeta);
+      }
+      appTitleMeta.setAttribute('content', appTitle);
+    }
+  } catch { /* ignore — home-screen branding is never worth breaking the app */ }
+}
+
+/**
  * Clear branding CSS overrides from document root.
  * Exported so AuthContext's logout can reset the previous user's brand
  * colors + cold-start preload snapshot on shared devices. (The circular
@@ -459,6 +513,18 @@ export function clearBrandingCSS() {
   // Clear the per-gym PWA cookie so a shared device doesn't serve the previous
   // gym's manifest/icon to the next person who logs in.
   try { document.cookie = 'zq_coach=; path=/; max-age=0; SameSite=Lax'; } catch { /* ignore */ }
+  // And reset the live home-screen identity tags back to the defaults, so an
+  // Add-to-Home-Screen after logout doesn't install the previous gym's app.
+  try {
+    const manifestLink = document.getElementById('manifest-link');
+    if (manifestLink) manifestLink.setAttribute('href', '/.netlify/functions/dynamic-manifest');
+    const touchIcon = document.getElementById('touch-icon-link')
+      || document.querySelector('link[rel="apple-touch-icon"]');
+    if (touchIcon) touchIcon.setAttribute('href', '/.netlify/functions/coach-icon');
+    const appTitleMeta = document.querySelector('meta[name="apple-mobile-web-app-title"]');
+    if (appTitleMeta) appTitleMeta.remove();
+    document.title = 'Ziquecoach';
+  } catch { /* ignore */ }
 }
 
 export function BrandingProvider({ children }) {
