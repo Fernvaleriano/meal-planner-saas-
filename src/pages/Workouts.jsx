@@ -4281,26 +4281,27 @@ function Workouts() {
     }
   }, [handleReorderExercise]);
 
-  // Start workout — show readiness check first (only once per session)
+  // Start workout — readiness check removed; start straight away
   const handleStartWorkout = useCallback(() => {
     if (readinessData || workoutStarted) {
-      // Already completed readiness check this session — go straight to confirmation
+      // Already started this session — go straight to confirmation
       setShowWorkoutReadyConfirm(true);
     } else {
-      setShowReadinessCheck(true);
+      handleReadinessComplete(null);
     }
   }, [readinessData, workoutStarted]);
 
-  // Called after readiness check is completed (or skipped)
-  const handleReadinessComplete = useCallback(async (readiness) => {
+  // Begin the workout (readiness check removed — always called with null)
+  const handleReadinessComplete = useCallback(async (readiness, explicitExerciseToOpen = null) => {
     setShowReadinessCheck(false);
     setReadinessData(readiness);
     setWorkoutStarted(true);
     setWorkoutStartTime(prev => prev || new Date());
 
     // If user was trying to open an exercise card, open it now
-    if (pendingExerciseOpen) {
-      setSelectedExercise(pendingExerciseOpen);
+    const exerciseToOpen = explicitExerciseToOpen || pendingExerciseOpen;
+    if (exerciseToOpen) {
+      setSelectedExercise(exerciseToOpen);
       setPendingExerciseOpen(null);
     } else {
       // Otherwise show workout confirmation (for play button flow)
@@ -5721,14 +5722,13 @@ function Workouts() {
     }
   }, [weekDates]);
 
-  // Handle exercise selection safely - show readiness check first if not done yet
+  // Handle exercise selection safely - start the workout on first tap
   const handleExerciseClick = useCallback((exercise) => {
     if (!exercise) return;
 
-    // If readiness check hasn't been done yet, show it first
+    // If the workout hasn't been started yet, start it silently and open the card
     if (!readinessData && !workoutStarted) {
-      setPendingExerciseOpen(exercise);
-      setShowReadinessCheck(true);
+      handleReadinessComplete(null, exercise);
     } else {
       setSelectedExercise(exercise);
     }
