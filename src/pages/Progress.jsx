@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { ChevronLeft, Ruler, Camera, X, Plus, Minus, ChevronDown, Trash2, Columns2, Sparkles, TrendingDown, TrendingUp, ChevronRight, Calendar, Award, Share2 } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useBranding } from '../context/BrandingContext';
 import { useLanguage } from '../context/LanguageContext';
 import { apiGet, apiPost, apiDelete } from '../utils/api';
 import { usePullToRefresh, PullToRefreshIndicator } from '../hooks/usePullToRefresh';
@@ -215,6 +216,7 @@ function Progress() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { clientData } = useAuth();
+  const { branding } = useBranding();
   const { t, language } = useLanguage();
   const { showError, showSuccess } = useToast();
 
@@ -856,6 +858,7 @@ function Progress() {
         earnedTiers,
         clientName: clientData?.client_name,
         bgImage: shareBgImage,
+        brandLogoUrl: branding?.brand_logo_url || null,
       });
       const captionText = highestEarned
         ? `Just unlocked ${featured.name} ${featured.icon} — ${totalCheckinCount} check-ins strong!`

@@ -213,11 +213,18 @@ function generateReminderEmail({
         }
     }
 
-    // Footer text - different for white-label
-    const footerText = whiteLabel ? coachName : 'Ziquecoach';
-    const footerHtml = whiteLabel
-        ? `<p>${coachName}</p>`
-        : `<p>Ziquecoach</p><p><a href="${APP_URL}" style="color: #2cb5a5;">Visit Dashboard</a></p>`;
+    // Branding (computed before the bodies — the footer needs it too).
+    const primaryColor = branding.brand_primary_color || '#2cb5a5';
+    const brandName = branding.brand_name || (whiteLabel ? coachName : 'Ziquecoach');
+    const logoUrl = branding.brand_email_logo_url || branding.brand_logo_url;
+
+    // Footer: the coach's custom email footer or brand name for branded
+    // coaches; "Ziquecoach" only when the coach has no branding at all.
+    // (Was previously keyed on whiteLabel alone, which put a Ziquecoach
+    // footer under a coach-branded header for every branded coach without
+    // a verified sending domain.)
+    const footerText = branding.brand_email_footer || brandName;
+    const footerHtml = `<p>${footerText}</p><p><a href="${APP_URL}" style="color: ${primaryColor};">Visit Dashboard</a></p>`;
 
     // Default message
     let textBody = `Hi ${clientName},
@@ -248,11 +255,6 @@ ${footerText}`;
             .replace(/{coach_name}/g, coachName)
             .replace(/{checkin_link}/g, checkinLink);
     }
-
-    // Get branding colors with fallbacks
-    const primaryColor = branding.brand_primary_color || '#2cb5a5';
-    const brandName = branding.brand_name || (whiteLabel ? coachName : 'Ziquecoach');
-    const logoUrl = branding.brand_email_logo_url || branding.brand_logo_url;
 
     // Logo HTML for email header
     const logoHtml = logoUrl
@@ -361,7 +363,12 @@ async function sendCheckinReminder({
         text: emailContent.text,
         html: emailContent.html,
         fromEmail: hasWhiteLabel ? coach.email_from : undefined,
-        fromName: hasWhiteLabel ? coach.email_from_name : undefined
+        // The from-NAME is brandable even without a verified sending domain:
+        // the inbox shows "Huracan Fitness <noreply@ziquecoach.com>" instead
+        // of "Ziquecoach <...>". Custom verified sender still wins.
+        fromName: (hasWhiteLabel && coach.email_from_name)
+            || (hasBranding && (coach?.brand_app_name || coach?.brand_name))
+            || undefined
     });
 }
 
@@ -531,7 +538,10 @@ async function sendInvitationEmail({
         text: emailContent.text,
         html: emailContent.html,
         fromEmail: hasWhiteLabel ? coach.email_from : undefined,
-        fromName: hasWhiteLabel ? coach.email_from_name : undefined
+        // Brandable from-NAME even without a verified sending domain.
+        fromName: (hasWhiteLabel && coach.email_from_name)
+            || (hasBranding && (coach?.brand_app_name || coach?.brand_name))
+            || undefined
     });
 }
 
@@ -723,7 +733,10 @@ async function sendIntakeInvitationEmail({
         text: emailContent.text,
         html: emailContent.html,
         fromEmail: hasWhiteLabel ? coach.email_from : undefined,
-        fromName: hasWhiteLabel ? coach.email_from_name : undefined
+        // Brandable from-NAME even without a verified sending domain.
+        fromName: (hasWhiteLabel && coach.email_from_name)
+            || (hasBranding && (coach?.brand_app_name || coach?.brand_name))
+            || undefined
     });
 }
 

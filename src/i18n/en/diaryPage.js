@@ -158,7 +158,7 @@ export default {
   shareFoodsLogged: 'Foods Logged',
   shareDiaryBtn: 'Share diary',
   // Canvas card (generated image — these appear as drawn text)
-  shareCardPoweredBy: 'Powered by Ziquecoach',
+  shareCardPoweredBy: 'Powered by {brand}',
   shareCardFoodsLogged_one: '{count} food logged today',
   shareCardFoodsLogged_other: '{count} foods logged today',
 

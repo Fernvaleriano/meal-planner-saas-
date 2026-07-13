@@ -391,16 +391,21 @@ self.addEventListener('push', (event) => {
   if (event.data) {
     const data = event.data.json();
     const options = {
-      body: data.body || 'New notification from Ziquecoach',
-      icon: '/icons/icon-192x192.png',
-      badge: '/icons/icon-72x72.png',
+      // Neutral fallbacks — the sender should always provide title/body.
+      // Never default to the platform name: members of branded coaches
+      // must not see "Ziquecoach" (white-label rule).
+      body: data.body || 'You have a new notification',
+      // coach-icon resolves this device's gym (zq_coach cookie) to the
+      // coach's icon server-side; Ziquecoach icon only when no gym known.
+      icon: data.icon || '/.netlify/functions/coach-icon',
+      badge: data.badge || '/.netlify/functions/coach-icon',
       vibrate: [100, 50, 100],
       data: {
         url: data.url || '/app'
       }
     };
     event.waitUntil(
-      self.registration.showNotification(data.title || 'Ziquecoach', options)
+      self.registration.showNotification(data.title || 'New notification', options)
     );
   }
 });
