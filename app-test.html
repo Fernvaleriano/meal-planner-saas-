@@ -37,14 +37,14 @@
           var p = preloadRaw ? JSON.parse(preloadRaw) : null;
           var coachId = p && p.coachId;
           var brandName = p && p.brandName;
-          var homeIcon = p && (p.favicon || p.logo);
+          var homeIcon = p && p.favicon;
           if (!coachId) {
             var cached = sessionStorage.getItem('zique_branding');
             var b = cached ? (JSON.parse(cached).branding || null) : null;
             if (b) {
               coachId = b.coach_id;
               brandName = brandName || b.brand_name;
-              homeIcon = homeIcon || b.brand_favicon_url || b.brand_logo_url;
+              homeIcon = homeIcon || b.brand_favicon_url;
             }
           }
           if (!coachId) return;
@@ -52,8 +52,10 @@
           document.cookie = 'zq_coach=' + encodeURIComponent(coachId) + '; path=/; max-age=31536000; SameSite=Lax';
           var m = document.getElementById('manifest-link');
           if (m) m.href = '/.netlify/functions/dynamic-manifest?coachId=' + encodeURIComponent(coachId);
-          // Prefer the square favicon as the home-screen icon; the wide
-          // transparent logo looks blank as an app icon.
+          // Home-screen icon: the coach's square favicon if we know it, else
+          // let the coach-icon endpoint resolve it server-side. Never the
+          // wide brand logo — it looks blank as an app icon (the no-branding
+          // default logo especially, which is wide AND white).
           var t = document.getElementById('touch-icon-link');
           if (t) t.href = homeIcon || ('/.netlify/functions/coach-icon?coachId=' + encodeURIComponent(coachId));
           if (brandName) {

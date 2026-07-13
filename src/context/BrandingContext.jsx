@@ -469,14 +469,20 @@ export function applyPWAIdentity(branding) {
       manifestLink.setAttribute('href', `/.netlify/functions/dynamic-manifest?coachId=${coachId}`);
     }
 
-    // Prefer the square favicon as the home-screen icon (the wide transparent
-    // logo looks blank as an app icon); if neither URL is known yet, point at
-    // the coach-icon endpoint which resolves it server-side.
-    const homeIcon = branding.brand_favicon_url || branding.brand_logo_url;
+    // Home-screen icon: use the coach's square favicon when we know it;
+    // otherwise let the coach-icon endpoint resolve it server-side (their
+    // favicon → their logo → the square Ziquecoach app icon). Never fall
+    // back to brand_logo_url here — for coaches without custom branding it
+    // resolves to the WIDE default Ziquecoach logo, which looks blank as a
+    // home-screen icon, while the endpoint's default is the proper square
+    // app icon.
     const touchIcon = document.getElementById('touch-icon-link')
       || document.querySelector('link[rel="apple-touch-icon"]');
     if (touchIcon) {
-      touchIcon.setAttribute('href', homeIcon || `/.netlify/functions/coach-icon?coachId=${coachId}`);
+      touchIcon.setAttribute(
+        'href',
+        branding.brand_favicon_url || `/.netlify/functions/coach-icon?coachId=${coachId}`
+      );
     }
 
     // iOS takes the "Add to Home Screen" NAME from apple-mobile-web-app-title
