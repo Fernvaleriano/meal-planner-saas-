@@ -1409,9 +1409,14 @@
 
                 if (signInError) {
                     console.error('Auto sign-in failed:', signInError);
-                    // Still redirect to login page (SPA)
+                    // Send them to their coach's BRANDED login page, so their
+                    // first login screen (and any home-screen save from it)
+                    // carries the coach's name and logo — not the platform's.
+                    const loginUrl = (coachData && coachData.id)
+                        ? '/app/login?coachId=' + encodeURIComponent(coachData.id)
+                        : '/app';
                     setTimeout(() => {
-                        window.location.href = '/app';
+                        window.location.href = loginUrl;
                     }, 2000);
                 } else {
                     setTimeout(() => {

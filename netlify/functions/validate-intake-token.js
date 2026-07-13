@@ -115,6 +115,10 @@ exports.handler = async (event, context) => {
                     intake_form_config: client.intake_form_config || null
                 },
                 coach: coach ? {
+                    // Coach id so post-registration redirects can land on the
+                    // BRANDED login page (/app/login?coachId=...) — not secret,
+                    // it's the same id used in every branded login link.
+                    id: coach.id,
                     full_name: coach.full_name || coach.name,
                     email: coach.email,
                     // The coach's default unit system, so the intake form can

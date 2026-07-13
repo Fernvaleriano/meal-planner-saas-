@@ -17,6 +17,15 @@
   status = 301
   force = true
 
+# Branded client login addresses: ziquecoach.com/gym/<slug> resolves the
+# coach by their auto-generated brand_slug and redirects to the branded
+# login page (coach's logo + colors + home-screen identity).
+[[redirects]]
+  from = "/gym/*"
+  to = "/.netlify/functions/gym-login?slug=:splat"
+  status = 200
+  force = true
+
 # SPA routing - /app is the primary client portal
 [[redirects]]
   from = "/app"
