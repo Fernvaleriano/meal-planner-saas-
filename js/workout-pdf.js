@@ -290,7 +290,9 @@
             doc.setFontSize(7);
             doc.setTextColor(...MEDIUM_GRAY);
             doc.text(`Page ${i} of ${totalPages}`, pageWidth / 2, pageHeight - 5, { align: 'center' });
-            doc.text('Ziquecoach', pageWidth - margin, pageHeight - 5, { align: 'right' });
+            // Coach pages set window.ZQ_PDF_BRAND_NAME for branded coaches —
+            // the exported PDF is a client-facing artifact (white-label rule).
+            doc.text(window.ZQ_PDF_BRAND_NAME || 'Ziquecoach', pageWidth - margin, pageHeight - 5, { align: 'right' });
         }
 
         // Download - use blob URL so mobile/PWA users don't lose the app

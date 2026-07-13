@@ -8042,6 +8042,18 @@
             currentCoachId = session.user.id;
             currentAccessToken = session.access_token;
 
+            // White-label: fetch this coach's brand for client-facing PDF
+            // exports (js/workout-pdf.js reads window.ZQ_PDF_BRAND_NAME).
+            // Best-effort — the PDF falls back to 'Ziquecoach' without it.
+            fetch('/.netlify/functions/get-coach-branding?coachId=' + encodeURIComponent(session.user.id))
+                .then(function (r) { return r.json(); })
+                .then(function (b) {
+                    if (b && b.has_branding_access && (b.brand_app_name || b.brand_name)) {
+                        window.ZQ_PDF_BRAND_NAME = b.brand_app_name || b.brand_name;
+                    }
+                })
+                .catch(function () { /* keep default */ });
+
             // Populate sidebar user info
             const email = session.user.email || '';
             const userEmailEl = document.getElementById('userEmail');

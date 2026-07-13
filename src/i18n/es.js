@@ -46,7 +46,7 @@ export default {
     checkEmailTitle: 'Revisa tu correo',
     sentTo: 'Te hemos enviado un enlace para restablecer la contraseña a',
     spamNote: 'No olvides revisar tu carpeta de spam si no lo ves.',
-    poweredBy: 'Con tecnología de Ziquecoach',
+    poweredBy: 'Con tecnología de {brand}',
   },
 
   language: {

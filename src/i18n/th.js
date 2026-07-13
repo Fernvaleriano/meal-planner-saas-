@@ -47,7 +47,7 @@ export default {
     checkEmailTitle: 'ตรวจสอบอีเมลของคุณ',
     sentTo: 'เราได้ส่งลิงก์รีเซ็ตรหัสผ่านไปที่',
     spamNote: 'ถ้าไม่เจอ อย่าลืมเช็คในโฟลเดอร์สแปมด้วยนะ',
-    poweredBy: 'ขับเคลื่อนโดย Ziquecoach',
+    poweredBy: 'ขับเคลื่อนโดย {brand}',
   },
 
   language: {

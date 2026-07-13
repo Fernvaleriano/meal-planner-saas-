@@ -53,7 +53,7 @@ export default {
     checkEmailTitle: 'Check Your Email',
     sentTo: "We've sent a password reset link to",
     spamNote: "Don't forget to check your spam folder if you don't see it.",
-    poweredBy: 'Powered by Ziquecoach',
+    poweredBy: 'Powered by {brand}',
   },
 
   language: {
