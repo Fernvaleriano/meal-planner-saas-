@@ -6,6 +6,7 @@ import { generateProgression, generateSetNudge, EFFORT_OPTIONS, parseSetsData, g
 import { getSpeechLang } from '../../utils/speechLang';
 import { getExerciseVideoSrc } from '../../utils/exerciseVideo';
 import { onAppSuspend, onAppResume } from '../../hooks/useAppLifecycle';
+import HlsVideo from '../HlsVideo';
 import Portal from '../Portal';
 import SetEditorModal from './SetEditorModal';
 import SwapExerciseModal from './SwapExerciseModal';
@@ -2512,7 +2513,7 @@ function ExerciseDetailModal({
               onClick={videoHasAudio ? (e) => e.stopPropagation() : undefined}
             >
               {playableVideoSrc && (
-                <video
+                <HlsVideo
                   key={videoKey}
                   ref={videoElRef}
                   src={playableVideoSrc}

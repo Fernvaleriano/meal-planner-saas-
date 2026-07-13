@@ -8,6 +8,7 @@ import { apiGet, apiPost, apiPut, apiDelete, getOrCreateWorkoutLogId } from '../
 import { onAppResume } from '../../hooks/useAppLifecycle';
 import { parseDurationToSeconds } from '../../utils/workoutDuration';
 import { getExerciseVideoSrc } from '../../utils/exerciseVideo';
+import HlsVideo from '../HlsVideo';
 import { generateProgression, EFFORT_OPTIONS, EFFORT_TO_RIR, estimate1RM, parseSetsData, getMaxWeight, parseReps, isCompoundExercise, getWeightIncrement, convertWeight } from '../../utils/workoutProgression';
 import { playTickSound, playCompleteChime, warmUpTickSound, resumeAudio, startTickKeepAlive, stopTickKeepAlive, setAudioEnabled } from '../../utils/audioTick';
 import { useBranding } from '../../context/BrandingContext';
@@ -4115,7 +4116,7 @@ function GuidedWorkoutModal({
           uploads (customVideoUrl) are slow enough to matter, so we
           scope the prefetch to those to avoid wasting bandwidth. */}
       {nextExercise?.customVideoUrl && (
-        <video
+        <HlsVideo
           key={`prefetch-${nextExercise.customVideoUrl}`}
           src={getExerciseVideoSrc(nextExercise, nextExercise.customVideoUrl)}
           preload="auto"
@@ -4693,7 +4694,7 @@ function GuidedWorkoutModal({
           /* Rest timer displayed in the visual area — show next exercise video behind timer on transition rest */
           isTransitionRest && nextExerciseVideoUrl ? (
             <div className="guided-rest-video-preview">
-              <video
+              <HlsVideo
                 key="guided-rest-preview"
                 ref={restPreviewVideoRef}
                 src={nextExerciseVideoUrl}
@@ -4766,7 +4767,7 @@ function GuidedWorkoutModal({
             className="guided-video-container"
             style={{ position: 'relative' }}
           >
-            <video
+            <HlsVideo
               key={USE_VIDEO_KEY_REMOUNT ? guidedVideoKey : 'guided-main'}
               ref={(el) => {
                 guidedVideoElRef.current = el;

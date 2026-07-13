@@ -8,6 +8,7 @@ import { useAuth } from '../context/AuthContext';
 import { useBranding } from '../context/BrandingContext';
 import { apiGet } from '../utils/api';
 import { getMuxOrFallbackSrc } from '../utils/exerciseVideo';
+import HlsVideo from '../components/HlsVideo';
 import { useToast } from '../components/Toast';
 import { usePullToRefreshEvent } from '../hooks/usePullToRefreshEvent';
 
@@ -310,7 +311,22 @@ function Leaderboard() {
               </div>
               <button className="gym-proof-close" onClick={() => setWatch(null)}><X size={22} /></button>
             </div>
-            <video src={getMuxOrFallbackSrc(watch.muxPlaybackId, watch.videoUrl)} controls autoPlay playsInline className="lb-video-full" />
+            <HlsVideo
+              src={getMuxOrFallbackSrc(watch.muxPlaybackId, watch.videoUrl)}
+              controls
+              autoPlay
+              playsInline
+              className="lb-video-full"
+              onError={(e) => {
+                // Mux stream failed — drop to the original uploaded file.
+                const el = e?.target;
+                if (el && watch?.videoUrl && el.getAttribute('src') !== watch.videoUrl) {
+                  el.src = watch.videoUrl;
+                  el.load();
+                  el.play?.().catch(() => { /* controls remain */ });
+                }
+              }}
+            />
           </div>
         </div>
       )}
