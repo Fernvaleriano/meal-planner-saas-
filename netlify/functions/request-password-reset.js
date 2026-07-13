@@ -73,11 +73,17 @@ exports.handler = async (event) => {
         // same gate as every other branded surface).
         let coach = null;
         if (client?.coach_id) {
-            const { data } = await supabase
+            // NOTE: every column here must exist on coaches — one bad column
+            // makes PostgREST reject the whole select, coach stays null, and
+            // the email silently falls back to default Ziquecoach branding.
+            // That exact bug (a nonexistent full_name column) shipped once;
+            // log the error loudly so it can never hide again.
+            const { data, error: coachError } = await supabase
                 .from('coaches')
-                .select('id, name, full_name, email, subscription_tier, brand_name, brand_app_name, brand_primary_color, brand_logo_url, brand_email_logo_url, brand_email_footer')
+                .select('id, name, email, subscription_tier, brand_name, brand_app_name, brand_primary_color, brand_logo_url, brand_email_logo_url, brand_email_footer')
                 .eq('id', client.coach_id)
                 .single();
+            if (coachError) console.error('request-password-reset coach lookup failed:', coachError.message);
             coach = data || null;
         }
 

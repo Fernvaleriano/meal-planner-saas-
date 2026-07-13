@@ -2151,6 +2151,7 @@
                 }
                 if (cb.displayName) {
                     document.title = `Your Meal Plan - ${cb.displayName}`;
+                    var __awm = document.querySelector('meta[name="apple-mobile-web-app-title"]'); if (__awm) __awm.content = cb.displayName;
                 }
             } catch (e) { /* branding is cosmetic — never block the plan */ }
         }
@@ -2204,6 +2205,7 @@
                 // Update page title
                 if (b.brand_name) {
                     document.title = `Your Meal Plan - ${b.brand_name}`;
+                    var __awm = document.querySelector('meta[name="apple-mobile-web-app-title"]'); if (__awm) __awm.content = b.brand_name;
                 }
 
                 console.log('✅ Coach branding applied:', { primary, secondary });

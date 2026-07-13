@@ -131,7 +131,7 @@ export default {
   shareWater: 'น้ำ',
   shareFoodsLogged: 'อาหารที่บันทึก',
   shareDiaryBtn: 'แชร์ไดอารี่',
-  shareCardPoweredBy: 'ขับเคลื่อนโดย Ziquecoach',
+  shareCardPoweredBy: 'ขับเคลื่อนโดย {brand}',
   shareCardFoodsLogged_one: 'บันทึกอาหารวันนี้ {count} รายการ',
   shareCardFoodsLogged_other: 'บันทึกอาหารวันนี้ {count} รายการ',
 

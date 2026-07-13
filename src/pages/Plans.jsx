@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { ChevronLeft, ChevronRight, Calendar, Flame, Target, Clock, Utensils, Coffee, Sun, Moon, Apple, Heart, ClipboardList, RefreshCw, Pencil, Crosshair, BookOpen, X, Plus, Minus, Trash2, Search, Undo2, RotateCcw, ShoppingCart, ChefHat, FileDown, Check, MessageSquare, Mic, MoreHorizontal } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useBranding } from '../context/BrandingContext';
 import { useLanguage } from '../context/LanguageContext';
 import { apiGet, apiPost, apiDelete } from '../utils/api';
 import { usePullToRefresh, PullToRefreshIndicator } from '../hooks/usePullToRefresh';
@@ -80,6 +81,7 @@ const getLocalDateString = () => {
 
 function Plans() {
   const { clientData } = useAuth();
+  const { branding } = useBranding();
   const { t, language } = useLanguage();
   const location = useLocation();
   const navigate = useNavigate();
@@ -1656,7 +1658,7 @@ Keep it practical and brief. Format with clear sections.`;
     const pdfGroceryHeading = t('plansPage.pdfGroceryHeading');
     const pdfGrocerySubheading = t('plansPage.pdfGrocerySubheading');
     const pdfMealPrepHeading = t('plansPage.pdfMealPrepHeading');
-    const pdfFooter = t('plansPage.pdfFooter');
+    const pdfFooter = t('plansPage.pdfFooter', { brand: branding?.brand_name || 'Ziquecoach' });
 
     // Create printable content
     let content = `

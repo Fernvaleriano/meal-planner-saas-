@@ -201,7 +201,7 @@ export default {
   pdfGroceryHeading: 'รายการซื้อของ',
   pdfGrocerySubheading: 'ติ๊กรายการตอนไปซื้อของ',
   pdfMealPrepHeading: 'คู่มือเตรียมอาหาร',
-  pdfFooter: 'สร้างโดย Ziquecoach',
+  pdfFooter: 'สร้างโดย {brand}',
   errorSavePlan: 'บันทึกการเปลี่ยนแปลงไม่ได้ เช็คการเชื่อมต่อแล้วลองอีกครั้ง',
   errorPopupBlocked: 'เปิดหน้าพิมพ์ไม่ได้ เบราว์เซอร์บล็อกป๊อปอัป',
 };

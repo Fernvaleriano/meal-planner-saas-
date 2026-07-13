@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { X, Camera, RotateCcw, Send, Flame, ChevronDown, Clock } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useBranding } from '../context/BrandingContext';
 import { apiPost, apiGet } from '../utils/api';
 import { getDateLocale } from '../utils/dateLocale';
 import BadgeCelebrationModal from './BadgeCelebrationModal';
@@ -20,6 +21,7 @@ const STEPS = {
 
 function GymProofModal({ isOpen, onClose }) {
   const { clientData } = useAuth();
+  const { branding } = useBranding();
   const [step, setStep] = useState(STEPS.INSTRUCTIONS);
   const [photoData, setPhotoData] = useState(null);
   const [stampedPhoto, setStampedPhoto] = useState(null);
@@ -254,6 +256,7 @@ function GymProofModal({ isOpen, onClose }) {
         earnedTiers,
         clientName: clientData?.client_name,
         bgImage: shareBgImage,
+        brandLogoUrl: branding?.brand_logo_url || null,
       });
       const caption = `Just unlocked ${tier.name} ${tier.icon} — ${newCount} gym check-ins strong!`;
       await shareOrDownloadBadge(blob, tier, caption);

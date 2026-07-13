@@ -1105,6 +1105,7 @@
                 }
                 if (branding.brand_name) {
                     document.title = 'Complete Your Profile - ' + branding.brand_name;
+                    var __awm = document.querySelector('meta[name="apple-mobile-web-app-title"]'); if (__awm) __awm.content = branding.brand_name;
                 }
             } catch (e) { /* branding is cosmetic — never block the form */ }
         }
