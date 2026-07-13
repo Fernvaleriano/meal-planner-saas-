@@ -1660,6 +1660,18 @@
                         <p class="form-hint">This replaces "Ziquecoach" throughout the app</p>
                     </div>
 
+                    <div class="form-group" id="clientLoginLinkGroup" style="display: none;">
+                        <label class="form-label" for="clientLoginLink">Your Client Login Link</label>
+                        <div style="display: flex; gap: 8px;">
+                            <input type="text" id="clientLoginLink" class="form-input" readonly style="flex: 1;">
+                            <button type="button" onclick="copyClientLoginLink()"
+                                style="padding: 10px 18px; border: none; border-radius: 8px; background: #2cb5a5; color: #fff; font-weight: 600; cursor: pointer; white-space: nowrap;">
+                                Copy
+                            </button>
+                        </div>
+                        <p class="form-hint">Share this address with your clients. It opens a login page with your logo and name — and when they save the app to their phone's home screen from it, the app is named and branded as yours.</p>
+                    </div>
+
                     <div class="logo-upload-grid">
                         <!-- Main Logo -->
                         <div class="logo-upload-item">
@@ -2445,6 +2457,24 @@
             }
         }
 
+        // Copy the coach's branded client login address to the clipboard
+        function copyClientLoginLink() {
+            const input = document.getElementById('clientLoginLink');
+            if (!input || !input.value) return;
+            const done = () => showToast('Login link copied!', 'success');
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(input.value).then(done, () => {
+                    input.select();
+                    document.execCommand('copy');
+                    done();
+                });
+            } else {
+                input.select();
+                document.execCommand('copy');
+                done();
+            }
+        }
+
         // Load branding from coach record (already fetched from Supabase)
         function loadBrandingFromCoach(coach) {
             try {
@@ -2470,6 +2500,17 @@
                 };
 
                 originalBranding = { ...currentBranding };
+
+                // Branded client login address (slug auto-generated per coach,
+                // resolved by /gym/* → gym-login function). Hidden if this
+                // coach somehow has no slug yet.
+                try {
+                    if (coach.brand_slug) {
+                        document.getElementById('clientLoginLink').value =
+                            window.location.origin + '/gym/' + coach.brand_slug;
+                        document.getElementById('clientLoginLinkGroup').style.display = '';
+                    }
+                } catch (e) { /* non-critical */ }
 
                 // Update form (hex text inputs)
                 document.getElementById('brandName').value = currentBranding.brand_name;
