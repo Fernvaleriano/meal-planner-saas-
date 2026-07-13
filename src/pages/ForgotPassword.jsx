@@ -43,19 +43,32 @@ function ForgotPassword() {
     setLoading(true);
     setError('');
 
+    const cleanEmail = email.toLowerCase().trim();
     try {
-      // Send password reset email via Supabase directly
-      // No pre-check against clients table — RLS blocks anonymous reads,
-      // and skipping the check avoids leaking whether an email exists
-      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email.toLowerCase().trim(), {
-        redirectTo: `${window.location.origin}/set-password.html`
+      // Branded reset: the server looks up which coach this member belongs
+      // to and sends the reset email in that coach's name/logo, with a link
+      // that lands on the coach-branded set-password page. It always reports
+      // success for a well-formed request, so nothing leaks about whether
+      // the email exists.
+      const res = await fetch('/.netlify/functions/request-password-reset', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: cleanEmail }),
       });
-
-      if (resetError) throw resetError;
-
+      if (!res.ok) throw new Error('branded-reset-failed');
       setSuccess(true);
-    } catch (err) {
-      setError(err.message || t('forgot.sendFailed'));
+    } catch {
+      // Fall back to Supabase's built-in reset email (unbranded but
+      // reliable) so a member is never left unable to reset at all.
+      try {
+        const { error: resetError } = await supabase.auth.resetPasswordForEmail(cleanEmail, {
+          redirectTo: `${window.location.origin}/set-password.html`
+        });
+        if (resetError) throw resetError;
+        setSuccess(true);
+      } catch (err) {
+        setError(err.message || t('forgot.sendFailed'));
+      }
     } finally {
       setLoading(false);
     }

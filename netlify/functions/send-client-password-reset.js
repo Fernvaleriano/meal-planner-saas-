@@ -86,8 +86,10 @@ exports.handler = async (event, context) => {
       };
     }
 
-    // Generate password reset link using Supabase Auth admin API
-    const redirectUrl = `${APP_URL}/set-password.html`;
+    // Generate password reset link using Supabase Auth admin API.
+    // coachId in the redirect brands the set-password page and routes the
+    // client to the coach's branded login afterwards.
+    const redirectUrl = `${APP_URL}/set-password.html?coachId=${coachId}`;
 
     const { data: linkData, error: resetError } = await supabase.auth.admin.generateLink({
       type: 'recovery',
