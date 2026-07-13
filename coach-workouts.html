@@ -7992,6 +7992,21 @@
             return data;
         }
 
+        // Pick a random cover from the shared "Default Workout Pictures" library so
+        // an AI-generated program isn't left with a blank background — same source
+        // and behavior as the client app. Best-effort: returns null if the library
+        // is empty or the lookup fails, and the program just saves coverless.
+        async function _pickRandomWorkoutCover() {
+            try {
+                const lib = await apiCall('/.netlify/functions/workout-cover-library');
+                const covers = Array.isArray(lib?.covers) ? lib.covers : [];
+                if (covers.length) return covers[Math.floor(Math.random() * covers.length)].url;
+            } catch (e) {
+                console.error('Could not fetch a cover for the AI workout:', e);
+            }
+            return null;
+        }
+
         // Initialize
         document.addEventListener('DOMContentLoaded', async () => {
             await checkAuth();
@@ -14721,6 +14736,9 @@
             const program = result.program || {};
             const days = (typeof _aiResultToWorkoutDays === 'function') ? _aiResultToWorkoutDays(program) : (program.weeks?.[0]?.workouts || []);
             const name = program.programName || `${client.client_name || 'Client'} — AI Program`;
+            // Give each bulk-generated draft a random cover from the shared photo
+            // library so it doesn't save blank (same as the client app). Best-effort.
+            const coverUrl = await _pickRandomWorkoutCover();
             await apiCall('/.netlify/functions/workout-programs', {
                 method: 'POST',
                 body: JSON.stringify({
@@ -14728,6 +14746,7 @@
                     description: program.description || `${s.daysPerWeek} days/week, ${s.duration} weeks, ${s.experience} level`,
                     programType: s.goal, difficulty: s.experience, durationWeeks: s.duration, daysPerWeek: s.daysPerWeek,
                     programData: { days, coachNote: program.coachNote || null, start_date: null },
+                    heroImageUrl: coverUrl || undefined,
                     isTemplate: true, isPublished: false
                 })
             });
@@ -15138,6 +15157,17 @@
 
             workoutDays = _aiResultToWorkoutDays(program);
             renderWorkoutDays();
+
+            // Auto-assign a random cover from the shared photo library so the AI
+            // program doesn't save with a blank background (matches the client
+            // app). Only if the coach hasn't already chosen one; non-blocking and
+            // best-effort — the coach can still swap or remove it before saving.
+            if (!document.getElementById('heroImageUrl').value) {
+                _pickRandomWorkoutCover().then(url => {
+                    if (url && !document.getElementById('heroImageUrl').value) setHeroImage(url);
+                });
+            }
+
             closeAIPreview();
 
             const stats = result.matchStats || {};
