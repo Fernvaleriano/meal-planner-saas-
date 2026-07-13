@@ -2280,8 +2280,21 @@ function ExerciseDetailModal({
   // the user has a way out. If the video quietly recovers on its own first,
   // onCanPlay clears the error, so this only ever surfaces on a real hang.
   useEffect(() => {
+    // Only watchdog the cases that actually show a spinner: a coach video whose
+    // signed URL is still resolving AND has no playable fallback on screen yet,
+    // or a *silent stock animation* still loading. Two rules matter here:
+    //   1. customVideoResolving must be gated on !playableVideoSrc. On a day the
+    //      client just opened, the background re-sign hasn't populated
+    //      customVideoUrl yet, but the video plays fine from the video_url/
+    //      animation_url fallback. Without this gate the "still resolving" flag
+    //      pins the spinner up forever on top of a video that IS playing — the
+    //      exact "plays but spinner stays on past days" bug.
+    //   2. Coach videos (videoHasAudio) render native controls + a poster frame
+    //      and never show the spinner, so they must NOT be flipped into the Retry
+    //      state just because iOS deferred loading a paused, controls-enabled
+    //      video (no onCanPlay fires). Genuine failures still surface via onError.
     const waiting = showVideo && !videoError &&
-      (customVideoResolving || (videoLoading && !!playableVideoSrc));
+      ((customVideoResolving && !playableVideoSrc) || (videoLoading && !!playableVideoSrc && !videoHasAudio));
     if (!waiting) return;
     const timer = setTimeout(() => {
       if (isMountedRef.current) {
@@ -2290,7 +2303,7 @@ function ExerciseDetailModal({
       }
     }, 15000);
     return () => clearTimeout(timer);
-  }, [showVideo, videoLoading, videoError, playableVideoSrc, customVideoResolving, videoKey]);
+  }, [showVideo, videoLoading, videoError, playableVideoSrc, customVideoResolving, videoHasAudio, videoKey]);
 
   // Fallback: when video fails, re-fetch a fresh signed URL if this is a custom video
   const handleVideoError = useCallback(async (e) => {
@@ -2518,7 +2531,18 @@ function ExerciseDetailModal({
                   onError={handleVideoError}
                 />
               )}
-              {!videoError && (customVideoResolving || (videoLoading && !!playableVideoSrc)) && (
+              {/* Spinner only for a coach video whose signed URL is still
+                  resolving with NO playable video on screen yet, or a silent
+                  stock animation still loading. Never over a video that is
+                  actually rendering: on a just-opened day the video plays from
+                  the video_url/animation_url fallback before the re-signed
+                  customVideoUrl arrives, and gating on !playableVideoSrc stops
+                  the "still resolving" flag from pinning the spinner up forever
+                  ("plays but spinner stays"). Coach videos (videoHasAudio) also
+                  already show a poster + native play button, so the opaque black
+                  spinner just covered a working video and stuck on iOS when
+                  onCanPlay didn't fire. Matches GuidedWorkoutModal's behaviour. */}
+              {!videoError && ((customVideoResolving && !playableVideoSrc) || (videoLoading && !!playableVideoSrc && !videoHasAudio)) && (
                 <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#000', zIndex: 2, pointerEvents: 'none' }}>
                   <Loader2 size={36} style={{ color: 'white', animation: 'spin 1s linear infinite' }} />
                 </div>
