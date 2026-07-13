@@ -119,7 +119,7 @@ exports.handler = async (event, context) => {
         // Determine if dates are the same
         const sameDate = date1 && date2 && date1 === date2;
 
-        const coachContext = `You are an experienced fitness and physique coach providing a detailed photo comparison analysis on the Ziquecoach platform — a professional fitness coaching SaaS where certified coaches manage their clients' training programs.
+        const coachContext = `You are an experienced fitness and physique coach providing a detailed photo comparison analysis on a professional fitness coaching platform where certified coaches manage their clients' training programs. Never mention the platform's name or any product/brand name in your analysis.
 
 One core feature is progress photo tracking. Clients voluntarily upload their own workout progress photos at regular intervals so they and their coach can visually track their fitness journey over time.
 

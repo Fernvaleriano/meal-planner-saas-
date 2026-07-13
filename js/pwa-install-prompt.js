@@ -247,6 +247,19 @@
         document.body.appendChild(bannerElement);
     }
 
+    // The app name for install UI: the page's (possibly coach-branded)
+    // apple-mobile-web-app-title meta, falling back to the platform name.
+    // Client pages (e.g. client-intake.html) rewrite that meta when coach
+    // branding loads, so members see "Install Huracan Fitness" — never the
+    // platform brand (white-label rule).
+    function getInstallAppName() {
+        try {
+            var meta = document.querySelector('meta[name="apple-mobile-web-app-title"]');
+            if (meta && meta.content) return meta.content;
+        } catch (e) { /* fall through */ }
+        return 'Ziquecoach';
+    }
+
     // Show banner for Chrome/Android (with native install)
     function showNativeInstallBanner() {
         bannerElement.innerHTML = `
@@ -265,7 +278,7 @@
                     </svg>
                 </div>
                 <div class="pwa-install-text">
-                    <div class="pwa-install-title">Install Ziquecoach</div>
+                    <div class="pwa-install-title">Install ${getInstallAppName()}</div>
                     <p class="pwa-install-description">Add to your home screen for quick access, offline support, and a native app experience.</p>
                 </div>
             </div>

@@ -5569,7 +5569,7 @@ function Workouts() {
         ctx.fillStyle = '#cbd5e1';
         ctx.font = '18px -apple-system, BlinkMacSystemFont, sans-serif';
         ctx.textAlign = 'center';
-        ctx.fillText(t('workoutsPage.poweredBy', { name: coachBranding?.brand_name || 'Ziquecoach' }), width / 2, height - 30);
+        ctx.fillText(t('workoutsPage.poweredBy', { name: coachBranding?.brand_app_name || coachBranding?.brand_name || 'Ziquecoach' }), width / 2, height - 30);
         ctx.restore();
 
         // Convert and share
@@ -6788,7 +6788,7 @@ function Workouts() {
                   <div className="share-card-brand">
                     <img
                       src={coachBranding?.brand_logo_url || 'https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/assets/ziquecoach-logo-teal.png'}
-                      alt={coachBranding?.brand_name || 'Ziquecoach'}
+                      alt={coachBranding?.brand_app_name || coachBranding?.brand_name || 'Ziquecoach'}
                       className="share-card-logo"
                     />
                   </div>
