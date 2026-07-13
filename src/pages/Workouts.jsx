@@ -43,6 +43,15 @@ const findLogForWorkout = (workout, logs) => {
   return logs.find((l) => l && l.assignment_id === workout.id) || null;
 };
 
+// Canonical identity of a workout CARD INSTANCE. Two days of the same
+// multi-day program scheduled on one date share the same assignment `id` and
+// differ only by day_index — so any "re-find the active workout" that matches
+// on `.id` alone silently returns the FIRST instance (e.g. Day 2 when the
+// user picked Day 3) on every refresh/resume. ALWAYS re-match the active
+// workout with this key, never with `.id`. Ad-hoc cards render at day_index 0
+// and log-rebuilt cards carry instance_id `log-<id>`, so both are covered.
+const instanceKey = (w) => w?.instance_id || `${w?.id}-${w?.day_index || 0}`;
+
 // Delete the workout_log rows that belong to a workout being removed, so a
 // completed log can't resurrect the card via buildWorkoutFromLog on the next
 // refresh (the "deleted AI workout pops right back" bug). Assigned workouts
@@ -1006,11 +1015,15 @@ function Workouts() {
     try {
       localStorage.setItem('zique_soft_reset_pending', String(Date.now()));
       // Save which workout was active so the post-reload page can pick
-      // it back up instead of defaulting to allWorkouts[0].
+      // it back up instead of defaulting to allWorkouts[0]. Store the FULL
+      // instance key (instance_id || `${id}-${day_index}`), not the bare id:
+      // two days of one program share an id, and a bare-id target would land
+      // the post-reload restore on the wrong day. Readers match on
+      // instanceKey first with a bare-id fallback for values written by
+      // older code.
       const activeWorkout = todayWorkoutRef.current;
-      const targetId = activeWorkout?.id;
-      if (targetId) {
-        localStorage.setItem('zique_soft_reset_target_workout_id', String(targetId));
+      if (activeWorkout?.id) {
+        localStorage.setItem('zique_soft_reset_target_workout_id', String(instanceKey(activeWorkout)));
       }
       // Persist the active workout into the per-date cache so the post-reload
       // restore can find it even if the network fetch is slow / fails. Brand-new
@@ -1025,9 +1038,13 @@ function Workouts() {
         const cacheKey = `workouts_${clientId}_${dateStr}`;
         const existing = getCache(cacheKey) || {};
         const existingList = Array.isArray(existing.todayWorkouts) ? existing.todayWorkouts : [];
-        const hasActive = existingList.some(w => w?.id === activeWorkout.id);
+        // Match by full instance key — an id-only match would replace EVERY
+        // same-program day in the list with the active one (duplicating it
+        // and losing the sibling card).
+        const activeKey = instanceKey(activeWorkout);
+        const hasActive = existingList.some(w => instanceKey(w) === activeKey);
         const mergedList = hasActive
-          ? existingList.map(w => (w?.id === activeWorkout.id ? activeWorkout : w))
+          ? existingList.map(w => (instanceKey(w) === activeKey ? activeWorkout : w))
           : [...existingList, activeWorkout];
         setCache(cacheKey, {
           ...existing,
@@ -1101,16 +1118,20 @@ function Workouts() {
     if (showGuidedWorkout) return;
     const target = softResetTargetWorkoutIdRef.current;
     if (target != null) {
-      // String-coerce both sides — assignment ids are numbers, adhoc ids
-      // are UUID strings, and the stored target is always a string.
-      if (String(todayWorkout?.id ?? '') !== String(target)) return;
+      // The stored target is the full instance key (see handleSoftReset) —
+      // matching the bare id would fire on the WRONG day when two days of
+      // one program share a date. Bare-id comparison kept as a fallback for
+      // targets written by older code, string-coerced because assignment
+      // ids are numbers and adhoc ids are UUID strings.
+      const t = String(target);
+      if (instanceKey(todayWorkout) !== t && String(todayWorkout?.id ?? '') !== t) return;
     } else {
       if (!todayWorkout?.id) return;
     }
     softResetTargetWorkoutIdRef.current = null;
     setShowGuidedWorkout(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pendingSoftResume, showGuidedWorkout, todayWorkout?.id]);
+  }, [pendingSoftResume, showGuidedWorkout, todayWorkout?.id, todayWorkout?.instance_id, todayWorkout?.day_index]);
   const [showGymProof, setShowGymProof] = useState(false);
   const [showFinishConfirm, setShowFinishConfirm] = useState(false);
   const [showShareResults, setShowShareResults] = useState(false);
@@ -1175,12 +1196,12 @@ function Workouts() {
   // cascade has 6+ steps and each render re-creates 15 ExerciseCards.
   useEffect(() => {
     if (!todayWorkout?.id) return;
-    const matchKey = todayWorkout.instance_id || `${todayWorkout.id}-${todayWorkout.day_index}`;
+    const matchKey = instanceKey(todayWorkout);
     setTodayWorkouts(prev => {
-      const idx = prev.findIndex(w => (w.instance_id || `${w.id}-${w.day_index}`) === matchKey);
+      const idx = prev.findIndex(w => instanceKey(w) === matchKey);
       if (idx === -1) return prev; // workout not in list, nothing to sync
       if (prev[idx] === todayWorkout) return prev; // already the same reference
-      return prev.map(w => (w.instance_id || `${w.id}-${w.day_index}`) === matchKey ? todayWorkout : w);
+      return prev.map(w => instanceKey(w) === matchKey ? todayWorkout : w);
     });
   }, [todayWorkout]);
 
@@ -1619,26 +1640,39 @@ function Workouts() {
 
       setTodayWorkouts(allWorkouts);
 
+      // Hoisted so the cache write below can store the ACTUAL selection —
+      // caching allWorkouts[0] instead would snap the user back to the first
+      // card on the next cache restore.
+      let active = null;
+      let activeLog = null;
       if (allWorkouts.length > 0) {
         // After a soft-reset reload, prefer the workout the client was
         // actively in (saved to softResetTargetWorkoutIdRef). Otherwise
         // keep current selection if it still exists, else default to
         // the first workout.
         const target = softResetTargetWorkoutIdRef.current;
-        let active = null;
         if (target != null) {
-          // String-coerce both sides: assignments use numeric ids, adhoc
-          // workouts use UUID strings.
-          active = allWorkouts.find(w => String(w.id ?? '') === String(target)) || null;
+          // The target is the full instance key; bare-id find kept as a
+          // fallback for targets written by older code. String-coerce both
+          // sides: assignments use numeric ids, adhoc workouts use UUIDs.
+          active = allWorkouts.find(w => instanceKey(w) === String(target))
+            || allWorkouts.find(w => String(w.id ?? '') === String(target))
+            || null;
         }
         if (!active) {
-          const currentId = todayWorkoutRef.current?.id;
-          const stillExists = allWorkouts.find(w => w.id === currentId);
+          // Re-match the current selection by FULL instance key, never bare
+          // id — two days of one program share an id, and an id-only find
+          // returns the first day, silently flipping the user's pick back
+          // to Day 2 on every background refresh.
+          const current = todayWorkoutRef.current;
+          const stillExists = current
+            ? allWorkouts.find(w => instanceKey(w) === instanceKey(current))
+            : null;
           active = stillExists || allWorkouts[0];
         }
         setTodayWorkout(active);
 
-        const activeLog = !active.is_adhoc ? findLogForWorkout(active, logRes?.logs) : null;
+        activeLog = !active.is_adhoc ? findLogForWorkout(active, logRes?.logs) : null;
         if (activeLog) {
           setWorkoutLog(activeLog);
           setWorkoutStarted(activeLog?.status === 'in_progress' || activeLog?.status === 'completed');
@@ -1673,12 +1707,14 @@ function Workouts() {
       // the network fetch corrects it.
       if (!anyFailed) {
         const cacheKey = `workouts_${clientData.id}_${dateStr}`;
-        const first = allWorkouts[0] || null;
-        const log = first && !first.is_adhoc ? findLogForWorkout(first, logRes?.logs) : null;
+        // Store the ACTUAL current selection (matched by instance key above),
+        // not allWorkouts[0] — caching the first card made every cache
+        // restore revert a multi-workout day to Day 2 after the user had
+        // picked Day 3.
         setCache(cacheKey, {
-          todayWorkout: first,
+          todayWorkout: active,
           todayWorkouts: allWorkouts,
-          workoutLog: log
+          workoutLog: activeLog
         });
       }
 
@@ -1696,7 +1732,11 @@ function Workouts() {
         ).then((refreshedAssignments) => {
           // Bail if user has since moved to a different day
           if (formatDate(selectedDateRef.current) !== dateStr) return;
-          const matchKey = (w) => w.instance_id || w.id;
+          // Full instance key, not bare id: legacy cards without an
+          // instance_id can still be several days of one program sharing an
+          // id, so an id fallback would refresh them all with the first
+          // day's data.
+          const matchKey = instanceKey;
           setTodayWorkouts(prev => prev.map(w => {
             const refreshed = refreshedAssignments.find(r => matchKey(r) === matchKey(w));
             return refreshed || w;
@@ -1794,13 +1834,18 @@ function Workouts() {
         // the user is stuck on the static splash overlay. Mirrors the same
         // preference check in refreshWorkoutData.
         const softResetTarget = softResetTargetWorkoutIdRef.current;
+        // The target is the full instance key (bare-id find kept as a
+        // fallback for targets written by older code) — an id-only match
+        // lands on the wrong day when two days of one program share a date.
         const targetFromCache = softResetTarget != null
-          ? (cachedList.find(w => String(w?.id ?? '') === String(softResetTarget)) || null)
+          ? (cachedList.find(w => instanceKey(w) === String(softResetTarget))
+            || cachedList.find(w => String(w?.id ?? '') === String(softResetTarget))
+            || null)
           : null;
         let preserved;
         if (targetFromCache) {
           preserved = targetFromCache;
-        } else if (currentPick && cachedList.some(w => w?.id === currentPick.id)) {
+        } else if (currentPick && cachedList.some(w => instanceKey(w) === instanceKey(currentPick))) {
           preserved = currentPick;
         } else {
           preserved = dateCache.todayWorkout || null;
@@ -1942,15 +1987,22 @@ function Workouts() {
           // effect (line ~858) bails because the ids don't match — Play
           // Mode never reopens for non-top workouts on multi-workout days.
           const softResetTarget = softResetTargetWorkoutIdRef.current;
+          // The target is the full instance key (bare-id find kept as a
+          // fallback for targets written by older code).
           const targetMatch = softResetTarget != null
-            ? (allWorkouts.find(w => String(w?.id ?? '') === String(softResetTarget)) || null)
+            ? (allWorkouts.find(w => instanceKey(w) === String(softResetTarget))
+              || allWorkouts.find(w => String(w?.id ?? '') === String(softResetTarget))
+              || null)
             : null;
           const currentPick = todayWorkoutRef.current;
           let preservedPick;
           if (targetMatch) {
             preservedPick = targetMatch;
-          } else if (currentPick && allWorkouts.some(w => w?.id === currentPick.id)) {
-            preservedPick = allWorkouts.find(w => w?.id === currentPick.id) || allWorkouts[0];
+          } else if (currentPick) {
+            // Re-match the pick by FULL instance key, never bare id — an
+            // id-only find returns the FIRST day of a multi-day program and
+            // silently flips the user's selection back to it on every fetch.
+            preservedPick = allWorkouts.find(w => instanceKey(w) === instanceKey(currentPick)) || allWorkouts[0];
           } else {
             preservedPick = allWorkouts[0];
           }
@@ -1998,12 +2050,12 @@ function Workouts() {
             })
           ).then((refreshedAssignments) => {
             if (!mounted || formatDate(selectedDateRef.current) !== dateStr) return;
-            // Match by instance_id, not id: when one assignment renders multiple
-            // cards on the same date (e.g. Day 1 added + Day 2 natural after a
-            // reschedule), every card shares the assignment id, so an id-only
-            // find() returns the first card for ALL of them and collapses the
-            // list into duplicates.
-            const matchKey = (w) => w.instance_id || w.id;
+            // Match by FULL instance key, not id: when one assignment renders
+            // multiple cards on the same date (e.g. Day 1 added + Day 2
+            // natural after a reschedule), every card shares the assignment
+            // id, so an id-only find() returns the first card for ALL of
+            // them and collapses the list into duplicates.
+            const matchKey = instanceKey;
             setTodayWorkouts(prev => prev.map(w => {
               const refreshed = refreshedAssignments.find(r => matchKey(r) === matchKey(w));
               return refreshed || w;
@@ -3100,8 +3152,8 @@ function Workouts() {
     // are dimmed + pointer-events: none, but on Android the touchend can
     // sometimes still fire one tap through during the opacity transition.
     if (loading) return;
-    const currentKey = todayWorkout?.instance_id || `${todayWorkout?.id}-${todayWorkout?.day_index}`;
-    const newKey = workout.instance_id || `${workout.id}-${workout.day_index}`;
+    const currentKey = instanceKey(todayWorkout);
+    const newKey = instanceKey(workout);
     if (newKey !== currentKey) {
       // Find the log associated with THIS card so log-derived state
       // (workoutStarted, readiness, completed exercises merged from
@@ -3492,9 +3544,17 @@ function Workouts() {
     try {
       const cacheKey = `workouts_${workout.client_id || clientDataRef.current?.id}_${workout.workout_date || operationDateStr}`;
       const existingCache = getCache(cacheKey) || {};
+      // Only merge the edit onto the cached todayWorkout when it is the SAME
+      // instance (full key, not id) — same-id-different-day would get the
+      // other day's exercises stamped onto it; otherwise store the edited
+      // workout itself as the current pick.
+      const cachedIsSameInstance = existingCache.todayWorkout
+        && instanceKey(existingCache.todayWorkout) === instanceKey(workout);
       setCache(cacheKey, {
         ...existingCache,
-        todayWorkout: { ...(existingCache.todayWorkout || workout), workout_data: updatedWorkoutData },
+        todayWorkout: cachedIsSameInstance
+          ? { ...existingCache.todayWorkout, workout_data: updatedWorkoutData }
+          : { ...workout, workout_data: updatedWorkoutData },
         todayWorkouts: Array.isArray(existingCache.todayWorkouts)
           ? existingCache.todayWorkouts.map(w => {
               // Match by instance_id when both sides have one — multiple cards
@@ -3504,7 +3564,7 @@ function Workouts() {
                 : w?.id === workout.id;
               return sameInstance ? { ...w, workout_data: updatedWorkoutData } : w;
             })
-          : [{ ...(existingCache.todayWorkout || workout), workout_data: updatedWorkoutData }]
+          : [{ ...workout, workout_data: updatedWorkoutData }]
       });
     } catch { /* ignore */ }
 
