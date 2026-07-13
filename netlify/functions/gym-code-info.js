@@ -67,6 +67,10 @@ exports.handler = async (event) => {
       headers,
       body: JSON.stringify({
         valid: true,
+        // Coach id so the join page can send new members to the BRANDED
+        // login (/app/login?coachId=...) — not secret, it's the same id
+        // used in every branded login link.
+        coachId: gymCode.coach_id,
         gymName: gym?.brand_app_name || gym?.brand_name || 'Your Gym',
         logoUrl: gym?.brand_logo_url || null,
         primaryColor: gym?.brand_primary_color || null,
