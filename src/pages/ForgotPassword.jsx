@@ -164,7 +164,7 @@ function ForgotPassword() {
 
         {/* Footer */}
         <div className="login-footer">
-          <p>{t('forgot.poweredBy')}</p>
+          <p>{t('forgot.poweredBy', { brand: brandName })}</p>
         </div>
       </div>
 
