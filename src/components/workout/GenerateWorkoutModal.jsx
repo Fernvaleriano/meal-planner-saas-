@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { X, Sparkles, Dumbbell } from 'lucide-react';
 import { apiGet, apiPost } from '../../utils/api';
+import { useLanguage } from '../../context/LanguageContext';
 
 /**
  * Member-facing AI workout generator (gym / lite-mode members).
@@ -25,75 +26,78 @@ import { apiGet, apiPost } from '../../utils/api';
  *    is disabled until then (the backend has no globals-excluded mode yet).
  */
 
+// Labels/hints are translation keys in the `generateWorkoutModal` namespace,
+// resolved at render with t(). `value` is what the generator receives and must
+// never be translated.
 const GOALS = [
-  { value: 'hypertrophy', label: 'Build muscle' },
-  { value: 'strength', label: 'Get stronger' },
-  { value: 'endurance', label: 'Endurance' },
+  { value: 'hypertrophy', key: 'goalHypertrophy' },
+  { value: 'strength', key: 'goalStrength' },
+  { value: 'endurance', key: 'goalEndurance' },
 ];
 
 // Values map to the generator's muscleGroupMap keys.
 const FOCUS = [
-  { value: '', label: 'Full body' },
-  { value: 'upper_body', label: 'Upper' },
-  { value: 'lower_body', label: 'Lower' },
-  { value: 'push', label: 'Push' },
-  { value: 'pull', label: 'Pull' },
-  { value: 'chest', label: 'Chest' },
-  { value: 'back', label: 'Back' },
-  { value: 'shoulders', label: 'Shoulders' },
-  { value: 'arms', label: 'Arms' },
-  { value: 'legs', label: 'Legs' },
-  { value: 'glutes', label: 'Glutes' },
-  { value: 'core', label: 'Core / Abs' },
+  { value: '', key: 'focusFull' },
+  { value: 'upper_body', key: 'focusUpper' },
+  { value: 'lower_body', key: 'focusLower' },
+  { value: 'push', key: 'focusPush' },
+  { value: 'pull', key: 'focusPull' },
+  { value: 'chest', key: 'focusChest' },
+  { value: 'back', key: 'focusBack' },
+  { value: 'shoulders', key: 'focusShoulders' },
+  { value: 'arms', key: 'focusArms' },
+  { value: 'legs', key: 'focusLegs' },
+  { value: 'glutes', key: 'focusGlutes' },
+  { value: 'core', key: 'focusCore' },
 ];
 
 const EXPERIENCE = [
-  { value: 'beginner', label: 'Beginner' },
-  { value: 'intermediate', label: 'Intermediate' },
-  { value: 'advanced', label: 'Advanced' },
+  { value: 'beginner', key: 'expBeginner' },
+  { value: 'intermediate', key: 'expIntermediate' },
+  { value: 'advanced', key: 'expAdvanced' },
 ];
 
 const LENGTHS = [
-  { value: 30, label: '30 min' },
-  { value: 45, label: '45 min' },
-  { value: 60, label: '60 min' },
-  { value: 90, label: '90 min' },
+  { value: 30 },
+  { value: 45 },
+  { value: 60 },
+  { value: 90 },
 ];
 
 // Maps to the generator's trainingStyle styleMap.
 const STYLES = [
-  { value: 'straight_sets', label: 'Straight sets', hint: 'One at a time' },
-  { value: 'supersets', label: 'Supersets', hint: 'Paired exercises' },
-  { value: 'circuits', label: 'Circuits', hint: '3-5 back to back' },
-  { value: 'mixed', label: 'Mixed', hint: 'A bit of both' },
+  { value: 'straight_sets', key: 'styleStraight', hintKey: 'styleStraightHint' },
+  { value: 'supersets', key: 'styleSupersets', hintKey: 'styleSupersetsHint' },
+  { value: 'circuits', key: 'styleCircuits', hintKey: 'styleCircuitsHint' },
+  { value: 'mixed', key: 'styleMixed', hintKey: 'styleMixedHint' },
 ];
 
 // Maps to the generator's conditioningStyle (finisher block).
 const CARDIO = [
-  { value: 'none', label: 'None' },
-  { value: 'hiit', label: 'HIIT finisher' },
-  { value: 'liss', label: 'Steady cardio' },
-  { value: 'mixed', label: 'Surprise me' },
+  { value: 'none', key: 'cardioNone' },
+  { value: 'hiit', key: 'cardioHiit' },
+  { value: 'liss', key: 'cardioLiss' },
+  { value: 'mixed', key: 'cardioSurprise' },
 ];
 
 // Maps to the generator's INJURY_EXCLUSIONS codes — these deterministically
 // remove risky exercises from the pool before the AI even sees them.
 const INJURY_OPTIONS = [
-  { value: 'lower_back', label: 'Lower back' },
-  { value: 'knee', label: 'Knee' },
-  { value: 'shoulder', label: 'Shoulder' },
-  { value: 'wrist', label: 'Wrist' },
-  { value: 'hip', label: 'Hip' },
-  { value: 'neck', label: 'Neck' },
-  { value: 'elbow', label: 'Elbow' },
-  { value: 'ankle', label: 'Ankle' },
-  { value: 'pregnancy', label: 'Pregnancy' },
+  { value: 'lower_back', key: 'injLowerBack' },
+  { value: 'knee', key: 'injKnee' },
+  { value: 'shoulder', key: 'injShoulder' },
+  { value: 'wrist', key: 'injWrist' },
+  { value: 'hip', key: 'injHip' },
+  { value: 'neck', key: 'injNeck' },
+  { value: 'elbow', key: 'injElbow' },
+  { value: 'ankle', key: 'injAnkle' },
+  { value: 'pregnancy', key: 'injPregnancy' },
 ];
 
 const SOURCES = [
-  { value: 'library', label: 'Our library', hint: 'Exercises with videos' },
-  { value: 'both', label: 'Both', hint: 'Our library + gym' },
-  { value: 'gym', label: 'Gym only', hint: 'Add videos first', disabled: true },
+  { value: 'library', key: 'srcLibrary', hintKey: 'srcLibraryHint' },
+  { value: 'both', key: 'srcBoth', hintKey: 'srcBothHint' },
+  { value: 'gym', key: 'srcGym', hintKey: 'srcGymHint', disabled: true },
 ];
 
 // Remembered answers from the member's last generation, so returning members
@@ -111,9 +115,11 @@ function loadSavedPrefs(clientId) {
   }
 }
 
-const BUCKET_LABELS = { push: 'push', pull: 'pull', legs: 'legs', core: 'core' };
+// Bucket → translation key for the "last workout hit …" suggestion line.
+const BUCKET_KEYS = { push: 'bucketPush', pull: 'bucketPull', legs: 'bucketLegs', core: 'bucketCore' };
 
 function GenerateWorkoutModal({ onClose, onGenerated, clientId = null, coachId = null }) {
+  const { t } = useLanguage();
   const savedRef = useRef(undefined);
   if (savedRef.current === undefined) savedRef.current = loadSavedPrefs(clientId);
   const saved = savedRef.current;
@@ -171,12 +177,15 @@ function GenerateWorkoutModal({ onClose, onGenerated, clientId = null, coachId =
 
   const suggestionLine = (() => {
     if (!memory?.lastWorkout) return '';
-    const trained = (memory.lastWorkout.buckets || []).map((b) => BUCKET_LABELS[b] || b).join(' + ');
+    const trained = (memory.lastWorkout.buckets || [])
+      .map((b) => (BUCKET_KEYS[b] ? t(`generateWorkoutModal.${BUCKET_KEYS[b]}`) : b))
+      .join(' + ');
     if (!trained) return '';
-    const suggested = FOCUS.find((o) => o.value === memory.suggestedFocus)?.label;
+    const focusOpt = FOCUS.find((o) => o.value === memory.suggestedFocus);
+    const suggested = focusOpt ? t(`generateWorkoutModal.${focusOpt.key}`) : null;
     return suggested
-      ? `Last workout hit ${trained} — ${suggested.toLowerCase()} looks good today.`
-      : `Last workout hit ${trained}.`;
+      ? t('generateWorkoutModal.suggestionWithFocus', { trained, focus: suggested.toLowerCase() })
+      : t('generateWorkoutModal.suggestionNoFocus', { trained });
   })();
 
   const toggleInjury = (value) => {
@@ -216,13 +225,13 @@ function GenerateWorkoutModal({ onClose, onGenerated, clientId = null, coachId =
       // slow connections / cold starts don't abort a generation that is about
       // to succeed (the function itself is capped at 26s server-side).
       const res = await apiPost('/.netlify/functions/generate-workout-claude', payload, { timeoutMs: 60000 });
-      if (!res?.success) throw new Error(res?.error || 'Could not generate a workout. Please try again.');
+      if (!res?.success) throw new Error(res?.error || t('generateWorkoutModal.errNoGenerate'));
 
       const workout = res.program?.weeks?.[0]?.workouts?.[0];
       // Keep only matched exercises (they carry a real DB id + video). Unmatched
       // names have no id and would render blank in the workout viewer.
       const exercises = (workout?.exercises || []).filter((e) => e && e.id);
-      if (!exercises.length) throw new Error('No matching exercises came back. Try again or widen the source.');
+      if (!exercises.length) throw new Error(t('generateWorkoutModal.errNoMatch'));
 
       // Give the AI workout a random cover from the shared photo library so it
       // isn't left with a blank background. Best-effort: if the library is empty
@@ -260,7 +269,7 @@ function GenerateWorkoutModal({ onClose, onGenerated, clientId = null, coachId =
       onClose?.();
     } catch (err) {
       console.error('AI workout generation failed:', err);
-      setError(err.message || 'Something went wrong. Please try again.');
+      setError(err.message || t('generateWorkoutModal.errGeneric'));
       setLoading(false);
       submittingRef.current = false;
     }
@@ -302,14 +311,14 @@ function GenerateWorkoutModal({ onClose, onGenerated, clientId = null, coachId =
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 800, fontSize: 18 }}>
             <Sparkles size={20} color="var(--brand-primary, #FF5A1F)" />
-            Generate a workout
+            {t('generateWorkoutModal.title')}
           </div>
           <button onClick={() => !loading && onClose?.()} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit' }}>
             <X size={24} />
           </button>
         </div>
         <p style={{ fontSize: 14, opacity: 0.65, margin: '6px 2px 4px' }}>
-          The AI builds today's workout around your goal and the gym's equipment.
+          {t('generateWorkoutModal.subtitle')}
         </p>
 
         {loading ? (
@@ -319,20 +328,20 @@ function GenerateWorkoutModal({ onClose, onGenerated, clientId = null, coachId =
               border: '4px solid rgba(128,128,128,0.25)', borderTopColor: 'var(--brand-primary, #FF5A1F)',
               animation: 'giwSpin 0.8s linear infinite',
             }} />
-            <div style={{ fontWeight: 700 }}>Building your workout…</div>
-            <div style={{ fontSize: 13, opacity: 0.6, marginTop: 4 }}>This can take up to a minute</div>
+            <div style={{ fontWeight: 700 }}>{t('generateWorkoutModal.building')}</div>
+            <div style={{ fontSize: 13, opacity: 0.6, marginTop: 4 }}>{t('generateWorkoutModal.buildingSub')}</div>
             <style>{`@keyframes giwSpin { to { transform: rotate(360deg); } }`}</style>
           </div>
         ) : (
           <>
-            <div style={groupLabel}>MY GOAL</div>
+            <div style={groupLabel}>{t('generateWorkoutModal.myGoal')}</div>
             <div style={row}>
               {GOALS.map((o) => (
-                <div key={o.value} style={chip(goal === o.value)} onClick={() => setGoal(o.value)}>{o.label}</div>
+                <div key={o.value} style={chip(goal === o.value)} onClick={() => setGoal(o.value)}>{t(`generateWorkoutModal.${o.key}`)}</div>
               ))}
             </div>
 
-            <div style={groupLabel}>FOCUS / BODY PART</div>
+            <div style={groupLabel}>{t('generateWorkoutModal.focusBodyPart')}</div>
             {suggestionLine && <div style={groupHint}>{suggestionLine}</div>}
             <div style={row}>
               {FOCUS.map((o) => (
@@ -341,78 +350,78 @@ function GenerateWorkoutModal({ onClose, onGenerated, clientId = null, coachId =
                   style={smallChip(focus === o.value)}
                   onClick={() => { focusTouchedRef.current = true; setFocus(o.value); }}
                 >
-                  {o.label}
+                  {t(`generateWorkoutModal.${o.key}`)}
                 </div>
               ))}
             </div>
 
-            <div style={groupLabel}>EXPERIENCE</div>
+            <div style={groupLabel}>{t('generateWorkoutModal.experience')}</div>
             <div style={row}>
               {EXPERIENCE.map((o) => (
-                <div key={o.value} style={chip(experience === o.value)} onClick={() => setExperience(o.value)}>{o.label}</div>
+                <div key={o.value} style={chip(experience === o.value)} onClick={() => setExperience(o.value)}>{t(`generateWorkoutModal.${o.key}`)}</div>
               ))}
             </div>
 
-            <div style={groupLabel}>SESSION LENGTH</div>
+            <div style={groupLabel}>{t('generateWorkoutModal.sessionLength')}</div>
             <div style={row}>
               {LENGTHS.map((o) => (
-                <div key={o.value} style={smallChip(sessionDuration === o.value)} onClick={() => setSessionDuration(o.value)}>{o.label}</div>
+                <div key={o.value} style={smallChip(sessionDuration === o.value)} onClick={() => setSessionDuration(o.value)}>{t('generateWorkoutModal.lengthMin', { n: o.value })}</div>
               ))}
             </div>
 
-            <div style={groupLabel}>WORKOUT STYLE</div>
+            <div style={groupLabel}>{t('generateWorkoutModal.workoutStyle')}</div>
             <div style={row}>
               {STYLES.map((o) => (
-                <div key={o.value} style={chip(style === o.value)} onClick={() => setStyle(o.value)} title={o.hint}>
-                  {o.label}
-                  <div style={{ fontSize: 10, fontWeight: 600, opacity: 0.7, marginTop: 2 }}>{o.hint}</div>
+                <div key={o.value} style={chip(style === o.value)} onClick={() => setStyle(o.value)} title={t(`generateWorkoutModal.${o.hintKey}`)}>
+                  {t(`generateWorkoutModal.${o.key}`)}
+                  <div style={{ fontSize: 10, fontWeight: 600, opacity: 0.7, marginTop: 2 }}>{t(`generateWorkoutModal.${o.hintKey}`)}</div>
                 </div>
               ))}
             </div>
 
-            <div style={groupLabel}>CARDIO FINISHER</div>
+            <div style={groupLabel}>{t('generateWorkoutModal.cardioFinisher')}</div>
             <div style={row}>
               {CARDIO.map((o) => (
-                <div key={o.value} style={smallChip(cardio === o.value)} onClick={() => setCardio(o.value)}>{o.label}</div>
+                <div key={o.value} style={smallChip(cardio === o.value)} onClick={() => setCardio(o.value)}>{t(`generateWorkoutModal.${o.key}`)}</div>
               ))}
             </div>
 
-            <div style={groupLabel}>ANY INJURIES? (tap all that apply)</div>
-            <div style={groupHint}>Exercises that stress these areas are removed automatically.</div>
+            <div style={groupLabel}>{t('generateWorkoutModal.injuriesTitle')}</div>
+            <div style={groupHint}>{t('generateWorkoutModal.injuriesHint')}</div>
             <div style={row}>
               {INJURY_OPTIONS.map((o) => (
-                <div key={o.value} style={smallChip(injuryCodes.includes(o.value))} onClick={() => toggleInjury(o.value)}>{o.label}</div>
+                <div key={o.value} style={smallChip(injuryCodes.includes(o.value))} onClick={() => toggleInjury(o.value)}>{t(`generateWorkoutModal.${o.key}`)}</div>
               ))}
             </div>
             <textarea
               style={{ ...textArea, marginTop: 8, minHeight: 48 }}
-              placeholder="Anything else? e.g. recovering from a pulled hamstring"
+              placeholder={t('generateWorkoutModal.injuriesPlaceholder')}
               value={injuryText}
               onChange={(e) => setInjuryText(e.target.value)}
               maxLength={300}
             />
 
-            <div style={groupLabel}>REQUESTS</div>
-            <div style={groupHint}>Exercises you hate, things you want included — the AI follows this.</div>
+            <div style={groupLabel}>{t('generateWorkoutModal.requests')}</div>
+            <div style={groupHint}>{t('generateWorkoutModal.requestsHint')}</div>
             <textarea
               style={textArea}
-              placeholder="e.g. no burpees, i don't like lunges, finish with abs, include hip thrusts"
+              placeholder={t('generateWorkoutModal.requestsPlaceholder')}
               value={requests}
               onChange={(e) => setRequests(e.target.value)}
               maxLength={500}
             />
 
-            <div style={groupLabel}>EXERCISES FROM</div>
+            <div style={groupLabel}>{t('generateWorkoutModal.exercisesFrom')}</div>
             <div style={row}>
               {SOURCES.map((o) => (
                 <div
                   key={o.value}
                   style={chip(source === o.value, o.disabled)}
                   onClick={() => !o.disabled && setSource(o.value)}
-                  title={o.hint}
+                  title={t(`generateWorkoutModal.${o.hintKey}`)}
                 >
-                  {o.label}
-                  <div style={{ fontSize: 10, fontWeight: 600, opacity: 0.7, marginTop: 2 }}>{o.hint}</div>
+                  {t(`generateWorkoutModal.${o.key}`)}
+                  <div style={{ fontSize: 10, fontWeight: 600, opacity: 0.7, marginTop: 2 }}>{t(`generateWorkoutModal.${o.hintKey}`)}</div>
                 </div>
               ))}
             </div>
@@ -429,7 +438,7 @@ function GenerateWorkoutModal({ onClose, onGenerated, clientId = null, coachId =
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
               }}
             >
-              <Dumbbell size={18} /> Generate workout
+              <Dumbbell size={18} /> {t('generateWorkoutModal.generateBtn')}
             </button>
           </>
         )}
