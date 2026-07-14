@@ -788,7 +788,8 @@ exports.handler = withTimeout(async (event) => {
         startDate,
         endDate,
         workoutData,
-        schedule
+        schedule,
+        selfGenerated
       } = body;
 
       if (!clientId || !coachId) {
@@ -871,8 +872,10 @@ exports.handler = withTimeout(async (event) => {
           .insert([{
             client_id: clientId,
             type: 'workout_assigned',
-            title: 'New Workout Program Assigned',
-            message: `Your coach has assigned "${programName}" to you.`,
+            title: selfGenerated ? 'New Program Ready' : 'New Workout Program Assigned',
+            message: selfGenerated
+              ? `Your AI program "${programName}" is on your calendar.`
+              : `Your coach has assigned "${programName}" to you.`,
             metadata: {
               assignment_id: assignment.id,
               program_id: programId || null,

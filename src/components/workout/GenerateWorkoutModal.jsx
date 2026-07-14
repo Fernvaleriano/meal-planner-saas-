@@ -100,6 +100,91 @@ const SOURCES = [
   { value: 'gym', key: 'srcGym', hintKey: 'srcGymHint', disabled: true },
 ];
 
+// Just today (one workout) vs a full multi-week program.
+const PLAN_TYPES = [
+  { value: 'single', label: 'Just today', hint: 'One workout' },
+  { value: 'program', label: 'Full program', hint: 'Weeks of training' },
+];
+
+// Program splits. Mirrors coach-workouts.html computeSplitDays so a member's
+// program is built with the exact same logic as a coach-built one.
+const SPLITS = [
+  { value: 'auto', label: 'Auto', hint: 'Pick for me' },
+  { value: 'full_body', label: 'Full body' },
+  { value: 'upper_lower', label: 'Upper / Lower' },
+  { value: 'push_pull_legs', label: 'Push / Pull / Legs' },
+  { value: 'push_pull', label: 'Push / Pull' },
+  { value: 'bro_split', label: 'Bro split' },
+];
+const DAYS_PER_WEEK = [2, 3, 4, 5, 6];
+const WEEKS_OPTIONS = [4, 6, 8, 12];
+
+// Which weekdays a program lands on, by days-per-week. The count always matches
+// days-per-week so each generated day maps to one weekday (same contract the
+// coach scheduler and club-program scheduler use).
+const WEEKDAY_PLANS = {
+  1: ['mon'],
+  2: ['mon', 'thu'],
+  3: ['mon', 'wed', 'fri'],
+  4: ['mon', 'tue', 'thu', 'fri'],
+  5: ['mon', 'tue', 'wed', 'thu', 'fri'],
+  6: ['mon', 'tue', 'wed', 'thu', 'fri', 'sat'],
+};
+
+// Port of coach-workouts.html computeSplitDays — returns one {targetMuscle,
+// dayName} per training day. Each targetMuscle is a value the single-workout
+// generator already understands (push/pull/legs/upper_body/... → muscleGroupMap
+// + strict push/pull constraints), so we reuse the SAME engine per day.
+function computeSplitDays(daysPerWeek, split) {
+  const splits = {
+    push_pull_legs: {
+      3: [['push', 'Push Day'], ['pull', 'Pull Day'], ['legs', 'Leg Day']],
+      4: [['push', 'Push Day'], ['pull', 'Pull Day'], ['legs', 'Leg Day'], ['upper_body', 'Upper Body']],
+      5: [['push', 'Push Day'], ['pull', 'Pull Day'], ['legs', 'Leg Day'], ['upper_body', 'Upper Body'], ['lower_body', 'Lower Body']],
+      6: [['push', 'Push A'], ['pull', 'Pull A'], ['legs', 'Legs A'], ['push', 'Push B'], ['pull', 'Pull B'], ['legs', 'Legs B']],
+    },
+    upper_lower: {
+      2: [['upper_body', 'Upper Body'], ['lower_body', 'Lower Body']],
+      3: [['upper_body', 'Upper Body'], ['lower_body', 'Lower Body'], ['full_body', 'Full Body']],
+      4: [['upper_body', 'Upper A'], ['lower_body', 'Lower A'], ['upper_body', 'Upper B'], ['lower_body', 'Lower B']],
+      5: [['upper_body', 'Upper A'], ['lower_body', 'Lower A'], ['upper_body', 'Upper B'], ['lower_body', 'Lower B'], ['full_body', 'Full Body']],
+      6: [['upper_body', 'Upper A'], ['lower_body', 'Lower A'], ['upper_body', 'Upper B'], ['lower_body', 'Lower B'], ['upper_body', 'Upper C'], ['lower_body', 'Lower C']],
+    },
+    full_body: {
+      2: [['full_body', 'Full Body A'], ['full_body', 'Full Body B']],
+      3: [['full_body', 'Full Body A'], ['full_body', 'Full Body B'], ['full_body', 'Full Body C']],
+      4: [['full_body', 'Full Body A'], ['full_body', 'Full Body B'], ['full_body', 'Full Body C'], ['full_body', 'Full Body D']],
+      5: [['full_body', 'Full Body A'], ['full_body', 'Full Body B'], ['full_body', 'Full Body C'], ['full_body', 'Full Body D'], ['full_body', 'Full Body E']],
+      6: [['full_body', 'Full Body A'], ['full_body', 'Full Body B'], ['full_body', 'Full Body C'], ['full_body', 'Full Body D'], ['full_body', 'Full Body E'], ['full_body', 'Full Body F']],
+    },
+    bro_split: {
+      3: [['chest', 'Chest Day'], ['back', 'Back Day'], ['legs', 'Leg Day']],
+      4: [['chest', 'Chest Day'], ['back', 'Back Day'], ['shoulders', 'Shoulder Day'], ['legs', 'Leg Day']],
+      5: [['chest', 'Chest Day'], ['back', 'Back Day'], ['shoulders', 'Shoulder Day'], ['arms', 'Arm Day'], ['legs', 'Leg Day']],
+      6: [['chest', 'Chest Day'], ['back', 'Back Day'], ['shoulders', 'Shoulder Day'], ['arms', 'Arm Day'], ['legs', 'Leg Day'], ['core', 'Core & Conditioning']],
+    },
+    push_pull: {
+      2: [['push', 'Push Day'], ['pull', 'Pull Day']],
+      3: [['push', 'Push Day'], ['pull', 'Pull Day'], ['full_body', 'Full Body']],
+      4: [['push', 'Push A'], ['pull', 'Pull A'], ['push', 'Push B'], ['pull', 'Pull B']],
+    },
+  };
+  const autoMap = { 2: 'upper_lower', 3: 'full_body', 4: 'upper_lower', 5: 'push_pull_legs', 6: 'push_pull_legs' };
+  const effectiveSplit = split === 'auto' ? (autoMap[daysPerWeek] || 'upper_lower') : split;
+  const table = splits[effectiveSplit];
+  if (!table || !table[daysPerWeek]) {
+    // Unsupported combo (e.g. push/pull at 5-6 days): fall back to full-body days.
+    return Array.from({ length: daysPerWeek }, (_, i) => ({ targetMuscle: 'full_body', dayName: `Day ${i + 1}` }));
+  }
+  return table[daysPerWeek].map(([target, name]) => ({ targetMuscle: target, dayName: name }));
+}
+
+const localToday = () => {
+  const d = new Date();
+  d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+  return d.toISOString().split('T')[0];
+};
+
 // Remembered answers from the member's last generation, so returning members
 // don't refill the whole form (injuries especially). Stored per client on
 // this device; every value is validated against the current option lists so
@@ -118,7 +203,7 @@ function loadSavedPrefs(clientId) {
 // Bucket → translation key for the "last workout hit …" suggestion line.
 const BUCKET_KEYS = { push: 'bucketPush', pull: 'bucketPull', legs: 'bucketLegs', core: 'bucketCore' };
 
-function GenerateWorkoutModal({ onClose, onGenerated, clientId = null, coachId = null }) {
+function GenerateWorkoutModal({ onClose, onGenerated, onProgramGenerated, clientId = null, coachId = null }) {
   const { t } = useLanguage();
   const savedRef = useRef(undefined);
   if (savedRef.current === undefined) savedRef.current = loadSavedPrefs(clientId);
@@ -142,6 +227,15 @@ function GenerateWorkoutModal({ onClose, onGenerated, clientId = null, coachId =
   const [source, setSource] = useState(() => pick(saved?.source, SOURCES, 'library'));
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  // Full-program options (only used when planType === 'program').
+  const [planType, setPlanType] = useState('single');
+  const [split, setSplit] = useState(() => pick(saved?.split_choice, SPLITS, 'auto'));
+  const [daysPerWeek, setDaysPerWeek] = useState(() => (DAYS_PER_WEEK.includes(saved?.daysPerWeek) ? saved.daysPerWeek : 3));
+  const [weeks, setWeeks] = useState(() => (WEEKS_OPTIONS.includes(saved?.weeks) ? saved.weeks : 4));
+  const [startDate, setStartDate] = useState(localToday);
+  // Per-day progress while a program builds ({ current, total }).
+  const [progress, setProgress] = useState(null);
   // Recent training history: powers the focus suggestion and the
   // don't-repeat-what-they-just-did exclusion list.
   const [memory, setMemory] = useState(null);
@@ -275,6 +369,99 @@ function GenerateWorkoutModal({ onClose, onGenerated, clientId = null, coachId =
     }
   };
 
+  // Build a FULL multi-week program. We reuse the exact single-workout engine —
+  // one call per training day of the split (Push Day, Pull Day, ...) — so each
+  // day gets the same injury/request/split logic a single workout gets, all on
+  // the cheap model. Days generate one at a time, accumulating used exercises so
+  // same-type days don't repeat. The assembled days + schedule are handed to the
+  // page, which saves them as one calendar program (alongside anything else).
+  const handleGenerateProgram = async () => {
+    if (submittingRef.current) return;
+    submittingRef.current = true;
+    setError('');
+    setLoading(true);
+    try {
+      const splitDays = computeSplitDays(daysPerWeek, split);
+      // Seed with the member's recent moves so day 1 already avoids repeats, then
+      // grow it as each day is built for cross-day variety.
+      const used = new Set(memory?.recentExerciseNames || []);
+      const builtDays = [];
+
+      for (let i = 0; i < splitDays.length; i++) {
+        setProgress({ current: i + 1, total: splitDays.length });
+        const day = splitDays[i];
+
+        const payload = {
+          mode: 'single',
+          goal,
+          experience,
+          sessionDuration,
+          trainingStyle: style,
+          conditioningStyle: cardio,
+          clientId,
+          targetMuscle: day.targetMuscle,
+          // Distinct seed per day so the random exercise sampling differs.
+          varietySeed: Date.now() + i * 7919,
+        };
+        if (injuryCodes.length > 0) payload.injuryCodes = injuryCodes;
+        if (injuryText.trim()) payload.injuries = injuryText.trim();
+        if (requests.trim()) payload.preferences = requests.trim();
+        if (source === 'both' && coachId) payload.coachId = coachId;
+        if (used.size) payload.excludeExerciseNames = Array.from(used);
+
+        const res = await apiPost('/.netlify/functions/generate-workout-claude', payload, { timeoutMs: 90000 });
+        if (!res?.success) throw new Error(res?.error || 'Could not build the program. Please try again.');
+
+        const workout = res.program?.weeks?.[0]?.workouts?.[0];
+        const exercises = (workout?.exercises || []).filter((e) => e && e.id);
+        if (!exercises.length) {
+          throw new Error(`Day ${i + 1} came back empty. Try again, fewer days, or widen the source.`);
+        }
+        // Only add real (non warm-up/stretch) moves to the avoid list so warm-ups
+        // and cool-down stretches can still repeat across days (they should).
+        exercises.forEach((e) => { if (!e.isWarmup && !e.isStretch && e.name) used.add(e.name); });
+
+        builtDays.push({ name: day.dayName, exercises });
+      }
+
+      // Random cover from the shared library (best-effort — saves fine without one).
+      let coverUrl = null;
+      try {
+        const lib = await apiGet('/.netlify/functions/workout-cover-library');
+        const covers = Array.isArray(lib?.covers) ? lib.covers : [];
+        if (covers.length) coverUrl = covers[Math.floor(Math.random() * covers.length)].url;
+      } catch (coverErr) {
+        console.error('Could not fetch a cover for the AI program:', coverErr);
+      }
+
+      // Remember answers (incl. the program choices) for next time.
+      try {
+        localStorage.setItem(prefsKey(clientId), JSON.stringify({
+          goal, experience, sessionDuration, style, cardio, injuryCodes, injuryText, requests, source,
+          split_choice: split, daysPerWeek, weeks,
+        }));
+      } catch { /* storage full/blocked — remembering is optional */ }
+
+      const splitLabel = SPLITS.find((s) => s.value === split)?.label || 'Custom';
+      onProgramGenerated?.({
+        name: `${splitLabel} Program`,
+        days: builtDays,
+        startDate,
+        weeks,
+        selectedDays: WEEKDAY_PLANS[daysPerWeek] || WEEKDAY_PLANS[3],
+        image_url: coverUrl,
+        coachId, // the gym's coach id — the assignment is owned by the gym
+      });
+      onClose?.();
+    } catch (err) {
+      console.error('AI program generation failed:', err);
+      setError(err.message || 'Something went wrong. Please try again.');
+      setLoading(false);
+      setProgress(null);
+      submittingRef.current = false;
+    }
+  };
+
   const overlay = {
     position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 3000,
     display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
@@ -318,7 +505,9 @@ function GenerateWorkoutModal({ onClose, onGenerated, clientId = null, coachId =
           </button>
         </div>
         <p style={{ fontSize: 14, opacity: 0.65, margin: '6px 2px 4px' }}>
-          {t('generateWorkoutModal.subtitle')}
+          {planType === 'program'
+            ? "The AI builds a full multi-week program around your goal, split and the gym's equipment."
+            : t('generateWorkoutModal.subtitle')}
         </p>
 
         {loading ? (
@@ -328,12 +517,60 @@ function GenerateWorkoutModal({ onClose, onGenerated, clientId = null, coachId =
               border: '4px solid rgba(128,128,128,0.25)', borderTopColor: 'var(--brand-primary, #FF5A1F)',
               animation: 'giwSpin 0.8s linear infinite',
             }} />
-            <div style={{ fontWeight: 700 }}>{t('generateWorkoutModal.building')}</div>
-            <div style={{ fontSize: 13, opacity: 0.6, marginTop: 4 }}>{t('generateWorkoutModal.buildingSub')}</div>
+            <div style={{ fontWeight: 700 }}>
+              {progress ? `Building day ${progress.current} of ${progress.total}…` : t('generateWorkoutModal.building')}
+            </div>
+            <div style={{ fontSize: 13, opacity: 0.6, marginTop: 4 }}>
+              {progress ? 'A full program takes a couple of minutes — hang tight.' : t('generateWorkoutModal.buildingSub')}
+            </div>
             <style>{`@keyframes giwSpin { to { transform: rotate(360deg); } }`}</style>
           </div>
         ) : (
           <>
+            <div style={groupLabel}>WHAT DO YOU WANT?</div>
+            <div style={row}>
+              {PLAN_TYPES.map((o) => (
+                <div key={o.value} style={chip(planType === o.value)} onClick={() => setPlanType(o.value)} title={o.hint}>
+                  {o.label}
+                  <div style={{ fontSize: 10, fontWeight: 600, opacity: 0.7, marginTop: 2 }}>{o.hint}</div>
+                </div>
+              ))}
+            </div>
+
+            {planType === 'program' && (
+              <>
+                <div style={groupLabel}>SPLIT</div>
+                <div style={row}>
+                  {SPLITS.map((o) => (
+                    <div key={o.value} style={smallChip(split === o.value)} onClick={() => setSplit(o.value)} title={o.hint}>{o.label}</div>
+                  ))}
+                </div>
+
+                <div style={groupLabel}>DAYS PER WEEK</div>
+                <div style={row}>
+                  {DAYS_PER_WEEK.map((n) => (
+                    <div key={n} style={smallChip(daysPerWeek === n)} onClick={() => setDaysPerWeek(n)}>{n}</div>
+                  ))}
+                </div>
+
+                <div style={groupLabel}>HOW MANY WEEKS</div>
+                <div style={row}>
+                  {WEEKS_OPTIONS.map((n) => (
+                    <div key={n} style={smallChip(weeks === n)} onClick={() => setWeeks(n)}>{n} wks</div>
+                  ))}
+                </div>
+
+                <div style={groupLabel}>START DATE</div>
+                <input
+                  type="date"
+                  value={startDate}
+                  min={localToday()}
+                  onChange={(e) => setStartDate(e.target.value || localToday())}
+                  style={{ ...textArea, minHeight: 0, padding: '11px 12px', colorScheme: 'dark' }}
+                />
+              </>
+            )}
+
             <div style={groupLabel}>{t('generateWorkoutModal.myGoal')}</div>
             <div style={row}>
               {GOALS.map((o) => (
@@ -341,19 +578,23 @@ function GenerateWorkoutModal({ onClose, onGenerated, clientId = null, coachId =
               ))}
             </div>
 
-            <div style={groupLabel}>{t('generateWorkoutModal.focusBodyPart')}</div>
-            {suggestionLine && <div style={groupHint}>{suggestionLine}</div>}
-            <div style={row}>
-              {FOCUS.map((o) => (
-                <div
-                  key={o.value}
-                  style={smallChip(focus === o.value)}
-                  onClick={() => { focusTouchedRef.current = true; setFocus(o.value); }}
-                >
-                  {t(`generateWorkoutModal.${o.key}`)}
+            {planType === 'single' && (
+              <>
+                <div style={groupLabel}>{t('generateWorkoutModal.focusBodyPart')}</div>
+                {suggestionLine && <div style={groupHint}>{suggestionLine}</div>}
+                <div style={row}>
+                  {FOCUS.map((o) => (
+                    <div
+                      key={o.value}
+                      style={smallChip(focus === o.value)}
+                      onClick={() => { focusTouchedRef.current = true; setFocus(o.value); }}
+                    >
+                      {t(`generateWorkoutModal.${o.key}`)}
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
+              </>
+            )}
 
             <div style={groupLabel}>{t('generateWorkoutModal.experience')}</div>
             <div style={row}>
@@ -431,14 +672,14 @@ function GenerateWorkoutModal({ onClose, onGenerated, clientId = null, coachId =
             )}
 
             <button
-              onClick={handleGenerate}
+              onClick={planType === 'program' ? handleGenerateProgram : handleGenerate}
               style={{
                 width: '100%', marginTop: 22, padding: 15, borderRadius: 13, border: 'none', cursor: 'pointer',
                 background: 'var(--brand-primary, #FF5A1F)', color: '#fff', fontSize: 16, fontWeight: 800,
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
               }}
             >
-              <Dumbbell size={18} /> {t('generateWorkoutModal.generateBtn')}
+              <Dumbbell size={18} /> {planType === 'program' ? 'Generate program' : t('generateWorkoutModal.generateBtn')}
             </button>
           </>
         )}

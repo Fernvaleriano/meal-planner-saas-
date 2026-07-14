@@ -3316,6 +3316,54 @@ function Workouts() {
     }
   }, [clientData?.id, clientData?.coach_id, selectedDate, showError, showSuccess, refreshWorkoutData, refreshWeekSchedule]);
 
+  // Save an AI-generated MULTI-WEEK program the member built themselves. Lands
+  // as a normal assignment on their calendar — same shape/path as scheduling a
+  // club program above — so it renders identically and stacks ALONGSIDE any
+  // existing plans (nothing is overwritten). selfGenerated flips the notification
+  // wording so it doesn't claim "your coach assigned it".
+  const handleCreateProgram = useCallback(async ({ name, days, startDate, weeks, selectedDays, image_url, coachId }) => {
+    const gymCoachId = coachId || clientData?.coach_id;
+    if (!days?.length || !clientData?.id || !gymCoachId) {
+      showError(t('workoutsPage.failedScheduleProgram', { error: 'Missing gym or client info' }));
+      return;
+    }
+    const weeksNum = Math.max(1, Math.min(52, parseInt(weeks, 10) || 4));
+    try {
+      const workoutData = {
+        days: (days || []).map(d => ({ name: d.name, exercises: d.exercises || [] })),
+        image_url: image_url || null,
+        schedule: { selectedDays, startDate, weeksAmount: weeksNum, weeks: weeksNum }
+      };
+      const res = await apiPost('/.netlify/functions/workout-assignments', {
+        clientId: clientData.id,
+        coachId: gymCoachId,
+        name: name || 'My AI Program',
+        startDate,
+        workoutData,
+        schedule: { selectedDays, startDate, weeksAmount: weeksNum, weeks: weeksNum },
+        selfGenerated: true
+      });
+
+      if (res?.success) {
+        if (typeof showSuccess === 'function') {
+          const startStr = new Date(startDate + 'T12:00:00').toLocaleDateString(getDateLocale(), {
+            weekday: 'short', month: 'short', day: 'numeric'
+          });
+          showSuccess(`"${name}" is ready! Starting ${startStr}, ${selectedDays.length} days/week`);
+        }
+        // Jump the calendar to the program's start date so the member sees it land.
+        try { setSelectedDate(new Date(startDate + 'T12:00:00')); } catch { /* keep current date */ }
+        refreshWorkoutData();
+        refreshWeekSchedule();
+      } else {
+        showError(t('workoutsPage.failedScheduleProgram', { error: res?.error || 'Unknown error' }));
+      }
+    } catch (err) {
+      console.error('Error creating AI program:', err);
+      showError(t('workoutsPage.failedScheduleProgram', { error: err.message || 'Unknown error' }));
+    }
+  }, [clientData?.id, clientData?.coach_id, showError, showSuccess, refreshWorkoutData, refreshWeekSchedule]);
+
   // Handle updating an exercise (sets, reps, weight changes) - use ref for stable callback
   const handleUpdateExercise = useCallback((updatedExercise) => {
     const workout = todayWorkoutRef.current;
@@ -6975,6 +7023,7 @@ function Workouts() {
         <GenerateWorkoutModal
           onClose={() => setShowGenerateWorkout(false)}
           onGenerated={handleCreateWorkout}
+          onProgramGenerated={handleCreateProgram}
           clientId={clientData?.id}
           coachId={clientData?.coach_id}
         />
