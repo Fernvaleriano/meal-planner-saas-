@@ -119,7 +119,8 @@ const SPLITS = [
 const DAYS_PER_WEEK = [2, 3, 4, 5, 6];
 const WEEKS_OPTIONS = [4, 6, 8, 12];
 
-// Which weekdays a program lands on, by days-per-week. The count always matches
+// Which weekdays a program lands on, by days-per-week. Used as the SENSIBLE
+// DEFAULT the member can then customize below. The count always matches
 // days-per-week so each generated day maps to one weekday (same contract the
 // coach scheduler and club-program scheduler use).
 const WEEKDAY_PLANS = {
@@ -130,6 +131,26 @@ const WEEKDAY_PLANS = {
   5: ['mon', 'tue', 'wed', 'thu', 'fri'],
   6: ['mon', 'tue', 'wed', 'thu', 'fri', 'sat'],
 };
+
+// The seven weekdays, in week order, for the "which days" picker. `value` is
+// the schedule token the assignment stores (matches WEEKDAY_PLANS + the
+// scheduler's dayNamesList); `label` is display-only.
+const WEEKDAYS = [
+  { value: 'mon', label: 'Mon' },
+  { value: 'tue', label: 'Tue' },
+  { value: 'wed', label: 'Wed' },
+  { value: 'thu', label: 'Thu' },
+  { value: 'fri', label: 'Fri' },
+  { value: 'sat', label: 'Sat' },
+  { value: 'sun', label: 'Sun' },
+];
+
+// Keep a set of weekday tokens in canonical week order (mon…sun). The scheduler
+// maps split days to weekday occurrences chronologically, so order is cosmetic
+// for correctness — but we store them ordered so the UI and any later reads
+// read naturally.
+const orderWeekdays = (tokens) =>
+  WEEKDAYS.map((w) => w.value).filter((d) => tokens.includes(d));
 
 // Port of coach-workouts.html computeSplitDays — returns one {targetMuscle,
 // dayName} per training day. Each targetMuscle is a value the single-workout
@@ -232,6 +253,18 @@ function GenerateWorkoutModal({ onClose, onGenerated, onProgramGenerated, client
   const [planType, setPlanType] = useState('single');
   const [split, setSplit] = useState(() => pick(saved?.split_choice, SPLITS, 'auto'));
   const [daysPerWeek, setDaysPerWeek] = useState(() => (DAYS_PER_WEEK.includes(saved?.daysPerWeek) ? saved.daysPerWeek : 3));
+  // Which specific weekdays the program lands on. Defaults to the plan for the
+  // chosen days-per-week, restored from saved prefs only if it's still a valid
+  // set of the right size (so a stale save can never desync from days-per-week).
+  const [selectedDays, setSelectedDays] = useState(() => {
+    const dpw = DAYS_PER_WEEK.includes(saved?.daysPerWeek) ? saved.daysPerWeek : 3;
+    const fallback = WEEKDAY_PLANS[dpw] || WEEKDAY_PLANS[3];
+    const s = saved?.selectedDays;
+    const valid = Array.isArray(s) && s.length === dpw
+      && s.every((d) => WEEKDAYS.some((w) => w.value === d))
+      && new Set(s).size === s.length;
+    return valid ? orderWeekdays(s) : fallback;
+  });
   const [weeks, setWeeks] = useState(() => (WEEKS_OPTIONS.includes(saved?.weeks) ? saved.weeks : 4));
   const [startDate, setStartDate] = useState(localToday);
   // Per-day progress while a program builds ({ current, total }).
@@ -286,6 +319,23 @@ function GenerateWorkoutModal({ onClose, onGenerated, onProgramGenerated, client
     setInjuryCodes(prev => prev.includes(value)
       ? prev.filter(v => v !== value)
       : [...prev, value]);
+  };
+
+  // Changing the day count re-seeds the weekday picker with that count's default
+  // plan, so the two are always in sync and always valid.
+  const handleDaysPerWeek = (n) => {
+    setDaysPerWeek(n);
+    setSelectedDays(WEEKDAY_PLANS[n] || WEEKDAY_PLANS[3]);
+  };
+
+  // Toggle one weekday. A selected day can always be removed; a new day is added
+  // only while under the day-count limit (tap a selected day to free a slot).
+  const toggleDay = (value) => {
+    setSelectedDays((prev) => {
+      if (prev.includes(value)) return prev.filter((d) => d !== value);
+      if (prev.length >= daysPerWeek) return prev;
+      return orderWeekdays([...prev, value]);
+    });
   };
 
   const handleGenerate = async () => {
@@ -377,6 +427,13 @@ function GenerateWorkoutModal({ onClose, onGenerated, onProgramGenerated, client
   // page, which saves them as one calendar program (alongside anything else).
   const handleGenerateProgram = async () => {
     if (submittingRef.current) return;
+    // Guard the one state the picker can leave short: fewer days chosen than the
+    // day count (removing a day without picking a replacement). Every other path
+    // keeps them equal, so this never fires on the happy path.
+    if (selectedDays.length !== daysPerWeek) {
+      setError(`Please pick your ${daysPerWeek} training days above.`);
+      return;
+    }
     submittingRef.current = true;
     setError('');
     setLoading(true);
@@ -438,7 +495,7 @@ function GenerateWorkoutModal({ onClose, onGenerated, onProgramGenerated, client
       try {
         localStorage.setItem(prefsKey(clientId), JSON.stringify({
           goal, experience, sessionDuration, style, cardio, injuryCodes, injuryText, requests, source,
-          split_choice: split, daysPerWeek, weeks,
+          split_choice: split, daysPerWeek, weeks, selectedDays,
         }));
       } catch { /* storage full/blocked — remembering is optional */ }
 
@@ -448,7 +505,7 @@ function GenerateWorkoutModal({ onClose, onGenerated, onProgramGenerated, client
         days: builtDays,
         startDate,
         weeks,
-        selectedDays: WEEKDAY_PLANS[daysPerWeek] || WEEKDAY_PLANS[3],
+        selectedDays: orderWeekdays(selectedDays),
         image_url: coverUrl,
         coachId, // the gym's coach id — the assignment is owned by the gym
       });
@@ -482,8 +539,8 @@ function GenerateWorkoutModal({ onClose, onGenerated, onProgramGenerated, client
     background: active ? 'var(--brand-primary, #FF5A1F)' : 'transparent',
     color: active ? '#fff' : 'inherit', opacity: disabled ? 0.4 : 1,
   });
-  const smallChip = (active) => ({
-    ...chip(active),
+  const smallChip = (active, disabled) => ({
+    ...chip(active, disabled),
     flex: '0 1 auto', minWidth: 70, padding: '9px 12px', fontSize: 13,
   });
   const textArea = {
@@ -549,8 +606,30 @@ function GenerateWorkoutModal({ onClose, onGenerated, onProgramGenerated, client
                 <div style={groupLabel}>DAYS PER WEEK</div>
                 <div style={row}>
                   {DAYS_PER_WEEK.map((n) => (
-                    <div key={n} style={smallChip(daysPerWeek === n)} onClick={() => setDaysPerWeek(n)}>{n}</div>
+                    <div key={n} style={smallChip(daysPerWeek === n)} onClick={() => handleDaysPerWeek(n)}>{n}</div>
                   ))}
+                </div>
+
+                <div style={groupLabel}>WHICH DAYS</div>
+                <div style={groupHint}>
+                  {selectedDays.length === daysPerWeek
+                    ? 'The days your workouts land on each week. Tap to change them.'
+                    : `Pick ${daysPerWeek} days (${selectedDays.length}/${daysPerWeek} chosen).`}
+                </div>
+                <div style={row}>
+                  {WEEKDAYS.map((d) => {
+                    const active = selectedDays.includes(d.value);
+                    const atLimit = !active && selectedDays.length >= daysPerWeek;
+                    return (
+                      <div
+                        key={d.value}
+                        style={smallChip(active, atLimit)}
+                        onClick={() => !atLimit && toggleDay(d.value)}
+                      >
+                        {d.label}
+                      </div>
+                    );
+                  })}
                 </div>
 
                 <div style={groupLabel}>HOW MANY WEEKS</div>
