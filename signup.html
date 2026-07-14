@@ -707,6 +707,14 @@
                     </div>
                 </div>
 
+                <!-- Password: only shown/used for the Free plan, which creates the
+                     account instantly and logs the coach straight in. Paid plans
+                     set their password after Stripe checkout, so this stays hidden. -->
+                <div class="form-group" id="passwordGroup" style="display: none;">
+                    <label for="password">Create a Password</label>
+                    <input type="password" id="password" name="password" autocomplete="new-password" placeholder="At least 8 characters" minlength="8">
+                </div>
+
                 <div class="coach-onboarding">
                     <h3>Coach Onboarding Checklist</h3>
                     <p>Before you can take payments from Clients on Ziquecoach, please read and agree to the following. This is a plain-English summary of the full Coach Agreement. Take 2 minutes — these rules protect you, your Clients, and Ziquecoach.</p>
@@ -752,9 +760,23 @@
         </div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
+        // Supabase client — used to sign a free-plan coach in right after signup
+        const SUPABASE_URL = 'https://qewqcjzlfqamqwbccapr.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFld3FjanpsZnFhbXF3YmNjYXByIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM2OTg0NzAsImV4cCI6MjA3OTI3NDQ3MH0.mQnMC33O88oLkLLGWD2oG-oaSHGI-NfHmtQCZxnxSLs';
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
         // Handle plan card selection
         const planCards = document.querySelectorAll('.plan-card');
+        const passwordGroup = document.getElementById('passwordGroup');
+
+        // Password box is only relevant for the Free plan (instant account +
+        // auto-login). Show/hide it as the selected plan changes.
+        function updatePasswordVisibility() {
+            const selected = document.querySelector('input[name="plan"]:checked');
+            passwordGroup.style.display = (selected && selected.value === 'free') ? 'block' : 'none';
+        }
 
         function updatePlanSelection() {
             planCards.forEach(card => {
@@ -766,6 +788,7 @@
                     card.classList.remove('selected');
                 }
             });
+            updatePasswordVisibility();
         }
 
         // Get plan from URL if specified
@@ -775,6 +798,7 @@
             document.querySelector(`input[value="${planFromUrl}"]`).checked = true;
             updatePlanSelection();
         }
+        updatePasswordVisibility();
 
         // Add click handlers to plan cards
         planCards.forEach(card => {
@@ -794,6 +818,7 @@
                     signupBtn.textContent = 'Start Free Trial →';
                     if (trialBadge) trialBadge.style.display = 'inline-flex';
                 }
+                updatePasswordVisibility();
             });
         });
 
@@ -819,12 +844,18 @@
             const name = document.getElementById('name').value.trim();
             const email = document.getElementById('email').value.trim();
             const plan = document.querySelector('input[name="plan"]:checked').value;
+            const password = document.getElementById('password').value;
             const agreeChecklist = document.getElementById('agreeChecklist').checked;
             const agreeTerms = document.getElementById('agreeTerms').checked;
             const agreeEligibility = document.getElementById('agreeEligibility').checked;
 
             if (!name || !email) {
                 showMessage('Please fill in all fields', 'error');
+                return;
+            }
+
+            if (plan === 'free' && (!password || password.length < 8)) {
+                showMessage('Please choose a password of at least 8 characters.', 'error');
                 return;
             }
 
@@ -843,7 +874,7 @@
                     const response = await fetch('/.netlify/functions/signup-free', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ email, name })
+                        body: JSON.stringify({ email, name, password })
                     });
 
                     const data = await response.json();
@@ -852,14 +883,31 @@
                         throw new Error(data.error || 'Failed to create account');
                     }
 
-                    // Redirect to success page
+                    // Account is ready with the password they chose — sign them
+                    // straight in and drop them on their dashboard. If that fails
+                    // for any reason, fall back to the login page.
+                    if (data.autoLogin) {
+                        signupBtn.textContent = 'Signing you in...';
+                        try {
+                            const { error: signInError } = await supabaseClient.auth.signInWithPassword({ email, password });
+                            if (signInError) throw signInError;
+                            window.location.href = 'dashboard.html';
+                            return;
+                        } catch (signInError) {
+                            console.error('Auto-login after signup failed:', signInError);
+                            window.location.href = 'login.html';
+                            return;
+                        }
+                    }
+
+                    // Fallback (no auto-login): old success page
                     window.location.href = 'signup-success.html?plan=free';
 
                 } catch (error) {
                     console.error('Signup error:', error);
                     showMessage(error.message || 'Something went wrong. Please try again.', 'error');
                     signupBtn.disabled = false;
-                    signupBtn.textContent = 'Start Free Trial →';
+                    signupBtn.textContent = 'Create Free Account →';
                 }
             } else {
                 // Paid plans - go through Stripe checkout

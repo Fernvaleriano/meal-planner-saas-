@@ -29,7 +29,7 @@ exports.handler = async (event) => {
     }
 
     try {
-        const { email, name } = JSON.parse(event.body || '{}');
+        const { email, name, password } = JSON.parse(event.body || '{}');
 
         if (!email || !name) {
             return {
@@ -38,6 +38,12 @@ exports.handler = async (event) => {
                 body: JSON.stringify({ error: 'Name and email are required' })
             };
         }
+
+        // If the coach chose a password on the signup form we create the
+        // account with it and log them straight in (no "set your password"
+        // email round-trip). When no password is supplied we fall back to the
+        // original flow: a random temp password + a recovery email.
+        const hasChosenPassword = typeof password === 'string' && password.length >= 8;
 
         const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, {
             auth: { persistSession: false }
@@ -60,12 +66,15 @@ exports.handler = async (event) => {
 
         // Create auth user
         let userId;
-        const tempPassword = generateTempPassword();
+        const accountPassword = hasChosenPassword ? password : generateTempPassword();
 
         const { data: authUser, error: authError } = await supabase.auth.admin.createUser({
             email: email,
-            password: tempPassword,
-            email_confirm: false
+            password: accountPassword,
+            // Confirm the email up front when they set their own password so
+            // they can be signed in immediately; otherwise keep it unconfirmed
+            // (the recovery email path confirms it when they set a password).
+            email_confirm: hasChosenPassword
         });
 
         if (authError) {
@@ -79,6 +88,14 @@ exports.handler = async (event) => {
                 const existingUser = userList?.users?.find(u => u.email?.toLowerCase() === email.toLowerCase());
                 if (existingUser) {
                     userId = existingUser.id;
+                    // Adopt the password they just chose so the auto-login below
+                    // works for an auth user that never finished coach signup.
+                    if (hasChosenPassword) {
+                        await supabase.auth.admin.updateUserById(userId, {
+                            password: accountPassword,
+                            email_confirm: true
+                        });
+                    }
                 } else {
                     return {
                         statusCode: 400,
@@ -119,36 +136,42 @@ exports.handler = async (event) => {
             };
         }
 
-        // Generate password reset link and send welcome email
-        try {
-            const redirectUrl = `${process.env.URL || 'https://ziquecoach.com'}/set-password.html`;
-            const { data: linkData, error: linkError } = await supabase.auth.admin.generateLink({
-                type: 'recovery',
-                email: email,
-                options: {
-                    redirectTo: redirectUrl
-                }
-            });
-
-            if (!linkError && linkData?.properties?.action_link) {
-                const { sendWelcomeEmail } = require('./utils/email-service');
-                await sendWelcomeEmail({
-                    coach: { email, name },
-                    plan: 'free',
-                    resetLink: linkData.properties.action_link
+        // Only send the "set your password" welcome email when they did NOT
+        // choose a password at signup. If they did, their account is already
+        // usable and we log them straight in on the client.
+        if (!hasChosenPassword) {
+            try {
+                const redirectUrl = `${process.env.URL || 'https://ziquecoach.com'}/set-password.html`;
+                const { data: linkData, error: linkError } = await supabase.auth.admin.generateLink({
+                    type: 'recovery',
+                    email: email,
+                    options: {
+                        redirectTo: redirectUrl
+                    }
                 });
-            } else {
-                console.error('Error generating password reset link:', linkError);
+
+                if (!linkError && linkData?.properties?.action_link) {
+                    const { sendWelcomeEmail } = require('./utils/email-service');
+                    await sendWelcomeEmail({
+                        coach: { email, name },
+                        plan: 'free',
+                        resetLink: linkData.properties.action_link
+                    });
+                } else {
+                    console.error('Error generating password reset link:', linkError);
+                }
+            } catch (emailError) {
+                // Don't fail signup if email fails
+                console.error('Error sending welcome email:', emailError);
             }
-        } catch (emailError) {
-            // Don't fail signup if email fails
-            console.error('Error sending welcome email:', emailError);
         }
 
         return {
             statusCode: 200,
             headers,
-            body: JSON.stringify({ success: true })
+            // autoLogin tells the client it can sign the coach in right away
+            // with the password they chose, instead of routing them to login.
+            body: JSON.stringify({ success: true, autoLogin: hasChosenPassword })
         };
 
     } catch (error) {
