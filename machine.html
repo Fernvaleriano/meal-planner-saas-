@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#0b1220">
+    <title>Exercise</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --brand-primary: #2dd4bf;
+            --brand-secondary: #14b8a6;
+            --brand-gradient: linear-gradient(135deg, #2dd4bf 0%, #14b8a6 100%);
+            --brand-primary-soft: rgba(45, 212, 191, 0.12);
+            --bg-primary: #0b1220;
+            --bg-secondary: #131c2e;
+            --bg-tertiary: #1e2a40;
+            --bg-elevated: #182238;
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --border-color: rgba(148, 163, 184, 0.12);
+            --radius-md: 12px;
+            --radius-lg: 16px;
+            --radius-xl: 22px;
+            --shadow-md: 0 6px 20px -8px rgba(0,0,0,0.55);
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            -webkit-font-smoothing: antialiased;
+            line-height: 1.45;
+            padding-bottom: calc(24px + env(safe-area-inset-bottom));
+        }
+
+        /* Header */
+        .top-bar {
+            background: var(--brand-gradient);
+            padding: calc(20px + env(safe-area-inset-top)) 20px 18px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        .top-bar::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at 30% 20%, rgba(255,255,255,0.18), transparent 60%);
+            pointer-events: none;
+        }
+        .top-bar-logo {
+            max-height: 46px;
+            max-width: 190px;
+            object-fit: contain;
+            margin-bottom: 8px;
+            filter: drop-shadow(0 2px 6px rgba(0,0,0,0.25));
+        }
+        .top-bar-coach {
+            font-size: 0.95rem;
+            color: rgba(255,255,255,0.96);
+            font-weight: 700;
+            letter-spacing: 0.01em;
+        }
+        .top-bar-title {
+            font-size: 0.66rem;
+            color: rgba(255,255,255,0.72);
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.18em;
+            margin-top: 6px;
+        }
+
+        .container {
+            max-width: 640px;
+            margin: 0 auto;
+            padding: 20px 16px 8px;
+            animation: fadeUp 0.4s ease-out;
+        }
+        @keyframes fadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+        .ex-name {
+            font-size: 1.6rem;
+            font-weight: 800;
+            letter-spacing: -0.01em;
+            line-height: 1.2;
+            margin-bottom: 10px;
+        }
+        .ex-meta { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px; }
+        .meta-pill {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            padding: 5px 12px;
+            border-radius: 999px;
+            font-size: 0.74rem;
+            font-weight: 600;
+            text-transform: capitalize;
+        }
+
+        /* Video hero */
+        .hero {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 1 / 1;
+            max-height: 62vh;
+            border-radius: var(--radius-xl);
+            overflow: hidden;
+            background: var(--bg-tertiary);
+            box-shadow: var(--shadow-md);
+            border: 1px solid var(--border-color);
+            cursor: pointer;
+            margin-bottom: 18px;
+        }
+        .hero img, .hero video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+        .hero .thumb-fallback {
+            width: 100%; height: 100%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 3rem; color: var(--text-muted);
+        }
+        .play-overlay {
+            position: absolute; inset: 0;
+            display: flex; align-items: center; justify-content: center;
+            background: linear-gradient(180deg, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0.4) 100%);
+            transition: background 0.15s;
+        }
+        .play-overlay-circle {
+            width: 66px; height: 66px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.96);
+            display: flex; align-items: center; justify-content: center;
+            color: var(--brand-primary);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.4);
+        }
+        .play-overlay-circle svg { margin-left: 4px; }
+        .hero-hint {
+            position: absolute;
+            bottom: 12px; left: 0; right: 0;
+            text-align: center;
+            color: rgba(255,255,255,0.92);
+            font-size: 0.78rem;
+            font-weight: 600;
+            text-shadow: 0 1px 4px rgba(0,0,0,0.6);
+            pointer-events: none;
+        }
+
+        /* Info blocks */
+        .block { margin-bottom: 16px; }
+        .block-title {
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            color: var(--brand-primary);
+            margin-bottom: 8px;
+        }
+        .block-body {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: 14px 16px;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+        .block-body ul { margin: 0; padding-left: 18px; }
+        .block-body li { margin-bottom: 6px; }
+        .block-body li:last-child { margin-bottom: 0; }
+
+        .safety {
+            display: flex; align-items: flex-start; gap: 10px;
+            background: rgba(245, 158, 11, 0.08);
+            border: 1px solid rgba(245, 158, 11, 0.22);
+            color: #fbbf24;
+            padding: 12px 14px;
+            border-radius: var(--radius-md);
+            font-size: 0.78rem;
+            font-weight: 500;
+            line-height: 1.5;
+            margin-top: 4px;
+        }
+        .safety span:first-child { flex-shrink: 0; }
+
+        .footer {
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 0.74rem;
+            padding: 20px 16px 8px;
+        }
+        .footer strong { color: var(--text-secondary); font-weight: 600; }
+
+        .state {
+            text-align: center;
+            padding: 70px 24px;
+            color: var(--text-secondary);
+        }
+        .state .icon { font-size: 3rem; margin-bottom: 16px; opacity: 0.75; }
+        .state h2 { color: var(--text-primary); font-size: 1.2rem; margin-bottom: 8px; }
+        .state p { font-size: 0.9rem; }
+
+        @media (max-width: 600px) {
+            .ex-name { font-size: 1.35rem; }
+        }
+    </style>
+</head>
+<body>
+    <header class="top-bar">
+        <img id="brandLogo" class="top-bar-logo" alt="" style="display:none;">
+        <div class="top-bar-coach" id="coachName"></div>
+        <div class="top-bar-title">How to use this machine</div>
+    </header>
+
+    <main class="container" id="container">
+        <div class="state">
+            <div class="icon">⏳</div>
+            <p>Loading exercise...</p>
+        </div>
+    </main>
+
+    <script>
+        const params = new URLSearchParams(window.location.search);
+        const gym = params.get('gym') || params.get('coachId');
+        const ex = params.get('ex') || params.get('exercise');
+        const container = document.getElementById('container');
+
+        function escapeHtml(str) {
+            return String(str == null ? '' : str).replace(/[&<>"']/g, c => ({
+                '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+            }[c]));
+        }
+
+        // Coaches store custom videos as signed URLs on the workout-assets
+        // bucket; tokens expire ~7 days after upload. Rewrite them through the
+        // proxy, which 302s to a fresh signed URL on every request so links
+        // never break. (Same helper as view-workout.html.)
+        function freshenWorkoutAssetUrl(url) {
+            if (!url || typeof url !== 'string') return url || '';
+            const m = url.match(/\/object\/sign\/workout-assets\/(.+?)(?:\?|$)/);
+            if (!m) return url;
+            try {
+                const path = decodeURIComponent(m[1]);
+                return `/.netlify/functions/serve-shared-video?path=${encodeURIComponent(path)}`;
+            } catch (_e) { return url; }
+        }
+
+        function applyBranding(b) {
+            if (!b) return;
+            if (b.logoUrl) {
+                const img = document.getElementById('brandLogo');
+                img.src = b.logoUrl;
+                img.style.display = 'inline-block';
+                img.onerror = () => { img.style.display = 'none'; };
+            }
+            if (b.displayName) document.getElementById('coachName').textContent = b.displayName;
+            if (b.primaryColor) {
+                try {
+                    const hexToRgba = (hex, a) => {
+                        const r = parseInt(hex.slice(1, 3), 16);
+                        const g = parseInt(hex.slice(3, 5), 16);
+                        const bl = parseInt(hex.slice(5, 7), 16);
+                        return `rgba(${r}, ${g}, ${bl}, ${a})`;
+                    };
+                    const primary = b.primaryColor;
+                    const secondary = b.secondaryColor || primary;
+                    const root = document.documentElement;
+                    root.style.setProperty('--brand-primary', primary);
+                    root.style.setProperty('--brand-secondary', secondary);
+                    root.style.setProperty('--brand-gradient', `linear-gradient(135deg, ${primary} 0%, ${secondary} 100%)`);
+                    root.style.setProperty('--brand-primary-soft', hexToRgba(primary, 0.12));
+                } catch (_e) { /* cosmetic only */ }
+            }
+        }
+
+        function renderList(title, items) {
+            const arr = Array.isArray(items) ? items.filter(Boolean) : [];
+            if (!arr.length) return '';
+            return `<div class="block">
+                <div class="block-title">${escapeHtml(title)}</div>
+                <div class="block-body"><ul>${arr.map(i => `<li>${escapeHtml(i)}</li>`).join('')}</ul></div>
+            </div>`;
+        }
+
+        function renderText(title, text) {
+            if (!text) return '';
+            return `<div class="block">
+                <div class="block-title">${escapeHtml(title)}</div>
+                <div class="block-body">${escapeHtml(text)}</div>
+            </div>`;
+        }
+
+        function renderExercise(data) {
+            const e = data.exercise;
+            applyBranding(data.coachBranding);
+            document.title = e.name || 'Exercise';
+
+            const media = freshenWorkoutAssetUrl(e.video_url || e.animation_url || '');
+            const thumb = e.thumbnail_url || '';
+            const hasMedia = !!media;
+
+            let heroInner;
+            if (thumb) {
+                heroInner = `<img id="heroThumb" src="${escapeHtml(thumb)}" alt="" onerror="this.style.display='none';">`;
+            } else if (hasMedia) {
+                heroInner = `<video id="heroThumb" src="${escapeHtml(media)}" muted playsinline preload="metadata"></video>`;
+            } else {
+                heroInner = `<div class="thumb-fallback">💪</div>`;
+            }
+            const overlay = hasMedia
+                ? `<div class="play-overlay" id="playOverlay"><div class="play-overlay-circle"><svg width="26" height="26" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></div></div>
+                   <div class="hero-hint">Tap to watch the demo</div>`
+                : '';
+            const heroAttr = hasMedia ? `onclick="playHero('${escapeHtml(media)}')"` : '';
+
+            const metaBits = [e.muscle_group, e.equipment, e.difficulty]
+                .filter(v => v && v !== 'other')
+                .map(v => `<span class="meta-pill">${escapeHtml(v)}</span>`).join('');
+
+            container.innerHTML = `
+                <div class="ex-name">${escapeHtml(e.name || 'Exercise')}</div>
+                ${metaBits ? `<div class="ex-meta">${metaBits}</div>` : ''}
+                <div class="hero" ${heroAttr}>
+                    ${heroInner}
+                    ${overlay}
+                </div>
+                ${renderText('How to do it', e.instructions)}
+                ${renderList('Coaching cues', e.coaching_cues)}
+                ${renderList('Form tips', e.form_tips)}
+                ${renderList('Common mistakes', e.common_mistakes)}
+                ${renderText('About', e.description)}
+                <div class="safety">
+                    <span>⚠️</span>
+                    <span>New to this machine? Start light and ask a trainer if you're unsure. Stop right away if you feel sharp pain, dizziness, or chest pain.</span>
+                </div>
+                <div class="footer">Powered by <strong>${escapeHtml(data.coachBranding ? data.coachBranding.displayName : '')}</strong></div>
+            `;
+        }
+
+        // Swap the hero thumbnail for an inline playing video. On error (expired
+        // URL etc.) fetch a fresh signed URL and load it as a blob — same
+        // fallback strategy as view-workout.html / the React app.
+        async function playHero(url) {
+            if (!url) return;
+            const hero = document.querySelector('.hero');
+            if (!hero) return;
+            hero.removeAttribute('onclick');
+            hero.style.cursor = 'default';
+            hero.innerHTML = `<video id="heroVideo" src="${escapeHtml(url)}" controls autoplay playsinline preload="auto"></video>`;
+            const video = document.getElementById('heroVideo');
+            video.onerror = () => handleHeroError(video, url);
+            video.play().catch(() => {});
+        }
+
+        async function handleHeroError(video, url) {
+            // url here is the serve-shared-video proxy URL; extract the path to
+            // request a fresh signed URL via get-signed-video-url.
+            const m = url.match(/[?&]path=([^&]+)/);
+            const filePath = m ? decodeURIComponent(m[1]) : '';
+            if (!filePath || video.dataset.retried === '1') return;
+            video.dataset.retried = '1';
+            try {
+                const resp = await fetch('/.netlify/functions/get-signed-video-url', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ filePath })
+                });
+                const data = await resp.json();
+                if (!data || !data.success || !data.url) throw new Error('No fresh URL');
+                const vr = await fetch(data.url);
+                if (!vr.ok) throw new Error('HTTP ' + vr.status);
+                const blobUrl = URL.createObjectURL(await vr.blob());
+                video.src = blobUrl;
+                video.play().catch(() => {});
+            } catch (err) {
+                console.error('Hero video fallback failed:', err);
+            }
+        }
+
+        function renderError(title, message, icon) {
+            container.innerHTML = `<div class="state">
+                <div class="icon">${icon || '🔒'}</div>
+                <h2>${escapeHtml(title)}</h2>
+                <p>${escapeHtml(message)}</p>
+            </div>`;
+        }
+
+        async function load() {
+            if (!gym || !ex) {
+                renderError('Missing link', 'This QR code is missing information. Ask a trainer for help.', '🔗');
+                return;
+            }
+            try {
+                const res = await fetch(`/.netlify/functions/get-machine-exercise?gym=${encodeURIComponent(gym)}&ex=${encodeURIComponent(ex)}`);
+                if (!res.ok) {
+                    renderError('Not found', 'We couldn’t find this exercise. The sticker may be out of date.', '🔍');
+                    return;
+                }
+                renderExercise(await res.json());
+            } catch (err) {
+                renderError('Couldn’t load', 'Something went wrong. Please try again.', '⚠️');
+            }
+        }
+
+        load();
+    </script>
+</body>
+</html>
