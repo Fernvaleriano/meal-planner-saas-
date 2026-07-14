@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { useEffect } from 'react';
 import { useAuth } from './context/AuthContext';
 import { useAppLifecycle } from './hooks/useAppLifecycle';
@@ -27,6 +27,7 @@ import LoadingScreen from './components/LoadingScreen';
 
 function ProtectedRoute({ children }) {
   const { user, loading, clientData, refreshClientData, logout } = useAuth();
+  const location = useLocation();
 
   // Still loading auth state
   if (loading) {
@@ -35,7 +36,18 @@ function ProtectedRoute({ children }) {
 
   // Not logged in
   if (!user) {
-    return <Navigate to="/login" replace />;
+    // Carry the coach id through to the login screen. An iOS home-screen
+    // install launches at the manifest start_url (/app?coachId=X), but the
+    // standalone PWA has its OWN storage container — none of the localStorage
+    // set during the in-Safari login (login_coach_id, cached branding) is
+    // present here, so the login page would fall back to the default
+    // Ziquecoach brand. Forwarding ?coachId lets Login re-fetch and paint the
+    // coach's brand even on this first, storage-empty launch. (We forward only
+    // coachId, not the whole query string — Login already treats this param as
+    // a first-class, un-persisted input, same as a branded invite link.)
+    const coachId = new URLSearchParams(location.search).get('coachId');
+    const to = coachId ? `/login?coachId=${encodeURIComponent(coachId)}` : '/login';
+    return <Navigate to={to} replace />;
   }
 
   // Logged in but still fetching client data - show loading
