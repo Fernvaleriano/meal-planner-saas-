@@ -40,7 +40,7 @@ function Login() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, refreshClientData } = useAuth();
   const { t } = useLanguage();
   const [searchParams] = useSearchParams();
 
@@ -90,12 +90,18 @@ function Login() {
     if (brandingData?.coach_id) applyPWAIdentity(brandingData);
   }, [brandingData]);
 
-  // Redirect if already logged in
+  // Redirect if already logged in. Arriving here with ?emailVerified=1 means
+  // the session was already active when the confirmation link was tapped
+  // (e.g. same device, still signed in) — the normal SIGNED_IN listener that
+  // refreshes clientData never fires in that case, so the "confirm your
+  // email" banner would otherwise keep showing stale (pre-confirmation)
+  // data forever. Force one refetch before bouncing back in.
   useEffect(() => {
     if (user) {
+      if (emailVerified) refreshClientData();
       navigate('/', { replace: true });
     }
-  }, [user, navigate]);
+  }, [user, navigate, emailVerified, refreshClientData]);
 
   // A fresh logo URL (e.g. after the branding fetch resolves) gets a fresh
   // chance to load even if a previous URL failed
