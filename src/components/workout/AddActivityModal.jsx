@@ -3,7 +3,9 @@ import { X, Search, Loader2, Plus, Mic, MicOff, ChevronDown, Check, ChevronRight
 import { apiGet } from '../../utils/api';
 import { getSpeechLang } from '../../utils/speechLang';
 import { fuzzyScore } from '../../utils/exerciseSearch';
+import { getExerciseVideoSrc, isMuxSrc } from '../../utils/exerciseVideo';
 import SmartThumbnail from './SmartThumbnail';
+import HlsVideo from '../HlsVideo';
 import { useLanguage } from '../../context/LanguageContext';
 
 // Number of exercises to show initially and per "load more"
@@ -308,6 +310,8 @@ function AddActivityModal({ onAdd, onClose, existingExerciseIds = [], multiSelec
 
   // Preview state — only one exercise animation loaded at a time (on demand)
   const [previewExercise, setPreviewExercise] = useState(null);
+  // When the preferred Mux stream fails to play, drop back to the raw file once.
+  const [previewUseRawFallback, setPreviewUseRawFallback] = useState(false);
 
   // Refs for cleanup
   const isMountedRef = useRef(true);
@@ -754,11 +758,13 @@ function AddActivityModal({ onAdd, onClose, existingExerciseIds = [], multiSelec
   const handlePreview = useCallback((e, ex) => {
     e.preventDefault();
     e.stopPropagation();
+    setPreviewUseRawFallback(false);
     setPreviewExercise(ex);
   }, []);
 
   const closePreview = useCallback(() => {
     setPreviewExercise(null);
+    setPreviewUseRawFallback(false);
   }, []);
 
   // Get the best media URL for preview (animation or video, prefer animation)
@@ -969,14 +975,33 @@ function AddActivityModal({ onAdd, onClose, existingExerciseIds = [], multiSelec
               </button>
               <div className="swap-preview-media">
                 {isVideoFile(getPreviewUrl(previewExercise)) ? (
-                  <video
-                    src={getPreviewUrl(previewExercise)}
-                    autoPlay
-                    loop
-                    muted
-                    playsInline
-                    onError={(e) => { e.target.style.display = 'none'; }}
-                  />
+                  // Prefer the exercise's ready Mux stream (adaptive HLS) over the
+                  // raw file — custom coach uploads are often .mov on an expiring
+                  // signed URL, which browsers won't reliably play in a <video>.
+                  // If the Mux stream itself fails, drop to the raw file once.
+                  (() => {
+                    const rawUrl = getPreviewUrl(previewExercise);
+                    const previewSrc = previewUseRawFallback
+                      ? rawUrl
+                      : getExerciseVideoSrc(previewExercise, rawUrl);
+                    return (
+                      <HlsVideo
+                        key={previewSrc}
+                        src={previewSrc}
+                        autoPlay
+                        loop
+                        muted
+                        playsInline
+                        onError={(e) => {
+                          if (!previewUseRawFallback && isMuxSrc(previewExercise, previewSrc)) {
+                            setPreviewUseRawFallback(true);
+                          } else if (e?.target) {
+                            e.target.style.display = 'none';
+                          }
+                        }}
+                      />
+                    );
+                  })()
                 ) : (
                   <img
                     src={getPreviewUrl(previewExercise)}
