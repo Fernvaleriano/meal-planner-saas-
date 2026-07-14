@@ -128,9 +128,23 @@
     </div>
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
     (function () {
       var params = new URLSearchParams(window.location.search);
+
+      // Same project + anon key as the app's own client, and both use the
+      // default storage — so a session we create here is the SAME session the
+      // /app SPA reads on boot. That's what lets a fresh member land straight
+      // on the home page instead of a login screen.
+      var SUPABASE_URL = 'https://qewqcjzlfqamqwbccapr.supabase.co';
+      var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFld3FjanpsZnFhbXF3YmNjYXByIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM2OTg0NzAsImV4cCI6MjA3OTI3NDQ3MH0.mQnMC33O88oLkLLGWD2oG-oaSHGI-NfHmtQCZxnxSLs';
+      var supabaseClient = null;
+      try {
+        if (window.supabase && window.supabase.createClient) {
+          supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        }
+      } catch (e) { /* auto-login falls back to the login page below */ }
       var presetCode = (params.get('code') || '').trim();
       var codeInput = document.getElementById('code');
       if (presetCode) codeInput.value = presetCode.toUpperCase();
@@ -152,6 +166,46 @@
       document.getElementById('goToLoginBtn').addEventListener('click', function () {
         window.location.href = loginUrl();
       });
+
+      // Log the brand-new member in and send them straight to the app home.
+      // If anything about the sign-in fails (library didn't load, network
+      // hiccup), fall back to the branded login so they're never stuck.
+      function enterApp(email, password) {
+        var successCard = document.getElementById('successCard');
+        var successText = document.getElementById('successText');
+        var goBtn = document.getElementById('goToLoginBtn');
+
+        document.getElementById('formCard').classList.add('hidden');
+        successCard.classList.remove('hidden');
+        successText.textContent = 'Your account is ready. Taking you in…';
+        goBtn.classList.add('hidden');
+
+        // Remember the gym so the app boots in its branding, not the default.
+        if (gymCoachId) { try { localStorage.setItem('login_coach_id', gymCoachId); } catch (e) { /* ignore */ } }
+
+        function goToLoginFallback() {
+          successText.textContent = 'Your account is ready. Log in to start training.';
+          goBtn.textContent = 'Go to login';
+          goBtn.classList.remove('hidden');
+        }
+
+        if (!supabaseClient) { goToLoginFallback(); return; }
+
+        // Safety net: if the sign-in stalls, offer the manual button instead
+        // of leaving them on a spinner forever.
+        var fallbackTimer = setTimeout(goToLoginFallback, 8000);
+
+        supabaseClient.auth.signInWithPassword({ email: email, password: password })
+          .then(function (r) {
+            clearTimeout(fallbackTimer);
+            if (r && r.error) { goToLoginFallback(); return; }
+            window.location.href = '/app';
+          })
+          .catch(function () {
+            clearTimeout(fallbackTimer);
+            goToLoginFallback();
+          });
+      }
 
       // Brand the screen from the code (if one is present)
       function loadGymBranding(code) {
@@ -222,8 +276,10 @@
               submitBtn.textContent = 'Join gym';
               return;
             }
-            document.getElementById('formCard').classList.add('hidden');
-            document.getElementById('successCard').classList.remove('hidden');
+            // Account is created and email is already confirmed server-side, so
+            // we can log them in right here and drop them on the home page — no
+            // second "now go log in" step.
+            enterApp(payload.email, payload.password);
           })
           .catch(function () {
             setError('Network error. Please try again.');
