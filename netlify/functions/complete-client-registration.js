@@ -392,6 +392,10 @@ exports.handler = async (event, context) => {
                 registered_at: new Date().toISOString(),
                 intake_token: null,  // Clear the token after use
                 intake_token_expires_at: null,
+                // The coach personally invited this exact email address, so
+                // it's already trusted — skip the self-signup verification
+                // flow (gym-join.js).
+                email_verified_at: new Date().toISOString(),
                 unit_preference: unitPreference || 'imperial',  // Store client's unit preference
                 fitness_level: fitnessLevel || null,
                 exercise_frequency: exerciseFrequency || null,

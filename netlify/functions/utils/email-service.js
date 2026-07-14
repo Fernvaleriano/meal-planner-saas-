@@ -1603,6 +1603,92 @@ async function sendWelcomeEmail({ coach, plan, resetLink }) {
     });
 }
 
+/**
+ * Send a "confirm your email" link to a self-signed-up client (gym-join).
+ * Uses the gym's branding when the coach is on a branded tier, same as the
+ * password-reset email.
+ * @param {Object} options
+ * @param {string} options.clientEmail
+ * @param {string} options.clientName
+ * @param {string} options.verifyLink
+ * @param {Object} options.coach - Coach row (for branding), optional
+ * @returns {Promise<{success: boolean, messageId?: string, error?: string}>}
+ */
+async function sendClientVerificationEmail({ clientEmail, clientName, verifyLink, coach }) {
+    const hasBranding = ['professional', 'branded'].includes(coach?.subscription_tier);
+    const primaryColor = (hasBranding && coach?.brand_primary_color) || '#2cb5a5';
+    const brandName = (hasBranding && coach?.brand_name) || 'Ziquecoach';
+    const footerText = (hasBranding && coach?.brand_email_footer) || brandName;
+    const logoUrl = hasBranding ? (coach?.brand_email_logo_url || coach?.brand_logo_url) : null;
+    const logoHtml = logoUrl
+        ? `<img src="${logoUrl}" alt="${brandName}" style="max-width: 150px; height: auto; margin-bottom: 12px;">`
+        : '';
+
+    const name = clientName || 'there';
+    const subject = `Confirm your email - ${brandName}`;
+
+    const textBody = `Hi ${name},
+
+Welcome to ${brandName}! Please confirm your email address to finish setting up your account:
+${verifyLink}
+
+This link will expire in 24 hours. You can still use the app in the meantime.
+
+If you didn't sign up, you can ignore this email.
+
+---
+${footerText}`;
+
+    const htmlBody = `
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="light dark">
+    <meta name="supported-color-schemes" content="light dark">
+    <style>
+      :root { color-scheme: light dark; supported-color-schemes: light dark; }
+    </style>
+    <title>${subject}</title>
+</head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f8fafc;">
+    <div style="background-color: ${primaryColor}; padding: 40px 30px; border-radius: 12px 12px 0 0; text-align: center;">
+        ${logoHtml}
+        <h1 style="color: #ffffff; margin: 0; font-size: 28px;">Confirm Your Email</h1>
+    </div>
+
+    <div style="background: white; padding: 30px; border: 1px solid #e2e8f0; border-top: none; border-radius: 0 0 12px 12px;">
+        <p style="font-size: 18px; margin-bottom: 20px;">Hi <strong>${name}</strong>,</p>
+
+        <p style="margin-bottom: 20px; font-size: 16px;">Welcome to <strong>${brandName}</strong>! Please confirm your email address to finish setting up your account.</p>
+
+        <div style="text-align: center; margin: 35px 0;">
+            <a href="${verifyLink}" style="display: inline-block; background-color: ${primaryColor}; color: #ffffff; text-decoration: none; padding: 16px 40px; border-radius: 8px; font-weight: 600; font-size: 18px;">Confirm Email</a>
+        </div>
+
+        <p style="text-align: center; color: #94a3b8; font-size: 14px; margin-bottom: 25px;">This link will expire in 24 hours. You can still use the app in the meantime.</p>
+
+        <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 25px 0;">
+
+        <p style="color: #64748b; font-size: 14px;">If you didn't sign up, you can safely ignore this email.</p>
+    </div>
+
+    <div style="text-align: center; padding: 20px; color: #94a3b8; font-size: 12px;">
+        <p style="margin: 0;">${footerText}</p>
+    </div>
+</body>
+</html>`;
+
+    return sendEmail({
+        to: clientEmail,
+        subject,
+        text: textBody,
+        html: htmlBody,
+        fromName: brandName
+    });
+}
+
 module.exports = {
     sendEmail,
     sendCheckinReminder,
@@ -1623,5 +1709,6 @@ module.exports = {
     sendNewPaymentNotification,
     sendCancellationNotification,
     sendWelcomeEmail,
-    generateWelcomeEmail
+    generateWelcomeEmail,
+    sendClientVerificationEmail
 };

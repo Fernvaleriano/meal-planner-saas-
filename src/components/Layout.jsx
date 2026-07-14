@@ -6,6 +6,7 @@ import DesktopSidebar from './DesktopSidebar';
 import ErrorBoundary from './ErrorBoundary';
 import PullToRefreshWrapper from './PullToRefreshWrapper';
 import SyncIndicator from './SyncIndicator';
+import VerifyEmailBanner from './VerifyEmailBanner';
 import TrainerSupportAgent from './TrainerSupportAgent';
 import SubscriptionEnded from './SubscriptionEnded';
 import PepTalkModal from './PepTalkModal';
@@ -182,6 +183,7 @@ function Layout() {
   return (
     <div className="app-layout">
       <SyncIndicator />
+      <VerifyEmailBanner />
       {!hideTopNav && <TopNav />}
       <DesktopSidebar />
       <main className={`main-content ${hideTopNav ? 'no-top-nav' : ''} ${isMessagesPage ? 'messages-page' : ''}`}>

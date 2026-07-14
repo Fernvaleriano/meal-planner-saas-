@@ -208,6 +208,9 @@ exports.handler = async (event, context) => {
           email: email || null,
           phone: phone || null,
           notes: notes || null,
+          // Coach personally added this client, so the email is already
+          // trusted — skip the self-signup verification flow (gym-join.js).
+          email_verified_at: new Date().toISOString(),
           default_dietary_restrictions: defaultDietaryRestrictions || [],
           default_goal: defaultGoal || null,
           // Physical stats

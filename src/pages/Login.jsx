@@ -45,6 +45,8 @@ function Login() {
   const [searchParams] = useSearchParams();
 
   const coachIdParam = searchParams.get('coachId');
+  const emailVerified = searchParams.get('emailVerified') === '1';
+  const verifyError = searchParams.get('verifyError');
   const [brandingData, setBrandingData] = useState(() => getLoginBranding(coachIdParam));
   const [logoFailed, setLogoFailed] = useState(false);
   // Whether this device is associated with a coach (invite link or a previous
@@ -190,6 +192,20 @@ function Login() {
           {error && (
             <div className="login-error">
               {error}
+            </div>
+          )}
+
+          {!error && emailVerified && (
+            <div className="login-error" style={{ background: '#dcfce7', color: '#166534' }}>
+              Email confirmed! Log in to continue.
+            </div>
+          )}
+
+          {!error && verifyError && (
+            <div className="login-error">
+              {verifyError === 'expired'
+                ? 'That confirmation link expired. Log in, then use "Resend email" in the banner.'
+                : 'That confirmation link is invalid. Log in, then use "Resend email" in the banner.'}
             </div>
           )}
 
