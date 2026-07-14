@@ -5223,6 +5223,37 @@ function Workouts() {
     }
   }, [todayWorkout, workoutLog, previousWeightsByExercise]);
 
+  // The exercise handed to ExerciseDetailModal is a snapshot taken when the
+  // user tapped the card. On a cold open that tap usually lands while the
+  // screen still shows the phone's cached copy of the workout — whose
+  // exercises can predate the Mux transcode (no mux_playback_id) and carry
+  // expired signed video URLs, so the demo video won't play. The fresh fetch
+  // (server-enriched with the current mux id / media URLs) replaces
+  // `exercises` seconds later, but the open modal kept the stale snapshot —
+  // the "video only plays after I pull-to-refresh" bug. Merge JUST the media
+  // fields from the live exercise into the snapshot so an open modal picks up
+  // the playable source the moment it arrives. Sets/reps/logs stay on the
+  // snapshot untouched (a workout can contain the same exercise id twice with
+  // different prescriptions; media is identical per id, prescriptions aren't).
+  // Fields only ever fill in or update — a live value of null/undefined never
+  // blanks out a field the snapshot already had.
+  const modalExercise = useMemo(() => {
+    if (!selectedExercise?.id) return selectedExercise;
+    const live = exercises.find(e => e?.id === selectedExercise.id);
+    if (!live || live === selectedExercise) return selectedExercise;
+    const MEDIA_FIELDS = [
+      'mux_playback_id', 'customVideoUrl', 'customVideoPath',
+      'customVideoThumbnail', 'video_url', 'animation_url', 'thumbnail_url',
+      'is_custom'
+    ];
+    const updates = {};
+    for (const f of MEDIA_FIELDS) {
+      if (live[f] != null && live[f] !== selectedExercise[f]) updates[f] = live[f];
+    }
+    if (Object.keys(updates).length === 0) return selectedExercise;
+    return { ...selectedExercise, ...updates };
+  }, [selectedExercise, exercises]);
+
   // The weighted (reps-based) exercises shown for the viewed day. Derived from
   // todayWorkout directly — NOT from `exercises` — so the prefill fetch effect
   // below can't loop on its own setState. Timed/cardio/warm-up/stretch and
@@ -6615,7 +6646,7 @@ function Workouts() {
       {selectedExercise && selectedExercise.id && (
         <ErrorBoundary>
           <ExerciseDetailModal
-            exercise={selectedExercise}
+            exercise={modalExercise}
             exercises={exercises}
             currentIndex={Math.max(0, exercises.findIndex(e => e?.id === selectedExercise?.id))}
             onClose={handleCloseModal}
