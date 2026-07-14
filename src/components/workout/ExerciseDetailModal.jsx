@@ -393,6 +393,16 @@ function ExerciseDetailModal({
   const [videoKey, setVideoKey] = useState(0);
   const [videoBlobUrl, setVideoBlobUrl] = useState(null);
   const videoElRef = useRef(null);
+
+  // Pull-to-refresh: pulling down at the top of the card reloads it so a
+  // stuck/blank video re-mounts and plays. Purely visual state here — the
+  // actual reload happens in handleRefresh (see below).
+  const [pullDistance, setPullDistance] = useState(0);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const pullStartYRef = useRef(0);
+  const pullActiveRef = useRef(false);
+  const PULL_THRESHOLD = 70; // px pulled before a release triggers a refresh
+  const PULL_MAX = 100;      // px cap so the indicator never drags too far
   // True only when the user explicitly tapped a play button — gates the
   // programmatic .play() so an auto-opened custom video preloads and sits
   // paused on its first frame (no surprise audio just from opening the modal).
@@ -2251,6 +2261,70 @@ function ExerciseDetailModal({
     setVideoKey(k => k + 1);
   }, [videoBlobUrl]);
 
+  // Reload this exercise card — used by pull-to-refresh. Drops any stale
+  // blob/URL, clears the error/loading flags, and re-mounts the whole modal
+  // subtree via resumeKey (the same mechanism used on app-resume). Re-mounting
+  // gives the <video> a brand-new element so a signed URL that expired or a
+  // decoder iOS released gets re-resolved on the next load — the "quick refresh
+  // makes the video play" fix. Logged sets/notes are safe: that state lives on
+  // the component, not the keyed subtree, so it isn't reset.
+  const handleRefresh = useCallback(() => {
+    if (videoBlobUrl) {
+      try { URL.revokeObjectURL(videoBlobUrl); } catch { /* ignore */ }
+      setVideoBlobUrl(null);
+    }
+    setVideoError(false);
+    setVideoLoading(true);
+    setVideoKey(k => k + 1);
+    setResumeKey(k => k + 1);
+  }, [videoBlobUrl]);
+
+  // --- Pull-to-refresh gesture (touch only) ---
+  // Only engages when the card is scrolled to the very top and the finger
+  // moves downward, so it never fights normal scrolling. overscroll-behavior
+  // on the overlay already blocks the browser's own pull-to-refresh.
+  const handlePullTouchStart = useCallback((e) => {
+    if (isRefreshing) return;
+    const el = modalOverlayRef.current;
+    if (!el || el.scrollTop > 0) return;
+    pullStartYRef.current = e.touches[0].clientY;
+    pullActiveRef.current = true;
+  }, [isRefreshing]);
+
+  const handlePullTouchMove = useCallback((e) => {
+    if (!pullActiveRef.current || isRefreshing) return;
+    const el = modalOverlayRef.current;
+    if (!el || el.scrollTop > 0) {
+      pullActiveRef.current = false;
+      setPullDistance(0);
+      return;
+    }
+    const dy = e.touches[0].clientY - pullStartYRef.current;
+    if (dy <= 0) {
+      if (pullDistance !== 0) setPullDistance(0);
+      return;
+    }
+    // Rubber-band resistance so the pull feels weighted and stays capped.
+    setPullDistance(Math.min(PULL_MAX, dy * 0.5));
+  }, [isRefreshing, pullDistance]);
+
+  const handlePullTouchEnd = useCallback(() => {
+    if (!pullActiveRef.current) return;
+    pullActiveRef.current = false;
+    if (pullDistance >= PULL_THRESHOLD && !isRefreshing) {
+      setIsRefreshing(true);
+      setPullDistance(0);
+      handleRefresh();
+      // Brief spinner so the refresh reads as a deliberate action even though
+      // the reload itself is near-instant.
+      setTimeout(() => {
+        if (isMountedRef.current) setIsRefreshing(false);
+      }, 700);
+    } else {
+      setPullDistance(0);
+    }
+  }, [pullDistance, isRefreshing, handleRefresh]);
+
   // Start playback once the <video> is mounted after an explicit play-button
   // tap. Coach videos have audio so they can't use the autoPlay attribute (iOS
   // only honours it when muted), and the element mounts after the tap — so
@@ -2474,7 +2548,39 @@ function ExerciseDetailModal({
   }
 
   return (
-    <div className="exercise-modal-overlay-v2" key={`modal-${resumeKey}`} ref={modalOverlayRef} onClick={handleClose}>
+    <div
+      className="exercise-modal-overlay-v2"
+      key={`modal-${resumeKey}`}
+      ref={modalOverlayRef}
+      onClick={handleClose}
+      onTouchStart={handlePullTouchStart}
+      onTouchMove={handlePullTouchMove}
+      onTouchEnd={handlePullTouchEnd}
+      onTouchCancel={handlePullTouchEnd}
+    >
+      {/* Pull-to-refresh indicator — occupies the space opened up by the pull.
+          Height 0 when idle so it costs nothing; snaps back with a transition. */}
+      <div
+        style={{
+          height: `${isRefreshing ? 48 : pullDistance}px`,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          overflow: 'hidden',
+          transition: pullActiveRef.current ? 'none' : 'height 0.25s ease',
+          pointerEvents: 'none',
+        }}
+      >
+        <Loader2
+          size={24}
+          style={{
+            color: 'var(--brand-primary, #2cb5a5)',
+            opacity: isRefreshing ? 1 : Math.min(1, pullDistance / PULL_THRESHOLD),
+            animation: isRefreshing ? 'spin 0.8s linear infinite' : 'none',
+            transform: isRefreshing ? 'none' : `rotate(${pullDistance * 3}deg)`,
+          }}
+        />
+      </div>
       <div className="exercise-modal-v2 modal-v3" onClick={stopPropagation}>
         {/* Header */}
         <div className="modal-header-v3">
