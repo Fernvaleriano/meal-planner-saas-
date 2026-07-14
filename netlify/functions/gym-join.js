@@ -12,9 +12,12 @@
  *  - email uniqueness: one account per email; existing coach emails rejected.
  */
 const { createClient } = require('@supabase/supabase-js');
+const crypto = require('crypto');
+const { sendClientVerificationEmail } = require('./utils/email-service');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
+const APP_URL = process.env.URL || 'https://ziquecoach.com';
 
 const headers = {
   'Content-Type': 'application/json',
@@ -102,6 +105,13 @@ exports.handler = async (event) => {
 
     const authUserId = authData.user.id;
 
+    // --- Self-signup came from anyone with the code, not a coach-vetted
+    // invite, so the email address is unverified until they click the link
+    // we send below. This never blocks login (email_confirm stayed true
+    // above) — it only drives the "please confirm" banner in the app.
+    const verifyToken = crypto.randomBytes(32).toString('hex');
+    const verifyTokenExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+
     // --- Create the member (client) row, linked to the gym ---
     const nowIso = new Date().toISOString();
     const { data: client, error: insertError } = await supabase
@@ -112,7 +122,9 @@ exports.handler = async (event) => {
         email,
         user_id: authUserId,
         access_status: 'active',
-        registered_at: nowIso
+        registered_at: nowIso,
+        email_verify_token: verifyToken,
+        email_verify_token_expires_at: verifyTokenExpiresAt
       }])
       .select('id')
       .single();
@@ -122,6 +134,21 @@ exports.handler = async (event) => {
       // Roll back the auth user so a failed join can be retried cleanly
       try { await supabase.auth.admin.deleteUser(authUserId); } catch (_) { /* best effort */ }
       return { statusCode: 500, headers, body: JSON.stringify({ error: 'Could not finish joining. Please try again.' }) };
+    }
+
+    // Best-effort: a failed send shouldn't block the join, they can hit
+    // "resend" from the in-app banner.
+    try {
+      const { data: coach } = await supabase
+        .from('coaches')
+        .select('subscription_tier, brand_name, brand_primary_color, brand_email_footer, brand_email_logo_url, brand_logo_url')
+        .eq('id', gymCode.coach_id)
+        .single();
+
+      const verifyLink = `${APP_URL}/.netlify/functions/verify-client-email?token=${verifyToken}`;
+      await sendClientVerificationEmail({ clientEmail: email, clientName: name, verifyLink, coach });
+    } catch (emailErr) {
+      console.error('gym-join verification email failed:', emailErr);
     }
 
     return {
