@@ -20,6 +20,33 @@ const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
 
 const DEFAULT_ICON = 'https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/assets/icons/logo.png';
 
+// Platform hosts — anything else serving this site is a coach's white-label
+// custom domain and resolves to that coach's icon.
+function isPlatformHost(host) {
+    if (!host) return true;
+    const h = String(host).toLowerCase().split(':')[0];
+    return h === 'ziquecoach.com' || h === 'www.ziquecoach.com'
+        || h === 'ziquefitnessnutrition.com' || h === 'www.ziquefitnessnutrition.com'
+        || h.endsWith('.netlify.app') || h === 'localhost' || h === '127.0.0.1';
+}
+
+async function coachIdFromHost(event) {
+    const host = event.headers?.host || event.headers?.Host;
+    if (isPlatformHost(host) || !SUPABASE_SERVICE_KEY) return null;
+    try {
+        const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+        const { data } = await supabase
+            .from('coaches')
+            .select('id')
+            .eq('custom_domain', String(host).toLowerCase().split(':')[0])
+            .maybeSingle();
+        return data?.id || null;
+    } catch (err) {
+        console.error('custom-domain lookup failed:', err);
+        return null;
+    }
+}
+
 function readCookie(cookieHeader, name) {
     if (!cookieHeader) return null;
     const parts = cookieHeader.split(/;\s*/);
@@ -47,7 +74,8 @@ function redirect(url) {
 
 exports.handler = async (event) => {
     const coachId = event.queryStringParameters?.coachId
-        || readCookie(event.headers?.cookie || event.headers?.Cookie, 'zq_coach');
+        || readCookie(event.headers?.cookie || event.headers?.Cookie, 'zq_coach')
+        || await coachIdFromHost(event);
 
     if (!coachId || !SUPABASE_SERVICE_KEY) {
         return redirect(DEFAULT_ICON);

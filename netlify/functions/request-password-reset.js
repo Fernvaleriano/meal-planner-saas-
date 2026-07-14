@@ -80,7 +80,7 @@ exports.handler = async (event) => {
             // log the error loudly so it can never hide again.
             const { data, error: coachError } = await supabase
                 .from('coaches')
-                .select('id, name, email, subscription_tier, brand_name, brand_app_name, brand_primary_color, brand_logo_url, brand_email_logo_url, brand_email_footer')
+                .select('id, name, email, subscription_tier, brand_name, brand_app_name, brand_primary_color, brand_logo_url, brand_email_logo_url, brand_email_footer, custom_domain')
                 .eq('id', client.coach_id)
                 .single();
             if (coachError) console.error('request-password-reset coach lookup failed:', coachError.message);
@@ -97,9 +97,14 @@ exports.handler = async (event) => {
             : '';
 
         // The reset page brands itself + routes to the branded login via this.
+        // Coaches with a white-label custom domain get the link ON their
+        // domain, so the member never sees ziquecoach.com in the flow.
+        const baseUrl = (hasBranding && coach?.custom_domain)
+            ? `https://${coach.custom_domain}`
+            : APP_URL;
         const redirectUrl = coach?.id
-            ? `${APP_URL}/set-password.html?coachId=${coach.id}`
-            : `${APP_URL}/set-password.html`;
+            ? `${baseUrl}/set-password.html?coachId=${coach.id}`
+            : `${baseUrl}/set-password.html`;
 
         const { data: linkData, error: linkError } = await supabase.auth.admin.generateLink({
             type: 'recovery',

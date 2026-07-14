@@ -47,26 +47,52 @@
               homeIcon = homeIcon || b.brand_favicon_url;
             }
           }
-          if (!coachId) return;
-          // Keep the server-side fallback (cookie) fresh too.
-          document.cookie = 'zq_coach=' + encodeURIComponent(coachId) + '; path=/; max-age=31536000; SameSite=Lax';
-          var m = document.getElementById('manifest-link');
-          if (m) m.href = '/.netlify/functions/dynamic-manifest?coachId=' + encodeURIComponent(coachId);
-          // Home-screen icon: the coach's square favicon if we know it, else
-          // let the coach-icon endpoint resolve it server-side. Never the
-          // wide brand logo — it looks blank as an app icon (the no-branding
-          // default logo especially, which is wide AND white).
-          var t = document.getElementById('touch-icon-link');
-          if (t) t.href = homeIcon || ('/.netlify/functions/coach-icon?coachId=' + encodeURIComponent(coachId));
-          if (brandName) {
-            document.title = brandName;
-            var meta = document.querySelector('meta[name="apple-mobile-web-app-title"]');
-            if (!meta) {
-              meta = document.createElement('meta');
-              meta.setAttribute('name', 'apple-mobile-web-app-title');
-              document.head.appendChild(meta);
+          function stampIdentity(cid, name, icon) {
+            // Keep the server-side fallback (cookie) fresh too.
+            document.cookie = 'zq_coach=' + encodeURIComponent(cid) + '; path=/; max-age=31536000; SameSite=Lax';
+            var m = document.getElementById('manifest-link');
+            if (m) m.href = '/.netlify/functions/dynamic-manifest?coachId=' + encodeURIComponent(cid);
+            // Home-screen icon: the coach's square favicon if we know it, else
+            // let the coach-icon endpoint resolve it server-side. Never the
+            // wide brand logo — it looks blank as an app icon (the no-branding
+            // default logo especially, which is wide AND white).
+            var t = document.getElementById('touch-icon-link');
+            if (t) t.href = icon || ('/.netlify/functions/coach-icon?coachId=' + encodeURIComponent(cid));
+            if (name) {
+              document.title = name;
+              var meta = document.querySelector('meta[name="apple-mobile-web-app-title"]');
+              if (!meta) {
+                meta = document.createElement('meta');
+                meta.setAttribute('name', 'apple-mobile-web-app-title');
+                document.head.appendChild(meta);
+              }
+              meta.setAttribute('content', name);
             }
-            meta.setAttribute('content', brandName);
+          }
+
+          if (coachId) {
+            stampIdentity(coachId, brandName, homeIcon);
+          } else {
+            // No cached gym on this device — but if this site is being served
+            // on a coach's CUSTOM DOMAIN (white-label), the address itself
+            // says whose member this is. Resolve the coach from the hostname
+            // so even a brand-new phone gets the gym's identity. (The
+            // manifest/icon endpoints also resolve by Host server-side, so
+            // home-screen saves are branded either way.)
+            var h = location.hostname.toLowerCase();
+            var isPlatform = h === 'ziquecoach.com' || h === 'www.ziquecoach.com'
+              || h === 'ziquefitnessnutrition.com' || h === 'www.ziquefitnessnutrition.com'
+              || /\.netlify\.app$/.test(h) || h === 'localhost' || h === '127.0.0.1';
+            if (!isPlatform) {
+              fetch('/.netlify/functions/get-coach-branding?domain=' + encodeURIComponent(h))
+                .then(function (r) { return r.json(); })
+                .then(function (b) {
+                  if (b && !b.error && b.coach_id) {
+                    stampIdentity(b.coach_id, b.brand_app_name || b.brand_name, b.brand_favicon_url);
+                  }
+                })
+                .catch(function () { /* default identity */ });
+            }
           }
         } catch (e) { /* fall back to the default Ziquecoach identity */ }
       })();

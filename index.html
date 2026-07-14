@@ -1,6 +1,22 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <script>
+        // White-label custom domains: this marketing homepage is the
+        // PLATFORM's face. Anyone arriving on a coach's own domain (e.g.
+        // app.huracanfitness.app) is that coach's member and must go
+        // straight to the gym-branded app login — they should never see
+        // Ziquecoach marketing.
+        (function () {
+            try {
+                var h = location.hostname.toLowerCase();
+                var isPlatform = h === 'ziquecoach.com' || h === 'www.ziquecoach.com'
+                    || h === 'ziquefitnessnutrition.com' || h === 'www.ziquefitnessnutrition.com'
+                    || /\.netlify\.app$/.test(h) || h === 'localhost' || h === '127.0.0.1';
+                if (!isPlatform) location.replace('/app/login');
+            } catch (e) { /* stay on the homepage */ }
+        })();
+    </script>
     <script src="/js/sentry-init.js"></script>
     <meta charset="UTF-8">
     <link rel="icon" href="https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/assets/icons/logo.png" type="image/png">

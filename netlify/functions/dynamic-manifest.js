@@ -38,6 +38,34 @@ const DEFAULT_MANIFEST = {
     ]
 };
 
+// Platform hosts — anything else serving this site is a coach's white-label
+// custom domain and resolves to that coach's branding.
+function isPlatformHost(host) {
+    if (!host) return true;
+    const h = String(host).toLowerCase().split(':')[0];
+    return h === 'ziquecoach.com' || h === 'www.ziquecoach.com'
+        || h === 'ziquefitnessnutrition.com' || h === 'www.ziquefitnessnutrition.com'
+        || h.endsWith('.netlify.app') || h === 'localhost' || h === '127.0.0.1';
+}
+
+// Resolve a coach id from the request's Host header (custom domain).
+async function coachIdFromHost(event) {
+    const host = event.headers?.host || event.headers?.Host;
+    if (isPlatformHost(host) || !SUPABASE_SERVICE_KEY) return null;
+    try {
+        const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+        const { data } = await supabase
+            .from('coaches')
+            .select('id')
+            .eq('custom_domain', String(host).toLowerCase().split(':')[0])
+            .maybeSingle();
+        return data?.id || null;
+    } catch (err) {
+        console.error('custom-domain lookup failed:', err);
+        return null;
+    }
+}
+
 // Pull a named cookie value out of a Cookie header.
 function readCookie(cookieHeader, name) {
     if (!cookieHeader) return null;
@@ -66,9 +94,12 @@ exports.handler = async (event) => {
 
     // Prefer an explicit ?coachId, fall back to the zq_coach cookie so the
     // static <link rel="manifest"> (which iOS reads before our JS runs) still
-    // resolves to the right gym.
+    // resolves to the right gym. Final fallback: the request's Host header —
+    // a coach's custom domain resolves to that coach even with no cookie at
+    // all (critical for Android's cookie-less install packaging).
     const coachId = event.queryStringParameters?.coachId
-        || readCookie(event.headers?.cookie || event.headers?.Cookie, 'zq_coach');
+        || readCookie(event.headers?.cookie || event.headers?.Cookie, 'zq_coach')
+        || await coachIdFromHost(event);
 
     if (!coachId || !SUPABASE_SERVICE_KEY) {
         return {

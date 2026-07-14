@@ -193,9 +193,11 @@ function generateReminderEmail({
     customMessage,
     isFollowup = false,
     whiteLabel = false,
-    branding = {}
+    branding = {},
+    // Coaches with a white-label custom domain get links ON their domain.
+    appUrl = APP_URL
 }) {
-    const checkinLink = `${APP_URL}/client-dashboard.html`;
+    const checkinLink = `${appUrl}/client-dashboard.html`;
 
     // Default subject
     let subject = isFollowup
@@ -224,7 +226,7 @@ function generateReminderEmail({
     // footer under a coach-branded header for every branded coach without
     // a verified sending domain.)
     const footerText = branding.brand_email_footer || brandName;
-    const footerHtml = `<p>${footerText}</p><p><a href="${APP_URL}" style="color: ${primaryColor};">Visit Dashboard</a></p>`;
+    const footerHtml = `<p>${footerText}</p><p><a href="${appUrl}" style="color: ${primaryColor};">Visit Dashboard</a></p>`;
 
     // Default message
     let textBody = `Hi ${clientName},
@@ -354,7 +356,10 @@ async function sendCheckinReminder({
             brand_logo_url: coach?.brand_logo_url,
             brand_email_logo_url: coach?.brand_email_logo_url,
             brand_email_footer: coach?.brand_email_footer
-        } : {}
+        } : {},
+        appUrl: (hasBranding && coach?.custom_domain)
+            ? `https://${coach.custom_domain}`
+            : APP_URL
     });
 
     return sendEmail({

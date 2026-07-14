@@ -86,10 +86,24 @@ exports.handler = async (event, context) => {
       };
     }
 
+    // Coach info drives the email branding AND the link's domain, so fetch
+    // it before generating the reset link.
+    const { data: coach } = await supabase
+      .from('coaches')
+      .select('*')
+      .eq('id', coachId)
+      .single();
+
+    const coachHasBranding = ['professional', 'branded'].includes(coach?.subscription_tier);
+
     // Generate password reset link using Supabase Auth admin API.
     // coachId in the redirect brands the set-password page and routes the
-    // client to the coach's branded login afterwards.
-    const redirectUrl = `${APP_URL}/set-password.html?coachId=${coachId}`;
+    // client to the coach's branded login afterwards. Coaches with a
+    // white-label custom domain get the link ON their domain.
+    const resetBaseUrl = (coachHasBranding && coach?.custom_domain)
+      ? `https://${coach.custom_domain}`
+      : APP_URL;
+    const redirectUrl = `${resetBaseUrl}/set-password.html?coachId=${coachId}`;
 
     const { data: linkData, error: resetError } = await supabase.auth.admin.generateLink({
       type: 'recovery',
@@ -125,15 +139,9 @@ exports.handler = async (event, context) => {
       };
     }
 
-    // Get coach info for the email
-    const { data: coach } = await supabase
-      .from('coaches')
-      .select('*')
-      .eq('id', coachId)
-      .single();
-
+    // Coach info was fetched above (needed for the link's domain).
     const coachName = coach?.full_name || coach?.name || coach?.email || 'Your Coach';
-    const hasBranding = ['professional', 'branded'].includes(coach?.subscription_tier);
+    const hasBranding = coachHasBranding;
     const primaryColor = (hasBranding && coach?.brand_primary_color) || '#2cb5a5';
     const brandName = (hasBranding && coach?.brand_name) || 'Ziquecoach';
     const footerText = (hasBranding && coach?.brand_email_footer) || brandName;

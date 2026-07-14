@@ -79,6 +79,22 @@ exports.handler = async (event, context) => {
         // Get coachId from query params or from auth token
         let coachId = event.queryStringParameters?.coachId;
 
+        // White-label custom domains: ?domain=<host> resolves the coach who
+        // owns that domain (e.g. app.huracanfitness.app). Used by client
+        // pages when someone arrives via a coach's own domain, before any
+        // login/cookie exists.
+        if (!coachId && event.queryStringParameters?.domain) {
+            const domain = String(event.queryStringParameters.domain).toLowerCase().trim();
+            if (domain) {
+                const { data: domainCoach } = await supabase
+                    .from('coaches')
+                    .select('id')
+                    .eq('custom_domain', domain)
+                    .maybeSingle();
+                if (domainCoach) coachId = domainCoach.id;
+            }
+        }
+
         // If no coachId provided, try to get from Authorization header
         if (!coachId) {
             const authHeader = event.headers.authorization || event.headers.Authorization;

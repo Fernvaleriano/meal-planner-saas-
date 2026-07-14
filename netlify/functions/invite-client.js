@@ -142,8 +142,13 @@ exports.handler = async (event, context) => {
       };
     }
 
-    // Build the intake form URL
-    const intakeFormUrl = `${APP_URL}/client-intake.html?token=${intakeToken}`;
+    // Build the intake form URL. Coaches with a white-label custom domain
+    // get the link ON their domain so the prospect never sees ziquecoach.com.
+    const inviteHasBranding = ['professional', 'branded'].includes(coach?.subscription_tier);
+    const inviteBaseUrl = (inviteHasBranding && coach?.custom_domain)
+      ? `https://${coach.custom_domain}`
+      : APP_URL;
+    const intakeFormUrl = `${inviteBaseUrl}/client-intake.html?token=${intakeToken}`;
 
     // Send invitation email with intake form link
     const emailResult = await sendIntakeInvitationEmail({

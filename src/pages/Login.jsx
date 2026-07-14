@@ -34,6 +34,16 @@ function getLoginBranding(coachIdParam) {
   return { coach_id: coachId };
 }
 
+// True when the app is served on one of the platform's own hosts. Any OTHER
+// host is a coach's white-label custom domain — the address itself tells us
+// whose gym this login page belongs to.
+function isPlatformHost(hostname) {
+  const h = (hostname || '').toLowerCase();
+  return h === 'ziquecoach.com' || h === 'www.ziquecoach.com'
+    || h === 'ziquefitnessnutrition.com' || h === 'www.ziquefitnessnutrition.com'
+    || h.endsWith('.netlify.app') || h === 'localhost' || h === '127.0.0.1';
+}
+
 function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -52,25 +62,32 @@ function Login() {
   // real branding loads — a neutral beat beats flashing the wrong brand.
   const [hasCoachContext] = useState(() => {
     try {
-      return !!(coachIdParam || localStorage.getItem('login_coach_id'));
+      return !!(coachIdParam || localStorage.getItem('login_coach_id'))
+        || !isPlatformHost(window.location.hostname);
     } catch {
       return !!coachIdParam;
     }
   });
 
-  // Fetch branding from API if we have a coach ID but no cached data
+  // Fetch branding from API if we have a coach ID but no cached data.
+  // On a coach's custom domain with no coach id at all, resolve the coach
+  // from the hostname — a brand-new device gets the gym-branded login with
+  // nothing but the address.
   useEffect(() => {
     const coachId = coachIdParam || localStorage.getItem('login_coach_id');
-    if (!coachId) return;
+    if (!coachId && isPlatformHost(window.location.hostname)) return;
     if (brandingData?.brand_name && brandingData.brand_name !== 'Ziquecoach') return;
 
-    fetch(`/.netlify/functions/get-coach-branding?coachId=${coachId}`)
+    const query = coachId
+      ? `coachId=${encodeURIComponent(coachId)}`
+      : `domain=${encodeURIComponent(window.location.hostname.toLowerCase())}`;
+    fetch(`/.netlify/functions/get-coach-branding?${query}`)
       .then(r => r.json())
       .then(data => {
-        if (data && !data.error) {
+        if (data && !data.error && data.coach_id) {
           setBrandingData(data);
           try {
-            localStorage.setItem(`coach_branding_v2_${coachId}`, JSON.stringify({
+            localStorage.setItem(`coach_branding_v2_${data.coach_id}`, JSON.stringify({
               data,
               timestamp: Date.now(),
             }));

@@ -47,11 +47,16 @@ exports.handler = async (event) => {
         const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
         const { data: coach, error } = await supabase
             .from('coaches')
-            .select('id')
+            .select('id, custom_domain')
             .eq('brand_slug', slug)
             .single();
 
         if (!error && coach) {
+            // Coaches with a white-label custom domain get sent to THEIR
+            // domain — the /gym/ link then never shows ziquecoach.com again.
+            if (coach.custom_domain) {
+                return redirect(`https://${coach.custom_domain}/app/login?coachId=${coach.id}`, true);
+            }
             return redirect(`/app/login?coachId=${coach.id}`, true);
         }
     } catch (err) {
