@@ -120,7 +120,7 @@ function Leaderboard() {
   const [data, setData] = useState(null);
   const [challenges, setChallenges] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [activeLift, setActiveLift] = useState('bench_press');
+  const [activeLift, setActiveLift] = useState(null); // null until data loads → first populated lift
   const [gender, setGender] = useState(null); // male | female | other — null until data loads
   const [showSubmit, setShowSubmit] = useState(false);
   const [watch, setWatch] = useState(null); // entry being watched
@@ -135,6 +135,16 @@ function Leaderboard() {
     }
   }, [data?.myGender, gender]);
   const activeGender = gender || (data?.myGender && ['male', 'female', 'other'].includes(data.myGender) ? data.myGender : 'male');
+
+  // Default the lift tab to the first one that actually has entries (checked in
+  // lift-list order, across all divisions), so the board opens on a populated
+  // lift instead of an empty one. Never override a lift the viewer has tapped.
+  useEffect(() => {
+    if (activeLift !== null || !data?.leaderboardsByGender) return;
+    const boards = Object.values(data.leaderboardsByGender);
+    const firstPopulated = lifts.find(l => boards.some(b => (b?.[l.key]?.length || 0) > 0));
+    setActiveLift(firstPopulated?.key || lifts[0]?.key || 'bench_press');
+  }, [data?.leaderboardsByGender, activeLift, lifts]);
 
   // Men + Women always; the "Other" division only appears if anyone is in it.
   const genderTabs = [
@@ -344,7 +354,7 @@ function Leaderboard() {
           <SubmitLiftModal
             isOpen={showSubmit}
             lifts={lifts}
-            initialLiftKey={activeLift}
+            initialLiftKey={activeLift || lifts[0]?.key}
             onClose={() => setShowSubmit(false)}
             onSubmitted={() => { setShowSubmit(false); fetchAll(); }}
           />
