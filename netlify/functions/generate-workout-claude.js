@@ -976,11 +976,31 @@ ABSOLUTELY FORBIDDEN — do not include ANY of these on a pull day:
 If you include even ONE press, fly, or tricep movement, the workout is WRONG. 100% pull only.`;
     }
 
+    // HYROX race-prep block — only when the member picks the Hyrox goal. Hyrox is
+    // a fixed-format functional-fitness race: 8 x 1km runs alternated with 8
+    // stations (SkiErg, Sled Push, Sled Pull, Burpee Broad Jumps, 1000m Row,
+    // Farmers Carry, Sandbag Lunges, Wall Balls). We prep it with running/erg
+    // intervals plus the functional station movements, naming ONLY real library
+    // moves so everything renders with a video. See generateWorkoutModal 'hyrox'.
+    let hyroxBlock = '';
+    if (goal === 'hyrox') {
+      hyroxBlock = `
+
+=== HYROX RACE PREP (MANDATORY — for THIS workout this OVERRIDES the "cardio machines belong only in the warm-up" rule) ===
+This session trains the client for HYROX: a functional-fitness race of 8 x 1km runs alternated with 8 stations — SkiErg, Sled Push, Sled Pull, Burpee Broad Jumps, 1000m Row, Farmers Carry, Sandbag Lunges, and Wall Balls. Build a FULL-BODY strength-endurance + conditioning workout that prepares them for that exact demand:
+- Choose MAIN moves that mirror the race stations, using ONLY exact names from the AVAILABLE EXERCISES list — e.g. a SkiErg pull ("Ski Ergometer ..."), a rower ("Gym Rowing Machine ..."), a sled move ("Sled Drag And Row"), a loaded carry ("Dumbbell Farmer Walks"), a loaded lunge ("Plate Overhead Walking Lunge"), "Kettlebell Swing", "Box Jump", a burpee variation, or "Assault Airbike ...". If a station has no library match, pick the closest functional move that IS in the list.
+- Program them as CIRCUITS / rounds done back-to-back with short rest (20-40s), reps mostly 12-20 or in TIME format ("45s"), so the session builds work capacity under fatigue — not one-rep strength.
+- COMPROMISED RUNNING is the whole point: include at least one running / erg conditioning block ("phase": "conditioning") that pairs a run/row/ski/airbike bout with functional work, reps in TIME or distance format (e.g. "1 km", "4 min", "500 m").
+- Do NOT program heavy low-rep max-strength work or bodybuilding isolation (bicep curls, flyes, leg extensions, calf raises) — every exercise must carry over to the race.`;
+    }
+
     const repRangeBlock = goal === 'strength'
       ? `- Main compounds: 4-5 sets of 3-6 reps, 2-3 min rest\n- Accessories: 3-4 sets of 6-8 reps, 90-120s rest`
       : goal === 'hypertrophy'
         ? `- Main compounds: 4 sets of 6-10 reps, 90-120s rest\n- Isolation: 3 sets of 10-15 reps, 60-90s rest\n- Finishers: 2-3 sets of 12-20 reps, 45-60s rest`
-        : `- All exercises: 2-3 sets of 15-20 reps, 30-45s rest`;
+        : goal === 'hyrox'
+          ? `- Functional station moves: 3-5 rounds of 12-20 reps (or 40-60s work), short 20-40s rest, done as circuits/back-to-back\n- Running / erg / airbike intervals: TIME or distance format (e.g. "4 min", "500 m"), kept as a conditioning block\n- Keep loads moderate — this is strength-endurance and work capacity under fatigue, NEVER 1-5 rep max strength`
+          : `- All exercises: 2-3 sets of 15-20 reps, 30-45s rest`;
 
     // Session duration → time-budget + scaled phases (short sessions trim warm-up/
     // cool-down and exercise count so the workout actually fits the minutes).
@@ -1013,6 +1033,7 @@ If you include even ONE press, fly, or tricep movement, the workout is WRONG. 10
 
 ${modeBlock}
 ${strictSplitConstraint}
+${hyroxBlock}
 ${keepMandate}
 === WEIGHTS / LOADS (MANDATORY) ===
 NEVER write specific weights or loads (e.g. "45 lb", "20 kg", "use 70%", "you hit 50 lb last time") in any "notes" field. The app has a built-in weight tracker that suggests and logs the client's working weights — duplicating numbers in notes conflicts with it. Notes are for form cues, tempo, RPE/RIR and rep targets only.

@@ -11,6 +11,7 @@ export default {
   goalHypertrophy: 'สร้างกล้ามเนื้อ',
   goalStrength: 'เพิ่มความแข็งแรง',
   goalEndurance: 'ความอดทน',
+  goalHyrox: 'Hyrox',
 
   focusBodyPart: 'เน้น / ส่วนของร่างกาย',
   focusFull: 'ทั้งตัว',
