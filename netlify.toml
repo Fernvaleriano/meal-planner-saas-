@@ -29,9 +29,11 @@
 # Clean signup link for white-label gym domains: <gymdomain>/join serves the
 # member signup page. On a gym's own domain the page fills the gym's join code
 # from its hostname, so the printed/QR link stays tidy (no ?code= tail).
+# Served through a function so shared-link previews carry the gym's OWN logo
+# (social apps read the raw HTML and never run the page's branding JS).
 [[redirects]]
   from = "/join"
-  to = "/gym-join.html"
+  to = "/.netlify/functions/gym-join-page"
   status = 200
 
 # SPA routing - /app is the primary client portal
