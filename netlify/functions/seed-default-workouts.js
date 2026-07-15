@@ -365,7 +365,7 @@ const DEFAULT_PROGRAMS = [
     program_type: 'hypertrophy',
     difficulty: 'intermediate',
     days_per_week: 4,
-    program_data: { days: [
+    program_data: { image_url: 'https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/Default%20Workout%20Pictures/2.png', days: [
 
       // ── DAY 1: UPPER A (Horizontal push/pull, strength) ────────────────
       {
@@ -483,7 +483,7 @@ const DEFAULT_PROGRAMS = [
     program_type: 'hypertrophy',
     difficulty: 'intermediate',
     days_per_week: 5,
-    program_data: { days: [
+    program_data: { image_url: 'https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/Default%20Workout%20Pictures/3.png', days: [
 
       // ── DAY 1: LEGS — Quad Focus (Pendulum & Hack) ──────────────────────
       {
@@ -608,7 +608,7 @@ const DEFAULT_PROGRAMS = [
     program_type: 'hypertrophy',
     difficulty: 'intermediate',
     days_per_week: 4,
-    program_data: { days: [
+    program_data: { image_url: 'https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/Default%20Workout%20Pictures/4.png', days: [
 
       // ── DAY 1: UPPER A (Strength) ───────────────────────────────────────
       {
