@@ -14,6 +14,7 @@ const { corsHeaders, handleCors, authenticateRequest } = require('./utils/auth')
 const { analyzeClientHistory, formatAnalysisForPrompt, applyMovementScreenExclusions } = require('./utils/client-analysis');
 const { exerciseMatchesEquipment, filterUnavailableEquipment } = require('./utils/equipment-filter');
 const { buildConditioningFinisher } = require('./utils/finisher');
+const { normalizeSupersetRest } = require('./utils/superset-rest');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -1036,7 +1037,7 @@ ${mergedInjuryCodes && mergedInjuryCodes.length ? `- Structured injury exclusion
 ${mergedMovementFlags && mergedMovementFlags.length ? `- Structured movement-screen exclusions ALREADY APPLIED: ${mergedMovementFlags.join(', ')}. Avoid contraindicated patterns.` : ''}
 ${injuries ? `\n=== INJURY / LIMITATION RESTRICTIONS (ABSOLUTE — HIGHEST PRIORITY, NEVER VIOLATE) ===\nClient has: ${injuries}\n- This is the #1 rule and OVERRIDES every other instruction in this prompt — the split, the focus, the exercise order, everything.\n- DO NOT include ANY exercise that loads, stresses, or could aggravate the affected area, even indirectly. When you are not 100% sure a movement is safe for this person, LEAVE IT OUT and choose a clearly safe alternative.\n- It is always better to return a slightly less "optimal" workout than one that risks hurting them. Safety wins over everything, no matter what.\n` : ''}
 ${preferences ? `\n=== CLIENT REQUESTS (ABSOLUTE — HONOR EVERY ITEM, NO EXCEPTIONS) ===\nClient said: ${preferences}\n- Treat every request as a hard rule, not a suggestion. Honor ALL of it, no matter what.\n- If they ask to AVOID something (an exercise, a movement, a machine, a body part), that thing must NOT appear anywhere — no variations, no "close enough" substitutes, not even in the warm-up or finisher.\n- If they ask to INCLUDE something, it MUST appear, as long as it exists in the AVAILABLE EXERCISES list and does not conflict with a stated injury.\n- The only thing that can override a request is a stated injury — if the two ever conflict, keep them safe and skip the request.\n` : ''}
-For supersets: BOTH paired exercises get "isSuperset": true and matching "supersetGroup".
+For supersets: BOTH paired exercises get "isSuperset": true and matching "supersetGroup". SUPERSET REST: the exercises in a superset are done back-to-back, so every move EXCEPT the last one in the group gets a SHORT "restSeconds" of 10-30 (just enough to switch stations). ONLY the LAST exercise of the superset group gets the full recovery rest (60-90s+) before the next round.
 ${warmupStretchInstructions}`;
 
     let systemPrompt;
@@ -1261,6 +1262,11 @@ Return this exact JSON structure:
         }
       }
     }
+
+    // Superset rest fix: only the LAST move of a superset carries the full
+    // recovery rest — the earlier moves flow straight into the next, so they
+    // get a short transition rest (10-30s) instead of the AI's default 90s.
+    normalizeSupersetRest(programData.weeks);
 
     // Volume sanity check (after auto-fix so it reflects the actual program)
     const volumeSummary = computeVolumeSummary(programData);

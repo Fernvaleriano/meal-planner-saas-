@@ -8,6 +8,7 @@
 const Anthropic = require('@anthropic-ai/sdk');
 const { createClient } = require('@supabase/supabase-js');
 const { corsHeaders, handleCors, authenticateCoach, authenticateRequest } = require('./utils/auth');
+const { normalizeSupersetRest } = require('./utils/superset-rest');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -187,6 +188,7 @@ RULES:
 - Do not invent new fields. Do not add markdown.
 - If the instruction is destructive (e.g. "remove all overhead pressing"), remove those exercises and replace them with safe alternatives so the workout still has full volume.
 - Preserve warmups and stretches at the start/end of each day unless explicitly told to change them.
+- SUPERSET REST: exercises sharing a "supersetGroup" are done back-to-back. Every move EXCEPT the last one in the group must have a SHORT "restSeconds" of 10-30 (just a station switch). ONLY the LAST exercise of the group gets the full recovery rest (60-90s+).
 - "Make it harder" → add 1 set OR increase reps OR shorten rest by 15-30s. Don't double everything.
 - "Make it easier" / "decrease volume" → drop 1 set OR reduce reps OR add 30s rest. Aim for ~20-25% volume reduction.
 - "Add more X work" → add 1-2 exercises targeting that muscle to the most relevant day.
@@ -271,6 +273,10 @@ Return the modified WEEK 1 program JSON.`;
     // Carry over refined top-level metadata if Claude updated it
     if (updatedProgram.programName) fullProgram.programName = updatedProgram.programName;
     if (updatedProgram.description) fullProgram.description = updatedProgram.description;
+
+    // Superset rest fix: only the LAST move of a superset carries the full
+    // recovery rest — earlier moves flow straight into the next (10-30s).
+    normalizeSupersetRest(fullProgram.weeks);
 
     return {
       statusCode: 200,

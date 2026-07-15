@@ -17,6 +17,7 @@ const { corsHeaders, handleCors, authenticateCoach } = require('./utils/auth');
 const { analyzeClientHistory, formatAnalysisForPrompt, applyMovementScreenExclusions } = require('./utils/client-analysis');
 const { exerciseMatchesEquipment, filterUnavailableEquipment } = require('./utils/equipment-filter');
 const { buildConditioningFinisher } = require('./utils/finisher');
+const { normalizeSupersetRest } = require('./utils/superset-rest');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -455,7 +456,10 @@ The coach typed these for THIS client. They are non-negotiable and override vari
     circuits: 'CIRCUITS: group 3-5 main exercises into a circuit — give them all the same "supersetGroup" letter and "isSuperset": true.',
     mixed: 'MIXED: mostly straight sets plus 1-2 superset pairs — mark only the paired ones "isSuperset": true with a matching "supersetGroup" letter.'
   };
-  const styleBlock = `=== TRAINING STYLE ===\n${styleMap[trainingStyle] || styleMap.straight_sets}`;
+  const supersetRestNote = (trainingStyle === 'supersets' || trainingStyle === 'circuits' || trainingStyle === 'mixed')
+    ? '\nSUPERSET REST: exercises in a superset are done back-to-back. Every move EXCEPT the last one in the group gets a SHORT "restSeconds" of 10-30 (just enough to switch stations). ONLY the LAST exercise of the group gets the full recovery rest (60-90s+) before the next round.'
+    : '';
+  const styleBlock = `=== TRAINING STYLE ===\n${styleMap[trainingStyle] || styleMap.straight_sets}${supersetRestNote}`;
 
   // ── Conditioning finisher (fires whenever the coach picked one) ──────────────
   // Names REAL library moves (exact DB names, with videos) from the injury+
@@ -1219,6 +1223,12 @@ If one does not fit today's muscle group, skip it (it belongs on another day). O
       keeperInjections = enforceProgressKeepers(keepers, day1Workouts, splitDays, equipmentFiltered);
       if (keeperInjections.length) console.log('Keeper enforcement applied:', JSON.stringify(keeperInjections));
     }
+
+    // Superset rest fix: only the LAST move of a superset carries the full
+    // recovery rest — earlier moves flow straight into the next, so they get a
+    // short transition rest (10-30s). Runs before progression so every week
+    // inherits the corrected rests.
+    normalizeSupersetRest([{ workouts: day1Workouts }]);
 
     // Assemble program
     const program = {
