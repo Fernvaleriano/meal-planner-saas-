@@ -11,6 +11,7 @@ export default {
   goalHypertrophy: 'Ganar músculo',
   goalStrength: 'Más fuerza',
   goalEndurance: 'Resistencia',
+  goalHyrox: 'Hyrox',
 
   focusBodyPart: 'ENFOQUE / PARTE DEL CUERPO',
   focusFull: 'Cuerpo completo',

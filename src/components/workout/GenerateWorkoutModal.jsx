@@ -33,6 +33,7 @@ const GOALS = [
   { value: 'hypertrophy', key: 'goalHypertrophy' },
   { value: 'strength', key: 'goalStrength' },
   { value: 'endurance', key: 'goalEndurance' },
+  { value: 'hyrox', key: 'goalHyrox' },
 ];
 
 // Values map to the generator's muscleGroupMap keys.
