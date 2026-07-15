@@ -78,6 +78,11 @@ function ProtectedRoute({ children }) {
         <p style={{ color: '#9ca3af', marginBottom: '24px', maxWidth: '320px' }}>
           {clientData.errorMessage || 'Something went wrong loading your data.'}
         </p>
+        {clientData.errorMessage === 'No client record found' && (
+          <p style={{ color: '#9ca3af', marginBottom: '24px', maxWidth: '320px', fontSize: '14px' }}>
+            You may be signed into a different account. Try signing out and back in with the email you used to join.
+          </p>
+        )}
         <div style={{ display: 'flex', gap: '12px' }}>
           <button
             onClick={() => { refreshClientData(); }}
