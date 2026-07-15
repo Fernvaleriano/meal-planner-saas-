@@ -4,9 +4,13 @@ import { apiGet, apiPost } from '../utils/api';
 import StoryViewer from './StoryViewer';
 import CreateStoryModal from './CreateStoryModal';
 import { useLanguage } from '../context/LanguageContext';
+import { useBranding } from '../context/BrandingContext';
 
-const avatarFor = (name, url) =>
-  url || `https://ui-avatars.com/api/?name=${encodeURIComponent(name || 'Member')}&background=0d9488&color=fff`;
+// When a member has no uploaded photo we fall back to a generated initials
+// avatar. Its background should match the coach's brand color (bg param wants a
+// bare hex, no '#'), defaulting to the stock teal for uncustomized brands.
+const avatarFor = (name, url, bgHex = '0d9488') =>
+  url || `https://ui-avatars.com/api/?name=${encodeURIComponent(name || 'Member')}&background=${bgHex}&color=fff`;
 
 // Instagram-style row of "stories" rings.
 //   mode="client": shown to a client. Order: "Your story" (+) tile, the coach's
@@ -17,6 +21,9 @@ const avatarFor = (name, url) =>
 //                  ring (coaches post their own stories elsewhere).
 function StoriesBar({ mode = 'client', clientId, coachId, selfName, selfAvatar }) {
   const { t } = useLanguage();
+  const { branding } = useBranding();
+  // Strip the leading '#' — ui-avatars' background param wants a bare hex.
+  const avatarBg = (branding?.brand_primary_color || '#0d9488').replace('#', '');
   const [groups, setGroups] = useState([]);
   const [coach, setCoach] = useState(null); // { name, avatar, stories, hasUnseen }
   const [openGroup, setOpenGroup] = useState(null); // member/self group whose stories are open
@@ -103,7 +110,7 @@ function StoriesBar({ mode = 'client', clientId, coachId, selfName, selfAvatar }
               aria-label={selfGroup ? t('storiesBar.ariaViewYourStory') : t('storiesBar.ariaAddStory')}
             >
               <div style={{ ...styles.ring, ...(selfGroup?.hasUnseen ? styles.ringUnseen : styles.ringSeen) }}>
-                <img src={avatarFor(selfName, selfAvatar)} alt="" style={styles.avatar} />
+                <img src={avatarFor(selfName, selfAvatar, avatarBg)} alt="" style={styles.avatar} />
               </div>
               <span style={styles.addBadge} onClick={(e) => { e.stopPropagation(); setShowCreate(true); }}>
                 <Plus size={13} strokeWidth={3} />
@@ -118,7 +125,7 @@ function StoriesBar({ mode = 'client', clientId, coachId, selfName, selfAvatar }
           <div style={styles.item}>
             <button style={styles.ringBtn} onClick={() => setOpenCoach(true)} aria-label={t('storiesBar.ariaViewCoachStory', { name: coach.name })}>
               <div style={{ ...styles.ring, ...(coach.hasUnseen ? styles.ringUnseen : styles.ringSeen) }}>
-                <img src={avatarFor(coach.name, coach.avatar)} alt="" style={styles.avatar} />
+                <img src={avatarFor(coach.name, coach.avatar, avatarBg)} alt="" style={styles.avatar} />
               </div>
             </button>
             <span style={styles.label}>{coach.name?.split(' ')[0] || t('storiesBar.fallbackCoach')}</span>
@@ -134,7 +141,7 @@ function StoriesBar({ mode = 'client', clientId, coachId, selfName, selfAvatar }
               aria-label={t('storiesBar.ariaViewMemberStory', { name: group.authorName })}
             >
               <div style={{ ...styles.ring, ...(group.hasUnseen ? styles.ringUnseen : styles.ringSeen) }}>
-                <img src={avatarFor(group.authorName, group.authorAvatar)} alt="" style={styles.avatar} />
+                <img src={avatarFor(group.authorName, group.authorAvatar, avatarBg)} alt="" style={styles.avatar} />
               </div>
             </button>
             <span style={styles.label}>{group.authorName?.split(' ')[0] || t('storiesBar.fallbackMember')}</span>
