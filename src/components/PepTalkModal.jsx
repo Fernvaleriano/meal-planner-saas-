@@ -129,6 +129,10 @@ function PepTalkModal() {
           />
         )}
 
+        {current.imageUrl && (
+          <img src={current.imageUrl} alt="" style={imageStyle} />
+        )}
+
         {current.body && (
           <div style={bodyStyle}>{current.body}</div>
         )}
@@ -201,6 +205,13 @@ const videoStyle = {
   borderRadius: 12,
   marginBottom: 14,
   background: 'black'
+};
+
+const imageStyle = {
+  width: '100%',
+  borderRadius: 12,
+  marginBottom: 14,
+  display: 'block'
 };
 
 const bodyStyle = {
