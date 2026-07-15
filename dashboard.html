@@ -3605,6 +3605,102 @@
             cursor: not-allowed;
         }
 
+        /* Pep Talk quiz builder */
+        .pep-quiz-question {
+            border: 1px solid var(--gray-200);
+            border-radius: 12px;
+            padding: 12px;
+            margin-bottom: 10px;
+            background: var(--gray-50, #f9fafb);
+        }
+        .pep-quiz-question-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        .pep-quiz-question-head span {
+            font-weight: 600;
+            font-size: 0.875rem;
+            color: var(--gray-700);
+        }
+        .pep-quiz-remove {
+            background: none;
+            border: none;
+            color: var(--gray-400);
+            cursor: pointer;
+            font-size: 1.25rem;
+            line-height: 1;
+            padding: 0 4px;
+        }
+        .pep-quiz-option-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 6px;
+        }
+        .pep-quiz-option-row input[type="text"] {
+            margin: 0;
+            flex: 1;
+        }
+        .pep-quiz-option-row input[type="radio"] {
+            width: 18px;
+            height: 18px;
+            flex-shrink: 0;
+            cursor: pointer;
+        }
+        .pep-quiz-add-btn,
+        .pep-quiz-add-option {
+            background: none;
+            border: 1px dashed var(--gray-300);
+            border-radius: 8px;
+            color: var(--gray-600);
+            padding: 8px 12px;
+            font-size: 0.8125rem;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .pep-quiz-add-btn {
+            width: 100%;
+            margin-top: 4px;
+        }
+        .pep-quiz-add-option {
+            margin-top: 2px;
+            margin-bottom: 8px;
+        }
+        .pep-quiz-add-btn:hover,
+        .pep-quiz-add-option:hover {
+            border-color: var(--brand-primary, #14b8a6);
+            color: var(--brand-primary, #14b8a6);
+        }
+        .pep-quiz-toggles {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 14px;
+            margin-top: 8px;
+        }
+        .pep-quiz-toggles label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.8125rem;
+            color: var(--gray-700);
+            cursor: pointer;
+        }
+        .pep-quiz-correct-hint {
+            font-size: 0.75rem;
+            color: var(--gray-500);
+            margin: 2px 0 6px;
+        }
+        [data-theme="dark"] .pep-quiz-question {
+            background: var(--gray-800);
+            border-color: var(--gray-700);
+        }
+        [data-theme="dark"] .pep-quiz-question-head span,
+        [data-theme="dark"] .pep-quiz-toggles label {
+            color: #e2e8f0;
+        }
+
         /* Dark mode for Stories Creator */
         [data-theme="dark"] .coach-stories-creator {
             background: var(--gray-800);
@@ -5971,6 +6067,24 @@
                 </div>
             </div>
 
+            <!-- Pep Talk Quiz Responses Modal -->
+            <div class="story-creator-modal" id="pepTalkResponsesModal" style="display: none;">
+                <div class="story-creator-dialog">
+                    <div class="story-creator-header-modal">
+                        <h3 id="pepTalkResponsesTitle">Quiz Responses</h3>
+                        <button class="close-modal-btn" onclick="closePepTalkResponses()">&times;</button>
+                    </div>
+                    <div class="story-creator-body">
+                        <div id="pepTalkResponsesContent">
+                            <div class="stories-loading">Loading responses...</div>
+                        </div>
+                    </div>
+                    <div class="story-creator-footer">
+                        <button class="cancel-btn" onclick="closePepTalkResponses()">Close</button>
+                    </div>
+                </div>
+            </div>
+
             <!-- My Stories - Hidden by default, toggled from compact row -->
             <div class="my-stories-section my-stories-collapsed" id="myStoriesSection">
                 <div class="my-stories-toggle" onclick="toggleMyStories()">
@@ -6023,6 +6137,21 @@
                                 <div id="pepTalkVideoStatus" style="display:none; margin-top: 10px; font-size: 0.875rem; color: var(--gray-600);"></div>
                                 <video id="pepTalkVideoPreview" style="display:none; max-width: 100%; border-radius: 12px; margin-top: 10px;" controls></video>
                                 <img id="pepTalkImagePreview" style="display:none; max-width: 100%; border-radius: 12px; margin-top: 10px;" alt="Pep talk photo preview">
+                            </div>
+
+                            <div class="form-group" style="margin-top: 16px;">
+                                <label style="display:flex; align-items:flex-start; gap:10px; cursor:pointer;">
+                                    <input type="checkbox" id="pepTalkIsQuiz" onchange="togglePepTalkQuiz()" style="margin-top:3px; width:18px; height:18px; flex-shrink:0;">
+                                    <span>
+                                        <span style="display:block; font-size:0.875rem; color: var(--gray-800); font-weight:600;">Make this a quiz (ask questions)</span>
+                                        <span style="display:block; font-size:0.8rem; color: var(--gray-500); margin-top:2px;">Clients answer one or more questions — multiple choice (you pick the right answer), a written reply, and/or a photo/video.</span>
+                                    </span>
+                                </label>
+                            </div>
+
+                            <div id="pepTalkQuizBuilder" style="display:none; margin-top: 4px;">
+                                <div id="pepTalkQuestions"></div>
+                                <button type="button" class="pep-quiz-add-btn" onclick="addPepTalkQuestion()">+ Add a question</button>
                             </div>
 
                             <div class="form-group" style="margin-top: 16px;">
@@ -11245,6 +11374,7 @@
         let pepTalkUploadedImage = null;          // { url } once a photo is uploaded (mutually exclusive with video)
         let myPepTalksData = [];
         let pepTalksShowArchived = false;         // toggles the archived view in the manage list
+        let pepTalkQuestionSeq = 0;               // ever-increasing id so radio groups never collide
 
         function openPepTalkCreator() {
             document.getElementById('pepTalkTitle').value = '';
@@ -11261,10 +11391,116 @@
             document.getElementById('pepTalkVideoInput').value = '';
             pepTalkUploadedVideo = null;
             pepTalkUploadedImage = null;
+            // Reset quiz builder
+            document.getElementById('pepTalkIsQuiz').checked = false;
+            document.getElementById('pepTalkQuizBuilder').style.display = 'none';
+            document.getElementById('pepTalkQuestions').innerHTML = '';
             const btn = document.getElementById('publishPepTalkBtn');
             btn.disabled = false;
             btn.textContent = 'Send Pep Talk';
             document.getElementById('pepTalkCreatorModal').style.display = 'flex';
+        }
+
+        // Toggle the quiz builder. Turning it on seeds one empty question so
+        // the coach has something to fill in right away.
+        function togglePepTalkQuiz() {
+            const on = document.getElementById('pepTalkIsQuiz').checked;
+            document.getElementById('pepTalkQuizBuilder').style.display = on ? 'block' : 'none';
+            const btn = document.getElementById('publishPepTalkBtn');
+            btn.textContent = on ? 'Send Quiz' : 'Send Pep Talk';
+            if (on && document.querySelectorAll('#pepTalkQuestions .pep-quiz-question').length === 0) {
+                addPepTalkQuestion();
+            }
+        }
+
+        function renumberPepTalkQuestions() {
+            document.querySelectorAll('#pepTalkQuestions .pep-quiz-question').forEach((el, i) => {
+                el.querySelector('.pep-quiz-qnum').textContent = i + 1;
+            });
+        }
+
+        function addPepTalkQuestion() {
+            const seq = ++pepTalkQuestionSeq;
+            const wrap = document.createElement('div');
+            wrap.className = 'pep-quiz-question';
+            wrap.dataset.seq = seq;
+            wrap.innerHTML = `
+                <div class="pep-quiz-question-head">
+                    <span>Question <span class="pep-quiz-qnum"></span></span>
+                    <button type="button" class="pep-quiz-remove" title="Remove question" onclick="removePepTalkQuestion(this)">&times;</button>
+                </div>
+                <input type="text" class="story-input pep-quiz-qtext" placeholder="Type your question" maxlength="500">
+                <div class="pep-quiz-correct-hint">Add multiple-choice options below, then tap the circle next to the correct one. (Optional — you can also just collect a written or photo/video answer.)</div>
+                <div class="pep-quiz-options"></div>
+                <button type="button" class="pep-quiz-add-option" onclick="addPepTalkOption(this)">+ Add multiple-choice option</button>
+                <div class="pep-quiz-toggles">
+                    <label><input type="checkbox" class="pep-quiz-allow-text"> Allow a written answer</label>
+                    <label><input type="checkbox" class="pep-quiz-allow-media"> Allow a photo/video answer</label>
+                </div>
+            `;
+            document.getElementById('pepTalkQuestions').appendChild(wrap);
+            renumberPepTalkQuestions();
+        }
+
+        function removePepTalkQuestion(btn) {
+            const q = btn.closest('.pep-quiz-question');
+            if (q) q.remove();
+            // Keep at least one question while the quiz toggle is on.
+            if (document.getElementById('pepTalkIsQuiz').checked &&
+                document.querySelectorAll('#pepTalkQuestions .pep-quiz-question').length === 0) {
+                addPepTalkQuestion();
+            }
+            renumberPepTalkQuestions();
+        }
+
+        function addPepTalkOption(btn) {
+            const q = btn.closest('.pep-quiz-question');
+            const seq = q.dataset.seq;
+            const row = document.createElement('div');
+            row.className = 'pep-quiz-option-row';
+            row.innerHTML = `
+                <input type="radio" name="pep-quiz-correct-${seq}" class="pep-quiz-correct" title="Mark as the correct answer">
+                <input type="text" class="story-input pep-quiz-option-text" placeholder="Answer option" maxlength="300">
+                <button type="button" class="pep-quiz-remove" title="Remove option" onclick="this.closest('.pep-quiz-option-row').remove()">&times;</button>
+            `;
+            q.querySelector('.pep-quiz-options').appendChild(row);
+        }
+
+        // Read the quiz builder into the payload shape the backend expects.
+        // Returns { questions } or { error } for the first validation problem.
+        function collectPepTalkQuestions() {
+            const questionEls = [...document.querySelectorAll('#pepTalkQuestions .pep-quiz-question')];
+            if (questionEls.length === 0) return { error: 'Add at least one question.' };
+            const questions = [];
+            for (let i = 0; i < questionEls.length; i++) {
+                const el = questionEls[i];
+                const questionText = el.querySelector('.pep-quiz-qtext').value.trim();
+                if (!questionText) return { error: `Question ${i + 1} needs some text.` };
+
+                // Only non-empty option rows count; correct index aligns to them.
+                const optionRows = [...el.querySelectorAll('.pep-quiz-option-row')];
+                const options = [];
+                let correctOption = null;
+                optionRows.forEach(r => {
+                    const txt = r.querySelector('.pep-quiz-option-text').value.trim();
+                    if (!txt) return;
+                    if (r.querySelector('.pep-quiz-correct').checked) correctOption = options.length;
+                    options.push(txt);
+                });
+                if (options.length === 1) return { error: `Question ${i + 1} needs at least two options (or remove them).` };
+
+                const allowText = el.querySelector('.pep-quiz-allow-text').checked;
+                const allowMedia = el.querySelector('.pep-quiz-allow-media').checked;
+
+                if (options.length >= 2 && correctOption === null) {
+                    return { error: `Tap the correct answer for question ${i + 1}.` };
+                }
+                if (options.length < 2 && !allowText && !allowMedia) {
+                    return { error: `Question ${i + 1} needs options, a written answer, or a photo/video answer.` };
+                }
+                questions.push({ questionText, options, correctOption, allowText, allowMedia });
+            }
+            return { questions };
         }
 
         function closePepTalkCreator() {
@@ -11397,12 +11633,24 @@
             const body = document.getElementById('pepTalkBody').value.trim();
             const recipientType = document.getElementById('pepTalkRecipientType').value;
             const mandatory = document.getElementById('pepTalkMandatory').checked;
+            const isQuiz = document.getElementById('pepTalkIsQuiz').checked;
 
             if (!title) {
                 alert('Please add a title.');
                 return;
             }
-            if (!body && !pepTalkUploadedVideo && !pepTalkUploadedImage) {
+
+            // For a quiz the questions ARE the content; for a regular pep talk
+            // we still need a message, photo, or video.
+            let questions = null;
+            if (isQuiz) {
+                const collected = collectPepTalkQuestions();
+                if (collected.error) {
+                    alert(collected.error);
+                    return;
+                }
+                questions = collected.questions;
+            } else if (!body && !pepTalkUploadedVideo && !pepTalkUploadedImage) {
                 alert('Add a message, a photo, or a video.');
                 return;
             }
@@ -11433,7 +11681,9 @@
                         imageUrl: pepTalkUploadedImage?.url || null,
                         recipientType,
                         clientIds,
-                        mandatory
+                        mandatory,
+                        isQuiz,
+                        questions
                     })
                 });
                 const result = await response.json();
@@ -11444,9 +11694,9 @@
                 updateActivePepTalksCount();
             } catch (err) {
                 console.error('Error sending pep talk:', err);
-                alert('Failed to send pep talk: ' + err.message);
+                alert('Failed to send ' + (isQuiz ? 'quiz' : 'pep talk') + ': ' + err.message);
                 btn.disabled = false;
-                btn.textContent = 'Send Pep Talk';
+                btn.textContent = isQuiz ? 'Send Quiz' : 'Send Pep Talk';
             }
         }
 
@@ -11487,7 +11737,12 @@
         }
 
         function renderPepTalkCard(pt) {
-            const previewInner = pt.videoUrl
+            const previewInner = pt.isQuiz
+                ? `<div class="story-card-preview" style="background:#0d9488;color:white;flex-direction:column;gap:6px;">
+                       <svg width="30" height="30" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/><circle cx="12" cy="12" r="10"/></svg>
+                       <span style="font-size:0.75rem;">Quiz</span>
+                   </div>`
+                : pt.videoUrl
                 ? `<div class="story-card-preview" style="background:#0f172a;color:white;flex-direction:column;gap:6px;">
                        <svg width="32" height="32" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
                        <span style="font-size:0.75rem;">Video pep talk</span>
@@ -11499,12 +11754,19 @@
                 : `<div class="story-card-preview quote-preview"><p>${escapeHtml(pt.body || pt.title)}</p></div>`;
 
             const recipientLabel = pt.recipientType === 'all' ? 'All clients' : 'Specific';
-            const viewStats = `${pt.viewedCount} / ${pt.totalRecipients} viewed`;
+            const statLabel = pt.isQuiz ? 'answered' : 'viewed';
+            const viewStats = `${pt.viewedCount} / ${pt.totalRecipients} ${statLabel}`;
             const isArchived = pt.archived === true;
 
             const actionBtn = isArchived
                 ? `<button class="story-delete-btn" style="background: var(--gray-100); color: var(--gray-700);" onclick="unarchivePepTalk(${pt.id})">Restore</button>`
                 : `<button class="story-delete-btn" onclick="archivePepTalk(${pt.id})">Archive</button>`;
+            const responsesBtn = pt.isQuiz
+                ? `<button class="story-delete-btn" style="background: var(--brand-primary, #14b8a6); color: white;" onclick="openPepTalkResponses(${pt.id})">View responses</button>`
+                : '';
+            const quizBadge = pt.isQuiz
+                ? `<span class="story-type-badge" style="background:#ccfbf1;color:#0f766e;">Quiz</span>`
+                : '';
             const archivedBadge = isArchived
                 ? `<span class="story-type-badge" style="background: var(--gray-200); color: var(--gray-600);">Archived</span>`
                 : '';
@@ -11515,15 +11777,99 @@
                     <div class="story-card-info">
                         <div class="story-card-meta">
                             <span class="story-type-badge">${recipientLabel}</span>
+                            ${quizBadge}
                             ${archivedBadge}
                         </div>
                         <div style="font-weight:600;font-size:0.875rem;margin-top:6px;color:var(--gray-800);">${escapeHtml(pt.title)}</div>
                         <div style="font-size:0.75rem;color:var(--gray-500);margin-top:2px;">${viewStats}</div>
                         <div class="story-card-actions">
+                            ${responsesBtn}
                             ${actionBtn}
                         </div>
                     </div>
                 </div>
+            `;
+        }
+
+        // ---- Quiz responses (coach view) ----------------------------------
+        async function openPepTalkResponses(pepTalkId) {
+            const modal = document.getElementById('pepTalkResponsesModal');
+            const content = document.getElementById('pepTalkResponsesContent');
+            document.getElementById('pepTalkResponsesTitle').textContent = 'Quiz Responses';
+            content.innerHTML = '<div class="stories-loading">Loading responses...</div>';
+            modal.style.display = 'flex';
+            try {
+                const response = await fetch(`/.netlify/functions/coach-pep-talk-responses?coachId=${currentUserId}&pepTalkId=${pepTalkId}`);
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.error || 'Failed to load responses');
+                renderPepTalkResponses(data);
+            } catch (err) {
+                console.error('Error loading quiz responses:', err);
+                content.innerHTML = `<div class="stories-loading">Failed to load. <a href="javascript:openPepTalkResponses(${pepTalkId})">Try again</a></div>`;
+            }
+        }
+
+        function closePepTalkResponses() {
+            document.getElementById('pepTalkResponsesModal').style.display = 'none';
+        }
+
+        function renderPepTalkResponses(data) {
+            document.getElementById('pepTalkResponsesTitle').textContent = data.title || 'Quiz Responses';
+            const content = document.getElementById('pepTalkResponsesContent');
+            const questions = data.questions || [];
+            const respondents = data.respondents || [];
+
+            // Summary of the correct answers so the coach has a key.
+            const keyHtml = questions.map((q, i) => {
+                const opts = (q.options || []).map((o, oi) =>
+                    `<span style="display:inline-block;padding:2px 8px;margin:2px;border-radius:6px;font-size:0.8rem;${oi === q.correctOption ? 'background:#ccfbf1;color:#0f766e;font-weight:600;' : 'background:var(--gray-100);color:var(--gray-600);'}">${escapeHtml(o)}${oi === q.correctOption ? ' ✓' : ''}</span>`
+                ).join('');
+                const modes = [];
+                if (q.options && q.options.length) modes.push('multiple choice');
+                if (q.allowText) modes.push('written');
+                if (q.allowMedia) modes.push('photo/video');
+                return `<div style="margin-bottom:10px;">
+                    <div style="font-weight:600;font-size:0.875rem;color:var(--gray-800);">${i + 1}. ${escapeHtml(q.questionText)}</div>
+                    <div style="font-size:0.72rem;color:var(--gray-400);margin:2px 0;">${modes.join(' · ')}</div>
+                    ${opts ? `<div>${opts}</div>` : ''}
+                </div>`;
+            }).join('');
+
+            if (respondents.length === 0) {
+                content.innerHTML = `${keyHtml}<div style="margin-top:12px;padding:16px;text-align:center;color:var(--gray-400);border-top:1px solid var(--gray-200);">No answers yet.</div>`;
+                return;
+            }
+
+            const respHtml = respondents.map(r => {
+                const rows = questions.map((q, i) => {
+                    const a = r.answers[q.id];
+                    if (!a) return `<div style="font-size:0.8rem;color:var(--gray-400);margin:4px 0;">${i + 1}. (no answer)</div>`;
+                    let parts = [];
+                    if (a.selectedOption != null && q.options && q.options[a.selectedOption] != null) {
+                        const mark = a.isCorrect === true ? ' <span style="color:#0f766e;">✓</span>' : (a.isCorrect === false ? ' <span style="color:#dc2626;">✗</span>' : '');
+                        parts.push(`<span style="${a.isCorrect === false ? 'color:#dc2626;' : ''}">${escapeHtml(q.options[a.selectedOption])}${mark}</span>`);
+                    }
+                    if (a.answerText) parts.push(`<span style="color:var(--gray-700);">“${escapeHtml(a.answerText)}”</span>`);
+                    if (a.answerMediaUrl) parts.push(`<a href="${escapeHtml(a.answerMediaUrl)}" target="_blank" rel="noopener" style="color:var(--brand-primary,#14b8a6);">View ${a.answerMediaType === 'video' ? 'video' : 'photo'}</a>`);
+                    return `<div style="font-size:0.82rem;margin:4px 0;color:var(--gray-600);">${i + 1}. ${parts.join(' · ') || '(no answer)'}</div>`;
+                }).join('');
+                const score = r.scored > 0 ? `<span style="font-size:0.75rem;font-weight:600;color:#0f766e;">${r.correct}/${r.scored} correct</span>` : '';
+                return `<div style="border:1px solid var(--gray-200);border-radius:10px;padding:12px;margin-bottom:10px;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+                        <span style="font-weight:600;font-size:0.875rem;color:var(--gray-800);">${escapeHtml(r.clientName)}</span>
+                        ${score}
+                    </div>
+                    ${rows}
+                </div>`;
+            }).join('');
+
+            content.innerHTML = `
+                <div style="margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--gray-200);">
+                    <div style="font-size:0.8rem;font-weight:600;color:var(--gray-500);margin-bottom:8px;">ANSWER KEY</div>
+                    ${keyHtml}
+                </div>
+                <div style="font-size:0.8rem;font-weight:600;color:var(--gray-500);margin-bottom:8px;">RESPONSES (${respondents.length})</div>
+                ${respHtml}
             `;
         }
 

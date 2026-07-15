@@ -31,7 +31,7 @@ exports.handler = async (event) => {
 
     let query = supabase
       .from('pep_talks')
-      .select('id, title, body, video_url, video_duration_seconds, image_url, recipient_type, archived, archived_at, created_at')
+      .select('id, title, body, video_url, video_duration_seconds, image_url, recipient_type, archived, archived_at, created_at, is_quiz')
       .eq('coach_id', coachId)
       .order('created_at', { ascending: false });
 
@@ -89,6 +89,7 @@ exports.handler = async (event) => {
       videoUrl: p.video_url,
       videoDurationSeconds: p.video_duration_seconds,
       imageUrl: p.image_url,
+      isQuiz: p.is_quiz === true,
       recipientType: p.recipient_type,
       archived: p.archived,
       archivedAt: p.archived_at,
