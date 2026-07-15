@@ -26,7 +26,8 @@ const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
 const GYM_DOMAIN_CODES = {
   'huracan-fitness.com': 'HURACANFITNESS',
   'www.huracan-fitness.com': 'HURACANFITNESS',
-  'huracan.ziquecoach.com': 'HURACANFITNESS'
+  'huracan.ziquecoach.com': 'HURACANFITNESS',
+  'goliath.ziquecoach.com': 'GOLIATHSTRENGTH'
 };
 
 // Unbranded default (matches index.html) — used when no gym resolves.
