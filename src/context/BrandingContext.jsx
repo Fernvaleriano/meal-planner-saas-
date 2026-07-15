@@ -102,6 +102,7 @@ const BRAND_CSS_PROPS = [
   // Tint/shade family — set only for custom-branded coaches; global.css keeps
   // the original teal hexes as per-line var() fallbacks for default coaches.
   '--brand-primary-soft', '--brand-primary-lighter', '--brand-primary-darker',
+  '--brand-header-gradient',
 ];
 
 // Persistent key the pre-React inline script reads to apply brand colors and
@@ -336,6 +337,17 @@ function applyBrandingCSS(branding) {
     root.style.setProperty('--brand-primary-soft', lightenColor(primary, 10));
     root.style.setProperty('--brand-primary-lighter', lightenColor(primary, 22));
     root.style.setProperty('--brand-primary-darker', darkenColor(primary, 8));
+
+    // Dark-mode page header. In light mode the header already uses
+    // --brand-gradient; in dark mode global.css hardcodes the default
+    // turquoise. Set a header gradient in the coach's color family so a
+    // custom-branded gym's header matches their brand in dark mode too.
+    // Only set for custom brands — default coaches keep the stock dark
+    // turquoise via the CSS fallback.
+    root.style.setProperty(
+      '--brand-header-gradient',
+      `linear-gradient(135deg, ${primary} 0%, ${secondary} 100%)`
+    );
   }
 
   // Extended palette

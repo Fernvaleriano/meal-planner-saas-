@@ -212,7 +212,7 @@ body {
    straightforward fallback is the muted #0d3d3a → #0a2825 we
    shipped previously. */
 [data-theme="dark"] .page-header-gradient {
-    background: linear-gradient(135deg, #2EC4B6 0%, #1FA294 100%);
+    background: var(--brand-header-gradient, linear-gradient(135deg, #2EC4B6 0%, #1FA294 100%));
 }
 
 /* Workouts page has its own sticky top nav (.workout-top-nav) that
