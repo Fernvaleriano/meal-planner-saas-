@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { X, Video, RotateCcw, Trophy, Loader2, Check, AlertCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 import { apiPost } from '../utils/api';
 
 // Max proof length. Long enough to walk up, lift, and rack; short enough to
@@ -42,6 +43,7 @@ function extFromFile(file) {
 
 function SubmitLiftModal({ isOpen, lifts, initialLiftKey, onClose, onSubmitted }) {
   const { clientData } = useAuth();
+  const { t } = useLanguage();
   const defaultUnit = clientData?.unit_preference === 'metric' ? 'kg' : 'lbs';
 
   const [liftKey, setLiftKey] = useState(initialLiftKey || (lifts?.[0]?.key ?? 'bench_press'));
@@ -79,37 +81,37 @@ function SubmitLiftModal({ isOpen, lifts, initialLiftKey, onClose, onSubmitted }
     setError(null);
 
     if (file.size > MAX_FILE_BYTES) {
-      setError('That video is too large (max 75 MB). Trim it or record a shorter clip.');
+      setError(t('submitLiftModal.tooLarge'));
       return;
     }
     const duration = await readDuration(file);
     if (duration && duration > MAX_DURATION_SECONDS + 1) {
-      setError(`Keep it under ${MAX_DURATION_SECONDS} seconds — this clip is ${Math.round(duration)}s.`);
+      setError(t('submitLiftModal.tooLong', { seconds: MAX_DURATION_SECONDS, actual: Math.round(duration) }));
       return;
     }
     if (duration && duration < MIN_DURATION_SECONDS) {
-      setError('That clip is too short to show the lift.');
+      setError(t('submitLiftModal.tooShort'));
       return;
     }
     setVideoUrl(prev => { if (prev) URL.revokeObjectURL(prev); return URL.createObjectURL(file); });
     setVideoFile(file);
-  }, []);
+  }, [t]);
 
   const handleSubmit = async () => {
     setError(null);
     if (!lift) return;
     if (!isReps) {
       const w = parseFloat(weight);
-      if (!w || w <= 0 || w > 2000) { setError('Enter the weight you lifted.'); return; }
+      if (!w || w <= 0 || w > 2000) { setError(t('submitLiftModal.enterWeight')); return; }
     }
     const r = parseInt(reps, 10);
-    if (!r || r <= 0 || r > 100) { setError('Enter how many reps you hit.'); return; }
-    if (!videoFile) { setError('Add a video so your lift counts on the board.'); return; }
+    if (!r || r <= 0 || r > 100) { setError(t('submitLiftModal.enterReps')); return; }
+    if (!videoFile) { setError(t('submitLiftModal.addVideo')); return; }
 
     setPhase('uploading');
     try {
       // 1) Ask the server for a one-time signed upload URL.
-      setStatusText('Preparing upload…');
+      setStatusText(t('submitLiftModal.preparingUpload'));
       const ext = extFromFile(videoFile);
       const signRes = await apiPost('/.netlify/functions/gym-leaderboard', {
         action: 'sign-upload',
@@ -118,19 +120,19 @@ function SubmitLiftModal({ isOpen, lifts, initialLiftKey, onClose, onSubmitted }
         ext,
         contentType: videoFile.type || `video/${ext}`
       });
-      if (!signRes?.uploadUrl) throw new Error('Could not start the upload.');
+      if (!signRes?.uploadUrl) throw new Error(t('submitLiftModal.couldNotStart'));
 
       // 2) Push the video straight to storage (bypasses the function body limit).
-      setStatusText('Uploading your proof…');
+      setStatusText(t('submitLiftModal.uploadingProof'));
       const put = await fetch(signRes.uploadUrl, {
         method: 'PUT',
         headers: { 'Content-Type': signRes.contentType || videoFile.type || 'video/mp4' },
         body: videoFile
       });
-      if (!put.ok) throw new Error('Upload failed. Check your connection and try again.');
+      if (!put.ok) throw new Error(t('submitLiftModal.uploadFailed'));
 
       // 3) Record the lift against the uploaded proof.
-      setStatusText('Posting to the leaderboard…');
+      setStatusText(t('submitLiftModal.postingBoard'));
       await apiPost('/.netlify/functions/gym-leaderboard', {
         action: 'submit',
         clientId: clientData.id,
@@ -146,7 +148,7 @@ function SubmitLiftModal({ isOpen, lifts, initialLiftKey, onClose, onSubmitted }
       onSubmitted?.();
     } catch (err) {
       console.error('Submit lift failed:', err);
-      setError(err.message || 'Something went wrong. Please try again.');
+      setError(err.message || t('submitLiftModal.somethingWrong'));
       setPhase('form');
     }
   };
@@ -160,16 +162,16 @@ function SubmitLiftModal({ isOpen, lifts, initialLiftKey, onClose, onSubmitted }
           <button className="lb-modal-close" onClick={onClose} disabled={phase === 'uploading'}>
             <X size={22} />
           </button>
-          <h2 className="lb-modal-title">{phase === 'success' ? 'On the Board!' : 'Log a Lift'}</h2>
+          <h2 className="lb-modal-title">{phase === 'success' ? t('submitLiftModal.titleSuccess') : t('submitLiftModal.titleForm')}</h2>
         </div>
 
         <div className="lb-modal-body">
           {phase === 'success' && (
             <div className="lb-success">
               <div className="lb-success-icon"><Trophy size={40} /></div>
-              <h3>Nice work! 💪</h3>
-              <p>Your {lift?.name} is live on the gym leaderboard with video proof.</p>
-              <button className="lb-done-btn" onClick={onClose}>Done</button>
+              <h3>{t('submitLiftModal.successHeading')}</h3>
+              <p>{t('submitLiftModal.successBody', { lift: lift?.name })}</p>
+              <button className="lb-done-btn" onClick={onClose}>{t('submitLiftModal.done')}</button>
             </div>
           )}
 
@@ -177,14 +179,14 @@ function SubmitLiftModal({ isOpen, lifts, initialLiftKey, onClose, onSubmitted }
             <div className="lb-uploading">
               <Loader2 size={40} className="lb-spin" />
               <p>{statusText}</p>
-              <span className="lb-uploading-hint">Keep this open until it finishes.</span>
+              <span className="lb-uploading-hint">{t('submitLiftModal.keepOpen')}</span>
             </div>
           )}
 
           {phase === 'form' && (
             <div className="lb-form">
               {/* Lift picker */}
-              <label className="lb-label">Which lift?</label>
+              <label className="lb-label">{t('submitLiftModal.whichLift')}</label>
               <div className="lb-lift-chips">
                 {(lifts || []).map(l => (
                   <button
@@ -204,7 +206,7 @@ function SubmitLiftModal({ isOpen, lifts, initialLiftKey, onClose, onSubmitted }
                 {!isReps ? (
                   <>
                     <div className="lb-input-group lb-input-weight">
-                      <label className="lb-label" htmlFor="lb-weight">Weight</label>
+                      <label className="lb-label" htmlFor="lb-weight">{t('submitLiftModal.weight')}</label>
                       <div className="lb-weight-row">
                         <input
                           id="lb-weight" type="number" inputMode="decimal" min="0" max="2000" step="0.5"
@@ -218,7 +220,7 @@ function SubmitLiftModal({ isOpen, lifts, initialLiftKey, onClose, onSubmitted }
                       </div>
                     </div>
                     <div className="lb-input-group lb-input-reps">
-                      <label className="lb-label" htmlFor="lb-reps">Reps</label>
+                      <label className="lb-label" htmlFor="lb-reps">{t('submitLiftModal.reps')}</label>
                       <input
                         id="lb-reps" type="number" inputMode="numeric" min="1" max="100" step="1"
                         className="lb-input" placeholder="1" value={reps}
@@ -228,7 +230,7 @@ function SubmitLiftModal({ isOpen, lifts, initialLiftKey, onClose, onSubmitted }
                   </>
                 ) : (
                   <div className="lb-input-group lb-input-reps">
-                    <label className="lb-label" htmlFor="lb-reps">Reps in one set</label>
+                    <label className="lb-label" htmlFor="lb-reps">{t('submitLiftModal.repsInOneSet')}</label>
                     <input
                       id="lb-reps" type="number" inputMode="numeric" min="1" max="100" step="1"
                       className="lb-input" placeholder="0" value={reps}
@@ -240,23 +242,23 @@ function SubmitLiftModal({ isOpen, lifts, initialLiftKey, onClose, onSubmitted }
 
               <p className="lb-1rm-hint">
                 {isReps
-                  ? 'Ranked by reps in a single set.'
-                  : 'Ranked by estimated 1-rep max, so heavy singles and rep PRs compete fairly.'}
+                  ? t('submitLiftModal.rankedByReps')
+                  : t('submitLiftModal.rankedBy1rm')}
               </p>
 
               {/* Video proof */}
-              <label className="lb-label">Video proof <span className="lb-required">required</span></label>
+              <label className="lb-label">{t('submitLiftModal.videoProof')} <span className="lb-required">{t('submitLiftModal.required')}</span></label>
               {!videoUrl ? (
                 <button type="button" className="lb-video-add" onClick={() => fileInputRef.current?.click()}>
                   <Video size={22} />
-                  <span>Record or upload your set</span>
-                  <span className="lb-video-add-sub">Up to {MAX_DURATION_SECONDS}s · no proof, no board</span>
+                  <span>{t('submitLiftModal.recordUpload')}</span>
+                  <span className="lb-video-add-sub">{t('submitLiftModal.upToNoProof', { seconds: MAX_DURATION_SECONDS })}</span>
                 </button>
               ) : (
                 <div className="lb-video-preview">
                   <video src={videoUrl} controls playsInline className="lb-video-el" />
                   <button type="button" className="lb-video-retake" onClick={() => fileInputRef.current?.click()}>
-                    <RotateCcw size={16} /> Choose a different clip
+                    <RotateCcw size={16} /> {t('submitLiftModal.chooseDifferent')}
                   </button>
                 </div>
               )}
@@ -268,10 +270,10 @@ function SubmitLiftModal({ isOpen, lifts, initialLiftKey, onClose, onSubmitted }
                 onChange={handleVideoPick} style={{ display: 'none' }}
               />
 
-              <label className="lb-label" htmlFor="lb-notes">Note <span className="lb-optional">(optional)</span></label>
+              <label className="lb-label" htmlFor="lb-notes">{t('submitLiftModal.note')} <span className="lb-optional">{t('submitLiftModal.optional')}</span></label>
               <input
                 id="lb-notes" type="text" maxLength={120} className="lb-input"
-                placeholder="e.g. new PR, belt only, paused reps" value={notes}
+                placeholder={t('submitLiftModal.notePlaceholder')} value={notes}
                 onChange={(e) => setNotes(e.target.value)}
               />
 
@@ -280,7 +282,7 @@ function SubmitLiftModal({ isOpen, lifts, initialLiftKey, onClose, onSubmitted }
               )}
 
               <button type="button" className="lb-submit-btn" onClick={handleSubmit}>
-                <Check size={18} /> Post to Leaderboard
+                <Check size={18} /> {t('submitLiftModal.postToBoard')}
               </button>
             </div>
           )}

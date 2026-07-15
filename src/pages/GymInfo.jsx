@@ -2,11 +2,13 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronLeft, Clock, Calendar, MapPin, Phone, Instagram, Globe, Tag, Dumbbell } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 import { apiGet } from '../utils/api';
 
+// [day key, translation key]. Day labels are looked up via t('gymInfoPage.<key>').
 const DAYS = [
-  ['mon', 'Monday'], ['tue', 'Tuesday'], ['wed', 'Wednesday'],
-  ['thu', 'Thursday'], ['fri', 'Friday'], ['sat', 'Saturday'], ['sun', 'Sunday']
+  ['mon', 'dayMon'], ['tue', 'dayTue'], ['wed', 'dayWed'],
+  ['thu', 'dayThu'], ['fri', 'dayFri'], ['sat', 'daySat'], ['sun', 'daySun']
 ];
 
 function fmtTime(hhmm) {
@@ -24,6 +26,7 @@ function fmtTime(hhmm) {
  */
 export default function GymInfo() {
   const navigate = useNavigate();
+  const { t } = useLanguage();
   const { clientData } = useAuth();
   const coachId = clientData?.coach_id;
   const [info, setInfo] = useState(null);
@@ -125,27 +128,27 @@ export default function GymInfo() {
         <button className="back-btn-circle" onClick={() => navigate(-1)}>
           <ChevronLeft size={24} />
         </button>
-        <h1 className="page-title">Gym Info</h1>
+        <h1 className="page-title">{t('gymInfoPage.title')}</h1>
       </div>
 
       <div style={S.content}>
         {loading ? null : isEmpty ? (
-          <div style={S.empty}>Your gym hasn’t added their info yet.</div>
+          <div style={S.empty}>{t('gymInfoPage.empty')}</div>
         ) : (
           <>
             {hasHours && (
               <div style={S.block}>
-                <div style={S.label}><Clock size={14} /> Hours of operation</div>
+                <div style={S.label}><Clock size={14} /> {t('gymInfoPage.hoursLabel')}</div>
                 {identical ? (
-                  <div style={S.hoursAll}>Open daily · {fmtTime(first.open)} – {fmtTime(first.close)}</div>
+                  <div style={S.hoursAll}>{t('gymInfoPage.openDaily')} · {fmtTime(first.open)} – {fmtTime(first.close)}</div>
                 ) : (
-                  DAYS.map(([k, name], i) => {
+                  DAYS.map(([k, nameKey], i) => {
                     const d = hours[k];
                     if (!d) return null;
                     return (
                       <div key={k} style={i === DAYS.length - 1 ? { ...S.hoursRow, ...lastRow } : S.hoursRow}>
-                        <span style={S.day}>{name}</span>
-                        <span>{d.closed ? <span style={S.closed}>Closed</span> : `${fmtTime(d.open)} – ${fmtTime(d.close)}`}</span>
+                        <span style={S.day}>{t(`gymInfoPage.${nameKey}`)}</span>
+                        <span>{d.closed ? <span style={S.closed}>{t('gymInfoPage.closed')}</span> : `${fmtTime(d.open)} – ${fmtTime(d.close)}`}</span>
                       </div>
                     );
                   })
@@ -155,12 +158,12 @@ export default function GymInfo() {
 
             {classes.length > 0 && (
               <div style={S.block}>
-                <div style={S.label}><Calendar size={14} /> Classes</div>
+                <div style={S.label}><Calendar size={14} /> {t('gymInfoPage.classesLabel')}</div>
                 {classes.map((c, i) => (
                   <div key={i} style={i === classes.length - 1 ? { ...S.cls, ...lastRow } : S.cls}>
                     <span style={S.cname}>{c.name}</span>
                     {c.schedule ? <span style={S.csched}>{c.schedule}</span> : null}
-                    {c.included ? <span style={S.free}>Free with membership</span> : null}
+                    {c.included ? <span style={S.free}>{t('gymInfoPage.freeWithMembership')}</span> : null}
                   </div>
                 ))}
               </div>
@@ -168,7 +171,7 @@ export default function GymInfo() {
 
             {packages.length > 0 && (
               <div style={S.block}>
-                <div style={S.label}><Tag size={14} /> Membership packages</div>
+                <div style={S.label}><Tag size={14} /> {t('gymInfoPage.packagesLabel')}</div>
                 {packages.map((p, i) => (
                   <div key={i} style={i === packages.length - 1 ? { ...S.pkg, ...lastRow } : S.pkg}>
                     <span style={S.plabel}>{p.label}</span>
@@ -180,7 +183,7 @@ export default function GymInfo() {
 
             {amenities.length > 0 && (
               <div style={S.block}>
-                <div style={S.label}><Dumbbell size={14} /> Facilities</div>
+                <div style={S.label}><Dumbbell size={14} /> {t('gymInfoPage.facilitiesLabel')}</div>
                 <div style={S.amenities}>
                   {amenities.map((a, i) => (
                     <span key={i} style={S.amenity}>{a}</span>
@@ -191,7 +194,7 @@ export default function GymInfo() {
 
             {hasSocials && (
               <div style={S.block}>
-                <div style={S.label}><MapPin size={14} /> Find us</div>
+                <div style={S.label}><MapPin size={14} /> {t('gymInfoPage.findUsLabel')}</div>
                 {instagram && (
                   <div style={S.social}>
                     <Instagram size={17} />

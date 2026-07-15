@@ -86,13 +86,13 @@ function BottomNav({ currentPath }) {
     // Coaches can hide it from their clients via the Ranks module toggle; it
     // stays on by default (isModuleVisible returns true unless explicitly off).
     if (isModuleVisible('leaderboard')) {
-      visible.push({ path: '/leaderboard', icon: Trophy, label: 'Ranks', moduleKey: 'leaderboard' });
+      visible.push({ path: '/leaderboard', icon: Trophy, label: getLabel('ranks'), moduleKey: 'leaderboard' });
     }
     // Gym members (nutrition/diary turned off -> the workout-only "gym home")
     // get a Gym Info tab here instead of a home-screen tile. Full coaching
     // clients keep the diary and don't get this tab (their nav is already full).
     if (!isModuleVisible('diary')) {
-      visible.push({ path: '/gym-info', icon: Info, label: 'Gym Info', moduleKey: null });
+      visible.push({ path: '/gym-info', icon: Info, label: getLabel('gym_info'), moduleKey: null });
     }
     return visible;
   }, [isCoach, isModuleVisible, getLabel, unreadMessages]);

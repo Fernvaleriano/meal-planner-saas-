@@ -65,6 +65,8 @@ export default {
     check_in: 'เช็คอิน',
     progress: 'ความคืบหน้า',
     recipes: 'สูตรอาหาร',
+    ranks: 'อันดับ',
+    gym_info: 'ข้อมูลยิม',
   },
 
   settings: {
