@@ -255,7 +255,9 @@
             color: #0f766e;
         }
         .gym-checkin-stat-icon { text-transform: none; }
-        .gym-checkin-stat #gymCheckinStatValue { font-size: 0.8125rem; }
+        .gym-checkin-stat #gymCheckinStatValue,
+        .gym-checkin-stat #gymCheckinStat7dValue { font-size: 0.8125rem; }
+        .gym-checkin-stat-sep { opacity: 0.5; margin: 0 2px; }
         [data-theme="dark"] .gym-checkin-stat {
             background: linear-gradient(135deg, #134e4a 0%, #115e59 100%);
             color: #5eead4;
@@ -5745,6 +5747,9 @@
                     <span class="gym-checkin-stat-icon">🏋️</span>
                     <span id="gymCheckinStatValue">0</span>
                     <span class="gym-checkin-stat-label">gym check-ins</span>
+                    <span class="gym-checkin-stat-sep">·</span>
+                    <span id="gymCheckinStat7dValue">0</span>
+                    <span class="gym-checkin-stat-label">past 7 days</span>
                 </span>
 
                 <!-- Three Overview Cards -->
@@ -6399,6 +6404,28 @@
                     }
                 } catch (e) {
                     console.warn('Could not load gym check-in count:', e);
+                }
+                // Gym check-ins from the past 7 days (by proof_date, the day the
+                // client actually checked in). Read-only; a failure just leaves
+                // the "past 7 days" number at its default of 0.
+                try {
+                    const gymWeekAgo = new Date();
+                    gymWeekAgo.setDate(gymWeekAgo.getDate() - 7);
+                    const gymWeekAgoDate = gymWeekAgo.toISOString().slice(0, 10);
+                    const { count: gymCheckin7dCount, error: gym7dError } = await supabaseClient
+                        .from('gym_proofs')
+                        .select('*', { count: 'exact', head: true })
+                        .eq('coach_id', coachId)
+                        .gte('proof_date', gymWeekAgoDate);
+
+                    if (!gym7dError) {
+                        const gym7dValEl = document.getElementById('gymCheckinStat7dValue');
+                        if (gym7dValEl) {
+                            gym7dValEl.textContent = (gymCheckin7dCount || 0).toLocaleString();
+                        }
+                    }
+                } catch (e) {
+                    console.warn('Could not load 7-day gym check-in count:', e);
                 }
 
                 // Populate priority alerts
