@@ -1,6 +1,45 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <script>
+        /*
+         * White-label gym domains → branded client login.
+         *
+         * Each gym we white-label points its own domain (a bought domain like
+         * huracanfitness.com, or a *.ziquecoach.com subdomain) at this same
+         * Netlify site. On the BARE root of one of those domains we send the
+         * visitor straight to that gym's branded login instead of showing the
+         * Ziquecoach marketing page.
+         *
+         * SAFETY: only the hostnames listed below are ever redirected. The main
+         * app (ziquecoach.com, www, the netlify.app, localhost, etc.) is not in
+         * the map, so it always shows the normal landing page — this script is a
+         * no-op there. Remove the script and the only thing that changes is that
+         * a gym's bare domain shows the marketing page again; nothing else breaks.
+         *
+         * TO ADD A GYM: add one line — '<their-domain>': '<their brand_slug>'.
+         * The slug is the coach's brand_slug (see migration 029); the existing
+         * /gym/<slug> function resolves it to the branded login, so there are no
+         * coach IDs to hardcode here.
+         */
+        (function () {
+            try {
+                var GYM_DOMAINS = {
+                    'huracan.ziquecoach.com': 'huracan-fitness'
+                };
+                var slug = GYM_DOMAINS[location.hostname];
+                var atRoot =
+                    location.pathname === '/' ||
+                    location.pathname === '' ||
+                    location.pathname === '/index.html';
+                if (slug && atRoot) {
+                    // replace() so the marketing page never enters history —
+                    // Back from the login won't bounce them here.
+                    location.replace('/gym/' + slug);
+                }
+            } catch (e) { /* never block the page on a branding redirect */ }
+        })();
+    </script>
     <script src="/js/sentry-init.js"></script>
     <meta charset="UTF-8">
     <link rel="icon" href="https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/assets/icons/logo.png" type="image/png">
