@@ -73,8 +73,24 @@
     }
 
     // ── Supabase helper ──
+    // Coach pages create their Supabase client as a local const inside their
+    // own <script>, so window.supabaseClient is almost never set. Fall back to
+    // creating our own client from the supabase-js CDN global — it shares the
+    // same auth session via localStorage, so the coach's login carries over.
+    var SUPABASE_URL = 'https://qewqcjzlfqamqwbccapr.supabase.co';
+    var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFld3FjanpsZnFhbXF3YmNjYXByIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM2OTg0NzAsImV4cCI6MjA3OTI3NDQ3MH0.mQnMC33O88oLkLLGWD2oG-oaSHGI-NfHmtQCZxnxSLs';
+    var fallbackClient = null;
+
     function getSupabase() {
-        return window.supabaseClient || null;
+        if (window.supabaseClient) return window.supabaseClient;
+        if (!fallbackClient && window.supabase && typeof window.supabase.createClient === 'function') {
+            try {
+                fallbackClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+            } catch (_) {
+                fallbackClient = null;
+            }
+        }
+        return fallbackClient;
     }
 
     async function getCoachId() {
@@ -167,7 +183,8 @@
             action: async function (t) {
                 var sb = getSupabase();
                 var coachId = await getCoachId();
-                if (!sb || !coachId) return { message: 'Cannot connect to database', type: 'error' };
+                if (!sb) return { message: 'Cannot connect to database', type: 'error' };
+                if (!coachId) return { message: "You're signed out — please log in again", type: 'error' };
 
                 // Extract client name
                 var nameMatch = t.match(/(?:did|has)\s+(.+?)\s+(?:finish|complete|done|do)/i);
@@ -215,7 +232,8 @@
             action: async function (t) {
                 var sb = getSupabase();
                 var coachId = await getCoachId();
-                if (!sb || !coachId) return { message: 'Cannot connect to database', type: 'error' };
+                if (!sb) return { message: 'Cannot connect to database', type: 'error' };
+                if (!coachId) return { message: "You're signed out — please log in again", type: 'error' };
 
                 // Check if asking about a specific client
                 var nameMatch = t.match(/(?:for|from|by)\s+(.+?)(?:\s*$|\s+(?:today|this week|recently))/i);
@@ -270,7 +288,8 @@
             action: async function () {
                 var sb = getSupabase();
                 var coachId = await getCoachId();
-                if (!sb || !coachId) return { message: 'Cannot connect to database', type: 'error' };
+                if (!sb) return { message: 'Cannot connect to database', type: 'error' };
+                if (!coachId) return { message: "You're signed out — please log in again", type: 'error' };
 
                 var { count } = await sb
                     .from('clients')
@@ -287,7 +306,8 @@
             action: async function () {
                 var sb = getSupabase();
                 var coachId = await getCoachId();
-                if (!sb || !coachId) return { message: 'Cannot connect to database', type: 'error' };
+                if (!sb) return { message: 'Cannot connect to database', type: 'error' };
+                if (!coachId) return { message: "You're signed out — please log in again", type: 'error' };
 
                 var { count } = await sb
                     .from('chat_messages')
@@ -309,7 +329,8 @@
             action: async function () {
                 var sb = getSupabase();
                 var coachId = await getCoachId();
-                if (!sb || !coachId) return { message: 'Cannot connect to database', type: 'error' };
+                if (!sb) return { message: 'Cannot connect to database', type: 'error' };
+                if (!coachId) return { message: "You're signed out — please log in again", type: 'error' };
 
                 var { count } = await sb
                     .from('client_checkins')
@@ -330,7 +351,8 @@
             action: async function (t) {
                 var sb = getSupabase();
                 var coachId = await getCoachId();
-                if (!sb || !coachId) return { message: 'Cannot connect to database', type: 'error' };
+                if (!sb) return { message: 'Cannot connect to database', type: 'error' };
+                if (!coachId) return { message: "You're signed out — please log in again", type: 'error' };
 
                 var nameMatch = t.match(/how\s+is\s+(.+?)\s+(doing|feeling|going)/i);
                 var clientRef = nameMatch ? nameMatch[1] : null;
