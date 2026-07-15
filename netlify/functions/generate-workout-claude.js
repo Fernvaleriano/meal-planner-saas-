@@ -24,6 +24,26 @@ const headers = {
   'Content-Type': 'application/json'
 };
 
+// ─── Output-language instruction ──────────────────────────────────────────────
+// When the client's app is set to a non-English language, the human-readable
+// text (coaching cues, descriptions) should come back in that language so it
+// doesn't read half-English. CRITICAL: exercise "name" values must STAY in
+// English — they're matched against the English exercise DB to attach the demo
+// video, so a translated name would lose the video. JSON keys stay English too.
+// Mirrors the same pattern already used in generate-meal-plan-claude.js.
+const LANGUAGE_NAMES = { es: 'Spanish (neutral Latin-American)', th: 'Thai' };
+const languageInstruction = (lang) => {
+  const langName = LANGUAGE_NAMES[lang];
+  if (!langName) return ''; // English (or unsupported) → no translation, unchanged behavior
+  const voiceRule = lang === 'es'
+    ? '\nThe texting-style voice rule still applies, just in Spanish: all lowercase, no em/en dashes, warm and short.'
+    : '';
+  return `\n\n=== OUTPUT LANGUAGE: ${langName.toUpperCase()} (MANDATORY) ===
+Write every "notes" coaching cue in natural ${langName}. Also write "description", "progressionNotes", the "programName", and each workout/day "name" in ${langName}.${voiceRule}
+DO NOT translate the JSON field names/keys — keep the JSON structure and its keys exactly in English as specified.
+DO NOT translate exercise "name" values — every exercise "name" MUST stay EXACTLY as the English name from the AVAILABLE EXERCISES DATABASE. These names are matched to demonstration videos; a translated name breaks that match and the exercise loses its video.`;
+};
+
 // ─── In-memory cache for exercise DB ──────────────────────────────────────────
 // Keyed by `coachId || 'global'`. Reset on cold start. 5 min TTL.
 const EXERCISE_CACHE_TTL_MS = 5 * 60 * 1000;
@@ -591,8 +611,11 @@ exports.handler = async (event) => {
       conditioningStyle = 'none',    // 'none' | 'hiit' | 'liss' | 'mixed' — for fat-loss/general
       includeProgression = true,     // generate weeks 2..N programmatically
       excludeExerciseNames = [],     // NEW: names to exclude (e.g. recently used)
-      varietySeed = Date.now()       // NEW: deterministic randomization for "regenerate"
+      varietySeed = Date.now(),      // NEW: deterministic randomization for "regenerate"
+      language = 'en'                // NEW: output language for cues/descriptions (en | es)
     } = body;
+    // Normalize once; only human-readable text is translated (see languageInstruction).
+    const lang = (language || 'en').toString().toLowerCase();
 
     // Auth is MANDATORY: this endpoint pulls the client's private context
     // (health flags, injuries, intake, training history) into the prompt and
@@ -1099,6 +1122,10 @@ Return this exact JSON structure:
 }`;
       userMessage = `Create a complete ${daysPerWeek}-day workout program for ${clientName}. Goal: ${goal}. Experience: ${experience}.${injuries ? ` Injuries: "${injuries}".` : ''}${preferences ? ` Preferences: "${preferences}".` : ''} Return ONLY valid JSON, no markdown.`;
     }
+
+    // Append the output-language instruction (both single + program modes share
+    // this systemPrompt). No-op for English, so existing behavior is unchanged.
+    systemPrompt += languageInstruction(lang);
 
     // Haiku 4.5 — the only Anthropic model fast enough to fit per-day generation
     // inside Netlify's 26s function timeout when paired with the strict push/pull
