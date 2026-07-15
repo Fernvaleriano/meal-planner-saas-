@@ -110,7 +110,9 @@ export default function GymInfo() {
     amenities: { display: 'flex', flexWrap: 'wrap', gap: 8 },
     amenity: {
       fontSize: 13, fontWeight: 600, color: 'var(--text-primary, #334155)',
-      background: 'var(--bg-subtle, #f1f5f9)', borderRadius: 8, padding: '6px 12px',
+      background: 'rgba(148, 163, 184, 0.16)',
+      border: '1px solid var(--border-primary, #e2e8f0)',
+      borderRadius: 8, padding: '6px 12px',
     },
     social: {
       display: 'flex', alignItems: 'center', gap: 9,
