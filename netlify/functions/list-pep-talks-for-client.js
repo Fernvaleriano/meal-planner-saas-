@@ -53,7 +53,7 @@ exports.handler = async (event) => {
     // Build the OR query: (coach matches AND recipient_type='all') OR (id IN specificIds)
     let query = supabase
       .from('pep_talks')
-      .select('id, title, body, video_url, video_duration_seconds, image_url, created_at, coach_id, recipient_type, mandatory')
+      .select('id, title, body, video_url, video_duration_seconds, image_url, created_at, coach_id, recipient_type, mandatory, is_quiz')
       .eq('archived', false)
       .order('created_at', { ascending: true });
 
@@ -89,19 +89,45 @@ exports.handler = async (event) => {
       });
     }
 
-    const unviewed = (pepTalks || [])
-      .filter(p => !viewedSet.has(p.id))
-      .map(p => ({
-        id: p.id,
-        title: p.title,
-        body: p.body,
-        videoUrl: p.video_url,
-        videoDurationSeconds: p.video_duration_seconds,
-        imageUrl: p.image_url,
-        // Default to mandatory if the column is missing/null on an older row.
-        mandatory: p.mandatory !== false,
-        createdAt: p.created_at
-      }));
+    const unviewedRows = (pepTalks || []).filter(p => !viewedSet.has(p.id));
+
+    // For any unviewed quiz, pull its questions. We deliberately DO NOT send
+    // correct_option to the client — scoring happens server-side on submit so
+    // the answer key can't be read out of the network response.
+    const quizIds = unviewedRows.filter(p => p.is_quiz).map(p => p.id);
+    const questionsByTalk = {};
+    if (quizIds.length > 0) {
+      const { data: questionRows } = await supabase
+        .from('pep_talk_questions')
+        .select('id, pep_talk_id, question_order, question_text, options, allow_text, allow_media')
+        .in('pep_talk_id', quizIds)
+        .order('question_order', { ascending: true });
+
+      (questionRows || []).forEach(q => {
+        if (!questionsByTalk[q.pep_talk_id]) questionsByTalk[q.pep_talk_id] = [];
+        questionsByTalk[q.pep_talk_id].push({
+          id: q.id,
+          questionText: q.question_text,
+          options: Array.isArray(q.options) ? q.options : [],
+          allowText: q.allow_text === true,
+          allowMedia: q.allow_media === true
+        });
+      });
+    }
+
+    const unviewed = unviewedRows.map(p => ({
+      id: p.id,
+      title: p.title,
+      body: p.body,
+      videoUrl: p.video_url,
+      videoDurationSeconds: p.video_duration_seconds,
+      imageUrl: p.image_url,
+      // Default to mandatory if the column is missing/null on an older row.
+      mandatory: p.mandatory !== false,
+      isQuiz: p.is_quiz === true,
+      questions: p.is_quiz === true ? (questionsByTalk[p.id] || []) : undefined,
+      createdAt: p.created_at
+    }));
 
     return {
       statusCode: 200,

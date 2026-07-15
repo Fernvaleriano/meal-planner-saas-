@@ -32,7 +32,9 @@ exports.handler = async (event) => {
       imageUrl,                               // optional photo (mutually exclusive with video in the UI)
       recipientType,                          // 'all' | 'specific'
       clientIds,                              // required when recipientType === 'specific'
-      mandatory                               // true (default) = client must read/watch before they can dismiss
+      mandatory,                              // true (default) = client must read/watch before they can dismiss
+      isQuiz,                                 // true = this pep talk asks the client questions
+      questions                               // array of quiz questions when isQuiz
     } = JSON.parse(event.body || '{}');
 
     if (!coachId) {
@@ -41,7 +43,51 @@ exports.handler = async (event) => {
     if (!title || !title.trim()) {
       return { statusCode: 400, headers: corsHeaders, body: JSON.stringify({ error: 'title required' }) };
     }
-    if (!body && !videoUrl && !imageUrl) {
+
+    // Quizzes get their "content" from the questions; regular pep talks need a
+    // body, photo, or video. Validate + normalize the questions up front.
+    let normalizedQuestions = null;
+    if (isQuiz) {
+      if (!Array.isArray(questions) || questions.length === 0) {
+        return { statusCode: 400, headers: corsHeaders, body: JSON.stringify({ error: 'A quiz needs at least one question' }) };
+      }
+      normalizedQuestions = [];
+      for (let i = 0; i < questions.length; i++) {
+        const q = questions[i] || {};
+        const text = (q.questionText || q.question_text || '').toString().trim();
+        if (!text) {
+          return { statusCode: 400, headers: corsHeaders, body: JSON.stringify({ error: `Question ${i + 1} is missing its text` }) };
+        }
+        // Options: array of non-empty strings; drop blanks. 0 options = no MC.
+        const rawOptions = Array.isArray(q.options) ? q.options : [];
+        const options = rawOptions.map(o => (o == null ? '' : String(o).trim())).filter(o => o.length > 0);
+        if (rawOptions.length > 0 && options.length < 2 && options.length !== 0) {
+          return { statusCode: 400, headers: corsHeaders, body: JSON.stringify({ error: `Question ${i + 1} needs at least two options (or none)` }) };
+        }
+        let correctOption = null;
+        if (options.length >= 2) {
+          const ci = Number(q.correctOption ?? q.correct_option);
+          if (!Number.isInteger(ci) || ci < 0 || ci >= options.length) {
+            return { statusCode: 400, headers: corsHeaders, body: JSON.stringify({ error: `Pick the correct answer for question ${i + 1}` }) };
+          }
+          correctOption = ci;
+        }
+        const allowText = q.allowText === true || q.allow_text === true;
+        const allowMedia = q.allowMedia === true || q.allow_media === true;
+        // Every question must give the client SOME way to answer.
+        if (options.length < 2 && !allowText && !allowMedia) {
+          return { statusCode: 400, headers: corsHeaders, body: JSON.stringify({ error: `Question ${i + 1} needs options, a written answer, or a photo/video answer` }) };
+        }
+        normalizedQuestions.push({
+          question_order: i,
+          question_text: text.slice(0, 2000),
+          options: options.length >= 2 ? options : null,
+          correct_option: correctOption,
+          allow_text: allowText,
+          allow_media: allowMedia
+        });
+      }
+    } else if (!body && !videoUrl && !imageUrl) {
       return { statusCode: 400, headers: corsHeaders, body: JSON.stringify({ error: 'Provide a body, a photo, or a video' }) };
     }
     const finalRecipientType = recipientType === 'specific' ? 'specific' : 'all';
@@ -63,7 +109,8 @@ exports.handler = async (event) => {
         image_url: imageUrl || null,
         recipient_type: finalRecipientType,
         // Default to mandatory unless the coach explicitly toggled it off.
-        mandatory: mandatory !== false
+        mandatory: mandatory !== false,
+        is_quiz: isQuiz === true
       })
       .select()
       .single();
@@ -71,6 +118,21 @@ exports.handler = async (event) => {
     if (insertError) {
       console.error('Error creating pep talk:', insertError);
       return { statusCode: 500, headers: corsHeaders, body: JSON.stringify({ error: 'Failed to create pep talk' }) };
+    }
+
+    // Insert quiz questions (if any). Roll back the pep talk if this fails so
+    // we never leave a quiz with no questions.
+    if (normalizedQuestions && normalizedQuestions.length > 0) {
+      const questionRows = normalizedQuestions.map(q => ({ ...q, pep_talk_id: pepTalk.id }));
+      const { error: questionsError } = await supabase
+        .from('pep_talk_questions')
+        .insert(questionRows);
+
+      if (questionsError) {
+        console.error('Error inserting quiz questions:', questionsError);
+        await supabase.from('pep_talks').delete().eq('id', pepTalk.id);
+        return { statusCode: 500, headers: corsHeaders, body: JSON.stringify({ error: 'Failed to save quiz questions' }) };
+      }
     }
 
     // If specific recipients, validate they belong to this coach and insert.
