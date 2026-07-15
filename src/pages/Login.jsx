@@ -59,6 +59,13 @@ function Login() {
       return !!coachIdParam;
     }
   });
+  // First-visit brand gate. When we know a gym is involved (coach context) but
+  // its colors haven't resolved yet, we show a neutral loading ring instead of
+  // the login form painted in the default-teal fallback — otherwise the button
+  // flashes teal for a beat and then swaps to the gym's real color. This flips
+  // true only if branding is slow/unreachable, so the form is still revealed
+  // (with defaults) rather than leaving anyone stuck on the ring.
+  const [brandGateTimedOut, setBrandGateTimedOut] = useState(false);
 
   // Fetch branding from API if we have a coach ID but no cached data
   useEffect(() => {
@@ -108,6 +115,16 @@ function Login() {
   useEffect(() => {
     setLogoFailed(false);
   }, [brandingData?.brand_logo_url]);
+
+  // Safety valve for the first-visit brand gate: if the gym's colors don't
+  // arrive within a few seconds (slow or failed network), reveal the form
+  // anyway with the defaults rather than spinning forever.
+  useEffect(() => {
+    const known = !!(brandingData?.brand_logo_url || brandingData?.brand_primary_color);
+    if (!hasCoachContext || known) return;
+    const id = setTimeout(() => setBrandGateTimedOut(true), 3000);
+    return () => clearTimeout(id);
+  }, [hasCoachContext, brandingData?.brand_logo_url, brandingData?.brand_primary_color]);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -162,6 +179,10 @@ function Login() {
 
   // Resolve branding values
   const brandKnown = !!(brandingData?.brand_logo_url || brandingData?.brand_primary_color);
+  // Hold the branded login behind a neutral ring until the gym's colors are
+  // known (or the timeout above gives up). Never gates the plain Ziquecoach
+  // login — with no coach context there's nothing to wait for.
+  const brandLoading = hasCoachContext && !brandKnown && !brandGateTimedOut;
   // With a coach context but branding still loading, show no logo instead of
   // the platform default (which would flash and then swap to the coach's).
   const logoUrl = brandingData?.brand_logo_url || (hasCoachContext && !brandKnown ? null : DEFAULT_LOGO);
@@ -173,6 +194,13 @@ function Login() {
   return (
     <div className="login-page">
       <div className="login-container">
+        {brandLoading ? (
+          <div className="login-brand-loading" role="status" aria-live="polite">
+            <div className="brand-ring"></div>
+            <span className="sr-only">Loading…</span>
+          </div>
+        ) : (
+        <>
         {/* Logo (fixed-height slot so a late-loading logo doesn't shift the form) */}
         <div className="login-logo">
           {logoUrl && !logoFailed ? (
@@ -269,6 +297,8 @@ function Login() {
         <div className="login-footer">
           <p>{hasCustomBranding ? t('login.poweredBy', { brand: brandName }) : t('login.poweredByDefault')}</p>
         </div>
+        </>
+        )}
       </div>
 
       <style>{`
@@ -424,6 +454,37 @@ function Login() {
           border-top-color: white;
           border-radius: 50%;
           animation: spin 0.8s linear infinite;
+        }
+
+        /* Neutral loading ring shown on a branded login while the gym's colors
+           resolve — deliberately brand-agnostic (white on the dark card) so it
+           never has to flash from one color to another. */
+        .login-brand-loading {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          min-height: 340px;
+        }
+
+        .brand-ring {
+          width: 54px;
+          height: 54px;
+          border: 4px solid rgba(255, 255, 255, 0.14);
+          border-top-color: rgba(255, 255, 255, 0.85);
+          border-radius: 50%;
+          animation: spin 0.9s linear infinite;
+        }
+
+        .sr-only {
+          position: absolute;
+          width: 1px;
+          height: 1px;
+          padding: 0;
+          margin: -1px;
+          overflow: hidden;
+          clip: rect(0, 0, 0, 0);
+          white-space: nowrap;
+          border: 0;
         }
 
         @keyframes spin {
