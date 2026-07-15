@@ -194,9 +194,13 @@ const styles = {
     width: 62, height: 62, borderRadius: '50%', padding: 3,
     display: 'flex', alignItems: 'center', justifyContent: 'center', boxSizing: 'border-box'
   },
-  // Coach-branded ring when a custom brand is set (banner gradient is only
-  // defined for custom-branded coaches); the original teal mix otherwise.
-  ringUnseen: { background: 'var(--brand-banner-gradient, linear-gradient(135deg, #2cb5a5 0%, #0d9488 50%, #14b8a6 100%))' },
+  // The unseen ring always reflects the MAIN brand color (primary), not the
+  // primary→secondary banner gradient — otherwise a coach whose secondary is a
+  // different hue (e.g. orange primary + blue secondary) gets a ring that bleeds
+  // off-brand. Gradient runs primary→primary-dark so it keeps ring depth while
+  // staying entirely in the brand color. Falls back to the original teal for
+  // coaches on the default (uncustomized) brand.
+  ringUnseen: { background: 'linear-gradient(135deg, var(--brand-primary, #2cb5a5) 0%, var(--brand-primary-dark, #0d9488) 100%)' },
   ringSeen: { background: 'var(--border-color, #d1d5db)' },
   avatar: {
     width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover',
@@ -204,7 +208,7 @@ const styles = {
   },
   addBadge: {
     position: 'absolute', right: -2, bottom: -2, width: 20, height: 20, borderRadius: '50%',
-    background: '#2cb5a5', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
+    background: 'var(--brand-primary, #2cb5a5)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
     border: '2px solid var(--card-bg, #fff)'
   },
   label: {
