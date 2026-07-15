@@ -1,0 +1,818 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <script src="/js/sentry-init.js"></script>
+    <meta charset="UTF-8">
+    <link rel="icon" href="https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/assets/icons/logo.png" type="image/png">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <script src="/js/theme.js"></script>
+    <meta name="theme-color" content="#2dd4bf">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Ziquecoach">
+    <link rel="manifest" href="/manifest.json">
+    <link rel="apple-touch-icon" href="https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/assets/icons/logo.png">
+    <title>Gym Dashboard - Ziquecoach</title>
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+    <link rel="preload" href="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" as="script">
+    <link rel="preconnect" href="https://qewqcjzlfqamqwbccapr.supabase.co" crossorigin>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/coach-layout.css">
+    <script src="/js/coach-layout.js"></script>
+    <script src="https://unpkg.com/lucide@0.312.0/dist/umd/lucide.min.js" onload="if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',()=>lucide.createIcons())}else{lucide.createIcons()}"></script>
+    <style>
+        /* ===== Gym dashboard — page-specific widgets only.
+           Chrome (sidebar, cards, buttons, stats, dark mode) comes from
+           /css/coach-layout.css so this page stays visually native. ===== */
+
+        .gym-hello {
+            margin-bottom: 28px;
+        }
+        .gym-hello h2 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--gray-800);
+            margin-bottom: 4px;
+        }
+        [data-theme="dark"] .gym-hello h2 { color: var(--gray-100); }
+        .gym-hello p { color: var(--gray-500); font-size: 0.9375rem; }
+
+        /* Stat card accents specific to the gym view */
+        .stat-icon.green { background: rgba(34, 197, 94, 0.12); }
+        .stat-icon.amber { background: rgba(245, 158, 11, 0.14); }
+        .stat-delta {
+            font-size: 0.8125rem;
+            font-weight: 600;
+            margin-top: 6px;
+        }
+        .stat-delta.good { color: #16a34a; }
+        .stat-delta.warn { color: #d97706; }
+        .stat-delta.muted { color: var(--gray-400); }
+
+        /* Two-column content layout */
+        .gym-grid {
+            display: grid;
+            grid-template-columns: 1.4fr 1fr;
+            gap: 24px;
+            align-items: start;
+        }
+        @media (max-width: 1024px) {
+            .gym-grid { grid-template-columns: 1fr; }
+        }
+        .gym-col { display: flex; flex-direction: column; gap: 24px; }
+
+        /* Member list rows */
+        .member-row {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 14px 0;
+            border-bottom: 1px solid var(--gray-100);
+        }
+        [data-theme="dark"] .member-row { border-color: var(--gray-700); }
+        .member-row:last-child { border-bottom: none; }
+        .member-avatar {
+            width: 40px; height: 40px; border-radius: 50%;
+            background: var(--brand-gradient);
+            color: #fff; font-weight: 600; font-size: 0.95rem;
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0; overflow: hidden;
+        }
+        .member-avatar img { width: 100%; height: 100%; object-fit: cover; }
+        .member-info { flex: 1; min-width: 0; }
+        .member-name {
+            font-weight: 600; font-size: 0.9375rem; color: var(--gray-800);
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        [data-theme="dark"] .member-name { color: var(--gray-100); }
+        .member-sub { font-size: 0.8125rem; color: var(--gray-500); margin-top: 2px; }
+        .quiet-badge {
+            font-size: 0.75rem; font-weight: 600;
+            padding: 4px 10px; border-radius: 999px;
+            background: rgba(245, 158, 11, 0.14); color: #b45309;
+            white-space: nowrap;
+        }
+        [data-theme="dark"] .quiet-badge { background: rgba(245,158,11,0.2); color: #fbbf24; }
+
+        /* Simple "this week" summary rows */
+        .week-row {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 14px 0; border-bottom: 1px solid var(--gray-100);
+        }
+        [data-theme="dark"] .week-row { border-color: var(--gray-700); }
+        .week-row:last-child { border-bottom: none; }
+        .week-row-label { display: flex; align-items: center; gap: 12px; color: var(--gray-600); font-size: 0.9375rem; }
+        [data-theme="dark"] .week-row-label { color: var(--gray-300); }
+        .week-row-label .wr-icon {
+            width: 34px; height: 34px; border-radius: 9px;
+            display: flex; align-items: center; justify-content: center;
+            background: rgba(13,148,136,0.1); flex-shrink: 0;
+        }
+        .week-row-value { font-weight: 700; font-size: 1.125rem; color: var(--gray-800); }
+        [data-theme="dark"] .week-row-value { color: var(--gray-100); }
+
+        /* Challenge rows */
+        .challenge-row { padding: 14px 0; border-bottom: 1px solid var(--gray-100); }
+        [data-theme="dark"] .challenge-row { border-color: var(--gray-700); }
+        .challenge-row:last-child { border-bottom: none; }
+        .challenge-title { font-weight: 600; font-size: 0.9375rem; color: var(--gray-800); }
+        [data-theme="dark"] .challenge-title { color: var(--gray-100); }
+        .challenge-meta { font-size: 0.8125rem; color: var(--gray-500); margin-top: 3px; display: flex; gap: 12px; flex-wrap: wrap; }
+
+        /* Join-code card */
+        .joincode-box {
+            display: flex; align-items: center; justify-content: space-between;
+            gap: 12px; padding: 16px 18px; border-radius: 14px;
+            background: var(--gray-50); border: 1px dashed var(--gray-300);
+        }
+        [data-theme="dark"] .joincode-box { background: var(--gray-700); border-color: var(--gray-600); }
+        .joincode-value {
+            font-family: 'SFMono-Regular', ui-monospace, Menlo, monospace;
+            font-size: 1.4rem; font-weight: 700; letter-spacing: 0.08em;
+            color: var(--brand-primary);
+        }
+        .joincode-copy {
+            background: var(--brand-gradient); color: #fff; border: none;
+            border-radius: 10px; padding: 10px 14px; font-weight: 600;
+            font-size: 0.8125rem; cursor: pointer; display: inline-flex; gap: 6px; align-items: center;
+        }
+
+        /* Coaches upsell / panel */
+        .coaches-upsell { text-align: center; padding: 8px 4px; }
+        .coaches-upsell .cu-icon {
+            width: 56px; height: 56px; margin: 0 auto 14px;
+            border-radius: 16px; background: rgba(139, 92, 246, 0.12);
+            display: flex; align-items: center; justify-content: center;
+            color: #7c3aed;
+        }
+        .coaches-upsell h4 { font-size: 1.0625rem; font-weight: 700; color: var(--gray-800); margin-bottom: 8px; }
+        [data-theme="dark"] .coaches-upsell h4 { color: var(--gray-100); }
+        .coaches-upsell p { font-size: 0.875rem; color: var(--gray-500); line-height: 1.55; margin-bottom: 16px; }
+        .cu-list { text-align: left; margin: 0 auto 18px; max-width: 320px; display: flex; flex-direction: column; gap: 10px; }
+        .cu-list-item { display: flex; gap: 10px; font-size: 0.875rem; color: var(--gray-600); align-items: flex-start; }
+        [data-theme="dark"] .cu-list-item { color: var(--gray-300); }
+        .cu-list-item .cu-check { color: #16a34a; flex-shrink: 0; margin-top: 1px; }
+        .cu-addon-tag {
+            display: inline-block; font-size: 0.6875rem; font-weight: 700; text-transform: uppercase;
+            letter-spacing: 0.05em; color: #7c3aed; background: rgba(139,92,246,0.12);
+            padding: 4px 10px; border-radius: 999px; margin-bottom: 14px;
+        }
+
+        /* Empty / loading states */
+        .soft-empty { text-align: center; color: var(--gray-400); font-size: 0.9rem; padding: 24px 8px; }
+        .card-subnote { font-size: 0.8125rem; color: var(--gray-500); font-weight: 400; }
+        .skeleton-line {
+            height: 14px; border-radius: 7px; background: var(--gray-100);
+            animation: pulse 1.4s ease-in-out infinite; margin: 10px 0;
+        }
+        [data-theme="dark"] .skeleton-line { background: var(--gray-700); }
+        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+
+        .header-profile-avatar {
+            width: 40px; height: 40px; border-radius: 50%;
+            background: var(--brand-gradient); color: #fff; font-weight: 600;
+            display: flex; align-items: center; justify-content: center;
+            text-decoration: none;
+        }
+
+        #loadingScreen {
+            position: fixed; inset: 0; background: var(--gray-50);
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            gap: 16px; z-index: 500;
+        }
+        [data-theme="dark"] #loadingScreen { background: var(--gray-900); }
+        .spinner {
+            width: 40px; height: 40px; border: 3px solid var(--gray-200);
+            border-top-color: var(--brand-primary); border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+    <!-- Loading screen -->
+    <div id="loadingScreen">
+        <div class="spinner"></div>
+        <div id="loadingText" style="color: var(--gray-500); font-size: 0.9rem;">Loading your gym…</div>
+    </div>
+
+    <!-- ===== Sidebar ===== -->
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <a href="gym-dashboard.html" class="sidebar-logo">
+                <img src="https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/assets/ziquecoach-logo-white.png" alt="Ziquecoach" class="sidebar-logo-img">
+            </a>
+        </div>
+        <nav class="sidebar-nav">
+            <div class="sidebar-nav-section" data-section="menu">
+                <div class="sidebar-nav-label" onclick="toggleSidebarSection(this)">
+                    Gym
+                    <svg class="collapse-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                    </svg>
+                </div>
+                <div class="sidebar-nav-items">
+                    <a href="gym-dashboard.html" class="sidebar-nav-item active" data-tooltip="Gym Dashboard">
+                        <span class="sidebar-nav-icon"><i data-lucide="layout-dashboard"></i></span>
+                        Gym Dashboard
+                    </a>
+                    <a href="manage-clients.html" class="sidebar-nav-item" data-tooltip="Members">
+                        <span class="sidebar-nav-icon"><i data-lucide="users"></i></span>
+                        Members
+                    </a>
+                    <a href="coach-messages.html" class="sidebar-nav-item" data-tooltip="Messages">
+                        <span class="sidebar-nav-icon"><i data-lucide="message-circle"></i></span>
+                        Messages
+                    </a>
+                    <a href="coach-workout-plans.html" class="sidebar-nav-item" data-tooltip="Workouts">
+                        <span class="sidebar-nav-icon"><i data-lucide="dumbbell"></i></span>
+                        Workouts
+                    </a>
+                    <a href="coach-challenges.html" class="sidebar-nav-item" data-tooltip="Challenges">
+                        <span class="sidebar-nav-icon"><i data-lucide="trophy"></i></span>
+                        Challenges
+                    </a>
+                    <a href="#coachesCard" class="sidebar-nav-item" data-tooltip="Coaches" onclick="document.getElementById('coachesCard')?.scrollIntoView({behavior:'smooth'});">
+                        <span class="sidebar-nav-icon"><i data-lucide="user-plus"></i></span>
+                        Coaches
+                    </a>
+                </div>
+            </div>
+            <div class="sidebar-nav-section" data-section="settings">
+                <div class="sidebar-nav-label" onclick="toggleSidebarSection(this)">
+                    Settings
+                    <svg class="collapse-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                    </svg>
+                </div>
+                <div class="sidebar-nav-items">
+                    <a href="dashboard.html" class="sidebar-nav-item" data-tooltip="Coach View">
+                        <span class="sidebar-nav-icon"><i data-lucide="briefcase"></i></span>
+                        Coach View
+                    </a>
+                    <a href="branding-settings.html" class="sidebar-nav-item" data-tooltip="Branding">
+                        <span class="sidebar-nav-icon"><i data-lucide="palette"></i></span>
+                        Branding
+                    </a>
+                    <a href="coach-billing.html" class="sidebar-nav-item" data-tooltip="Billing">
+                        <span class="sidebar-nav-icon"><i data-lucide="credit-card"></i></span>
+                        Billing
+                    </a>
+                    <a href="#" class="sidebar-nav-item sidebar-nav-logout" id="logoutLink" data-tooltip="Log Out">
+                        <span class="sidebar-nav-icon"><i data-lucide="log-out"></i></span>
+                        Log Out
+                    </a>
+                </div>
+            </div>
+        </nav>
+        <div class="sidebar-footer">
+            <div class="sidebar-user">
+                <div class="sidebar-user-avatar" id="userAvatar">G</div>
+                <div class="sidebar-user-info">
+                    <div class="sidebar-user-name" id="userName">Loading…</div>
+                    <div class="sidebar-user-role">Gym owner</div>
+                </div>
+                <button class="sidebar-logout" id="logoutBtn" title="Logout">
+                    <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </aside>
+
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <!-- ===== Main ===== -->
+    <main class="main-content">
+        <header class="main-header">
+            <button class="mobile-menu-btn" id="mobileMenuBtn">
+                <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                </svg>
+            </button>
+            <h1 class="main-header-title">Gym Dashboard</h1>
+            <div class="main-header-actions">
+                <a href="manage-clients.html" class="btn btn-primary btn-sm">
+                    <i data-lucide="user-plus" style="width:16px;height:16px;"></i>
+                    Add member
+                </a>
+                <a href="coach-profile.html" class="header-profile-avatar" id="headerProfileAvatar" title="Profile"><span id="headerProfileInitials">G</span></a>
+            </div>
+        </header>
+
+        <div class="main-container">
+            <div class="gym-hello">
+                <h2 id="helloTitle">Your gym at a glance</h2>
+                <p id="helloSub">Here's how your members are doing this week.</p>
+            </div>
+
+            <!-- Stat cards -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon primary"><i data-lucide="users" style="width:24px;height:24px;color:#0d9488;"></i></div>
+                    <div class="stat-value" id="statMembers">—</div>
+                    <div class="stat-label">Total members</div>
+                    <div class="stat-delta muted" id="statMembersDelta">&nbsp;</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon green"><i data-lucide="activity" style="width:24px;height:24px;color:#16a34a;"></i></div>
+                    <div class="stat-value" id="statActive">—</div>
+                    <div class="stat-label">Active this week</div>
+                    <div class="stat-delta good" id="statActiveDelta">&nbsp;</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon amber"><i data-lucide="moon" style="width:24px;height:24px;color:#d97706;"></i></div>
+                    <div class="stat-value" id="statQuiet">—</div>
+                    <div class="stat-label">Gone quiet</div>
+                    <div class="stat-delta warn" id="statQuietDelta">&nbsp;</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon blue"><i data-lucide="dumbbell" style="width:24px;height:24px;color:#2563eb;"></i></div>
+                    <div class="stat-value" id="statCheckins">—</div>
+                    <div class="stat-label">Gym check-ins (7 days)</div>
+                    <div class="stat-delta muted" id="statCheckinsDelta">&nbsp;</div>
+                </div>
+            </div>
+
+            <!-- Two columns -->
+            <div class="gym-grid">
+                <div class="gym-col">
+                    <!-- Members going quiet -->
+                    <div class="card">
+                        <div class="card-header">
+                            <div>
+                                <div class="card-title">Members going quiet</div>
+                                <div class="card-subnote">No activity in 2+ weeks — a good time to reach out</div>
+                            </div>
+                            <a href="manage-clients.html" class="btn btn-secondary btn-sm">All members</a>
+                        </div>
+                        <div class="card-body" id="quietList">
+                            <div class="skeleton-line" style="width:80%"></div>
+                            <div class="skeleton-line" style="width:60%"></div>
+                            <div class="skeleton-line" style="width:70%"></div>
+                        </div>
+                    </div>
+
+                    <!-- This week -->
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">This week at the gym</div>
+                        </div>
+                        <div class="card-body" id="weekSummary">
+                            <div class="skeleton-line" style="width:90%"></div>
+                            <div class="skeleton-line" style="width:75%"></div>
+                            <div class="skeleton-line" style="width:85%"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="gym-col">
+                    <!-- Active challenges -->
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">Active challenges</div>
+                            <a href="coach-challenges.html" class="btn btn-secondary btn-sm">Manage</a>
+                        </div>
+                        <div class="card-body" id="challengeList">
+                            <div class="skeleton-line" style="width:80%"></div>
+                            <div class="skeleton-line" style="width:60%"></div>
+                        </div>
+                    </div>
+
+                    <!-- Join code -->
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">Member join code</div>
+                        </div>
+                        <div class="card-body" id="joinCodeBody">
+                            <div class="skeleton-line" style="width:70%"></div>
+                        </div>
+                    </div>
+
+                    <!-- Coaches -->
+                    <div class="card" id="coachesCard">
+                        <div class="card-header">
+                            <div class="card-title">Coaches</div>
+                        </div>
+                        <div class="card-body" id="coachesBody">
+                            <div class="skeleton-line" style="width:70%"></div>
+                            <div class="skeleton-line" style="width:55%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        const SUPABASE_URL = 'https://qewqcjzlfqamqwbccapr.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFld3FjanpsZnFhbXF3YmNjYXByIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM2OTg0NzAsImV4cCI6MjA3OTI3NDQ3MH0.mQnMC33O88oLkLLGWD2oG-oaSHGI-NfHmtQCZxnxSLs';
+        const { createClient } = supabase;
+        const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        // Sentinel so callers can tell "query failed" apart from "no rows".
+        const FETCH_FAILED = Symbol('fetch-failed');
+
+        function esc(s) {
+            return String(s == null ? '' : s).replace(/[&<>"']/g, c => (
+                { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
+            ));
+        }
+        function initials(name) {
+            const parts = String(name || '').trim().split(/\s+/).filter(Boolean);
+            if (!parts.length) return 'M';
+            return (parts[0][0] + (parts[1] ? parts[1][0] : '')).toUpperCase();
+        }
+        function daysAgo(n) {
+            const d = new Date();
+            d.setDate(d.getDate() - n);
+            return d;
+        }
+        function refreshIcons() {
+            try { if (window.lucide) lucide.createIcons(); } catch (e) {}
+        }
+
+        // ---- Sidebar helpers (match the other coach pages) ----
+        function toggleSidebarSection(label) {
+            const section = label.closest('.sidebar-nav-section');
+            if (section) section.classList.toggle('collapsed');
+        }
+
+        (function wireChrome() {
+            const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+            const sidebar = document.querySelector('.sidebar');
+            const sidebarOverlay = document.getElementById('sidebarOverlay');
+            if (mobileMenuBtn) mobileMenuBtn.addEventListener('click', () => {
+                sidebar.classList.toggle('open');
+                sidebarOverlay.classList.toggle('active');
+            });
+            if (sidebarOverlay) sidebarOverlay.addEventListener('click', () => {
+                sidebar.classList.remove('open');
+                sidebarOverlay.classList.remove('active');
+            });
+
+            async function handleLogout(e) {
+                if (e) e.preventDefault();
+                try { await supabaseClient.auth.signOut({ scope: 'local' }); } catch (err) {}
+                window.location.href = '/login.html';
+            }
+            document.getElementById('logoutBtn')?.addEventListener('click', handleLogout);
+            document.getElementById('logoutLink')?.addEventListener('click', handleLogout);
+        })();
+
+        // ---- Main load ----
+        async function loadGymDashboard() {
+            const { data: { session }, error: sessionError } = await supabaseClient.auth.getSession();
+            if (sessionError || !session) {
+                window.location.href = '/login.html';
+                return;
+            }
+            const user = session.user;
+
+            // Clients logging in here belong in the member app.
+            const { data: clientRow } = await supabaseClient
+                .from('clients').select('id').eq('user_id', user.id).maybeSingle();
+            if (clientRow) { window.location.href = '/app'; return; }
+
+            // Coach / gym-owner account.
+            const { data: coach, error: coachErr } = await supabaseClient
+                .from('coaches').select('*').eq('id', user.id).maybeSingle();
+            if (coachErr || !coach) {
+                window.location.href = '/dashboard.html';
+                return;
+            }
+
+            const gymName = coach.brand_name || coach.company_name || coach.business_name || 'Your gym';
+            document.getElementById('userName').textContent = gymName;
+            const gymInitials = initials(gymName);
+            document.getElementById('userAvatar').textContent = gymInitials;
+            document.getElementById('headerProfileInitials').textContent = gymInitials;
+            document.getElementById('helloTitle').textContent = `${gymName} at a glance`;
+
+            // Reveal the app now that we know the account is valid.
+            document.getElementById('loadingScreen').style.display = 'none';
+            refreshIcons();
+
+            renderStatsAndLists(user.id);
+            renderChallenges(user.id);
+            renderJoinCode(user.id);
+            renderCoaches(user.id);
+        }
+
+        // Members + activity-derived stats + "going quiet" list + week summary
+        async function renderStatsAndLists(coachId) {
+            const { data: members, error: memErr } = await supabaseClient
+                .from('clients')
+                .select('id, client_name, profile_photo_url, avatar_url, created_at, is_archived')
+                .eq('coach_id', coachId);
+
+            if (memErr) {
+                document.getElementById('statMembers').textContent = '–';
+                document.getElementById('quietList').innerHTML =
+                    '<div class="soft-empty">Couldn\'t load members right now. Refresh to try again.</div>';
+                document.getElementById('weekSummary').innerHTML =
+                    '<div class="soft-empty">Couldn\'t load this week\'s activity.</div>';
+                return;
+            }
+
+            const active = (members || []).filter(m => !m.is_archived);
+            const byId = {};
+            active.forEach(m => { byId[m.id] = m; });
+            const ids = active.map(m => m.id);
+
+            document.getElementById('statMembers').textContent = active.length.toLocaleString();
+            const newThisWeek = active.filter(m => m.created_at && new Date(m.created_at) >= daysAgo(7)).length;
+            document.getElementById('statMembersDelta').textContent =
+                newThisWeek > 0 ? `+${newThisWeek} new this week` : 'No new joins this week';
+
+            if (!ids.length) {
+                document.getElementById('statActive').textContent = '0';
+                document.getElementById('statQuiet').textContent = '0';
+                document.getElementById('statCheckins').textContent = '0';
+                document.getElementById('quietList').innerHTML =
+                    '<div class="soft-empty">No members yet. Share your join code to get people in.</div>';
+                document.getElementById('weekSummary').innerHTML =
+                    '<div class="soft-empty">Activity shows up here once members start logging.</div>';
+                return;
+            }
+
+            const iso30 = daysAgo(30).toISOString();
+            const iso7 = daysAgo(7).toISOString();
+
+            // Pull the last 30 days of the three "effort" signals. Each maps a
+            // member -> most recent activity timestamp.
+            async function safe(promise) {
+                try {
+                    const { data, error } = await promise;
+                    if (error) return FETCH_FAILED;
+                    return data || [];
+                } catch (e) { return FETCH_FAILED; }
+            }
+
+            const [workouts, proofs, checkins] = await Promise.all([
+                safe(supabaseClient.from('workout_logs')
+                    .select('client_id, created_at')
+                    .in('client_id', ids).neq('status', 'skipped').gt('total_sets', 0)
+                    .gte('created_at', iso30).order('created_at', { ascending: false }).limit(2000)),
+                safe(supabaseClient.from('gym_proofs')
+                    .select('client_id, created_at')
+                    .in('client_id', ids).gte('created_at', iso30)
+                    .order('created_at', { ascending: false }).limit(2000)),
+                safe(supabaseClient.from('client_checkins')
+                    .select('client_id, created_at').eq('coach_id', coachId)
+                    .in('client_id', ids).gte('created_at', iso30)
+                    .order('created_at', { ascending: false }).limit(2000))
+            ]);
+
+            const anyFailed = [workouts, proofs, checkins].some(r => r === FETCH_FAILED);
+            const rows = [workouts, proofs, checkins]
+                .filter(r => r !== FETCH_FAILED)
+                .flat();
+
+            // last activity per member
+            const lastSeen = {};
+            rows.forEach(r => {
+                const t = new Date(r.created_at).getTime();
+                if (!lastSeen[r.client_id] || t > lastSeen[r.client_id]) lastSeen[r.client_id] = t;
+            });
+
+            const now = Date.now();
+            const sevenAgo = daysAgo(7).getTime();
+            const fourteenAgo = daysAgo(14).getTime();
+
+            const activeCount = ids.filter(id => lastSeen[id] && lastSeen[id] >= sevenAgo).length;
+            document.getElementById('statActive').textContent = activeCount.toLocaleString();
+            const pct = active.length ? Math.round((activeCount / active.length) * 100) : 0;
+            document.getElementById('statActiveDelta').textContent = `${pct}% of members`;
+            document.getElementById('statActiveDelta').className =
+                'stat-delta ' + (pct >= 50 ? 'good' : pct >= 25 ? 'muted' : 'warn');
+
+            // "Going quiet": joined 14+ days ago AND no activity in the last 14 days.
+            const quiet = active
+                .filter(m => {
+                    const joined = m.created_at ? new Date(m.created_at).getTime() : 0;
+                    if (joined > fourteenAgo) return false; // give newcomers a grace period
+                    const seen = lastSeen[m.id] || 0;
+                    return seen < fourteenAgo;
+                })
+                .map(m => ({ m, seen: lastSeen[m.id] || 0 }))
+                .sort((a, b) => a.seen - b.seen);
+
+            document.getElementById('statQuiet').textContent = quiet.length.toLocaleString();
+            document.getElementById('statQuietDelta').textContent =
+                quiet.length ? 'worth a nudge' : 'everyone\'s engaged';
+            document.getElementById('statQuietDelta').className =
+                'stat-delta ' + (quiet.length ? 'warn' : 'good');
+
+            // Gym check-ins in the last 7 days (whole gym)
+            const checkinRows = proofs === FETCH_FAILED ? [] : proofs;
+            const checkins7 = checkinRows.filter(p => new Date(p.created_at).getTime() >= sevenAgo).length;
+            document.getElementById('statCheckins').textContent =
+                proofs === FETCH_FAILED ? '–' : checkins7.toLocaleString();
+
+            // Render quiet list (top 6)
+            const quietEl = document.getElementById('quietList');
+            if (anyFailed && !quiet.length) {
+                quietEl.innerHTML = '<div class="soft-empty">Couldn\'t fully load activity — some numbers may be off. Refresh to retry.</div>';
+            } else if (!quiet.length) {
+                quietEl.innerHTML = '<div class="soft-empty">🎉 Nobody\'s gone quiet — every member has trained or checked in recently.</div>';
+            } else {
+                quietEl.innerHTML = quiet.slice(0, 6).map(({ m, seen }) => {
+                    const days = seen ? Math.floor((now - seen) / 86400000) : null;
+                    const label = days == null ? 'No activity yet' : `Last seen ${days} days ago`;
+                    const photo = m.profile_photo_url || m.avatar_url;
+                    const av = photo
+                        ? `<img src="${esc(photo)}" alt="">`
+                        : esc(initials(m.client_name));
+                    return `
+                        <div class="member-row">
+                            <div class="member-avatar">${av}</div>
+                            <div class="member-info">
+                                <div class="member-name">${esc(m.client_name || 'Member')}</div>
+                                <div class="member-sub">${label}</div>
+                            </div>
+                            <span class="quiet-badge">${days == null ? 'Inactive' : days + 'd'}</span>
+                        </div>`;
+                }).join('') + (quiet.length > 6
+                    ? `<div style="text-align:center;margin-top:14px;"><a href="manage-clients.html" class="btn btn-secondary btn-sm">See all ${quiet.length}</a></div>`
+                    : '');
+            }
+
+            // Week summary
+            const workoutRows = workouts === FETCH_FAILED ? [] : workouts;
+            const workouts7 = workoutRows.filter(w => new Date(w.created_at).getTime() >= sevenAgo).length;
+            const weekEl = document.getElementById('weekSummary');
+            weekEl.innerHTML = `
+                <div class="week-row">
+                    <span class="week-row-label"><span class="wr-icon"><i data-lucide="dumbbell" style="width:18px;height:18px;color:#0d9488;"></i></span> Workouts logged</span>
+                    <span class="week-row-value">${workouts === FETCH_FAILED ? '–' : workouts7.toLocaleString()}</span>
+                </div>
+                <div class="week-row">
+                    <span class="week-row-label"><span class="wr-icon"><i data-lucide="map-pin" style="width:18px;height:18px;color:#0d9488;"></i></span> Gym check-ins</span>
+                    <span class="week-row-value">${proofs === FETCH_FAILED ? '–' : checkins7.toLocaleString()}</span>
+                </div>
+                <div class="week-row">
+                    <span class="week-row-label"><span class="wr-icon"><i data-lucide="user-plus" style="width:18px;height:18px;color:#0d9488;"></i></span> New members</span>
+                    <span class="week-row-value">${newThisWeek.toLocaleString()}</span>
+                </div>`;
+            refreshIcons();
+        }
+
+        async function renderChallenges(coachId) {
+            const el = document.getElementById('challengeList');
+            const today = new Date().toISOString().slice(0, 10);
+            let challenges;
+            try {
+                const { data, error } = await supabaseClient
+                    .from('coach_challenges')
+                    .select('id, title, challenge_type, start_date, end_date, status')
+                    .eq('coach_id', coachId)
+                    .or(`status.eq.active,end_date.gte.${today}`)
+                    .order('end_date', { ascending: true })
+                    .limit(5);
+                if (error) throw error;
+                challenges = data || [];
+            } catch (e) {
+                el.innerHTML = '<div class="soft-empty">Couldn\'t load challenges.</div>';
+                return;
+            }
+
+            if (!challenges.length) {
+                el.innerHTML = `<div class="soft-empty">No active challenges.<br>
+                    <a href="coach-challenges.html" class="btn btn-primary btn-sm" style="margin-top:12px;">Create one</a></div>`;
+                return;
+            }
+
+            // participant counts
+            const cIds = challenges.map(c => c.id);
+            const counts = {};
+            try {
+                const { data: parts } = await supabaseClient
+                    .from('challenge_participants')
+                    .select('challenge_id')
+                    .in('challenge_id', cIds);
+                (parts || []).forEach(p => { counts[p.challenge_id] = (counts[p.challenge_id] || 0) + 1; });
+            } catch (e) { /* counts stay empty; show the challenge without a number */ }
+
+            el.innerHTML = challenges.map(c => {
+                const n = counts[c.id];
+                const ends = c.end_date ? `Ends ${new Date(c.end_date + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}` : '';
+                return `
+                    <div class="challenge-row">
+                        <div class="challenge-title">${esc(c.title || 'Challenge')}</div>
+                        <div class="challenge-meta">
+                            ${n != null ? `<span>👥 ${n} joined</span>` : ''}
+                            ${ends ? `<span>${esc(ends)}</span>` : ''}
+                        </div>
+                    </div>`;
+            }).join('');
+        }
+
+        async function renderJoinCode(coachId) {
+            const el = document.getElementById('joinCodeBody');
+            let row;
+            try {
+                const { data, error } = await supabaseClient
+                    .from('gym_join_codes')
+                    .select('code, member_cap, is_active')
+                    .eq('coach_id', coachId)
+                    .eq('is_active', true)
+                    .order('created_at', { ascending: false })
+                    .limit(1)
+                    .maybeSingle();
+                if (error) throw error;
+                row = data;
+            } catch (e) {
+                el.innerHTML = '<div class="soft-empty">Couldn\'t load your join code.</div>';
+                return;
+            }
+
+            if (!row || !row.code) {
+                el.innerHTML = `<div class="soft-empty">No active join code yet.<br>
+                    <span style="font-size:0.8125rem;">Create one so members can add themselves to your gym.</span></div>`;
+                return;
+            }
+
+            el.innerHTML = `
+                <p style="font-size:0.875rem;color:var(--gray-500);margin-bottom:14px;">
+                    Share this code so members can join your gym in the app.</p>
+                <div class="joincode-box">
+                    <span class="joincode-value" id="joinCodeValue">${esc(row.code)}</span>
+                    <button class="joincode-copy" id="copyJoinCode">
+                        <i data-lucide="copy" style="width:15px;height:15px;"></i> Copy
+                    </button>
+                </div>
+                ${row.member_cap ? `<div class="card-subnote" style="margin-top:12px;">Member cap: ${row.member_cap.toLocaleString()}</div>` : ''}`;
+            refreshIcons();
+            document.getElementById('copyJoinCode')?.addEventListener('click', () => {
+                navigator.clipboard?.writeText(row.code);
+                const btn = document.getElementById('copyJoinCode');
+                btn.innerHTML = '<i data-lucide="check" style="width:15px;height:15px;"></i> Copied';
+                refreshIcons();
+                setTimeout(() => { btn.innerHTML = '<i data-lucide="copy" style="width:15px;height:15px;"></i> Copy'; refreshIcons(); }, 1800);
+            });
+        }
+
+        // Coaches: shows real trainers once the multi-trainer plumbing is live;
+        // until then, an opt-in card describing the paid add-on. Feature-detected
+        // so it lights up automatically when the gym_trainers table exists.
+        async function renderCoaches(coachId) {
+            const el = document.getElementById('coachesBody');
+            let trainers = null;
+            try {
+                const { data, error } = await supabaseClient
+                    .from('gym_trainers')
+                    .select('id, name, email, status')
+                    .eq('gym_coach_id', coachId);
+                if (error) throw error; // table missing / not enabled -> upsell
+                trainers = data || [];
+            } catch (e) {
+                trainers = null;
+            }
+
+            if (trainers === null) {
+                el.innerHTML = `
+                    <div class="coaches-upsell">
+                        <span class="cu-addon-tag">Paid add-on</span>
+                        <div class="cu-icon"><i data-lucide="user-plus" style="width:26px;height:26px;"></i></div>
+                        <h4>Add coaches to your gym</h4>
+                        <p>Give your personal trainers their own login. They build plans for the members they train — all under your gym's branding.</p>
+                        <div class="cu-list">
+                            <div class="cu-list-item"><span class="cu-check"><i data-lucide="check" style="width:16px;height:16px;"></i></span> Each coach sees only their own members</div>
+                            <div class="cu-list-item"><span class="cu-check"><i data-lucide="check" style="width:16px;height:16px;"></i></span> They write workout & meal plans between sessions</div>
+                            <div class="cu-list-item"><span class="cu-check"><i data-lucide="check" style="width:16px;height:16px;"></i></span> Your brand and colors throughout</div>
+                        </div>
+                        <a href="mailto:contact@ziquefitness.com?subject=Add%20coaches%20to%20my%20gym" class="btn btn-primary btn-sm">Turn on coaches</a>
+                    </div>`;
+                refreshIcons();
+                return;
+            }
+
+            if (!trainers.length) {
+                el.innerHTML = `<div class="soft-empty">No coaches added yet.<br>
+                    <a href="gym-trainers.html" class="btn btn-primary btn-sm" style="margin-top:12px;">Add a coach</a></div>`;
+                return;
+            }
+
+            el.innerHTML = trainers.map(t => `
+                <div class="member-row">
+                    <div class="member-avatar">${esc(initials(t.name || t.email))}</div>
+                    <div class="member-info">
+                        <div class="member-name">${esc(t.name || t.email)}</div>
+                        <div class="member-sub">${esc(t.status === 'active' ? 'Active' : (t.status || 'Invited'))}</div>
+                    </div>
+                </div>`).join('') +
+                `<div style="text-align:center;margin-top:14px;"><a href="gym-trainers.html" class="btn btn-secondary btn-sm">Manage coaches</a></div>`;
+        }
+
+        loadGymDashboard().catch(err => {
+            console.error('Gym dashboard failed to load:', err);
+            document.getElementById('loadingText').textContent = 'Something went wrong. Please refresh.';
+        });
+    </script>
+</body>
+</html>
