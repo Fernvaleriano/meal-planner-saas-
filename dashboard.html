@@ -6017,11 +6017,12 @@
                             <div class="pep-talk-video-section">
                                 <div class="image-upload-area" id="pepTalkVideoUpload" onclick="document.getElementById('pepTalkVideoInput').click()">
                                     <span class="upload-icon"><svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg></span>
-                                    <span class="upload-text">Optional: tap to upload a video</span>
+                                    <span class="upload-text">Optional: tap to upload a photo or video</span>
                                 </div>
-                                <input type="file" id="pepTalkVideoInput" accept="video/mp4,video/quicktime,video/webm" style="display: none;" onchange="onPepTalkVideoPicked(event)">
+                                <input type="file" id="pepTalkVideoInput" accept="image/*,video/mp4,video/quicktime,video/webm" style="display: none;" onchange="onPepTalkMediaPicked(event)">
                                 <div id="pepTalkVideoStatus" style="display:none; margin-top: 10px; font-size: 0.875rem; color: var(--gray-600);"></div>
                                 <video id="pepTalkVideoPreview" style="display:none; max-width: 100%; border-radius: 12px; margin-top: 10px;" controls></video>
+                                <img id="pepTalkImagePreview" style="display:none; max-width: 100%; border-radius: 12px; margin-top: 10px;" alt="Pep talk photo preview">
                             </div>
 
                             <div class="form-group" style="margin-top: 16px;">
@@ -11240,7 +11241,8 @@
         // ============================================================
 
         let pepTalkClients = [];                  // coach's clients, loaded on demand
-        let pepTalkUploadedVideo = null;          // { url, durationSeconds, file } once uploaded
+        let pepTalkUploadedVideo = null;          // { url, durationSeconds } once a video is uploaded
+        let pepTalkUploadedImage = null;          // { url } once a photo is uploaded (mutually exclusive with video)
         let myPepTalksData = [];
         let pepTalksShowArchived = false;         // toggles the archived view in the manage list
 
@@ -11254,8 +11256,11 @@
             document.getElementById('pepTalkVideoStatus').textContent = '';
             document.getElementById('pepTalkVideoPreview').style.display = 'none';
             document.getElementById('pepTalkVideoPreview').src = '';
+            document.getElementById('pepTalkImagePreview').style.display = 'none';
+            document.getElementById('pepTalkImagePreview').src = '';
             document.getElementById('pepTalkVideoInput').value = '';
             pepTalkUploadedVideo = null;
+            pepTalkUploadedImage = null;
             const btn = document.getElementById('publishPepTalkBtn');
             btn.disabled = false;
             btn.textContent = 'Send Pep Talk';
@@ -11300,45 +11305,60 @@
             `).join('');
         }
 
-        async function onPepTalkVideoPicked(event) {
+        async function onPepTalkMediaPicked(event) {
             const file = event.target.files && event.target.files[0];
             if (!file) return;
 
+            const isImage = (file.type || '').startsWith('image/');
+            const isVideo = (file.type || '').startsWith('video/');
+            if (!isImage && !isVideo) {
+                alert('Please pick a photo or a video.');
+                event.target.value = '';
+                return;
+            }
+
             const MAX_BYTES = 100 * 1024 * 1024;                      // 100 MB - matches bucket limit
             if (file.size > MAX_BYTES) {
-                alert('Video is too large. Please pick a file under 100 MB.');
+                alert(`${isImage ? 'Photo' : 'Video'} is too large. Please pick a file under 100 MB.`);
                 event.target.value = '';
                 return;
             }
 
             const statusEl = document.getElementById('pepTalkVideoStatus');
-            const previewEl = document.getElementById('pepTalkVideoPreview');
+            const videoPreviewEl = document.getElementById('pepTalkVideoPreview');
+            const imagePreviewEl = document.getElementById('pepTalkImagePreview');
             statusEl.style.display = 'block';
-            statusEl.textContent = 'Uploading video...';
+            statusEl.textContent = isImage ? 'Uploading photo...' : 'Uploading video...';
+            // A newly picked file replaces whatever was attached before — a pep
+            // talk carries at most one photo OR one video, never both.
             pepTalkUploadedVideo = null;
+            pepTalkUploadedImage = null;
 
             try {
-                // Measure the video duration locally so we can store it on the
-                // pep_talks row and compute the 90% watched threshold later.
-                const durationSeconds = await new Promise((resolve, reject) => {
-                    const tmpVideo = document.createElement('video');
-                    tmpVideo.preload = 'metadata';
-                    tmpVideo.onloadedmetadata = () => resolve(isFinite(tmpVideo.duration) ? tmpVideo.duration : null);
-                    tmpVideo.onerror = () => reject(new Error('Could not read video metadata'));
-                    tmpVideo.src = URL.createObjectURL(file);
-                });
+                // For videos, measure the duration locally so we can store it on
+                // the pep_talks row and compute the 90% watched threshold later.
+                let durationSeconds = null;
+                if (isVideo) {
+                    durationSeconds = await new Promise((resolve, reject) => {
+                        const tmpVideo = document.createElement('video');
+                        tmpVideo.preload = 'metadata';
+                        tmpVideo.onloadedmetadata = () => resolve(isFinite(tmpVideo.duration) ? tmpVideo.duration : null);
+                        tmpVideo.onerror = () => reject(new Error('Could not read video metadata'));
+                        tmpVideo.src = URL.createObjectURL(file);
+                    });
+                }
 
                 // Build a unique storage path and upload using the coach's
                 // authenticated supabase client (RLS lets authenticated users insert
-                // into the pep-talk-videos bucket).
-                const ext = (file.name.split('.').pop() || 'mp4').toLowerCase();
-                const safeExt = ['mp4','mov','webm','m4v','quicktime'].includes(ext) ? ext : 'mp4';
-                const path = `${currentUserId}/${Date.now()}.${safeExt}`;
+                // into the pep-talk-videos bucket — photos share the same bucket).
+                const rawExt = (file.name.split('.').pop() || '').toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 5);
+                const ext = rawExt || (isImage ? 'jpg' : 'mp4');
+                const path = `${currentUserId}/${Date.now()}.${ext}`;
 
                 const { error: uploadError } = await supabaseClient.storage
                     .from('pep-talk-videos')
                     .upload(path, file, {
-                        contentType: file.type || 'video/mp4',
+                        contentType: file.type || (isImage ? 'image/jpeg' : 'video/mp4'),
                         upsert: false
                     });
 
@@ -11348,18 +11368,26 @@
                     .from('pep-talk-videos')
                     .getPublicUrl(path);
 
-                pepTalkUploadedVideo = {
-                    url: urlData.publicUrl,
-                    durationSeconds: durationSeconds
-                };
-
-                statusEl.textContent = 'Video ready';
-                previewEl.src = urlData.publicUrl;
-                previewEl.style.display = 'block';
+                if (isImage) {
+                    pepTalkUploadedImage = { url: urlData.publicUrl };
+                    statusEl.textContent = 'Photo ready';
+                    imagePreviewEl.src = urlData.publicUrl;
+                    imagePreviewEl.style.display = 'block';
+                    videoPreviewEl.style.display = 'none';
+                    videoPreviewEl.src = '';
+                } else {
+                    pepTalkUploadedVideo = { url: urlData.publicUrl, durationSeconds };
+                    statusEl.textContent = 'Video ready';
+                    videoPreviewEl.src = urlData.publicUrl;
+                    videoPreviewEl.style.display = 'block';
+                    imagePreviewEl.style.display = 'none';
+                    imagePreviewEl.src = '';
+                }
             } catch (err) {
-                console.error('Pep talk video upload failed:', err);
+                console.error('Pep talk media upload failed:', err);
                 statusEl.textContent = 'Upload failed — try again';
                 pepTalkUploadedVideo = null;
+                pepTalkUploadedImage = null;
             }
         }
 
@@ -11374,8 +11402,8 @@
                 alert('Please add a title.');
                 return;
             }
-            if (!body && !pepTalkUploadedVideo) {
-                alert('Add a message, a video, or both.');
+            if (!body && !pepTalkUploadedVideo && !pepTalkUploadedImage) {
+                alert('Add a message, a photo, or a video.');
                 return;
             }
 
@@ -11402,6 +11430,7 @@
                         body: body || null,
                         videoUrl: pepTalkUploadedVideo?.url || null,
                         videoDurationSeconds: pepTalkUploadedVideo?.durationSeconds || null,
+                        imageUrl: pepTalkUploadedImage?.url || null,
                         recipientType,
                         clientIds,
                         mandatory
@@ -11462,6 +11491,10 @@
                 ? `<div class="story-card-preview" style="background:#0f172a;color:white;flex-direction:column;gap:6px;">
                        <svg width="32" height="32" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
                        <span style="font-size:0.75rem;">Video pep talk</span>
+                   </div>`
+                : pt.imageUrl
+                ? `<div class="story-card-preview" style="padding:0;overflow:hidden;">
+                       <img src="${escapeHtml(pt.imageUrl)}" alt="" style="width:100%;height:100%;object-fit:cover;">
                    </div>`
                 : `<div class="story-card-preview quote-preview"><p>${escapeHtml(pt.body || pt.title)}</p></div>`;
 

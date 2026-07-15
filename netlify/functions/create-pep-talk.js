@@ -29,6 +29,7 @@ exports.handler = async (event) => {
       body,
       videoUrl,
       videoDurationSeconds,
+      imageUrl,                               // optional photo (mutually exclusive with video in the UI)
       recipientType,                          // 'all' | 'specific'
       clientIds,                              // required when recipientType === 'specific'
       mandatory                               // true (default) = client must read/watch before they can dismiss
@@ -40,8 +41,8 @@ exports.handler = async (event) => {
     if (!title || !title.trim()) {
       return { statusCode: 400, headers: corsHeaders, body: JSON.stringify({ error: 'title required' }) };
     }
-    if (!body && !videoUrl) {
-      return { statusCode: 400, headers: corsHeaders, body: JSON.stringify({ error: 'Provide a body, a video, or both' }) };
+    if (!body && !videoUrl && !imageUrl) {
+      return { statusCode: 400, headers: corsHeaders, body: JSON.stringify({ error: 'Provide a body, a photo, or a video' }) };
     }
     const finalRecipientType = recipientType === 'specific' ? 'specific' : 'all';
     if (finalRecipientType === 'specific' && (!Array.isArray(clientIds) || clientIds.length === 0)) {
@@ -59,6 +60,7 @@ exports.handler = async (event) => {
         body: body ? String(body).trim() : null,
         video_url: videoUrl || null,
         video_duration_seconds: videoDurationSeconds ? Math.round(Number(videoDurationSeconds)) : null,
+        image_url: imageUrl || null,
         recipient_type: finalRecipientType,
         // Default to mandatory unless the coach explicitly toggled it off.
         mandatory: mandatory !== false
