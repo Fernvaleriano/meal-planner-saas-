@@ -120,7 +120,7 @@ function Leaderboard() {
   const [data, setData] = useState(null);
   const [challenges, setChallenges] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [activeLift, setActiveLift] = useState('bench_press');
+  const [activeLift, setActiveLift] = useState('deadlift');
   const [gender, setGender] = useState(null); // male | female | other — null until data loads
   const [showSubmit, setShowSubmit] = useState(false);
   const [watch, setWatch] = useState(null); // entry being watched
