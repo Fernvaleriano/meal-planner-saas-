@@ -225,7 +225,7 @@ function loadSavedPrefs(clientId) {
 const BUCKET_KEYS = { push: 'bucketPush', pull: 'bucketPull', legs: 'bucketLegs', core: 'bucketCore' };
 
 function GenerateWorkoutModal({ onClose, onGenerated, onProgramGenerated, clientId = null, coachId = null }) {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const savedRef = useRef(undefined);
   if (savedRef.current === undefined) savedRef.current = loadSavedPrefs(clientId);
   const saved = savedRef.current;
@@ -353,6 +353,7 @@ function GenerateWorkoutModal({ onClose, onGenerated, onProgramGenerated, client
         conditioningStyle: cardio,
         clientId,
         varietySeed: Date.now(),
+        language,
       };
       if (focus) payload.targetMuscle = focus;
       if (injuryCodes.length > 0) payload.injuryCodes = injuryCodes;
@@ -459,6 +460,7 @@ function GenerateWorkoutModal({ onClose, onGenerated, onProgramGenerated, client
           targetMuscle: day.targetMuscle,
           // Distinct seed per day so the random exercise sampling differs.
           varietySeed: Date.now() + i * 7919,
+          language,
         };
         if (injuryCodes.length > 0) payload.injuryCodes = injuryCodes;
         if (injuryText.trim()) payload.injuries = injuryText.trim();
