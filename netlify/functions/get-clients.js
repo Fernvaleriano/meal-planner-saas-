@@ -1,6 +1,6 @@
 // Netlify Function to retrieve all clients for a coach
 const { createClient } = require('@supabase/supabase-js');
-const { handleCors, authenticateCoach, corsHeaders } = require('./utils/auth');
+const { handleCors, authenticateGymMember, corsHeaders } = require('./utils/auth');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -32,8 +32,10 @@ exports.handler = async (event, context) => {
       };
     }
 
-    // ✅ SECURITY: Verify the authenticated user owns this coach account
-    const { user, error: authError } = await authenticateCoach(event, coachId);
+    // ✅ SECURITY: allow EITHER the gym owner OR one of that gym's active
+    // trainers. For a plain coach this behaves exactly like the old
+    // authenticateCoach check (owner must match coachId, trainerId is null).
+    const { error: authError, role, trainerId } = await authenticateGymMember(event, coachId);
     if (authError) return authError;
 
     // Initialize Supabase client with service key
@@ -44,6 +46,13 @@ exports.handler = async (event, context) => {
       .from('clients')
       .select('*')
       .eq('coach_id', coachId);
+
+    // Multi-trainer scoping: a trainer only ever sees the clients assigned to
+    // them (clients.trainer_id). The gym owner (role === 'owner') sees ALL of
+    // the gym's clients exactly as before — no trainer filter is applied.
+    if (role === 'trainer') {
+      query = query.eq('trainer_id', trainerId);
+    }
 
     // Filter by archived status
     if (archivedOnly) {

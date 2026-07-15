@@ -5482,6 +5482,7 @@
     </style>
     <link rel="stylesheet" href="/css/coach-layout.css">
     <script src="/js/coach-layout.js"></script>
+    <script src="/js/gym-context.js"></script>
     <script src="https://unpkg.com/lucide@0.312.0/dist/umd/lucide.min.js" onload="if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',()=>lucide.createIcons())}else{lucide.createIcons()}"></script>
     <style>body{-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none;overscroll-behavior:none;-webkit-overflow-scrolling:touch;}</style>
     <link rel="stylesheet" href="/css/apple-refresh.css">
@@ -9238,6 +9239,18 @@
 
                     // Check if coach record exists
                     if (!coachData) {
+                        // Could be a GYM TRAINER (their login belongs to the gym,
+                        // not a coaches row). Route them to their scoped clients
+                        // view instead of erroring out. Owners always have a coach
+                        // row, so this branch never affects them.
+                        try {
+                            const gymCtx = await window.ZiqueGym.resolve(session.access_token);
+                            if (gymCtx && gymCtx.role === 'trainer') {
+                                window.location.replace('manage-clients.html');
+                                return;
+                            }
+                        } catch (e) { /* fall through to the normal error */ }
+
                         console.error('No coach record found for user ID:', user.id);
                         throw new Error('Coach account not found. Please contact support.');
                     }

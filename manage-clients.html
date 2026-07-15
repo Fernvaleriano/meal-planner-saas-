@@ -2054,6 +2054,7 @@
     <script src="/js/coach-layout.js"></script>
     <!-- API Helper for authenticated requests -->
     <script src="/js/api-helper.js"></script>
+    <script src="/js/gym-context.js"></script>
     <script src="https://unpkg.com/lucide@0.312.0/dist/umd/lucide.min.js" onload="if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',()=>lucide.createIcons())}else{lucide.createIcons()}"></script>
     <style>body{-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none;overscroll-behavior:none;-webkit-overflow-scrolling:touch;}</style>
     <link rel="stylesheet" href="/css/apple-refresh.css">
@@ -2155,6 +2156,12 @@
 
     <div class="sidebar-overlay" id="sidebarOverlay"></div>
 
+    <style>
+        /* Multi-trainer: hide owner-only client-creation controls for trainers.
+           Trainer client-creation is a later step; until then these would error. */
+        body.is-gym-trainer #addClientBtn,
+        body.is-gym-trainer [onclick*="openAddClientModal"] { display: none !important; }
+    </style>
     <main class="main-content">
         <header class="main-header">
             <button class="mobile-menu-btn" id="mobileMenuBtn">
@@ -2172,6 +2179,8 @@
         </header>
 
         <div class="main-container">
+
+        <div id="trainerBanner" style="display:none;background:#e2f6f3;color:#1fa295;border:1px solid #bfe9e3;border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:14px;font-weight:500;"></div>
 
         <div id="loadingDiv" class="loading">
             <div class="skeleton-cards-grid">
@@ -2990,6 +2999,45 @@
                             if (initialsEl) initialsEl.textContent = initials;
                         }
                     }
+                } else {
+                    // No coach row from this read. Either a GYM TRAINER logging in
+                    // (their login belongs to the gym, not a coaches row), or a
+                    // transient miss for a real owner. Ask the backend which.
+                    // NOTE: owners with a coach row never reach this branch, so this
+                    // adds no network call to the normal coach path.
+                    let gymCtx = null;
+                    try { gymCtx = await window.ZiqueGym.resolve(session.access_token); } catch (e) { /* ignore */ }
+
+                    if (gymCtx && gymCtx.role === 'trainer') {
+                        // Operate as the gym: currentCoachId becomes the gym OWNER's
+                        // id (what every client's coach_id points at). get-clients
+                        // scopes the returned list to this trainer's assigned clients.
+                        currentCoachId = gymCtx.gymCoachId;
+
+                        // A trainer inherits the gym owner's subscription.
+                        if (!gymCtx.subscriptionOk) {
+                            window.location.href = 'subscription-required.html?from=dashboard';
+                            return;
+                        }
+
+                        // Trainer UI: flag the body (hides owner-only controls like
+                        // "Add Client" until trainer client-creation is wired) and
+                        // show whose gym they're coaching under.
+                        document.body.classList.add('is-gym-trainer');
+                        const brand = gymCtx.gymName ? gymCtx.gymName : 'your gym';
+                        const banner = document.getElementById('trainerBanner');
+                        if (banner) {
+                            banner.textContent = 'Coaching under ' + brand + ' — you see the clients assigned to you.';
+                            banner.style.display = 'block';
+                        }
+                    } else if (gymCtx && gymCtx.role === 'owner') {
+                        // Server confirms they ARE a coach — this page's read just
+                        // missed (transient). Keep the existing lenient behavior:
+                        // proceed as the owner without bouncing.
+                        currentCoachId = gymCtx.gymCoachId;
+                    }
+                    // else: unknown user — fall through to loadClients() exactly as
+                    // before (no new redirect; preserves prior behavior).
                 }
 
                 // Load clients

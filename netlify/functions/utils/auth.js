@@ -346,6 +346,8 @@ module.exports = {
   authenticateCoach,
   authenticateClientAccess,
   authenticateRequest,
+  resolveGymContext,
+  authenticateGymMember,
   checkRateLimit,
   rateLimitResponse
 };
