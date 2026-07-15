@@ -132,6 +132,21 @@
     (function () {
       var params = new URLSearchParams(window.location.search);
       var presetCode = (params.get('code') || '').trim();
+
+      // Clean /join links on a white-label gym domain carry no ?code= — so
+      // resolve the gym's join code from the hostname instead. This makes
+      // huracan-fitness.com/join self-fill and self-brand with no ugly tail.
+      // The bare domain still works via ?code= too (QR, shared links).
+      // Add a gym: '<their-domain>': '<THEIR_JOIN_CODE>'.
+      if (!presetCode) {
+        var GYM_DOMAIN_CODES = {
+          'huracan-fitness.com': 'HURACANFITNESS',
+          'www.huracan-fitness.com': 'HURACANFITNESS',
+          'huracan.ziquecoach.com': 'HURACANFITNESS'
+        };
+        presetCode = GYM_DOMAIN_CODES[location.hostname] || '';
+      }
+
       var codeInput = document.getElementById('code');
       if (presetCode) codeInput.value = presetCode.toUpperCase();
 

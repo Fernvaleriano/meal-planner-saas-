@@ -26,6 +26,14 @@
   status = 200
   force = true
 
+# Clean signup link for white-label gym domains: <gymdomain>/join serves the
+# member signup page. On a gym's own domain the page fills the gym's join code
+# from its hostname, so the printed/QR link stays tidy (no ?code= tail).
+[[redirects]]
+  from = "/join"
+  to = "/gym-join.html"
+  status = 200
+
 # SPA routing - /app is the primary client portal
 [[redirects]]
   from = "/app"
