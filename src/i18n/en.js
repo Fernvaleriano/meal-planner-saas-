@@ -75,6 +75,8 @@ export default {
     check_in: 'Check-In',
     progress: 'Progress',
     recipes: 'Recipes',
+    ranks: 'Ranks',
+    gym_info: 'Gym Info',
   },
 
   settings: {

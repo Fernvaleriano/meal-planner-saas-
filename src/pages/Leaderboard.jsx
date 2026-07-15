@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useBranding } from '../context/BrandingContext';
+import { useLanguage } from '../context/LanguageContext';
 import { apiGet } from '../utils/api';
 import { getMuxOrFallbackSrc } from '../utils/exerciseVideo';
 import HlsVideo from '../components/HlsVideo';
@@ -44,13 +45,16 @@ function Avatar({ name, photo, color }) {
 
 // ── One ranked row on a lift board ──
 function LiftRow({ entry, lift, onWatch }) {
+  const { t } = useLanguage();
   const isReps = lift?.metric === 'reps';
   const main = isReps
-    ? `${entry.reps} reps`
+    ? t('leaderboardPage.repsUnit', { reps: entry.reps })
     : `${entry.weight % 1 === 0 ? entry.weight : entry.weight.toFixed(1)} ${entry.weightUnit}`;
   const sub = isReps
-    ? (entry.weight > 0 ? `+${entry.weight} ${entry.weightUnit} added` : 'bodyweight')
-    : `× ${entry.reps} ${entry.reps > 1 ? `· ≈ ${Math.round(entry.score)} lb 1RM` : ''}`;
+    ? (entry.weight > 0
+        ? t('leaderboardPage.added', { weight: entry.weight, unit: entry.weightUnit })
+        : t('leaderboardPage.bodyweight'))
+    : `× ${entry.reps} ${entry.reps > 1 ? `· ${t('leaderboardPage.oneRm', { value: Math.round(entry.score) })}` : ''}`;
 
   return (
     <div className={`lb-row ${entry.isMe ? 'me' : ''} ${rankClass(entry.rank)}`}>
@@ -60,7 +64,7 @@ function LiftRow({ entry, lift, onWatch }) {
       <Avatar name={entry.name} photo={entry.photo} color={lift?.color} />
       <div className="lb-row-main">
         <div className="lb-row-name">
-          {entry.name}{entry.isMe && <span className="lb-you">YOU</span>}
+          {entry.name}{entry.isMe && <span className="lb-you">{t('leaderboardPage.you')}</span>}
           {entry.verified && <BadgeCheck size={14} className="lb-verified" />}
         </div>
         <div className="lb-row-sub">{sub}</div>
@@ -77,6 +81,7 @@ function LiftRow({ entry, lift, onWatch }) {
 
 // ── A challenge board card (powerlifting total / check-ins / PR race) ──
 function ChallengeCard({ icon: Icon, title, subtitle, accent, rows, renderStat, emptyText }) {
+  const { t } = useLanguage();
   return (
     <div className="lb-challenge-card">
       <div className="lb-challenge-head">
@@ -94,7 +99,7 @@ function ChallengeCard({ icon: Icon, title, subtitle, accent, rows, renderStat, 
             <div key={r.clientId} className={`lb-mini-row ${r.isMe ? 'me' : ''}`}>
               <span className={`lb-mini-rank ${rankClass(r.rank)}`}>{r.rank}</span>
               <Avatar name={r.name} photo={r.photo} color={accent} />
-              <span className="lb-mini-name">{r.name}{r.isMe && <span className="lb-you">YOU</span>}</span>
+              <span className="lb-mini-name">{r.name}{r.isMe && <span className="lb-you">{t('leaderboardPage.you')}</span>}</span>
               <span className="lb-mini-stat" style={{ color: accent }}>{renderStat(r)}</span>
             </div>
           ))}
@@ -107,6 +112,7 @@ function ChallengeCard({ icon: Icon, title, subtitle, accent, rows, renderStat, 
 function Leaderboard() {
   const { clientData } = useAuth();
   const { isModuleVisible } = useBranding();
+  const { t } = useLanguage();
   const { showError } = useToast();
   const isCoach = clientData?.is_coach === true;
 
@@ -132,10 +138,10 @@ function Leaderboard() {
 
   // Men + Women always; the "Other" division only appears if anyone is in it.
   const genderTabs = [
-    { key: 'male', label: 'Men' },
-    { key: 'female', label: 'Women' },
+    { key: 'male', label: t('leaderboardPage.divMen') },
+    { key: 'female', label: t('leaderboardPage.divWomen') },
   ];
-  if ((data?.athleteCountByGender?.other || 0) > 0) genderTabs.push({ key: 'other', label: 'Other' });
+  if ((data?.athleteCountByGender?.other || 0) > 0) genderTabs.push({ key: 'other', label: t('leaderboardPage.divOther') });
 
   const fetchAll = useCallback(async () => {
     if (!clientData?.id) return;
@@ -148,11 +154,11 @@ function Leaderboard() {
       setChallenges(ch);
     } catch (err) {
       console.error('Leaderboard load failed:', err);
-      showError?.('Could not load the leaderboard.');
+      showError?.(t('leaderboardPage.loadError'));
     } finally {
       setLoading(false);
     }
-  }, [clientData?.id, showError]);
+  }, [clientData?.id, showError, t]);
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
   usePullToRefreshEvent(fetchAll);
@@ -174,28 +180,30 @@ function Leaderboard() {
       <div className="lb-hero">
         <div className="lb-hero-top">
           <div className="lb-hero-titles">
-            <h1 className="lb-hero-title"><Trophy size={22} /> Leaderboard</h1>
+            <h1 className="lb-hero-title"><Trophy size={22} /> {t('leaderboardPage.heroTitle')}</h1>
             <p className="lb-hero-sub">
-              <Users size={13} /> {data?.athleteCount || 0} athlete{(data?.athleteCount || 0) === 1 ? '' : 's'} competing at your gym
+              <Users size={13} /> {(data?.athleteCount || 0) === 1
+                ? t('leaderboardPage.athletesCompeting_one', { count: data?.athleteCount || 0 })
+                : t('leaderboardPage.athletesCompeting_other', { count: data?.athleteCount || 0 })}
             </p>
           </div>
         </div>
         <div className="lb-tabs">
           <button className={tab === 'lifts' ? 'active' : ''} onClick={() => setTab('lifts')}>
-            <Dumbbell size={15} /> Big Lifts
+            <Dumbbell size={15} /> {t('leaderboardPage.tabBigLifts')}
           </button>
           <button className={tab === 'challenges' ? 'active' : ''} onClick={() => setTab('challenges')}>
-            <Flame size={15} /> Challenges
+            <Flame size={15} /> {t('leaderboardPage.tabChallenges')}
           </button>
         </div>
       </div>
 
       {loading ? (
-        <div className="lb-loading"><Loader2 size={26} className="lb-spin" /> Loading the board…</div>
+        <div className="lb-loading"><Loader2 size={26} className="lb-spin" /> {t('leaderboardPage.loadingBoard')}</div>
       ) : tab === 'lifts' ? (
         <div className="lb-lifts-view">
           {/* Division selector (men / women) — keeps the strength ranking fair */}
-          <div className="lb-gender-tabs" role="tablist" aria-label="Division">
+          <div className="lb-gender-tabs" role="tablist" aria-label={t('leaderboardPage.division')}>
             {genderTabs.map(g => (
               <button
                 key={g.key}
@@ -227,21 +235,21 @@ function Leaderboard() {
           {/* My best callout */}
           {showMyBest && (
             <div className="lb-mybest" style={{ borderColor: currentLift?.color }}>
-              <span className="lb-mybest-label">Your best</span>
+              <span className="lb-mybest-label">{t('leaderboardPage.yourBest')}</span>
               <span className="lb-mybest-val" style={{ color: currentLift?.color }}>
                 {currentLift?.metric === 'reps'
-                  ? `${data.myBests[activeLift].reps} reps`
+                  ? t('leaderboardPage.repsUnit', { reps: data.myBests[activeLift].reps })
                   : `${data.myBests[activeLift].weight} ${data.myBests[activeLift].weightUnit} × ${data.myBests[activeLift].reps}`}
               </span>
-              <span className="lb-mybest-rank">Rank #{data.myBests[activeLift].rank}</span>
+              <span className="lb-mybest-rank">{t('leaderboardPage.rankNum', { rank: data.myBests[activeLift].rank })}</span>
             </div>
           )}
 
           {board.length === 0 ? (
             <div className="lb-empty">
               <div className="lb-empty-emoji">🏆</div>
-              <h3>No {currentLift?.name} lifts yet</h3>
-              <p>Be the first to claim the top spot. Film your set and post it.</p>
+              <h3>{t('leaderboardPage.noLiftsYet', { lift: currentLift?.name })}</h3>
+              <p>{t('leaderboardPage.beFirst')}</p>
             </div>
           ) : (
             <div className="lb-list">
@@ -254,45 +262,45 @@ function Leaderboard() {
       ) : (
         <div className="lb-challenges-view">
           <div className="lb-month-banner">
-            <Zap size={16} /> {challenges?.month || 'This month'} · the race is on
+            <Zap size={16} /> {challenges?.month || t('leaderboardPage.thisMonth')} {t('leaderboardPage.raceOn')}
           </div>
 
           <ChallengeCard
             icon={Trophy}
-            title="Powerlifting Total"
-            subtitle={`Best 1RM of ${(challenges?.totalLifts || ['Bench', 'Squat', 'Deadlift']).join(' + ')}`}
+            title={t('leaderboardPage.powerTotalTitle')}
+            subtitle={t('leaderboardPage.powerTotalSub', { lifts: (challenges?.totalLifts || ['Bench', 'Squat', 'Deadlift']).join(' + ') })}
             accent="#f59e0b"
             rows={challenges?.powerliftingTotal || []}
             renderStat={(r) => `${r.total} lb`}
-            emptyText="Log all three big lifts to appear here."
+            emptyText={t('leaderboardPage.powerTotalEmpty')}
           />
 
           <ChallengeCard
             icon={Flame}
-            title="Check-In Champions"
-            subtitle="Most gym check-ins this month"
+            title={t('leaderboardPage.checkinTitle')}
+            subtitle={t('leaderboardPage.checkinSub')}
             accent="#ef4444"
             rows={challenges?.checkinChampions || []}
             renderStat={(r) => `${r.count}`}
-            emptyText="Check in at the gym to get on the board."
+            emptyText={t('leaderboardPage.checkinEmpty')}
           />
 
           <ChallengeCard
             icon={Medal}
-            title="PR Race"
-            subtitle="Most lifts logged this month"
+            title={t('leaderboardPage.prRaceTitle')}
+            subtitle={t('leaderboardPage.prRaceSub')}
             accent="#8b5cf6"
             rows={challenges?.prRace || []}
             renderStat={(r) => `${r.count}`}
-            emptyText="Post a lift to join the race."
+            emptyText={t('leaderboardPage.prRaceEmpty')}
           />
         </div>
       )}
 
       {/* Floating submit button (members only) */}
       {!isCoach && (
-        <button className="lb-fab" onClick={() => setShowSubmit(true)} aria-label="Log a lift">
-          <Plus size={22} /> <span>Log a Lift</span>
+        <button className="lb-fab" onClick={() => setShowSubmit(true)} aria-label={t('leaderboardPage.logLift')}>
+          <Plus size={22} /> <span>{t('leaderboardPage.logLift')}</span>
         </button>
       )}
 
