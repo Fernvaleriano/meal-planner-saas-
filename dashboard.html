@@ -9248,6 +9248,21 @@
 
                 console.log('Coach data loaded successfully');
 
+                // Gym accounts belong on the gym owner dashboard. A gym owner can
+                // still open this coaching view via ?coach=1 (the "Coach View" link
+                // in the gym sidebar) — that flag suppresses the redirect so they
+                // aren't bounced straight back here. Wrapped so a routing hiccup can
+                // never block the dashboard from loading.
+                try {
+                    const stayOnCoachView = new URLSearchParams(window.location.search).get('coach') === '1';
+                    if (coachData.is_gym && !stayOnCoachView) {
+                        window.location.replace('gym-dashboard.html');
+                        return;
+                    }
+                } catch (e) {
+                    console.warn('Gym routing check skipped:', e);
+                }
+
                 // Mirror coach's unit preference into localStorage so getCoachDisplayUnit()
                 // and other read-sites stay in sync across devices.
                 if (coachData.unit_preference === 'metric' || coachData.unit_preference === 'imperial') {
