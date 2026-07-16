@@ -81,8 +81,13 @@ const getLocalDateString = () => {
 
 function Plans() {
   const { clientData } = useAuth();
-  const { branding } = useBranding();
+  const { branding, isModuleVisible } = useBranding();
   const { t, language } = useLanguage();
+  // Gym members get a VIEW-ONLY meal plan: they can see the coach's plan and
+  // its macros, but not the nutrition-tracking actions (log to diary, AI
+  // swap/revise/custom) — the gym product has meal plans without tracking.
+  // Same gym detection used across the app (diary module off = gym member).
+  const isGymMember = !clientData?.is_coach && !isModuleVisible('diary');
   const location = useLocation();
   const navigate = useNavigate();
   const { showError, showSuccess } = useToast();
@@ -2367,6 +2372,11 @@ Keep it practical and brief. Format with clear sections.`;
                   <Heart size={20} fill={favorites.has(`${selectedMeal.name}-${selectedMeal.type || selectedMeal.meal_type}`) ? 'currentColor' : 'none'} />
                 </button>
 
+                {/* Diary logging + AI swap/revise/custom are hidden for gym
+                    members: the gym product ships view-only meal plans with no
+                    nutrition tracking. Coaching clients keep every action. */}
+                {!isGymMember && (
+                  <>
                 <button
                   className="meal-action-btn log"
                   onClick={() => handleLogMeal(selectedMeal)}
@@ -2399,6 +2409,8 @@ Keep it practical and brief. Format with clear sections.`;
                   <Crosshair size={18} />
                   <span>{t('plansPage.actionCustom')}</span>
                 </button>
+                  </>
+                )}
 
                 <button
                   className="meal-action-btn recipe"

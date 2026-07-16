@@ -31,13 +31,18 @@ There are TWO different products and they are NOT the same:
   accounts). Has macro/nutrition tracking, meal plans, recipes, diary, etc.
 - **Gym version** — the white-label GYM product (`coaches.is_gym = true`
   accounts like Huracan Fitness and Goliath Strength). Login routes the
-  owner to `gym-dashboard.html`. **The gym version does NOT have
-  macro/nutrition tracking, meal plans, or recipes.** Its member app centers
-  on **workouts + progress** (the gym `client_modules` reflect this:
-  diary/plans/recipes OFF, progress/workouts ON).
+  owner to `gym-dashboard.html`. It centers on **workouts + progress**, plus
+  a leaderboard (video-proof lifts), gym check-in, shop, and — where the gym
+  wants it — a **VIEW-ONLY meal plan**: the member can SEE the coach's plan
+  and its macros (and a coach voice note), but there is **NO nutrition
+  TRACKING** — no food diary / "log to diary", no AI meal swap/revise/custom,
+  no recipes module. The `diary` module is OFF for gyms.
 
-Do NOT pitch, assume, or reference nutrition/macros/meal-plan/recipe features
-when the context is a GYM. If unsure which product a request is about, ask.
+Key rule: a gym can HAVE a coach-assigned meal plan, but it must stay
+read-only. Do NOT add/expose diary logging, meal swapping/revising, or
+macro-tracking UI on a gym. Detect a gym member in the client app with the
+app-wide convention: `!clientData?.is_coach && !isModuleVisible('diary')`.
+If unsure which product a request is about, ask.
 
 ## ⚠️ OPERATIONAL REMINDERS — ACTION REQUIRED (read me)
 
