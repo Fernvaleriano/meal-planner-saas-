@@ -6188,7 +6188,7 @@
                 </svg>
                 New
             </button>
-            <button class="mobile-quick-btn ai" onclick="openAIModal()">
+            <button class="mobile-quick-btn ai" id="mobileAiGenBtn" onclick="openAIModal()">
                 <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
                 </svg>
@@ -6380,13 +6380,13 @@
                 <div class="wb-panel-header">
                     <span>Training Plan</span>
                     <div style="display: flex; gap: 6px; align-items: center;">
-                        <button class="wb-panel-add-btn" onclick="openAIModal()" style="background: rgba(139, 92, 246, 0.1); border-color: rgba(139, 92, 246, 0.3); color: #a78bfa;">
+                        <button class="wb-panel-add-btn" id="panelAiGenBtn" onclick="openAIModal()" style="background: rgba(139, 92, 246, 0.1); border-color: rgba(139, 92, 246, 0.3); color: #a78bfa;">
                             <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
                             </svg>
                             AI Generate
                         </button>
-                        <button class="wb-panel-add-btn" onclick="openBulkAiModal()" style="background: rgba(46, 196, 182, 0.12); border-color: rgba(46, 196, 182, 0.35); color: #2EC4B6;" title="Generate programs for several clients at once (saved as drafts)">
+                        <button class="wb-panel-add-btn" id="panelBulkAiBtn" onclick="openBulkAiModal()" style="background: rgba(46, 196, 182, 0.12); border-color: rgba(46, 196, 182, 0.35); color: #2EC4B6;" title="Generate programs for several clients at once (saved as drafts)">
                             <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m6-1.13a4 4 0 10-4-4 4 4 0 004 4zm6 0a3 3 0 10-3-3"/>
                             </svg>
@@ -8051,8 +8051,14 @@
                     if (b && b.has_branding_access && (b.brand_app_name || b.brand_name)) {
                         window.ZQ_PDF_BRAND_NAME = b.brand_app_name || b.brand_name;
                     }
+                    // AI workout generation on/off for this account. Fail-open:
+                    // only hide the AI entry points when the flag is explicitly
+                    // false, so any missing value / network hiccup leaves AI on.
+                    if (b && b.ai_workout_generation_enabled === false) {
+                        applyAiGenerationGate(false);
+                    }
                 })
-                .catch(function () { /* keep default */ });
+                .catch(function () { /* keep default — AI stays visible */ });
 
             // Populate sidebar user info
             const email = session.user.email || '';
@@ -13517,7 +13523,20 @@
         // AI Modal
         let aiMode = null; // 'single' or 'program'
 
+        // Show/hide the AI workout generation entry points based on the
+        // account's ai_workout_generation_enabled flag. Default is ON — this
+        // only ever hides when explicitly disabled for the coach.
+        window.ZQ_AI_WORKOUTS_ENABLED = true;
+        function applyAiGenerationGate(enabled) {
+            window.ZQ_AI_WORKOUTS_ENABLED = enabled !== false;
+            ['mobileAiGenBtn', 'panelAiGenBtn', 'panelBulkAiBtn'].forEach(function (id) {
+                var el = document.getElementById(id);
+                if (el) el.style.display = window.ZQ_AI_WORKOUTS_ENABLED ? '' : 'none';
+            });
+        }
+
         function openAIModal() {
+            if (window.ZQ_AI_WORKOUTS_ENABLED === false) return;
             // Reset to mode selection
             aiMode = null;
             document.getElementById('modeSingle').classList.remove('selected');
@@ -14405,6 +14424,7 @@
         const _bulkState = { selected: new Set(), settings: {}, running: false };
 
         function openBulkAiModal() {
+            if (window.ZQ_AI_WORKOUTS_ENABLED === false) return;
             if (!Array.isArray(clients) || clients.length === 0) {
                 if (typeof loadClients === 'function') { loadClients().then(() => openBulkAiModal()); return; }
             }

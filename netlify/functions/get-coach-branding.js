@@ -102,8 +102,8 @@ exports.handler = async (event, context) => {
 
         // Fetch coach branding and subscription info
         // Try with brand_client_theme first, fall back without it if column doesn't exist
-        const SELECT_WITH_THEME = 'id, name, subscription_tier, brand_name, brand_logo_url, brand_favicon_url, brand_primary_color, brand_secondary_color, brand_accent_color, brand_email_logo_url, brand_email_footer, branding_updated_at, profile_photo_url, brand_bg_color, brand_bg_secondary_color, brand_card_color, brand_text_color, brand_text_secondary_color, brand_font, brand_button_style, brand_welcome_message, brand_app_name, brand_short_name, client_modules, custom_terminology, use_default_tutorial_video, custom_tutorial_video_url, brand_client_theme';
-        const SELECT_FALLBACK = 'id, name, subscription_tier, brand_name, brand_logo_url, brand_favicon_url, brand_primary_color, brand_secondary_color, brand_accent_color, brand_email_logo_url, brand_email_footer, branding_updated_at, profile_photo_url, brand_bg_color, brand_bg_secondary_color, brand_card_color, brand_text_color, brand_text_secondary_color, brand_font, brand_button_style, brand_welcome_message, brand_app_name, brand_short_name, client_modules, custom_terminology, use_default_tutorial_video, custom_tutorial_video_url';
+        const SELECT_WITH_THEME = 'id, name, subscription_tier, brand_name, brand_logo_url, brand_favicon_url, brand_primary_color, brand_secondary_color, brand_accent_color, brand_email_logo_url, brand_email_footer, branding_updated_at, profile_photo_url, brand_bg_color, brand_bg_secondary_color, brand_card_color, brand_text_color, brand_text_secondary_color, brand_font, brand_button_style, brand_welcome_message, brand_app_name, brand_short_name, client_modules, custom_terminology, use_default_tutorial_video, custom_tutorial_video_url, ai_workout_generation_enabled, brand_client_theme';
+        const SELECT_FALLBACK = 'id, name, subscription_tier, brand_name, brand_logo_url, brand_favicon_url, brand_primary_color, brand_secondary_color, brand_accent_color, brand_email_logo_url, brand_email_footer, branding_updated_at, profile_photo_url, brand_bg_color, brand_bg_secondary_color, brand_card_color, brand_text_color, brand_text_secondary_color, brand_font, brand_button_style, brand_welcome_message, brand_app_name, brand_short_name, client_modules, custom_terminology, use_default_tutorial_video, custom_tutorial_video_url, ai_workout_generation_enabled';
 
         let { data: coach, error: fetchError } = await supabase
             .from('coaches')
@@ -179,6 +179,10 @@ exports.handler = async (event, context) => {
             // Client app tutorial video
             use_default_tutorial_video: coach.use_default_tutorial_video === true,
             custom_tutorial_video_url: coach.custom_tutorial_video_url || null,
+
+            // Coach tools: AI workout generation on/off (fail-open — default true
+            // so a missing/absent value never hides AI for a normal coach).
+            ai_workout_generation_enabled: coach.ai_workout_generation_enabled !== false,
 
             // Coach profile
             profile_photo_url: coach.profile_photo_url || null,
