@@ -8804,6 +8804,33 @@ textarea,
     color: #f1f5f9;
 }
 
+/* Editable servings field — type any amount (e.g. 3.8), not just +/- steps */
+.servings-input {
+    width: 56px;
+    min-width: 56px;
+    padding: 4px 2px;
+    border: none;
+    border-bottom: 2px solid var(--brand-primary);
+    border-radius: 0;
+    background: transparent;
+    font: inherit;
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--gray-900);
+    text-align: center;
+    -moz-appearance: textfield;
+    appearance: textfield;
+}
+
+.servings-input:focus {
+    outline: none;
+    background: rgba(20, 184, 166, 0.08);
+}
+
+[data-theme="dark"] .servings-input {
+    color: #f1f5f9;
+}
+
 /* Nutrition Preview Grid */
 .nutrition-preview {
     display: grid;

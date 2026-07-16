@@ -70,6 +70,64 @@ const getSafeMeasures = (food) => {
   return safe.length > 0 ? safe : measures;
 };
 
+// Trim a serving amount to a clean display string: 1, 1.5, 3.8, 0.25
+// (round to 2 decimals so float math like 0.1+0.2 doesn't show "0.30000004").
+const formatServings = (n) => String(Math.round(n * 100) / 100);
+
+// Editable servings control. Lets the client TYPE any amount (e.g. 3.8) instead
+// of only tapping the +/- buttons by half a serving. Keeps a local text buffer so
+// partial entries ("3." or an empty field) are allowed while typing; the parent
+// only ever receives a valid number. Falls back to `min` if the field is left
+// blank/invalid on blur. The +/- buttons still nudge by `step` for convenience.
+const ServingsStepper = ({ value, onChange, min = 0.1, step = 0.5, iconSize = 18, decrementLabel, incrementLabel }) => {
+  const [text, setText] = useState(formatServings(value));
+
+  // Re-sync the field when the value changes from the buttons or a reset,
+  // but never overwrite what the user is actively typing.
+  useEffect(() => {
+    setText(prev => (parseFloat(prev) === value ? prev : formatServings(value)));
+  }, [value]);
+
+  const handleType = (raw) => {
+    // Allow only digits and a single decimal point while typing.
+    if (raw !== '' && !/^\d*\.?\d*$/.test(raw)) return;
+    setText(raw);
+    const n = parseFloat(raw);
+    if (!isNaN(n) && n > 0) onChange(Math.round(n * 100) / 100);
+  };
+
+  const handleBlur = () => {
+    const n = parseFloat(text);
+    const clean = (isNaN(n) || n < min) ? min : Math.round(n * 100) / 100;
+    onChange(clean);
+    setText(formatServings(clean));
+  };
+
+  const nudge = (delta) => {
+    const base = parseFloat(text);
+    const next = Math.max(min, Math.round(((isNaN(base) ? value : base) + delta) * 100) / 100);
+    onChange(next);
+    setText(formatServings(next));
+  };
+
+  return (
+    <div className="servings-controls">
+      <button type="button" onClick={() => nudge(-step)} aria-label={decrementLabel}><Minus size={iconSize} /></button>
+      <input
+        type="text"
+        inputMode="decimal"
+        className="servings-value servings-input"
+        value={text}
+        onChange={(e) => handleType(e.target.value)}
+        onBlur={handleBlur}
+        onFocus={(e) => e.target.select()}
+        aria-label={incrementLabel ? undefined : 'Number of servings'}
+      />
+      <button type="button" onClick={() => nudge(step)} aria-label={incrementLabel}><Plus size={iconSize} /></button>
+    </div>
+  );
+};
+
 // Meal type selector component
 const MealTypeSelector = ({ selected, onChange }) => {
   const { t } = useLanguage();
@@ -178,13 +236,6 @@ export function SnapPhotoModal({ isOpen, onClose, mealType, clientData, onFoodLo
     } finally {
       setAnalyzing(false);
     }
-  };
-
-  const updateServings = (index, delta) => {
-    setServings(prev => ({
-      ...prev,
-      [index]: Math.max(0.5, (prev[index] || 1) + delta)
-    }));
   };
 
   const deleteFood = (index) => {
@@ -437,11 +488,13 @@ export function SnapPhotoModal({ isOpen, onClose, mealType, clientData, onFoodLo
                       </div>
                       <div className="detected-food-servings">
                         <label>{t('foodModals.servingsLabel')}</label>
-                        <div className="servings-controls">
-                          <button onClick={() => updateServings(idx, -0.5)} aria-label={t('foodModals.ariaDecreaseServings')}><Minus size={16} /></button>
-                          <span className="servings-value">{foodServings}</span>
-                          <button onClick={() => updateServings(idx, 0.5)} aria-label={t('foodModals.ariaIncreaseServings')}><Plus size={16} /></button>
-                        </div>
+                        <ServingsStepper
+                          value={foodServings}
+                          onChange={(n) => setServings(prev => ({ ...prev, [idx]: n }))}
+                          iconSize={16}
+                          decrementLabel={t('foodModals.ariaDecreaseServings')}
+                          incrementLabel={t('foodModals.ariaIncreaseServings')}
+                        />
                       </div>
                       <div className="detected-food-macros">
                         <span>{scaledCalories} cal</span>
@@ -692,11 +745,12 @@ export function SearchFoodsModal({ isOpen, onClose, mealType, clientData, onFood
 
               <div className="servings-adjuster">
                 <label>{t('foodModals.numberOfServings')}</label>
-                <div className="servings-controls">
-                  <button onClick={() => setServings(Math.max(0.5, servings - 0.5))}><Minus size={18} /></button>
-                  <span className="servings-value">{servings}</span>
-                  <button onClick={() => setServings(servings + 0.5)}><Plus size={18} /></button>
-                </div>
+                <ServingsStepper
+                  value={servings}
+                  onChange={setServings}
+                  decrementLabel={t('foodModals.ariaDecreaseServings')}
+                  incrementLabel={t('foodModals.ariaIncreaseServings')}
+                />
               </div>
 
               <div className="nutrition-preview">
@@ -1215,11 +1269,12 @@ export function ScanLabelModal({ isOpen, onClose, mealType, clientData, onFoodLo
 
               <div className="servings-adjuster">
                 <label>{t('foodModals.numberOfServings')}</label>
-                <div className="servings-controls">
-                  <button onClick={() => setServings(Math.max(0.5, servings - 0.5))}><Minus size={18} /></button>
-                  <span className="servings-value">{servings}</span>
-                  <button onClick={() => setServings(servings + 0.5)}><Plus size={18} /></button>
-                </div>
+                <ServingsStepper
+                  value={servings}
+                  onChange={setServings}
+                  decrementLabel={t('foodModals.ariaDecreaseServings')}
+                  incrementLabel={t('foodModals.ariaIncreaseServings')}
+                />
               </div>
 
               <div className="nutrition-preview">
