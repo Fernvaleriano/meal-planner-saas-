@@ -265,7 +265,11 @@ function applyBrandingCSS(branding) {
   // (e.g. a yellow gym brand) do we flip button text to near-black so the label
   // stays readable instead of washing out white-on-yellow.
   if (branding.brand_primary_color) {
-    if (perceivedLuminance(branding.brand_primary_color) > 0.62) {
+    // 0.58 threshold: light brand colors (bright yellow ~0.79, muted mustard
+    // ~0.61) get near-black button text; the default teal (~0.54) and similar
+    // mid/dark brand colors stay on white via the var() fallback, so
+    // non-custom coaches are unchanged.
+    if (perceivedLuminance(branding.brand_primary_color) > 0.58) {
       root.style.setProperty('--brand-on-primary', '#141414');
     } else {
       root.style.removeProperty('--brand-on-primary');

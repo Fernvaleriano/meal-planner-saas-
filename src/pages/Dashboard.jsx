@@ -1483,7 +1483,7 @@ function Dashboard() {
           state={{ openGenerate: true }}
           style={{
             display: 'flex', alignItems: 'center', gap: 14, textDecoration: 'none',
-            background: 'var(--brand-primary, #FF5A1F)', color: '#fff',
+            background: 'var(--brand-primary, #FF5A1F)', color: 'var(--brand-on-primary, #fff)',
             borderRadius: 16, padding: '18px 16px', marginBottom: 14,
             boxShadow: '0 8px 20px rgba(0,0,0,0.14)',
           }}
