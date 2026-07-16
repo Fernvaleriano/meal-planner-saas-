@@ -66,6 +66,7 @@ export default {
     recipes: 'Recetas',
     ranks: 'Rankings',
     gym_info: 'Info del gym',
+    shop: 'Tienda',
   },
 
   settings: {

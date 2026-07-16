@@ -21,6 +21,7 @@ import CoachBilling from './pages/CoachBilling';
 import ClientBilling from './pages/ClientBilling';
 import Challenges from './pages/Challenges';
 import Leaderboard from './pages/Leaderboard';
+import Shop from './pages/Shop';
 import Login from './pages/Login';
 import ForgotPassword from './pages/ForgotPassword';
 import LoadingScreen from './components/LoadingScreen';
@@ -199,6 +200,7 @@ function App() {
         <Route path="my-billing" element={<ClientBilling />} />
         <Route path="challenges" element={<Challenges />} />
         <Route path="leaderboard" element={<Leaderboard />} />
+        <Route path="shop" element={<Shop />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

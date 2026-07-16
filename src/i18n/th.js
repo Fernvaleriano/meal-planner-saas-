@@ -67,6 +67,7 @@ export default {
     recipes: 'สูตรอาหาร',
     ranks: 'อันดับ',
     gym_info: 'ข้อมูลยิม',
+    shop: 'ร้านค้า',
   },
 
   settings: {

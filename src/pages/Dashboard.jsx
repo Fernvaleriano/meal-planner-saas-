@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Camera, Search, Heart, ScanLine, Mic, ChevronRight, ChevronDown, BarChart3, ClipboardCheck, TrendingUp, BookOpen, Pill, ChefHat, Check, CheckCircle, Minus, Plus, X, Sunrise, Sun, Sunset, Moon, Coffee, Utensils, Dumbbell, Star, Clock, Trophy, UserCircle, Scale, Users, Sparkles } from 'lucide-react';
 import InstallAppBanner from '../components/InstallAppBanner';
 import StoriesBar from '../components/StoriesBar';
+import DropsBanner from '../components/DropsBanner';
 import { useAuth } from '../context/AuthContext';
 import { useBranding } from '../context/BrandingContext';
 import { apiGet, apiPost, apiDelete } from '../utils/api';
@@ -1500,6 +1501,10 @@ function Dashboard() {
           </div>
           <ChevronRight size={22} style={{ opacity: 0.9 }} />
         </Link>
+
+        {/* Newest gym drop (clothing / supplement promo) — renders nothing
+            unless the gym has the Shop module on and an active drop. */}
+        <DropsBanner />
 
         {/* Tiles */}
         <div className="quick-actions-grid">
