@@ -273,7 +273,11 @@ textarea,
 }
 
 [data-theme="dark"] .top-nav {
-    background: linear-gradient(135deg, var(--brand-primary-darker, #22998a) 0%, #075985 100%);
+    /* Fade the coach's brand color into their OWN dark/background color
+       (e.g. a yellow gym → yellow fading into black) instead of the old
+       hardcoded teal→blue. Set per-coach in BrandingContext; non-custom
+       coaches fall back byte-for-byte to the original teal→blue default. */
+    background: var(--brand-topbar-gradient, linear-gradient(135deg, var(--brand-primary-darker, #22998a) 0%, #075985 100%));
     box-shadow: 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 
