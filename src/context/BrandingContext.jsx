@@ -38,6 +38,9 @@ const DEFAULT_BRANDING = {
     check_in: true,
     progress: true,
     leaderboard: true,
+    // Shop / Drops (clothing + supplement promos) is OFF by default. A gym
+    // opts in per-account; only then does the Shop tab + Home banner appear.
+    shop: false,
   },
   custom_terminology: null,
   brand_client_theme: 'dark',
@@ -57,6 +60,7 @@ const DEFAULT_TERMINOLOGY = {
   check_in: 'Check-In',
   progress: 'Progress',
   recipes: 'Recipes',
+  shop: 'Shop',
 };
 
 // Available Google Fonts for coaches to pick from

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { Home, NotebookPen, Dumbbell, MessageCircle, UtensilsCrossed, Trophy, Info } from 'lucide-react';
+import { Home, NotebookPen, Dumbbell, MessageCircle, UtensilsCrossed, Trophy, Info, ShoppingBag } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useBranding } from '../context/BrandingContext';
 import { apiGet } from '../utils/api';
@@ -87,6 +87,12 @@ function BottomNav({ currentPath }) {
     // stays on by default (isModuleVisible returns true unless explicitly off).
     if (isModuleVisible('leaderboard')) {
       visible.push({ path: '/leaderboard', icon: Trophy, label: getLabel('ranks'), moduleKey: 'leaderboard' });
+    }
+    // Shop / Drops tab: clothing + supplement promos. Off by default for every
+    // gym (DEFAULT_BRANDING.client_modules.shop === false); a gym opts in and
+    // only then does this tab appear.
+    if (isModuleVisible('shop')) {
+      visible.push({ path: '/shop', icon: ShoppingBag, label: getLabel('shop'), moduleKey: 'shop' });
     }
     // Gym members (nutrition/diary turned off -> the workout-only "gym home")
     // get a Gym Info tab here instead of a home-screen tile. Full coaching
