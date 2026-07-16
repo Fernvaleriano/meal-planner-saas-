@@ -24,6 +24,21 @@ response, every chat, forever — not just technical ones.
 If you find yourself writing a wall of text with code blocks and
 headers in a casual conversation — stop, delete, rewrite plain.
 
+## ⚠️ GYM VERSION ≠ COACHING VERSION (REMEMBER THIS)
+
+There are TWO different products and they are NOT the same:
+- **Coaching version** — the one-on-one online-coaching app (regular coach
+  accounts). Has macro/nutrition tracking, meal plans, recipes, diary, etc.
+- **Gym version** — the white-label GYM product (`coaches.is_gym = true`
+  accounts like Huracan Fitness and Goliath Strength). Login routes the
+  owner to `gym-dashboard.html`. **The gym version does NOT have
+  macro/nutrition tracking, meal plans, or recipes.** Its member app centers
+  on **workouts + progress** (the gym `client_modules` reflect this:
+  diary/plans/recipes OFF, progress/workouts ON).
+
+Do NOT pitch, assume, or reference nutrition/macros/meal-plan/recipe features
+when the context is a GYM. If unsure which product a request is about, ask.
+
 ## ⚠️ OPERATIONAL REMINDERS — ACTION REQUIRED (read me)
 
 - **DECISION (May 2026): WEB-ONLY. Native / App Store is intentionally
