@@ -100,6 +100,7 @@ const BRAND_CSS_PROPS = [
   '--brand-banner-card-bg-light', '--brand-banner-card-bg-dark', '--brand-banner-card-shadow',
   '--brand-rest-day-bg-light', '--brand-rest-day-bg-dark',
   '--brand-shadow-soft', '--brand-shadow-soft-strong', '--brand-macro-protein',
+  '--brand-topbar-gradient',
   // Tint/shade family — set only for custom-branded coaches; global.css keeps
   // the original teal hexes as per-line var() fallbacks for default coaches.
   '--brand-primary-soft', '--brand-primary-lighter', '--brand-primary-darker',
@@ -377,6 +378,17 @@ function applyBrandingCSS(branding) {
     root.style.setProperty(
       '--brand-header-gradient',
       `linear-gradient(135deg, ${primary} 0%, ${secondary} 100%)`
+    );
+
+    // Top app-bar (.top-nav) in dark mode: fade the brand color into the
+    // coach's OWN dark/background color instead of the old hardcoded blue.
+    // A yellow-and-black gym gets "yellow fading into black"; a coach who
+    // hasn't picked a custom background fades into the app's default dark
+    // navy so the bar still blends into the page body.
+    const topbarEnd = branding.brand_bg_color || '#0f172a';
+    root.style.setProperty(
+      '--brand-topbar-gradient',
+      `linear-gradient(135deg, ${primary} 0%, ${topbarEnd} 100%)`
     );
   }
 
