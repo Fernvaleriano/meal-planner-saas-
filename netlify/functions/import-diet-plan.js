@@ -71,9 +71,28 @@ function tryRegexParseMeals(text) {
     const carbs = parseInt((carbPattern.exec(line) || carbPattern2.exec(line) || [])[1]) || 0;
     const fat = parseInt((fatPattern.exec(line) || fatPattern2.exec(line) || [])[1]) || 0;
 
-    // The line before the calorie line is likely the ingredients
+    // --- Inline "Type: Name - 520 cal, ..." layout ---
+    // Many plans (and this app's own paste-box example) put the meal type, the
+    // food name, AND the macros on ONE line. Pull the name from the text that
+    // sits BEFORE the calorie number, stripping a leading meal-type label.
+    let inlineName = '';
+    let inlineType = '';
+    const beforeCal = line.slice(0, calMatch.index);
+    const labelMatch = beforeCal.match(/^\s*(breakfast|brunch|lunch|dinner|supper|snacks?|meal\s*\d*|pre[-\s]?workout|post[-\s]?workout|(?:early |late |mid[-\s]?)?(?:morning|afternoon|evening|am|pm)\s*snack)\b\s*[:\-–—]?\s*/i);
+    if (labelMatch) {
+      inlineType = labelMatch[1];
+      inlineName = beforeCal.slice(labelMatch[0].length);
+    } else {
+      inlineName = beforeCal;
+    }
+    // Drop any trailing separator sitting between the name and the calorie count.
+    inlineName = inlineName.replace(/[\s:\-–—|,]+$/, '').trim();
+    const hasInlineName = inlineName.length > 1 && !/^\d+$/.test(inlineName);
+
+    // Two-line layouts instead keep the food name on its OWN line above the
+    // macro line. Only walk back for it when there's no inline name to use.
     let ingredientLine = '';
-    if (i > 0) {
+    if (!hasInlineName && i > 0) {
       // Walk backwards to find the ingredient line (skip empty lines or lines that are also macro lines)
       for (let j = i - 1; j >= 0; j--) {
         if (lines[j].length > 0 && !macroLinePattern.test(lines[j]) && !summaryPattern.test(lines[j])) {
@@ -96,9 +115,12 @@ function tryRegexParseMeals(text) {
       instructions += lines[j];
     }
 
-    // Generate a meal name from ingredients
+    // Generate a meal name: prefer the inline name, else derive it from the
+    // ingredient line found on the row above.
     let name = 'Meal';
-    if (ingredientLine) {
+    if (hasInlineName) {
+      name = inlineName.charAt(0).toUpperCase() + inlineName.slice(1);
+    } else if (ingredientLine) {
       // Take the first few key ingredients for the name
       const parts = ingredientLine.split(',').map(p => p.trim());
       // Try to extract main food items (skip measurements)
@@ -121,8 +143,14 @@ function tryRegexParseMeals(text) {
       ? cleanedIngredientLine.split(',').map(s => s.trim()).filter(s => s.length > 1)
       : [];
 
-    // Assign meal type based on order
-    const type = meals.length < mealTypes.length ? mealTypes[meals.length] : 'Snack';
+    // Assign meal type: honor an explicit inline label, else fall back to order.
+    let type;
+    const labelType = (inlineType || '').toLowerCase();
+    if (/break|brunch/.test(labelType)) type = 'Breakfast';
+    else if (/lunch/.test(labelType)) type = 'Lunch';
+    else if (/dinner|supper/.test(labelType)) type = 'Dinner';
+    else if (/snack/.test(labelType)) type = 'Snack';
+    else type = meals.length < mealTypes.length ? mealTypes[meals.length] : 'Snack';
 
     meals.push({
       name,
