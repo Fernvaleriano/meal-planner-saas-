@@ -7403,7 +7403,11 @@
         async function loadActivityFeed(coachId) {
             _activityFeedLoaded = true;
             const alertsEl = document.getElementById('activityCardContent');
-            if (alertsEl) {
+            // Only show the loading placeholder on FIRST load. On background
+            // refreshes we keep the existing list on screen while fetching —
+            // wiping it here destroyed the open card + half-typed comment
+            // before renderActivityTimeline could snapshot/restore them.
+            if (alertsEl && !alertsEl.querySelector('.activity-timeline')) {
                 alertsEl.innerHTML = '<div class="activity-tl-empty">Loading wins...</div>';
             }
 
@@ -7865,7 +7869,46 @@
             }
         }
 
+        // --- Typing guard for background re-renders ---
+        // Rebuilding a card's innerHTML while the coach is typing in a
+        // comment box destroys the focused input mid-keystroke. On the
+        // phone that dismisses the keyboard and the card looks like it
+        // collapses / the page jumps down. So while a comment box inside
+        // a container has focus we skip that container's re-render and
+        // retry shortly after the coach leaves the box.
+        function isTypingInside(container) {
+            const el = document.activeElement;
+            return !!(el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') && container.contains(el));
+        }
+
+        function scheduleRerenderAfterTyping(container) {
+            if (container._rerenderArmed) return;
+            container._rerenderArmed = true;
+            container.addEventListener('focusout', function onOut() {
+                // Wait a beat so a tap on "Send" lands on the existing DOM
+                // (focusout fires before the click) and the send request
+                // has time to finish before we rebuild.
+                setTimeout(() => {
+                    container._rerenderArmed = false;
+                    container.removeEventListener('focusout', onOut);
+                    if (isTypingInside(container)) return; // moved to another input — wait for next refresh
+                    // A send still in flight disables its button; rebuilding
+                    // now would orphan that flow — skip, next refresh catches up.
+                    if (document.querySelector('#activityCardContent button:disabled, #alertsCardContent button:disabled, #mealsCardContent button:disabled')) return;
+                    renderPriorityAlertSections();
+                }, 2500);
+            });
+        }
+
         function renderActivityTimeline(container) {
+            // Never rebuild while the coach is mid-comment (see typing guard
+            // above) — this rebuild is what used to collapse the card and
+            // close the phone keyboard mid-word.
+            if (isTypingInside(container)) {
+                scheduleRerenderAfterTyping(container);
+                return;
+            }
+
             // Before we rebuild the list from scratch, remember which client
             // cards the coach has opened — and whether they're part-way through
             // typing a comment. A background refresh (coming back to the page,
@@ -8121,7 +8164,9 @@
             }
 
             // --- Alerts card ---
-            if (alertsEl) {
+            if (alertsEl && isTypingInside(alertsEl)) {
+                scheduleRerenderAfterTyping(alertsEl);
+            } else if (alertsEl) {
                 const dismissed = getDismissedAlerts();
                 // Everything that isn't a meal belongs in the Alerts card.
                 // Items are tagged 'alert' | 'workout' | 'checkin' at addAlert time;
@@ -8176,7 +8221,9 @@
             }
 
             // --- Meals card ---
-            if (mealsEl) {
+            if (mealsEl && isTypingInside(mealsEl)) {
+                scheduleRerenderAfterTyping(mealsEl);
+            } else if (mealsEl) {
                 const dismissed = getDismissedAlerts();
                 const mealItems = _allPriorityAlerts.filter(item => item.type === 'meal');
                 const activeMeals = [];
@@ -12236,6 +12283,11 @@
             const THRESHOLD = 70;
 
             mainEl.addEventListener('touchstart', (e) => {
+                // Never arm pull-to-refresh while the coach is typing in a
+                // comment box (keyboard open) — a small downward drag used to
+                // trigger a full dashboard reload that collapsed the card.
+                const ae = document.activeElement;
+                if (ae && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA')) return;
                 if (mainEl.scrollTop <= 0 && !isLoading) {
                     startY = e.touches[0].clientY;
                     pulling = true;
