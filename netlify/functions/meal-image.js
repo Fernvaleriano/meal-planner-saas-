@@ -70,11 +70,72 @@ function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+// Build a smart, tailored food-photography prompt from a meal name.
+// Meal names are usually ingredient lists (e.g. "Grilled Chicken Breast (170 g),
+// Jasmine Rice (150 g), Broccoli (80 g)"), so we classify the dish and pick the
+// camera angle, plating and styling that actually flatter THAT kind of food.
+// This is what every auto-generated photo uses when the caller doesn't pass its
+// own custom prompt — it replaces the old one-size-fits-all default.
+function buildSmartMealPrompt(mealName) {
+  // Strip portions/quantities so classification and wording read cleanly
+  const cleaned = mealName
+    .replace(/\([^)]*\)/g, '')
+    .replace(/\d+\s*(g|kg|oz|lb|ml|l|cups?|tbsp|tsp|whole|slices?|pieces?|scoops?)\b/gi, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  const parts = cleaned.split(/,|\band\b|\bwith\b/i).map(s => s.trim()).filter(Boolean);
+  const mainItem = (parts[0] || cleaned || mealName).trim();
+  const sides = parts.length > 1 ? parts.slice(1).join(', ') : '';
+
+  const lower = mealName.toLowerCase();
+  const has = (re) => re.test(lower);
+
+  const isShake = has(/shake|smoothie|protein powder|whey|latte|juice|drink/);
+  const isSoup = has(/soup|stew|chili|broth|bisque|chowder/);
+  const isSalad = has(/salad/);
+  const hasEggs = has(/egg|omelet|omelette|frittata|scramble/);
+  const isBreakfast = hasEggs || has(/oat|oatmeal|porridge|pancake|waffle|toast|cereal|granola|yogurt|yoghurt|cottage cheese|bagel|muffin|french toast|acai/);
+  const isSandwich = has(/sandwich|burger|wrap|burrito|taco|quesadilla|panini|toastie/);
+  const hasMeat = has(/turkey|chicken|beef|steak|salmon|fish|tilapia|cod|tuna|shrimp|prawn|pork|lamb|bacon|sausage|meatball|mince/);
+  const hasPasta = has(/pasta|spaghetti|noodle|penne|macaroni|lasagn|ramen|fettuccine/);
+  const hasRice = has(/rice|quinoa|couscous|grain bowl|poke/);
+  const hasPotato = has(/potato|fries|wedges/);
+
+  // Shared quality tail — the language that pushes any model toward
+  // clean, editorial, appetizing results.
+  const QUALITY = 'Photorealistic food photography, restaurant-quality plating, soft natural daylight with gentle shadows, shallow depth of field with the food in crisp focus, fresh and appetizing, realistic single-serving portion, high detail. Clean minimal styling, no hands, no cutlery clutter, no text, words, or labels.';
+
+  let scene;
+
+  if (isShake) {
+    scene = `A ${mainItem} served in a tall clear glass, thick and creamy${sides ? `, garnished with ${sides}` : ''}, a few fresh ingredients resting on the light surface beside it, straight-on eye-level shot on a clean bright background.`;
+  } else if (isSoup) {
+    scene = `A warm bowl of ${mainItem}${sides ? ` with ${sides}` : ''}, steam gently rising, a spoon resting beside the bowl, shot slightly from above on a light rustic surface.`;
+  } else if (isSalad) {
+    scene = `A fresh, colorful ${mainItem}${sides ? ` with ${sides}` : ''} in a wide shallow white bowl, ingredients layered and vibrant with a light glisten of dressing, overhead flat-lay on a clean bright background.`;
+  } else if (isBreakfast) {
+    scene = `A bright, wholesome breakfast: ${mainItem}${sides ? ` topped with ${sides}` : ''}, plated in a clean bowl or on a simple white plate, overhead angle on a light kitchen surface, cozy morning light.`;
+  } else if (isSandwich) {
+    scene = `A ${mainItem}${sides ? ` served with ${sides}` : ''}, freshly made with visible fillings, cut to show the layers inside, on a wooden board or simple plate, 45-degree angle, warm natural light.`;
+  } else if (hasMeat) {
+    scene = `${mainItem} as the cooked hero of the plate — seared and juicy with visible seasoning and grill marks${sides ? `, ${sides} arranged neatly alongside` : ''}, plated on a simple white dish, 45-degree angle, soft directional light catching the texture. Show it as one complete cooked dish, not raw separate ingredients.`;
+  } else if (hasPasta) {
+    scene = `A generous bowl of ${mainItem}${sides ? ` with ${sides}` : ''}, glossy and freshly tossed with a light steam, twirled and styled, 45-degree angle, warm natural light. Show it as one finished cooked dish.`;
+  } else if (hasRice || hasPotato) {
+    scene = `${mainItem}${sides ? ` with ${sides}` : ''} plated together as one cohesive cooked meal, fluffy and fresh, arranged in balanced sections on a simple bowl or plate, 45-degree angle, soft natural light. Not raw separate ingredients.`;
+  } else {
+    scene = `${mainItem}${sides ? ` with ${sides}` : ''} plated as one complete, cohesive cooked dish — cooked together, NOT raw separate ingredients laid out — on a simple dish or bowl against a clean light background, 45-degree angle, soft natural daylight, homemade restaurant-quality look.`;
+  }
+
+  return `${scene} ${QUALITY}`;
+}
+
 // Generate image with Replicate Flux Schnell (cheap/fast model ~$0.003 per image)
 async function generateMealImageCheap(mealName, customPrompt = null) {
   const prompt = customPrompt
     ? `Professional, photorealistic food photography. ${customPrompt}. Beautifully presented, soft natural lighting, appetizing and realistic, high detail, realistic portion size. No text, words, or labels.`
-    : `Professional, photorealistic food photography of a healthy fitness meal: ${mealName}. Show it as one complete, cohesive plated dish cooked together - NOT separate raw ingredients laid out. Shot at a 45-degree angle in soft natural daylight, plated on a simple dish or bowl against a clean light background. Appetizing and realistic, high detail, realistic portion size. No text, words, or labels.`;
+    : buildSmartMealPrompt(mealName);
 
   const response = await fetch('https://api.replicate.com/v1/models/black-forest-labs/flux-schnell/predictions', {
     method: 'POST',
@@ -143,7 +204,7 @@ async function generateMealImage(mealName, customPrompt = null) {
   // Use custom prompt if provided, otherwise generate default prompt from meal name
   const prompt = customPrompt
     ? `Professional, photorealistic food photography. ${customPrompt}. Beautifully presented, soft natural lighting, appetizing and realistic, high detail, realistic portion size. No text, words, or labels.`
-    : `Professional, photorealistic food photography of a healthy fitness meal: ${mealName}. Show it as one complete, cohesive plated dish cooked together - NOT separate raw ingredients laid out. Shot at a 45-degree angle in soft natural daylight, plated on a simple dish or bowl against a clean light background, home-cooked restaurant-quality look. Appetizing and realistic, high detail, realistic portion size. No text, words, or labels.`;
+    : buildSmartMealPrompt(mealName);
 
   // Create prediction using Google Imagen 4 Fast (fast, excellent photorealism)
   const response = await fetch('https://api.replicate.com/v1/models/google/imagen-4-fast/predictions', {
