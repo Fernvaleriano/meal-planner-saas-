@@ -90,6 +90,7 @@ const CACHE_TTL = 30 * 60 * 1000; // 30 minutes
 // Keep this in sync with every root.style.setProperty('--brand-...') call.
 const BRAND_CSS_PROPS = [
   '--brand-primary', '--brand-primary-dark', '--brand-secondary', '--brand-accent',
+  '--brand-on-primary',
   '--brand-gradient', '--bg-primary', '--bg-secondary', '--bg-card',
   '--text-primary', '--text-secondary', '--btn-radius', '--font-family',
   // Derived rebrand variables — clear so CSS fallbacks (default teal) reapply
@@ -167,6 +168,20 @@ function lightenColor(hex, percent) {
 }
 
 /**
+ * Perceived luminance (0–1) of a #RRGGBB hex, using the standard
+ * 0.299/0.587/0.114 weighting. Used to decide whether white or dark text
+ * is readable on top of the brand color (e.g. a yellow primary needs dark
+ * text on its buttons, a teal primary needs white).
+ */
+function perceivedLuminance(hex) {
+  if (!hex || hex.length < 7) return 0;
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+}
+
+/**
  * Convert a #RRGGBB hex string to "rgba(r, g, b, a)". Returns the same teal fallback
  * the hardcoded CSS uses if hex is missing — defensive only, not the normal path.
  */
@@ -239,6 +254,21 @@ function applyBrandingCSS(branding) {
   }
   if (branding.brand_accent_color) {
     root.style.setProperty('--brand-accent', branding.brand_accent_color);
+  }
+
+  // Readable text color for filled buttons/CTAs painted with the brand color.
+  // .btn-primary (and friends) default to white text via var(--brand-on-primary,
+  // white). White reads fine on darker brand colors (the default teal, orange,
+  // etc.) so for those we DON'T set this — the fallback keeps every existing
+  // coach byte-for-byte unchanged. Only when a coach picks a LIGHT primary
+  // (e.g. a yellow gym brand) do we flip button text to near-black so the label
+  // stays readable instead of washing out white-on-yellow.
+  if (branding.brand_primary_color) {
+    if (perceivedLuminance(branding.brand_primary_color) > 0.62) {
+      root.style.setProperty('--brand-on-primary', '#141414');
+    } else {
+      root.style.removeProperty('--brand-on-primary');
+    }
   }
 
   // Gradient — used by .btn-primary and ~25 other CTAs across the app.

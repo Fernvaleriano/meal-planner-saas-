@@ -1991,7 +1991,7 @@ textarea,
 
 .btn-primary {
     background: var(--brand-gradient);
-    color: white;
+    color: var(--brand-on-primary, white);
 }
 
 .btn-primary:hover {
@@ -8497,7 +8497,7 @@ textarea,
 /* Buttons */
 .btn-primary {
     background: var(--brand-primary);
-    color: white;
+    color: var(--brand-on-primary, white);
     border: none;
     padding: 14px 24px;
     border-radius: 12px;
@@ -15006,7 +15006,7 @@ textarea,
     border: none;
     border-radius: 14px;
     background: var(--brand-gradient, linear-gradient(135deg, #2cb5a5 0%, #4ec5b7 100%));
-    color: white;
+    color: var(--brand-on-primary, white);
     font-size: 1rem;
     font-weight: 600;
     cursor: pointer;
