@@ -31,6 +31,7 @@ function pickDropFields(body) {
     if (body.title !== undefined) out.title = (body.title || '').toString().trim();
     if (body.description !== undefined) out.description = body.description || null;
     if (body.imageUrl !== undefined) out.image_url = body.imageUrl || null;
+    if (body.videoUrl !== undefined) out.video_url = body.videoUrl || null;
     if (body.price !== undefined) out.price = body.price || null;
     if (body.discountCode !== undefined) out.discount_code = body.discountCode || null;
     if (body.linkUrl !== undefined) out.link_url = body.linkUrl || null;

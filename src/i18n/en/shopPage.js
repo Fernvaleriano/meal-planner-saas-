@@ -3,4 +3,7 @@ export default {
   title: 'Shop',
   empty: 'No drops yet — check back soon.',
   shopNow: 'Shop now',
+  filterAll: 'All',
+  filterClothing: 'Clothing',
+  filterSupplements: 'Supplements',
 };
