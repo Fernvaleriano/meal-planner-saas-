@@ -55,6 +55,37 @@ async function triggerMuxConversion(supabase, exerciseId, videoUrl, existingThum
   }
 }
 
+// Remove a custom exercise's video from Mux when the exercise is deleted, so it
+// stops living on (and counting against) the Mux account after it's gone from
+// the coach's library. Each exercise owns its own Mux asset (created per
+// exercise with passthrough = exercise id), so deleting the asset never affects
+// another exercise. Best-effort like the converter above: never throws — a Mux
+// failure must not stop the exercise from being deleted; it just leaves that one
+// asset orphaned (recoverable via the Mux dashboard). Returns true if Mux
+// confirmed the delete (or the asset was already gone), false otherwise.
+async function deleteMuxAsset(muxAssetId) {
+  if (!muxAssetId) return false;
+  if (!MUX_TOKEN_ID || !MUX_TOKEN_SECRET) {
+    console.error('Mux delete skipped: MUX_TOKEN_ID/SECRET not configured');
+    return false;
+  }
+  try {
+    const auth = Buffer.from(`${MUX_TOKEN_ID}:${MUX_TOKEN_SECRET}`).toString('base64');
+    const resp = await fetch(`https://api.mux.com/video/v1/assets/${muxAssetId}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Basic ${auth}` }
+    });
+    // 204 = deleted; 404 = already gone on Mux's side (treat as success).
+    if (resp.status === 204 || resp.status === 404) return true;
+    const body = await resp.text();
+    console.error('Mux delete (exercise) failed:', resp.status, body.slice(0, 200));
+    return false;
+  } catch (e) {
+    console.error('Mux delete (exercise) error:', e.message);
+    return false;
+  }
+}
+
 exports.handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') {
     return { statusCode: 200, headers, body: '' };
@@ -380,18 +411,29 @@ exports.handler = async (event) => {
         };
       }
 
-      const { error } = await supabase
+      // Return the deleted row(s) so we know the Mux asset to clean up — and so
+      // we only ever hit Mux for a row that was actually deleted (is_custom).
+      const { data: deletedRows, error } = await supabase
         .from('exercises')
         .delete()
         .eq('id', exerciseId)
-        .eq('is_custom', true); // Can only delete custom exercises
+        .eq('is_custom', true) // Can only delete custom exercises
+        .select('id, mux_asset_id');
 
       if (error) throw error;
+
+      // Also remove the video from Mux (best-effort — never blocks the delete).
+      const muxAssetId = deletedRows?.[0]?.mux_asset_id || null;
+      const muxDeleted = await deleteMuxAsset(muxAssetId);
 
       return {
         statusCode: 200,
         headers,
-        body: JSON.stringify({ success: true })
+        body: JSON.stringify({
+          success: true,
+          deleted: deletedRows?.length || 0,
+          muxAssetDeleted: muxAssetId ? muxDeleted : null
+        })
       };
     }
 
