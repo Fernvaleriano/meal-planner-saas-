@@ -132,9 +132,10 @@
       <div class="modal-box">
         <div class="mtitle" id="previewTitle">Preview</div>
         <video id="previewVideo" controls playsinline></video>
+        <p style="font-size:12px;color:var(--muted);margin:8px 0 2px;">Set the cover image: scrub to a good spot and grab that frame, or upload your own picture.</p>
         <div class="modal-actions">
-          <button class="btn ghost" id="useFrameBtn" title="Grab whatever is on screen right now as the cover image">📸 Use this frame as thumbnail</button>
-          <button class="btn ghost" id="uploadThumbBtn" title="Upload your own cover image">🖼 Upload thumbnail</button>
+          <button class="btn ghost" id="useFrameBtn" title="Grab whatever is on screen right now as the cover image">📸 Use this frame</button>
+          <button class="btn ghost" id="uploadThumbBtn" title="Upload your own cover image">🖼 Upload image</button>
           <button class="btn primary spacer" id="closePreviewBtn">Done</button>
         </div>
       </div>
@@ -480,6 +481,7 @@
             <div class="meta-row">
               <label class="uni"><input type="checkbox" data-f="isUnilateral" data-id="${r.id}" ${r.isUnilateral?'checked':''}/> single-arm/leg</label>
               <select data-f="difficulty" data-id="${r.id}" style="width:auto;padding:4px 8px;">${DIFFS.map(d=>`<option value="${d}" ${r.difficulty===d?'selected':''}>${d}</option>`).join('')}</select>
+              <button class="more-btn" data-cover="${r.id}" title="Preview the clip, grab a frame, or upload your own cover image">🖼 Set cover</button>
               <button class="more-btn" data-more="${r.id}">${r.expanded ? '▲ Less' : '＋ More details'}</button>
               ${r.enriched ? '<span class="ai-badge" title="AI added coaching cues, common mistakes, secondary muscles &amp; calorie estimate">✨ detail added</span>' : ''}
               ${qcFlag}
@@ -509,6 +511,10 @@
       // Preview a clip (click the thumbnail)
       list.querySelectorAll('[data-preview]').forEach(el => {
         el.addEventListener('click', () => openPreview(+el.getAttribute('data-preview')));
+      });
+      // Open preview / cover-image picker
+      list.querySelectorAll('[data-cover]').forEach(el => {
+        el.addEventListener('click', () => openPreview(+el.getAttribute('data-cover')));
       });
       // Toggle the "More details" panel
       list.querySelectorAll('[data-more]').forEach(el => {
