@@ -128,25 +128,63 @@
         return fast;
     }
 
+    const LOGO_CACHE_PREFIX = 'zq-brand-logo-';
+
+    function revealSidebarLogo() {
+        const hold = document.getElementById('zique-logo-hold');
+        if (hold) hold.remove();
+    }
+
+    // Runs as early as possible (non-master only): hide the sidebar logo so the
+    // default Ziquecoach logo never flashes before the coach/gym brand logo
+    // loads, and apply a cached brand logo instantly when we already have one.
+    function preapplyBrandLogo() {
+        const { email, coachId } = accountFromStorage();
+        if (!email || email === MASTER_EMAIL) return;   // master keeps the default logo
+        const cached = coachId ? localStorage.getItem(LOGO_CACHE_PREFIX + coachId) : null;
+        if (cached === 'default') return;               // known: no custom logo → keep default, no hide
+        const s = document.createElement('style');
+        s.id = 'zique-logo-hold';
+        s.textContent = '.sidebar-logo-img{opacity:0 !important;}';
+        (document.head || document.documentElement).appendChild(s);
+        if (cached) {
+            const apply = () => {
+                document.querySelectorAll('.sidebar-logo-img').forEach(img => { img.src = cached; });
+                revealSidebarLogo();
+            };
+            if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', apply);
+            else apply();
+        }
+        // Failsafe: never leave the logo hidden if the fetch stalls.
+        setTimeout(revealSidebarLogo, 4000);
+        // No cache → stays hidden until applyBrandingAndRanks resolves and reveals it.
+    }
+
     // For a non-master account, fetch branding once and:
     //  - swap the sidebar logo to their OWN brand (only when genuinely custom;
     //    get-coach-branding returns the Ziquecoach default otherwise),
+    //  - cache the result so future loads apply it instantly (no flash),
     //  - add the "Ranks" nav item if this is a gym (Challenges → Ranks).
     function applyBrandingAndRanks(coachId) {
-        if (!coachId) return;
+        if (!coachId) { revealSidebarLogo(); return; }
         fetch('/.netlify/functions/get-coach-branding?coachId=' + encodeURIComponent(coachId))
             .then(r => (r.ok ? r.json() : null))
             .then(b => {
-                if (!b) return;
-                if (b.brand_logo_url && !/ziquecoach-logo/i.test(b.brand_logo_url)) {
-                    document.querySelectorAll('.sidebar-logo-img').forEach(img => {
-                        img.src = b.brand_logo_url;
-                        img.alt = b.brand_name || b.brand_app_name || 'Gym';
-                    });
+                if (b) {
+                    const url = b.brand_logo_url;
+                    const isCustom = url && !/ziquecoach-logo/i.test(url);
+                    if (isCustom) {
+                        document.querySelectorAll('.sidebar-logo-img').forEach(img => {
+                            img.src = url;
+                            img.alt = b.brand_name || b.brand_app_name || 'Gym';
+                        });
+                    }
+                    try { localStorage.setItem(LOGO_CACHE_PREFIX + coachId, isCustom ? url : 'default'); } catch (e) { /* ignore */ }
+                    if (b.is_gym) injectRanksNavItem();
                 }
-                if (b.is_gym) injectRanksNavItem();
+                revealSidebarLogo();
             })
-            .catch(() => {});
+            .catch(() => { revealSidebarLogo(); });
     }
 
     // Ziquecoach: put a "Ranks" nav item where Challenges used to be.
@@ -197,6 +235,10 @@
         // injectCommandCenterNavItem();
         applyAccountLayout();
     }
+
+    // Run synchronously NOW (script is in <head>, before the sidebar renders) so
+    // the logo is hidden/prefilled before it can paint the default — no flash.
+    preapplyBrandLogo();
 
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', init);
