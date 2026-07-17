@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ranks — Gym Leaderboard</title>
+  <link rel="icon" href="https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/assets/icons/logo.png" type="image/png">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    :root { --bg:#0A1F2E; --card:#12293a; --accent:#2EC4B6; --line:#24404f; --muted:#9fb3c0; --gold:#f5c451; --silver:#cdd6dd; --bronze:#d99a6c; }
+    * { box-sizing:border-box; margin:0; padding:0; }
+    body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; background:var(--bg); color:#fff; padding:20px 16px 60px; }
+    .wrap { max-width:1000px; margin:0 auto; }
+    .top { display:flex; align-items:center; gap:12px; margin-bottom:6px; }
+    .back { color:var(--muted); text-decoration:none; font-size:14px; display:inline-flex; align-items:center; gap:6px; }
+    .back:hover { color:#fff; }
+    h1 { font-size:24px; font-weight:800; margin-top:8px; }
+    .sub { color:var(--muted); font-size:14px; margin:6px 0 20px; }
+    .lift-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:16px; }
+    .lift-card { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:16px; }
+    .lift-head { display:flex; align-items:center; gap:10px; margin-bottom:12px; }
+    .lift-emoji { font-size:22px; }
+    .lift-name { font-weight:700; font-size:16px; }
+    .lift-count { margin-left:auto; color:var(--muted); font-size:12px; }
+    .row { display:grid; grid-template-columns:28px 1fr auto; gap:10px; align-items:center; padding:8px 0; border-top:1px solid var(--line); }
+    .row:first-of-type { border-top:none; }
+    .rank { font-weight:800; font-size:14px; text-align:center; color:var(--muted); }
+    .rank.g1 { color:var(--gold); } .rank.g2 { color:var(--silver); } .rank.g3 { color:var(--bronze); }
+    .who { display:flex; align-items:center; gap:8px; min-width:0; }
+    .avatar { width:28px; height:28px; border-radius:50%; object-fit:cover; background:#0c1e2b; flex:none; display:flex; align-items:center; justify-content:center; font-size:12px; color:var(--muted); }
+    .who .nm { font-size:14px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .who .gd { font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; }
+    .val { text-align:right; }
+    .val .big { font-weight:700; font-size:14px; }
+    .val .small { font-size:11px; color:var(--muted); }
+    .verified { color:var(--accent); font-size:11px; }
+    .empty-lift { color:var(--muted); font-size:13px; padding:6px 0; }
+    .state { text-align:center; color:var(--muted); padding:60px 20px; }
+    .pill { display:inline-block; background:#0c1e2b; border:1px solid var(--line); border-radius:20px; padding:4px 12px; font-size:12px; color:var(--muted); margin-right:8px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="top">
+      <a class="back" href="dashboard.html">← Back</a>
+    </div>
+    <h1>🏆 Ranks</h1>
+    <p class="sub" id="sub">Your gym leaderboard — members ranked by their best video-proof lifts.</p>
+    <div id="counts" style="margin-bottom:18px;"></div>
+    <div id="content"><div class="state">Loading leaderboard…</div></div>
+  </div>
+
+  <script>
+    const SUPABASE_URL = 'https://qewqcjzlfqamqwbccapr.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFld3FjanpsZnFhbXF3YmNjYXByIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM2OTg0NzAsImV4cCI6MjA3OTI3NDQ3MH0.mQnMC33O88oLkLLGWD2oG-oaSHGI-NfHmtQCZxnxSLs';
+    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    function esc(s){ return String(s||'').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+    function initials(name){ return (name||'?').trim().charAt(0).toUpperCase(); }
+
+    function athleteRow(a, isReps) {
+      const gClass = a.rank === 1 ? 'g1' : a.rank === 2 ? 'g2' : a.rank === 3 ? 'g3' : '';
+      const medal = a.rank === 1 ? '🥇' : a.rank === 2 ? '🥈' : a.rank === 3 ? '🥉' : a.rank;
+      const av = a.photo ? `<img class="avatar" src="${esc(a.photo)}" alt="">` : `<div class="avatar">${initials(a.name)}</div>`;
+      // Weight lifts show weight × reps + estimated 1-rep max; rep lifts show reps.
+      const main = isReps ? `${a.reps} reps` : `${a.weight} ${a.weightUnit} × ${a.reps}`;
+      const smallLine = isReps ? '' : `<div class="small">${Math.round(a.score)} lb e1RM</div>`;
+      const gd = a.gender && a.gender !== 'other' ? `<span class="gd">${a.gender}</span>` : '';
+      return `<div class="row">
+        <div class="rank ${gClass}">${medal}</div>
+        <div class="who">${av}<div style="min-width:0"><div class="nm">${esc(a.name)} ${a.verified ? '<span class="verified">✓</span>' : ''}</div>${gd}</div></div>
+        <div class="val"><div class="big">${main}</div>${smallLine}</div>
+      </div>`;
+    }
+
+    function render(data) {
+      const counts = document.getElementById('counts');
+      counts.innerHTML = `<span class="pill">${data.athleteCount || 0} athletes</span><span class="pill">${data.totalLifts || 0} lifts logged</span>`;
+      const content = document.getElementById('content');
+      if (!data.athleteCount) {
+        content.innerHTML = `<div class="state">No lifts on the leaderboard yet. Once members post video-proof lifts, they'll show up here ranked.</div>`;
+        return;
+      }
+      const lifts = data.lifts || [];
+      content.innerHTML = `<div class="lift-grid">` + lifts.map(l => {
+        const board = (data.boards && data.boards[l.key]) || [];
+        const isReps = l.metric === 'reps';
+        const rows = board.length
+          ? board.slice(0, 10).map(a => athleteRow(a, isReps)).join('')
+          : `<div class="empty-lift">No entries yet.</div>`;
+        return `<div class="lift-card">
+          <div class="lift-head"><span class="lift-emoji">${l.icon || '🏋️'}</span><span class="lift-name">${esc(l.name)}</span><span class="lift-count">${board.length}</span></div>
+          ${rows}
+        </div>`;
+      }).join('') + `</div>`;
+    }
+
+    async function init() {
+      const { data: { session } } = await supabaseClient.auth.getSession();
+      if (!session) { window.location.href = 'login.html'; return; }
+      const coachId = session.user.id;
+      try {
+        const res = await fetch('/.netlify/functions/gym-leaderboard?view=coach&coachId=' + encodeURIComponent(coachId));
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Failed to load');
+        render(data);
+      } catch (e) {
+        document.getElementById('content').innerHTML = `<div class="state">Couldn't load the leaderboard: ${esc(e.message)}</div>`;
+      }
+    }
+    init();
+  </script>
+</body>
+</html>

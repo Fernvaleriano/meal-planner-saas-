@@ -146,7 +146,44 @@ exports.handler = async (event) => {
   try {
     // ─────────────────────────────── GET ───────────────────────────────
     if (event.httpMethod === 'GET') {
-      const { clientId, view } = event.queryStringParameters || {};
+      const { clientId, coachId: qsCoachId, view } = event.queryStringParameters || {};
+
+      // Coach/gym-facing read-only board — scoped straight by coach_id (no member
+      // context, so no myBests/isMe). Used by the coach Ranks page.
+      if (!clientId && qsCoachId) {
+        const { data: allLifts, error: cErr } = await supabase
+          .from('gym_leaderboard_lifts')
+          .select('id, client_id, client_name, lift_key, weight, weight_unit, reps, score, verified, video_url, mux_playback_id, mux_status, created_at, clients!inner(profile_photo_url, gender)')
+          .eq('coach_id', qsCoachId)
+          .eq('status', 'approved')
+          .order('score', { ascending: false });
+        if (cErr) throw cErr;
+        const cLifts = allLifts || [];
+        const bestCoach = new Map();
+        for (const row of cLifts) {
+          const k = `${row.client_id}:${row.lift_key}`;
+          const prev = bestCoach.get(k);
+          if (!prev || Number(row.score) > Number(prev.score)) bestCoach.set(k, row);
+        }
+        const shapeC = (row, rank) => ({
+          rank, id: row.id, clientId: row.client_id, name: row.client_name || 'Member',
+          photo: row.clients?.profile_photo_url || null, weight: Number(row.weight),
+          weightUnit: row.weight_unit, reps: row.reps, score: Number(row.score),
+          verified: row.verified, gender: normGender(row.clients?.gender),
+          muxPlaybackId: row.mux_status === 'ready' ? row.mux_playback_id : null,
+          videoUrl: row.video_url, createdAt: row.created_at
+        });
+        const boards = {};
+        for (const lift of LIFTS) {
+          const rows = [];
+          for (const [k, row] of bestCoach) { if (k.endsWith(`:${lift.key}`)) rows.push(row); }
+          rows.sort((a, b) => Number(b.score) - Number(a.score));
+          boards[lift.key] = rows.map((row, i) => shapeC(row, i + 1));
+        }
+        const ids = new Set(cLifts.map(r => r.client_id));
+        return json(200, { lifts: LIFTS, boards, athleteCount: ids.size, totalLifts: cLifts.length });
+      }
+
       if (!clientId) return json(400, { error: 'clientId is required' });
 
       const member = await resolveMember(supabase, clientId);

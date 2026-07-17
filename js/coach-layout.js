@@ -128,21 +128,45 @@
         return fast;
     }
 
-    // Swap the sidebar logo to the coach/gym's OWN brand — only when they have a
-    // genuinely custom logo (get-coach-branding returns the Ziquecoach default
-    // otherwise, which we leave alone).
-    function brandSidebarLogo(coachId) {
+    // For a non-master account, fetch branding once and:
+    //  - swap the sidebar logo to their OWN brand (only when genuinely custom;
+    //    get-coach-branding returns the Ziquecoach default otherwise),
+    //  - add the "Ranks" nav item if this is a gym (Challenges → Ranks).
+    function applyBrandingAndRanks(coachId) {
         if (!coachId) return;
         fetch('/.netlify/functions/get-coach-branding?coachId=' + encodeURIComponent(coachId))
             .then(r => (r.ok ? r.json() : null))
             .then(b => {
-                if (!b || !b.brand_logo_url || /ziquecoach-logo/i.test(b.brand_logo_url)) return;
-                document.querySelectorAll('.sidebar-logo-img').forEach(img => {
-                    img.src = b.brand_logo_url;
-                    img.alt = b.brand_name || b.brand_app_name || 'Gym';
-                });
+                if (!b) return;
+                if (b.brand_logo_url && !/ziquecoach-logo/i.test(b.brand_logo_url)) {
+                    document.querySelectorAll('.sidebar-logo-img').forEach(img => {
+                        img.src = b.brand_logo_url;
+                        img.alt = b.brand_name || b.brand_app_name || 'Gym';
+                    });
+                }
+                if (b.is_gym) injectRanksNavItem();
             })
             .catch(() => {});
+    }
+
+    // Ziquecoach: put a "Ranks" nav item where Challenges used to be.
+    function injectRanksNavItem() {
+        if (document.querySelector('a.sidebar-nav-item[data-zique-ranks]')) return;
+        // Anchor after the (now-hidden) Challenges item, else after Workouts.
+        const anchor = document.querySelector(
+            'a.sidebar-nav-item[href$="coach-challenges.html"], a.sidebar-nav-item[href$="coach-workout-plans.html"]'
+        );
+        if (!anchor) return;
+        const a = document.createElement('a');
+        a.href = 'coach-ranks.html';
+        a.className = 'sidebar-nav-item';
+        a.setAttribute('data-tooltip', 'Ranks');
+        a.dataset.ziqueRanks = '1';
+        a.innerHTML =
+            '<span class="sidebar-nav-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0z"/></svg></span>' +
+            'Ranks';
+        if (location.pathname.endsWith('/coach-ranks.html')) a.classList.add('active');
+        anchor.insertAdjacentElement('afterend', a);
     }
 
     async function applyAccountLayout() {
@@ -154,15 +178,15 @@
 
         const { email, coachId } = await getAccount();
         if (!email) return; // couldn't read the session — leave the full default
-        if (email === MASTER_EMAIL) return; // Ziquecoach keeps everything
+        if (email === MASTER_EMAIL) { injectRanksNavItem(); return; } // Ziquecoach: Challenges → Ranks
 
         // Non-Ziquecoach accounts: hide Subscriptions, Reminders, Billing.
         injectStyle(
             'a[href$="reminder-settings.html"], a[href$="coach-billing.html"], ' +
             '#subscriptionCard { display:none !important; }'
         );
-        // ...and show their own brand in the corner instead of Ziquecoach.
-        brandSidebarLogo(coachId);
+        // ...show their own brand in the corner, and (for gyms) add Ranks.
+        applyBrandingAndRanks(coachId);
     }
 
     function init() {
