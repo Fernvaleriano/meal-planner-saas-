@@ -116,7 +116,10 @@ Rules:
     const message = await anthropic.messages.create({
       model: MODEL,
       max_tokens: 8192,
-      temperature: 0.2,
+      // Sonnet 5 rejects non-default sampling params (temperature/top_p/top_k)
+      // with a 400 — omit them. Thinking off keeps this classification fast and
+      // the JSON well within the token budget; the prompt does the steering.
+      thinking: { type: 'disabled' },
       system,
       messages: [{ role: 'user', content: userContent }]
     });
