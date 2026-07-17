@@ -210,6 +210,15 @@
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
 
+# First-party app scripts under /js/ change over time (coach-layout.js, etc.).
+# The blanket /*.js immutable rule above would cache them for a year, so
+# updates never reach returning users. Revalidate these on every load instead.
+# (Declared after /*.js so it wins for /js/ paths.)
+[[headers]]
+  for = "/js/*"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+
 [[headers]]
   for = "/*.css"
   [headers.values]
