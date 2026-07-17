@@ -582,10 +582,10 @@
       btn.disabled = true; btn.textContent = '✨ Filling…';
       try {
         const targets = rows.filter(r => (r.name||'').trim());
-        // Chunk small: the classifier now returns rich detail per item, so it
-        // handles fewer names per call.
-        for (let c = 0; c < targets.length; c += 25) {
-          const chunk = targets.slice(c, c + 25);
+        // Chunk small: fuller step-by-step instructions + accuracy matter more
+        // than speed, so keep batches tiny to stop the model drifting.
+        for (let c = 0; c < targets.length; c += 8) {
+          const chunk = targets.slice(c, c + 8);
           const res = await apiCall('/.netlify/functions/classify-exercises', { method:'POST', body: JSON.stringify({ names: chunk.map(r => r.name.trim()) }) });
           (res.results || []).forEach((m, idx) => {
             const r = chunk[idx]; if (!r || !m) return;
@@ -597,11 +597,12 @@
             r.caloriesPerMinute = (typeof m.caloriesPerMinute === 'number') ? m.caloriesPerMinute : null;
             r.coachingCues = Array.isArray(m.coachingCues) ? m.coachingCues : [];
             r.commonMistakes = Array.isArray(m.commonMistakes) ? m.commonMistakes : [];
-            // Detail fields the coach might have typed by hand: only fill blanks.
-            if (!(r.primaryMuscles || '').trim() && m.primaryMuscles) r.primaryMuscles = m.primaryMuscles;
-            if (!(r.instructions || '').trim()) r.instructions = m.instructions || '';
-            if ((!r.secondaryMuscles || !r.secondaryMuscles.length) && Array.isArray(m.secondaryMuscles)) r.secondaryMuscles = m.secondaryMuscles;
-            if ((!r.tags || !r.tags.length) && Array.isArray(m.tags)) r.tags = m.tags;
+            // Detail fields: take the AI's value when it gave one (so re-running
+            // AI-fill refreshes them), otherwise keep whatever's there.
+            if (m.primaryMuscles) r.primaryMuscles = m.primaryMuscles;
+            if (m.instructions) r.instructions = m.instructions;
+            if (Array.isArray(m.secondaryMuscles) && m.secondaryMuscles.length) r.secondaryMuscles = m.secondaryMuscles;
+            if (Array.isArray(m.tags) && m.tags.length) r.tags = m.tags;
             r.enriched = true;
           });
         }
