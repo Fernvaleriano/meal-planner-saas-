@@ -24,6 +24,10 @@ const setCache = (key, data) => {
   } catch (e) { /* ignore */ }
 };
 
+// Hide the client "Billing & Subscription" menu item everywhere for now.
+// Flip this to true to bring it back (the /my-billing page itself is untouched).
+const SHOW_CLIENT_BILLING = false;
+
 function Settings() {
   const { clientData, theme, toggleTheme, logout, refreshClientData } = useAuth();
   const { branding, isModuleVisible } = useBranding();
@@ -930,7 +934,7 @@ function Settings() {
       )}
 
       {/* Client Billing - Non-coach users (hidden for gym-only members) */}
-      {!isCoach && !isGymMember && (
+      {SHOW_CLIENT_BILLING && !isCoach && !isGymMember && (
         <div className="settings-card">
           <div className="settings-card-title">{t('settings.billing')}</div>
           <Link to="/my-billing" className="settings-item clickable" style={{ textDecoration: 'none', color: 'inherit' }}>
