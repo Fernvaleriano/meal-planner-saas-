@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { X, Sparkles, Dumbbell } from 'lucide-react';
+import { X, Sparkles, Dumbbell, Zap, ChevronDown, ChevronUp } from 'lucide-react';
 import { apiGet, apiPost } from '../../utils/api';
 import { useLanguage } from '../../context/LanguageContext';
 
@@ -249,6 +249,10 @@ function GenerateWorkoutModal({ onClose, onGenerated, onProgramGenerated, client
   const [source, setSource] = useState(() => pick(saved?.source, SOURCES, 'library'));
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  // Fine-tuning (style / cardio / source) starts collapsed for returning
+  // members — their saved answers already apply — and expanded on first use,
+  // where the full form doubles as one-time setup.
+  const [showMore, setShowMore] = useState(() => !saved);
 
   // Full-program options (only used when planType === 'program').
   const [planType, setPlanType] = useState('single');
@@ -315,6 +319,23 @@ function GenerateWorkoutModal({ onClose, onGenerated, onProgramGenerated, client
       ? t('generateWorkoutModal.suggestionWithFocus', { trained, focus: suggested.toLowerCase() })
       : t('generateWorkoutModal.suggestionNoFocus', { trained });
   })();
+
+  // One-line summary shown on the quick-generate card (returning members):
+  // focus · length · goal, all from the pre-filled state so it always matches
+  // exactly what a tap would generate.
+  const quickSummary = [
+    t(`generateWorkoutModal.${(FOCUS.find((o) => o.value === focus) || FOCUS[0]).key}`),
+    t('generateWorkoutModal.lengthMin', { n: sessionDuration }),
+    t(`generateWorkoutModal.${(GOALS.find((o) => o.value === goal) || GOALS[0]).key}`),
+  ].join(' · ');
+
+  // What the collapsed "more options" group currently holds, so members can see
+  // their saved choices without expanding it.
+  const moreSummary = [
+    t(`generateWorkoutModal.${(STYLES.find((o) => o.value === style) || STYLES[0]).key}`),
+    t(`generateWorkoutModal.${(CARDIO.find((o) => o.value === cardio) || CARDIO[0]).key}`),
+    t(`generateWorkoutModal.${(SOURCES.find((o) => o.value === source) || SOURCES[0]).key}`),
+  ].join(' · ');
 
   const toggleInjury = (value) => {
     setInjuryCodes(prev => prev.includes(value)
@@ -530,7 +551,16 @@ function GenerateWorkoutModal({ onClose, onGenerated, onProgramGenerated, client
     background: '#000', color: '#fff',
     width: '100%', maxWidth: 520, borderRadius: '18px 18px 0 0',
     padding: '18px 18px calc(20px + env(safe-area-inset-bottom))',
-    maxHeight: '92vh', overflowY: 'auto',
+    maxHeight: '92vh', display: 'flex', flexDirection: 'column',
+  };
+  // The form scrolls inside the sheet while the Generate button stays pinned
+  // below it — no more scrolling to the bottom to find the button.
+  const scrollBody = { overflowY: 'auto', flex: 1, minHeight: 0, paddingBottom: 4 };
+  const footer = { paddingTop: 12, marginTop: 10, borderTop: '1px solid rgba(128,128,128,0.2)' };
+  const quickCard = {
+    display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer',
+    marginTop: 12, padding: '13px 14px', borderRadius: 13,
+    border: '1.5px solid var(--brand-primary, #FF5A1F)',
   };
   const groupLabel = { fontSize: 13, fontWeight: 700, opacity: 0.7, margin: '16px 2px 8px' };
   const groupHint = { fontSize: 12, opacity: 0.55, margin: '-4px 2px 8px' };
@@ -587,6 +617,18 @@ function GenerateWorkoutModal({ onClose, onGenerated, onProgramGenerated, client
           </div>
         ) : (
           <>
+            <div style={scrollBody}>
+            {saved && planType === 'single' && (
+              <div style={quickCard} onClick={handleGenerate}>
+                <Zap size={20} color="var(--brand-primary, #FF5A1F)" style={{ flexShrink: 0 }} />
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontWeight: 800, fontSize: 15 }}>{t('generateWorkoutModal.quickTitle')}</div>
+                  <div style={{ fontSize: 12, opacity: 0.7, marginTop: 2 }}>{quickSummary}</div>
+                </div>
+                <Dumbbell size={18} style={{ flexShrink: 0, opacity: 0.8 }} />
+              </div>
+            )}
+
             <div style={groupLabel}>WHAT DO YOU WANT?</div>
             <div style={row}>
               {PLAN_TYPES.map((o) => (
@@ -692,23 +734,6 @@ function GenerateWorkoutModal({ onClose, onGenerated, onProgramGenerated, client
               ))}
             </div>
 
-            <div style={groupLabel}>{t('generateWorkoutModal.workoutStyle')}</div>
-            <div style={row}>
-              {STYLES.map((o) => (
-                <div key={o.value} style={chip(style === o.value)} onClick={() => setStyle(o.value)} title={t(`generateWorkoutModal.${o.hintKey}`)}>
-                  {t(`generateWorkoutModal.${o.key}`)}
-                  <div style={{ fontSize: 10, fontWeight: 600, opacity: 0.7, marginTop: 2 }}>{t(`generateWorkoutModal.${o.hintKey}`)}</div>
-                </div>
-              ))}
-            </div>
-
-            <div style={groupLabel}>{t('generateWorkoutModal.cardioFinisher')}</div>
-            <div style={row}>
-              {CARDIO.map((o) => (
-                <div key={o.value} style={smallChip(cardio === o.value)} onClick={() => setCardio(o.value)}>{t(`generateWorkoutModal.${o.key}`)}</div>
-              ))}
-            </div>
-
             <div style={groupLabel}>{t('generateWorkoutModal.injuriesTitle')}</div>
             <div style={groupHint}>{t('generateWorkoutModal.injuriesHint')}</div>
             <div style={row}>
@@ -734,35 +759,68 @@ function GenerateWorkoutModal({ onClose, onGenerated, onProgramGenerated, client
               maxLength={500}
             />
 
-            <div style={groupLabel}>{t('generateWorkoutModal.exercisesFrom')}</div>
-            <div style={row}>
-              {SOURCES.map((o) => (
-                <div
-                  key={o.value}
-                  style={chip(source === o.value, o.disabled)}
-                  onClick={() => !o.disabled && setSource(o.value)}
-                  title={t(`generateWorkoutModal.${o.hintKey}`)}
-                >
-                  {t(`generateWorkoutModal.${o.key}`)}
-                  <div style={{ fontSize: 10, fontWeight: 600, opacity: 0.7, marginTop: 2 }}>{t(`generateWorkoutModal.${o.hintKey}`)}</div>
+            <div
+              style={{ ...groupLabel, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, userSelect: 'none' }}
+              onClick={() => setShowMore((v) => !v)}
+            >
+              {t(showMore ? 'generateWorkoutModal.fewerOptions' : 'generateWorkoutModal.moreOptions')}
+              {showMore ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
+            </div>
+            {!showMore && <div style={groupHint}>{moreSummary}</div>}
+
+            {showMore && (
+              <>
+                <div style={groupLabel}>{t('generateWorkoutModal.workoutStyle')}</div>
+                <div style={row}>
+                  {STYLES.map((o) => (
+                    <div key={o.value} style={chip(style === o.value)} onClick={() => setStyle(o.value)} title={t(`generateWorkoutModal.${o.hintKey}`)}>
+                      {t(`generateWorkoutModal.${o.key}`)}
+                      <div style={{ fontSize: 10, fontWeight: 600, opacity: 0.7, marginTop: 2 }}>{t(`generateWorkoutModal.${o.hintKey}`)}</div>
+                    </div>
+                  ))}
                 </div>
-              ))}
+
+                <div style={groupLabel}>{t('generateWorkoutModal.cardioFinisher')}</div>
+                <div style={row}>
+                  {CARDIO.map((o) => (
+                    <div key={o.value} style={smallChip(cardio === o.value)} onClick={() => setCardio(o.value)}>{t(`generateWorkoutModal.${o.key}`)}</div>
+                  ))}
+                </div>
+
+                <div style={groupLabel}>{t('generateWorkoutModal.exercisesFrom')}</div>
+                <div style={row}>
+                  {SOURCES.map((o) => (
+                    <div
+                      key={o.value}
+                      style={chip(source === o.value, o.disabled)}
+                      onClick={() => !o.disabled && setSource(o.value)}
+                      title={t(`generateWorkoutModal.${o.hintKey}`)}
+                    >
+                      {t(`generateWorkoutModal.${o.key}`)}
+                      <div style={{ fontSize: 10, fontWeight: 600, opacity: 0.7, marginTop: 2 }}>{t(`generateWorkoutModal.${o.hintKey}`)}</div>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
             </div>
 
-            {error && (
-              <div style={{ marginTop: 14, color: '#e5484d', fontSize: 14, textAlign: 'center' }}>{error}</div>
-            )}
+            <div style={footer}>
+              {error && (
+                <div style={{ marginBottom: 10, color: '#e5484d', fontSize: 14, textAlign: 'center' }}>{error}</div>
+              )}
 
-            <button
-              onClick={planType === 'program' ? handleGenerateProgram : handleGenerate}
-              style={{
-                width: '100%', marginTop: 22, padding: 15, borderRadius: 13, border: 'none', cursor: 'pointer',
-                background: 'var(--brand-primary, #FF5A1F)', color: '#fff', fontSize: 16, fontWeight: 800,
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-              }}
-            >
-              <Dumbbell size={18} /> {planType === 'program' ? 'Generate program' : t('generateWorkoutModal.generateBtn')}
-            </button>
+              <button
+                onClick={planType === 'program' ? handleGenerateProgram : handleGenerate}
+                style={{
+                  width: '100%', padding: 15, borderRadius: 13, border: 'none', cursor: 'pointer',
+                  background: 'var(--brand-primary, #FF5A1F)', color: '#fff', fontSize: 16, fontWeight: 800,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                }}
+              >
+                <Dumbbell size={18} /> {planType === 'program' ? 'Generate program' : t('generateWorkoutModal.generateBtn')}
+              </button>
+            </div>
           </>
         )}
       </div>
