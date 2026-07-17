@@ -320,6 +320,23 @@
       }
     }
 
+    // Grab a crisp still from the video's current frame. Captures at the clip's
+    // real width (up to 1280) with high-quality scaling — a sharp cover image
+    // instead of the old soft 320px one.
+    function frameToDataUrl(video) {
+      const srcW = video.videoWidth || 1280, srcH = video.videoHeight || 720;
+      const targetW = Math.min(srcW, 1280);
+      const scale = targetW / srcW;
+      const c = document.createElement('canvas');
+      c.width = targetW;
+      c.height = Math.round(srcH * scale);
+      const ctx = c.getContext('2d');
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+      ctx.drawImage(video, 0, 0, c.width, c.height);
+      return c.toDataURL('image/jpeg', 0.92);
+    }
+
     // --- Thumbnail from first frame + read duration/width/height for QC ---
     function makeThumb(file) {
       return new Promise((resolve) => {
@@ -336,13 +353,8 @@
           try { video.currentTime = Math.min(1, (video.duration || 2) / 2); } catch(e){ finish(); }
         };
         video.onseeked = () => {
-          try {
-            const w = 320, scale = w / (video.videoWidth || 320);
-            const c = document.createElement('canvas');
-            c.width = w; c.height = Math.round((video.videoHeight || 240) * scale);
-            c.getContext('2d').drawImage(video, 0, 0, c.width, c.height);
-            meta.thumb = c.toDataURL('image/jpeg', 0.7);
-          } catch(e){ /* keep meta without thumb */ }
+          try { meta.thumb = frameToDataUrl(video); }
+          catch(e){ /* keep meta without thumb */ }
           finish();
         };
         video.onerror = () => finish();
@@ -526,11 +538,7 @@
       const row = rows.find(r => r.id === previewRowId); if (!row) return;
       const video = document.getElementById('previewVideo');
       try {
-        const w = 320, scale = w / (video.videoWidth || 320);
-        const c = document.createElement('canvas');
-        c.width = w; c.height = Math.round((video.videoHeight || 240) * scale);
-        c.getContext('2d').drawImage(video, 0, 0, c.width, c.height);
-        row.thumb = c.toDataURL('image/jpeg', 0.7);
+        row.thumb = frameToDataUrl(video);
         render();
       } catch (e) { alert('Could not grab that frame — try a different spot in the clip.'); }
     }
