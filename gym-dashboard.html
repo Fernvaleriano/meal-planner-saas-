@@ -190,6 +190,10 @@
         }
         @keyframes spin { to { transform: rotate(360deg); } }
     </style>
+    <!-- Shared Apple-style finish — every other page loads this; without it the
+         gym dashboard rendered the raw palette (navy) instead of the site-wide
+         near-black, so backgrounds looked different page to page. -->
+    <link rel="stylesheet" href="/css/apple-refresh.css">
 </head>
 <body>
     <!-- Loading screen -->
