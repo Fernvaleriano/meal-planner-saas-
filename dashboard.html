@@ -7526,9 +7526,17 @@
                     const byClient = {};
                     (rows || []).forEach(r => {
                         if (r.weight == null) return;
+                        // Stored weight numbers are in the CLIENT's preferred unit;
+                        // the per-row weight_unit column is unreliable (the client
+                        // save never sets it, so it always defaults to 'lbs'). Derive
+                        // the source unit from the client's unit_preference instead —
+                        // same convention used for workout volume above and in the
+                        // client app.
+                        const histC = _activityClientMap[r.client_id];
+                        const histSrcUnit = histC && histC.unit_preference === 'metric' ? 'kg' : 'lbs';
                         (byClient[r.client_id] = byClient[r.client_id] || []).push({
                             ts: new Date(r.created_at).getTime(),
-                            val: convertWeight(r.weight, r.weight_unit || 'lbs')
+                            val: convertWeight(r.weight, histSrcUnit)
                         });
                     });
                     Object.values(byClient).forEach(arr => arr.sort((a, b) => a.ts - b.ts));
@@ -7595,7 +7603,8 @@
                 (checkinsRes.data || []).forEach(ci => {
                     const c = _activityClientMap[ci.client_id];
                     if (!c) return;
-                    const wtVal = ci.weight != null ? convertWeight(ci.weight, ci.weight_unit || 'lbs') : null;
+                    const ciSrcUnit = c.unit_preference === 'metric' ? 'kg' : 'lbs';
+                    const wtVal = ci.weight != null ? convertWeight(ci.weight, ciSrcUnit) : null;
                     const detail = wtVal != null
                         ? `${wtVal} ${getCoachDisplayUnit()}`
                         : '';
@@ -7613,7 +7622,8 @@
                 (measurementsRes.data || []).forEach(m => {
                     const c = _activityClientMap[m.client_id];
                     if (!c) return;
-                    const wtVal = m.weight != null ? convertWeight(m.weight, m.weight_unit || 'lbs') : null;
+                    const mSrcUnit = c.unit_preference === 'metric' ? 'kg' : 'lbs';
+                    const wtVal = m.weight != null ? convertWeight(m.weight, mSrcUnit) : null;
                     const wt = wtVal != null
                         ? `${wtVal} ${getCoachDisplayUnit()}`
                         : '';
