@@ -226,10 +226,14 @@
   [headers.values]
     Cache-Control = "public, max-age=0, must-revalidate"
 
+# First-party stylesheets under /css/ are referenced WITHOUT version params,
+# so they must revalidate like /js/* — a blanket /*.css immutable rule pinned
+# them in browsers for a year (same failure that hid coach-layout.js fixes).
+# The content-hashed SPA css is covered by the /app-test-dist/assets/* rule.
 [[headers]]
-  for = "/*.css"
+  for = "/css/*"
   [headers.values]
-    Cache-Control = "public, max-age=31536000, immutable"
+    Cache-Control = "public, max-age=0, must-revalidate"
 
 [[headers]]
   for = "/icons/*"

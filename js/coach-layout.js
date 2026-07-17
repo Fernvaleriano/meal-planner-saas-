@@ -155,10 +155,12 @@
         const done = () => { if (--pending <= 0) revealSidebarLogo(); };
         imgs.forEach(img => {
             if (alt) img.alt = alt;
-            if (img.src === url) { done(); return; }
-            img.src = url;
-            if (img.decode) img.decode().then(done, done);
-            else if (img.complete) done();
+            if (img.src !== url) img.src = url;
+            // Even when src already matches (cached apply raced the fetch
+            // apply), only reveal once the image is truly ready — complete,
+            // or after decode/load settles.
+            if (img.complete) done();
+            else if (img.decode) img.decode().then(done, done);
             else {
                 img.addEventListener('load', done, { once: true });
                 img.addEventListener('error', done, { once: true });

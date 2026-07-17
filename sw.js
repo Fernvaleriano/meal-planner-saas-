@@ -93,10 +93,23 @@ const NETWORK_FIRST_API_PATTERNS = [
 self.addEventListener('install', (event) => {
   event.waitUntil(
     Promise.all([
-      // Cache static files
+      // Cache static files — fetched with cache:'no-cache' so a stale copy
+      // pinned in the browser's HTTP cache (old immutable headers) can't get
+      // baked into a fresh SW cache. Per-file catch so one failure doesn't
+      // abort the whole install.
       caches.open(STATIC_CACHE)
         .then((cache) => {
-          return cache.addAll(STATIC_FILES);
+          return Promise.all(
+            STATIC_FILES.map((url) =>
+              fetch(url, { cache: 'no-cache' })
+                .then((response) => {
+                  if (response.ok) {
+                    return cache.put(url, response);
+                  }
+                })
+                .catch(() => {})
+            )
+          );
         }),
       // Cache CDN resources
       caches.open(CDN_CACHE)
