@@ -49,6 +49,18 @@
       <p>Double-check the link your coach sent you, or ask them for a new one.</p>
     </div>
 
+    <!-- Code gate: shown when the gym needs an upload code and none/wrong was given -->
+    <div id="codeGate" class="fatal" style="display:none;">
+      <h2>Enter your upload code</h2>
+      <p>Upload videos for <span class="gym" id="codeGymName">your gym</span>. Enter the code your coach gave you to continue.</p>
+      <div style="max-width:280px;margin:20px auto 0;">
+        <input id="codeInput" type="text" autocapitalize="characters" autocomplete="off" placeholder="Upload code"
+          style="width:100%;text-align:center;font-size:18px;font-weight:700;letter-spacing:2px;text-transform:uppercase;background:#0c1e2b;border:1.5px solid var(--line);border-radius:10px;padding:13px;color:#fff;outline:none;" />
+        <div id="codeErr" style="color:var(--err);font-size:13px;margin-top:8px;min-height:16px;"></div>
+        <button class="btn primary" id="codeBtn" style="width:100%;margin-top:8px;">Continue →</button>
+      </div>
+    </div>
+
     <div id="app" style="display:none;">
       <h1>Upload your exercise videos</h1>
       <p class="sub">For <span class="gym" id="gymName">your gym</span>. Add your clips below and hit upload — that's it. Your coach takes it from here and gets them into your app.</p>
@@ -82,7 +94,9 @@
   <script>
     const params = new URLSearchParams(location.search);
     const GYM_ID = (params.get('g') || '').trim();
+    const URL_CODE = (params.get('c') || params.get('code') || '').trim();
     let rows = [], uid = 0, uploading = false;
+    let verifiedCode = ''; // the accepted upload code, sent with every upload
 
     async function apiCall(url, options = {}) {
       const res = await fetch(url, { headers: { 'Content-Type':'application/json', ...(options.headers||{}) }, ...options });
@@ -91,16 +105,58 @@
       return data;
     }
 
+    function infoUrl(code) {
+      let u = '/.netlify/functions/gym-upload-info?g=' + encodeURIComponent(GYM_ID);
+      if (code) u += '&code=' + encodeURIComponent(code);
+      return u;
+    }
+
     async function init() {
       if (!GYM_ID) return showBadLink();
       try {
-        const info = await apiCall('/.netlify/functions/gym-upload-info?g=' + encodeURIComponent(GYM_ID), { method:'GET' });
+        const info = await apiCall(infoUrl(URL_CODE), { method:'GET' });
         if (!info.valid) return showBadLink();
-        document.getElementById('gymName').textContent = info.gymName;
-        document.getElementById('loading').style.display = 'none';
-        document.getElementById('app').style.display = 'block';
+        if (info.needsCode && !info.codeOk) {
+          // Needs a code and the link didn't carry a valid one — ask for it.
+          document.getElementById('codeGymName').textContent = info.gymName;
+          document.getElementById('gymName').textContent = info.gymName;
+          document.getElementById('loading').style.display = 'none';
+          document.getElementById('codeGate').style.display = 'block';
+          document.getElementById('codeInput').focus();
+          return;
+        }
+        verifiedCode = info.needsCode ? URL_CODE : '';
+        revealApp(info.gymName);
       } catch (e) { showBadLink(); }
     }
+
+    function revealApp(gymName) {
+      document.getElementById('gymName').textContent = gymName;
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('codeGate').style.display = 'none';
+      document.getElementById('app').style.display = 'block';
+    }
+
+    async function submitCode() {
+      const code = (document.getElementById('codeInput').value || '').trim();
+      const errEl = document.getElementById('codeErr');
+      const btn = document.getElementById('codeBtn');
+      if (!code) { errEl.textContent = 'Enter your code.'; return; }
+      errEl.textContent = ''; btn.disabled = true; btn.textContent = 'Checking…';
+      try {
+        const info = await apiCall(infoUrl(code), { method:'GET' });
+        if (info.valid && info.codeOk) {
+          verifiedCode = code;
+          revealApp(info.gymName);
+        } else {
+          errEl.textContent = 'That code isn’t right — check with your coach.';
+        }
+      } catch (e) {
+        errEl.textContent = 'Could not check the code. Try again.';
+      }
+      btn.disabled = false; btn.textContent = 'Continue →';
+    }
+
     function showBadLink() {
       document.getElementById('loading').style.display = 'none';
       document.getElementById('badlink').style.display = 'block';
@@ -183,7 +239,7 @@
     async function uploadRow(row) {
       row.status='uploading'; render();
       try {
-        const up = await apiCall('/.netlify/functions/get-gym-upload-url', { method:'POST', body: JSON.stringify({ coachId: GYM_ID, fileName: row.name, contentType: row.contentType }) });
+        const up = await apiCall('/.netlify/functions/get-gym-upload-url', { method:'POST', body: JSON.stringify({ coachId: GYM_ID, fileName: row.name, contentType: row.contentType, code: verifiedCode }) });
         if (!up.success) throw new Error(up.error || 'Upload URL failed');
         const put = await fetch(up.uploadUrl, { method:'PUT', headers:{ 'Content-Type': row.contentType }, body: row.file });
         if (!put.ok) throw new Error('Upload failed — check your connection');
@@ -212,6 +268,8 @@
 
     document.getElementById('fileInput').addEventListener('change', e => { handleFiles(e.target.files); e.target.value=''; });
     document.getElementById('uploadBtn').addEventListener('click', uploadAll);
+    document.getElementById('codeBtn').addEventListener('click', submitCode);
+    document.getElementById('codeInput').addEventListener('keydown', e => { if (e.key === 'Enter') submitCode(); });
     init();
   </script>
 </body>

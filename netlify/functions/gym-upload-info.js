@@ -32,16 +32,22 @@ exports.handler = async (event) => {
   }
 
   try {
-    let coachId = (event.queryStringParameters?.g || '').trim();
-    if (!coachId && event.body) {
-      try { coachId = (JSON.parse(event.body).coachId || '').trim(); } catch (e) { /* ignore */ }
+    const qp = event.queryStringParameters || {};
+    let coachId = (qp.g || '').trim();
+    let code = (qp.code || qp.c || '').trim();
+    if (event.body) {
+      try {
+        const b = JSON.parse(event.body);
+        if (!coachId) coachId = (b.coachId || '').trim();
+        if (!code) code = (b.code || '').trim();
+      } catch (e) { /* ignore */ }
     }
     if (!coachId) return { statusCode: 400, headers, body: JSON.stringify({ valid: false, error: 'Missing gym id' }) };
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
     const { data: gym, error } = await supabase
       .from('coaches')
-      .select('id, is_gym, email, name, brand_name, brand_app_name')
+      .select('id, is_gym, email, name, brand_name, brand_app_name, video_upload_code')
       .eq('id', coachId)
       .maybeSingle();
 
@@ -50,12 +56,19 @@ exports.handler = async (event) => {
       return { statusCode: 404, headers, body: JSON.stringify({ valid: false, error: 'This upload link isn’t valid.' }) };
     }
 
+    const norm = (s) => (s || '').trim().toUpperCase();
+    const needsCode = !!(gym.video_upload_code && gym.video_upload_code.trim());
+    // Only report codeOk when a code was actually supplied to check.
+    const codeOk = !needsCode ? true : (code ? norm(code) === norm(gym.video_upload_code) : false);
+
     return {
       statusCode: 200,
       headers,
       body: JSON.stringify({
         valid: true,
-        gymName: (gym.brand_app_name || gym.brand_name || gym.name || 'Your Gym').trim()
+        gymName: (gym.brand_app_name || gym.brand_name || gym.name || 'Your Gym').trim(),
+        needsCode,
+        codeOk
       })
     };
   } catch (err) {

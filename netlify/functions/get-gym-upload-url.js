@@ -40,7 +40,7 @@ exports.handler = async (event) => {
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
   try {
-    const { coachId, fileName, contentType } = JSON.parse(event.body || '{}');
+    const { coachId, fileName, contentType, code } = JSON.parse(event.body || '{}');
     if (!coachId || !fileName) {
       return { statusCode: 400, headers, body: JSON.stringify({ error: 'coachId and fileName are required' }) };
     }
@@ -50,10 +50,18 @@ exports.handler = async (event) => {
 
     // Confirm the target really is a gym (or the admin practicing) before
     // letting anything land in it.
-    const { data: gym } = await supabase.from('coaches').select('id, is_gym, email').eq('id', coachId).maybeSingle();
+    const { data: gym } = await supabase.from('coaches').select('id, is_gym, email, video_upload_code').eq('id', coachId).maybeSingle();
     const isPracticeAdmin = (gym?.email || '').toLowerCase() === MASTER_EMAIL;
     if (!gym || (!gym.is_gym && !isPracticeAdmin)) {
       return { statusCode: 404, headers, body: JSON.stringify({ error: 'This upload link isn’t valid.' }) };
+    }
+
+    // Gate: if this gym has an upload code, it must match on every upload.
+    const norm = (s) => (s || '').trim().toUpperCase();
+    if (gym.video_upload_code && gym.video_upload_code.trim()) {
+      if (norm(code) !== norm(gym.video_upload_code)) {
+        return { statusCode: 403, headers, body: JSON.stringify({ error: 'Wrong upload code.' }) };
+      }
     }
 
     const extMatch = String(fileName).match(/\.([a-zA-Z0-9]{2,5})$/);

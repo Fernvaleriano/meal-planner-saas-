@@ -239,7 +239,7 @@
         document.getElementById('targetHint').textContent = 'Could not load gym list: ' + e.message;
       }
       const opts = [`<option value="${currentCoachId}">My account (test uploads)</option>`]
-        .concat(gyms.map(g => `<option value="${g.id}" data-label="${(g.label||'').replace(/"/g,'&quot;')}">${(g.label||g.email)} </option>`));
+        .concat(gyms.map(g => `<option value="${g.id}" data-label="${(g.label||'').replace(/"/g,'&quot;')}" data-code="${(g.uploadCode||'').replace(/"/g,'&quot;')}">${(g.label||g.email)} </option>`));
       sel.innerHTML = opts.join('');
       sel.value = currentCoachId;
       updateTargetHint();
@@ -316,9 +316,25 @@
       const hint = document.getElementById('targetHint');
       if (targetCoachId === currentCoachId) {
         hint.innerHTML = 'These videos will save into <b>your own account</b> — good for testing the process.';
-      } else {
-        hint.innerHTML = `These videos will save into <b>${targetLabel}</b>'s gym account. They'll appear in that gym's exercise library.`;
+        return;
       }
+      const sel = document.getElementById('targetSelect');
+      const opt = sel.options[sel.selectedIndex];
+      const code = opt ? (opt.getAttribute('data-code') || '') : '';
+      const link = `${location.origin}/gym-upload?g=${targetCoachId}${code ? '&c=' + encodeURIComponent(code) : ''}`;
+      let html = `These videos will save into <b>${targetLabel}</b>'s gym account.`;
+      html += `<div style="margin-top:8px;padding:8px 10px;background:#0c1e2b;border:1px solid var(--line);border-radius:8px;">`;
+      html += `<div style="font-size:11px;text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px;">Send this gym their upload link${code ? ' + code' : ''}</div>`;
+      html += `<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">`;
+      html += `<code style="flex:1;min-width:180px;word-break:break-all;color:#cfe;font-size:12px;">${link}</code>`;
+      html += `<button class="more-btn" id="copyLinkBtn" data-link="${link.replace(/"/g,'&quot;')}">Copy</button></div>`;
+      if (code) html += `<div style="margin-top:4px;">Upload code: <b style="color:var(--accent);letter-spacing:1px;">${code}</b></div>`;
+      html += `</div>`;
+      hint.innerHTML = html;
+      const cb = document.getElementById('copyLinkBtn');
+      if (cb) cb.addEventListener('click', () => {
+        navigator.clipboard?.writeText(cb.getAttribute('data-link')).then(() => { cb.textContent = 'Copied!'; setTimeout(() => cb.textContent = 'Copy', 1500); }).catch(() => {});
+      });
     }
 
     // Grab a crisp still from the video's current frame. Captures at the clip's
