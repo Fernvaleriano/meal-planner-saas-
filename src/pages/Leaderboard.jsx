@@ -94,8 +94,8 @@ function ChallengeCard({ icon: Icon, title, subtitle, accent, rows, renderStat, 
       {rows.length === 0 ? (
         <div className="lb-empty-mini">{emptyText}</div>
       ) : (
-        <div className="lb-challenge-rows">
-          {rows.slice(0, 5).map(r => (
+        <div className="lb-challenge-rows" style={{ maxHeight: '320px', overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>
+          {rows.map(r => (
             <div key={r.clientId} className={`lb-mini-row ${r.isMe ? 'me' : ''}`}>
               <span className={`lb-mini-rank ${rankClass(r.rank)}`}>{r.rank}</span>
               <Avatar name={r.name} photo={r.photo} color={accent} />
