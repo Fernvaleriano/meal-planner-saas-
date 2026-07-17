@@ -17,7 +17,7 @@ const headers = {
 // Only fires for videos in the private workout-assets bucket (coach uploads);
 // stock library URLs are ignored. Never throws — if Mux is unavailable the save
 // still succeeds and the raw file plays as the fallback until it's converted.
-async function triggerMuxConversion(supabase, exerciseId, videoUrl) {
+async function triggerMuxConversion(supabase, exerciseId, videoUrl, existingThumb) {
   if (!MUX_TOKEN_ID || !MUX_TOKEN_SECRET || !exerciseId || !videoUrl) return;
   if (!/workout-assets/.test(videoUrl)) return;
   try {
@@ -37,11 +37,19 @@ async function triggerMuxConversion(supabase, exerciseId, videoUrl) {
     });
     const data = await resp.json();
     if (!resp.ok) { console.error('Mux create (exercise) failed:', resp.status, JSON.stringify(data).slice(0, 200)); return; }
-    await supabase.from('exercises').update({
+    const playbackId = data.data.playback_ids?.[0]?.id || null;
+    const update = {
       mux_asset_id: data.data.id,
-      mux_playback_id: data.data.playback_ids?.[0]?.id || null,
+      mux_playback_id: playbackId,
       mux_status: data.data.status || 'preparing'
-    }).eq('id', exerciseId);
+    };
+    // If no cover image was supplied (e.g. the browser couldn't read a frame out
+    // of an iPhone .mov), point the thumbnail at a Mux still. It becomes valid
+    // once the asset finishes processing — no blank tiles, no manual work.
+    if (playbackId && !existingThumb) {
+      update.thumbnail_url = `https://image.mux.com/${playbackId}/thumbnail.jpg?time=1&width=640`;
+    }
+    await supabase.from('exercises').update(update).eq('id', exerciseId);
   } catch (e) {
     console.error('Mux trigger (exercise) error:', e.message);
   }
@@ -278,7 +286,9 @@ exports.handler = async (event) => {
       if (error) throw error;
 
       // Auto-convert the uploaded coach video to Mux (no-op for non-custom URLs).
-      await triggerMuxConversion(supabase, exercise?.id, exercise?.animation_url);
+      // Pass whether a cover image already exists so it can add a Mux still only
+      // when one is missing.
+      await triggerMuxConversion(supabase, exercise?.id, exercise?.animation_url, exercise?.thumbnail_url);
 
       return {
         statusCode: 200,

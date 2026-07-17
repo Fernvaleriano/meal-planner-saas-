@@ -334,6 +334,20 @@
       ctx.imageSmoothingEnabled = true;
       ctx.imageSmoothingQuality = 'high';
       ctx.drawImage(video, 0, 0, c.width, c.height);
+      // Some browsers (e.g. Chrome on Windows with iPhone HEVC .mov) can't read a
+      // frame back — the canvas comes out blank/uniform. Detect that and bail so
+      // we don't save an empty grey image; the server falls back to a Mux still.
+      try {
+        const sw = Math.min(c.width, 48), sh = Math.min(c.height, 48);
+        const px = ctx.getImageData(0, 0, sw, sh).data;
+        let min = 255, max = 0;
+        for (let i = 0; i < px.length; i += 4) {
+          const lum = (px[i] + px[i + 1] + px[i + 2]) / 3;
+          if (lum < min) min = lum;
+          if (lum > max) max = lum;
+        }
+        if (max - min < 8) return null; // essentially one flat colour → failed grab
+      } catch (e) { /* if we can't inspect it, keep the frame */ }
       return c.toDataURL('image/jpeg', 0.92);
     }
 
@@ -538,7 +552,9 @@
       const row = rows.find(r => r.id === previewRowId); if (!row) return;
       const video = document.getElementById('previewVideo');
       try {
-        row.thumb = frameToDataUrl(video);
+        const frame = frameToDataUrl(video);
+        if (!frame) { alert('Could not read that frame (your browser may not support this video format). A thumbnail will be generated automatically when you save.'); return; }
+        row.thumb = frame;
         render();
       } catch (e) { alert('Could not grab that frame — try a different spot in the clip.'); }
     }
@@ -567,15 +583,18 @@
           const res = await apiCall('/.netlify/functions/classify-exercises', { method:'POST', body: JSON.stringify({ names: chunk.map(r => r.name.trim()) }) });
           (res.results || []).forEach((m, idx) => {
             const r = chunk[idx]; if (!r || !m) return;
+            // Category selects: overwrite (these were just defaults until now).
             r.muscleGroup = m.muscleGroup; r.equipment = m.equipment; r.exerciseType = m.exerciseType;
-            r.difficulty = m.difficulty; r.isUnilateral = m.isUnilateral; r.instructions = m.instructions || '';
+            r.difficulty = m.difficulty; r.isUnilateral = m.isUnilateral;
             r.isCompound = m.isCompound === true;
-            r.secondaryMuscles = Array.isArray(m.secondaryMuscles) ? m.secondaryMuscles : [];
             r.description = m.description || '';
             r.caloriesPerMinute = (typeof m.caloriesPerMinute === 'number') ? m.caloriesPerMinute : null;
             r.coachingCues = Array.isArray(m.coachingCues) ? m.coachingCues : [];
             r.commonMistakes = Array.isArray(m.commonMistakes) ? m.commonMistakes : [];
-            // Don't clobber tags the coach typed by hand.
+            // Detail fields the coach might have typed by hand: only fill blanks.
+            if (!(r.primaryMuscles || '').trim() && m.primaryMuscles) r.primaryMuscles = m.primaryMuscles;
+            if (!(r.instructions || '').trim()) r.instructions = m.instructions || '';
+            if ((!r.secondaryMuscles || !r.secondaryMuscles.length) && Array.isArray(m.secondaryMuscles)) r.secondaryMuscles = m.secondaryMuscles;
             if ((!r.tags || !r.tags.length) && Array.isArray(m.tags)) r.tags = m.tags;
             r.enriched = true;
           });

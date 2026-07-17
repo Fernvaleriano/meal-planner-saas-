@@ -97,10 +97,11 @@ exports.handler = async (event) => {
     const anthropic = new Anthropic({ apiKey: ANTHROPIC_API_KEY });
 
     const system = `You classify gym exercises/machines for a fitness app. For each name, return metadata as a JSON array (one object per input, same order). Each object:
-{"name": string (echo input exactly), "muscleGroup": one of ${JSON.stringify(MUSCLES)}, "secondaryMuscles": array of 0-3 OTHER muscles from ${JSON.stringify(MUSCLES)} (never repeat muscleGroup), "equipment": one of ${JSON.stringify(EQUIPMENT)}, "exerciseType": one of ${JSON.stringify(TYPES)}, "difficulty": one of ${JSON.stringify(DIFFICULTIES)}, "isCompound": boolean, "isUnilateral": boolean, "instructions": one short form cue (max ~140 chars), "description": one plain-English sentence describing the movement (max ~140 chars), "caloriesPerMinute": number (typical calories burned per minute, 3-15), "coachingCues": array of 2-3 short form cues (each max ~80 chars), "commonMistakes": array of 2-3 short common mistakes (each max ~80 chars), "tags": array of 3-6 lowercase keyword tags (e.g. "push", "leg day", "beginner", "compound")}
+{"name": string (echo input exactly), "muscleGroup": one of ${JSON.stringify(MUSCLES)}, "primaryMuscles": short string naming the SPECIFIC muscle head/region worked, more precise than muscleGroup (e.g. "upper chest", "lower chest", "lats", "front delts", "long head triceps", "quads"), or "" if nothing more specific applies, "secondaryMuscles": array of 0-3 OTHER muscles from ${JSON.stringify(MUSCLES)} (never repeat muscleGroup), "equipment": one of ${JSON.stringify(EQUIPMENT)}, "exerciseType": one of ${JSON.stringify(TYPES)}, "difficulty": one of ${JSON.stringify(DIFFICULTIES)}, "isCompound": boolean, "isUnilateral": boolean, "instructions": one short form cue (max ~140 chars), "description": one plain-English sentence describing the movement (max ~140 chars), "caloriesPerMinute": number (typical calories burned per minute, 3-15), "coachingCues": array of 2-3 short form cues (each max ~80 chars), "commonMistakes": array of 2-3 short common mistakes (each max ~80 chars), "tags": array of 3-6 lowercase keyword tags (e.g. "push", "leg day", "beginner", "compound")}
 
 Rules:
 - Pick the SINGLE primary muscle group; secondaryMuscles are supporting movers only.
+- primaryMuscles should reflect the exact region the NAME implies (e.g. "Incline" bench => "upper chest"; "Decline" => "lower chest"; "Preacher Curl" => "biceps").
 - "warmup" for dynamic warm-ups, "cooldown"/"flexibility" for stretches.
 - isUnilateral true only for single-arm/single-leg movements.
 - Keep coachingCues and commonMistakes actionable and specific to this exercise.
@@ -129,6 +130,7 @@ Rules:
       return {
         name,
         muscleGroup,
+        primaryMuscles: (typeof r.primaryMuscles === 'string' ? r.primaryMuscles : '').slice(0, 120),
         secondaryMuscles: enumList(r.secondaryMuscles, MUSCLES, 3, muscleGroup),
         equipment: oneOf(r.equipment, EQUIPMENT, 'other'),
         exerciseType: oneOf(r.exerciseType, TYPES, 'strength'),
