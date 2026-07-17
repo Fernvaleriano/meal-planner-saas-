@@ -7700,7 +7700,7 @@
             </div>
             <div class="my-videos-toolbar">
                 <input type="text" class="my-videos-search" id="myVideosSearch" placeholder="Search videos..." oninput="filterMyVideos()">
-                <a href="/bulk-upload-videos.html" class="btn btn-secondary" style="white-space:nowrap; text-decoration:none; display:inline-flex; align-items:center; gap:6px;" title="Upload many videos at once">⬆ Bulk upload</a>
+                <a href="/bulk-upload-videos.html" id="bulkUploadBtn" class="btn btn-secondary" style="white-space:nowrap; text-decoration:none; display:none; align-items:center; gap:6px;" title="Bulk video uploader (admin)">⬆ Bulk upload</a>
                 <span class="my-videos-count" id="myVideosCount"></span>
             </div>
             <div class="my-videos-list" id="myVideosGrid">
@@ -8060,6 +8060,13 @@
             const userAvatarEl = document.getElementById('userAvatar');
             if (userEmailEl) userEmailEl.textContent = email;
             if (userAvatarEl) userAvatarEl.textContent = email.charAt(0).toUpperCase();
+
+            // The bulk video uploader is an admin-only tool (loading gym clips is
+            // a managed service) — only reveal its button on the master account.
+            const bulkBtn = document.getElementById('bulkUploadBtn');
+            if (bulkBtn && email.toLowerCase() === 'contact@ziquefitness.com') {
+                bulkBtn.style.display = 'inline-flex';
+            }
 
             // Initialize gym features (enabled for all coaches)
             if (typeof initGymFeatures === 'function') {

@@ -60,7 +60,26 @@
     .locked { text-align:center; padding:60px 20px; }
     .locked h2 { font-size:20px; margin-bottom:10px; }
     .locked p { color:var(--muted); max-width:420px; margin:0 auto; line-height:1.6; }
-    @media (max-width:720px){ .fields { grid-template-columns:1fr 1fr; } }
+    /* Preview button over the thumbnail */
+    .thumb { position:relative; cursor:pointer; }
+    .thumb .play { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:22px; color:#fff; text-shadow:0 1px 4px rgba(0,0,0,.6); background:rgba(0,0,0,.15); border-radius:8px; opacity:0; transition:opacity .15s; }
+    .thumb:hover .play { opacity:1; }
+    /* "More details" expandable panel */
+    .more-btn { background:transparent; border:none; color:var(--accent); font-size:12px; font-weight:700; cursor:pointer; padding:2px 4px; }
+    .details { margin-top:8px; padding:10px; background:#0c1e2b; border:1px solid var(--line); border-radius:8px; display:grid; gap:8px; }
+    .details .d-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+    .details label.dl { font-size:11px; color:var(--muted); font-weight:700; display:block; margin-bottom:3px; text-transform:uppercase; letter-spacing:.03em; }
+    .details textarea { width:100%; background:#0c1e2b; border:1.5px solid var(--line); border-radius:8px; padding:8px; color:#fff; font-size:13px; font-family:inherit; resize:vertical; min-height:56px; }
+    .details input, .details select { font-size:13px; }
+    /* Video preview modal */
+    .modal { position:fixed; inset:0; background:rgba(3,10,16,.85); display:none; align-items:center; justify-content:center; z-index:50; padding:16px; }
+    .modal.open { display:flex; }
+    .modal-box { background:var(--card); border:1.5px solid var(--line); border-radius:14px; padding:14px; max-width:640px; width:100%; }
+    .modal-box video { width:100%; border-radius:10px; background:#000; max-height:60vh; }
+    .modal-actions { display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; align-items:center; }
+    .modal-actions .spacer { margin-left:auto; }
+    .modal .mtitle { font-weight:700; margin-bottom:10px; font-size:15px; }
+    @media (max-width:720px){ .fields { grid-template-columns:1fr 1fr; } .details .d-grid { grid-template-columns:1fr; } }
   </style>
 </head>
 <body>
@@ -103,7 +122,23 @@
     <div id="list"></div>
     <div class="empty" id="empty">No videos added yet. Tap “Add videos” and pick your clips.</div>
 
+    <datalist id="muscleDetailList"></datalist>
+    <input id="thumbFileInput" type="file" accept="image/*" style="display:none;" />
+
     </div><!-- /#app -->
+
+    <!-- Video preview + thumbnail picker -->
+    <div class="modal" id="previewModal">
+      <div class="modal-box">
+        <div class="mtitle" id="previewTitle">Preview</div>
+        <video id="previewVideo" controls playsinline></video>
+        <div class="modal-actions">
+          <button class="btn ghost" id="useFrameBtn" title="Grab whatever is on screen right now as the cover image">📸 Use this frame as thumbnail</button>
+          <button class="btn ghost" id="uploadThumbBtn" title="Upload your own cover image">🖼 Upload thumbnail</button>
+          <button class="btn primary spacer" id="closePreviewBtn">Done</button>
+        </div>
+      </div>
+    </div>
 
     <div class="locked" id="locked" style="display:none;">
       <h2>Admin only</h2>
@@ -128,10 +163,20 @@
     let pendingInbox = [];
     const loadedInboxPaths = new Set();
 
-    const EQUIPMENT = ['dumbbell','barbell','kettlebell','cable','machine','bodyweight','bands','pullup_bar','sled','punching_bag','medicine_ball','battle_ropes','box','bench','other'];
-    const MUSCLES = ['chest','back','shoulders','biceps','triceps','legs','glutes','hamstrings','quads','calves','core','full body','cardio','mobility'];
+    const EQUIPMENT = ['dumbbell','barbell','ez_bar','kettlebell','cable','machine','smith_machine','plate_loaded','bodyweight','bands','pullup_bar','trx','sled','punching_bag','medicine_ball','battle_ropes','box','bench','other'];
+    const MUSCLES = ['chest','back','shoulders','arms','biceps','triceps','forearms','legs','glutes','hamstrings','quads','calves','core','abs','full body','cardio','mobility'];
     const TYPES = ['strength','cardio','flexibility','warmup','cooldown'];
     const DIFFS = ['beginner','intermediate','advanced'];
+    // Granular muscles the workout builder already recognises (folds into the
+    // broad muscle above when filtering). Shown as type-ahead suggestions.
+    const MUSCLE_DETAILS = [
+      'upper chest','mid chest','lower chest','inner chest',
+      'lats','upper back','lower back','rhomboids','traps','rear delts','erectors',
+      'front delts','side delts','rotator cuff',
+      'biceps','biceps peak','brachialis','triceps','long head triceps','forearms',
+      'quads','hamstrings','glutes','glute medius','calves','adductors','abductors','hip flexors',
+      'upper abs','lower abs','obliques','transverse'
+    ];
 
     async function apiCall(url, options = {}) {
       const headers = { 'Content-Type':'application/json', ...(currentAccessToken && { 'Authorization':`Bearer ${currentAccessToken}` }), ...options.headers };
@@ -250,6 +295,7 @@
             name: niceName(clip.name || clip.storedName),
             muscleGroup: 'full body', equipment: 'other', exerciseType: 'strength',
             difficulty: 'intermediate', isUnilateral: false, isCompound: false, instructions: '',
+            primaryMuscles: '', brand: '', expanded: false,
             description: '', secondaryMuscles: [], caloriesPerMinute: null,
             coachingCues: [], commonMistakes: [], tags: [], enriched: false,
             status: 'ready', error: '',
@@ -349,6 +395,7 @@
           name: niceName(file.name),
           muscleGroup: 'full body', equipment: 'other', exerciseType: 'strength',
           difficulty: 'intermediate', isUnilateral: false, isCompound: false, instructions: '',
+          primaryMuscles: '', brand: '', expanded: false,
           // AI-filled detail (saved with the exercise; not all shown in the grid)
           description: '', secondaryMuscles: [], caloriesPerMinute: null,
           coachingCues: [], commonMistakes: [], tags: [], enriched: false,
@@ -377,9 +424,26 @@
                     : r.qc === 'warn' ? ('⚠ ' + r.warnings.join(' · '))
                     : 'Checking…';
         const qcFlag = r.qc === 'checking' ? '' : `<span class="flag ${r.qc}" title="Filming-rule check">${qcTxt}</span>`;
+        const secStr = Array.isArray(r.secondaryMuscles) ? r.secondaryMuscles.join(', ') : (r.secondaryMuscles || '');
+        const details = !r.expanded ? '' : `
+            <div class="details">
+              <div class="d-grid">
+                <div><label class="dl">Specific muscles</label>
+                  <input data-f="primaryMuscles" data-id="${r.id}" list="muscleDetailList" value="${(r.primaryMuscles||'').replace(/"/g,'&quot;')}" placeholder="e.g. upper chest, lower chest" /></div>
+                <div><label class="dl">Secondary muscles</label>
+                  <input data-f="secondaryMuscles" data-id="${r.id}" list="muscleDetailList" value="${secStr.replace(/"/g,'&quot;')}" placeholder="e.g. triceps, front delts" /></div>
+                <div><label class="dl">Machine / equipment brand</label>
+                  <input data-f="brand" data-id="${r.id}" value="${(r.brand||'').replace(/"/g,'&quot;')}" placeholder="e.g. Hammer Strength, Cybex" /></div>
+                <div><label class="dl">Tags</label>
+                  <input data-f="tags" data-id="${r.id}" value="${(Array.isArray(r.tags)?r.tags.join(', '):'').replace(/"/g,'&quot;')}" placeholder="push, leg day…" /></div>
+              </div>
+              <div><label class="dl">Instructions / coaching cues</label>
+                <textarea data-f="instructions" data-id="${r.id}" placeholder="How to perform it, cues, tempo, common mistakes…">${(r.instructions||'').replace(/</g,'&lt;')}</textarea></div>
+              <label class="uni" style="font-size:12px;"><input type="checkbox" data-f="isCompound" data-id="${r.id}" ${r.isCompound?'checked':''}/> compound lift (works several muscles)</label>
+            </div>`;
         return `
         <div class="row ${r.status==='done'?'done':''}">
-          <div class="thumb" data-thumb="${r.id}" style="${r.thumb?`background-image:url(${r.thumb})`:''}">${r.thumb?'':'…'}</div>
+          <div class="thumb" data-thumb="${r.id}" data-preview="${r.id}" style="${r.thumb?`background-image:url(${r.thumb})`:''}">${r.thumb?'':'…'}<span class="play">▶</span></div>
           <div>
             <div class="fields">
               <input class="name-input" data-f="name" data-id="${r.id}" value="${(r.name||'').replace(/"/g,'&quot;')}" placeholder="Exercise name" />
@@ -390,11 +454,12 @@
             <div class="meta-row">
               <label class="uni"><input type="checkbox" data-f="isUnilateral" data-id="${r.id}" ${r.isUnilateral?'checked':''}/> single-arm/leg</label>
               <select data-f="difficulty" data-id="${r.id}" style="width:auto;padding:4px 8px;">${DIFFS.map(d=>`<option value="${d}" ${r.difficulty===d?'selected':''}>${d}</option>`).join('')}</select>
-              <input data-f="tags" data-id="${r.id}" class="tags-input" value="${(Array.isArray(r.tags)?r.tags.join(', '):'').replace(/"/g,'&quot;')}" placeholder="tags: push, leg day…" style="flex:1;min-width:120px;padding:4px 8px;" />
+              <button class="more-btn" data-more="${r.id}">${r.expanded ? '▲ Less' : '＋ More details'}</button>
               ${r.enriched ? '<span class="ai-badge" title="AI added coaching cues, common mistakes, secondary muscles &amp; calorie estimate">✨ detail added</span>' : ''}
               ${qcFlag}
               <span class="status s-${r.status}">${statusTxt}</span>
             </div>
+            ${details}
           </div>
         </div>`;
       }).join('');
@@ -407,9 +472,23 @@
         el.addEventListener(ev, () => {
           if (f === 'tags') {
             row.tags = el.value.split(',').map(t => t.toLowerCase().trim()).filter(Boolean);
+          } else if (f === 'secondaryMuscles') {
+            row.secondaryMuscles = el.value.split(',').map(t => t.trim()).filter(Boolean);
           } else {
             row[f] = el.type === 'checkbox' ? el.checked : el.value;
           }
+        });
+      });
+
+      // Preview a clip (click the thumbnail)
+      list.querySelectorAll('[data-preview]').forEach(el => {
+        el.addEventListener('click', () => openPreview(+el.getAttribute('data-preview')));
+      });
+      // Toggle the "More details" panel
+      list.querySelectorAll('[data-more]').forEach(el => {
+        el.addEventListener('click', () => {
+          const row = rows.find(r => r.id === +el.getAttribute('data-more')); if (!row) return;
+          row.expanded = !row.expanded; render();
         });
       });
       updateCount();
@@ -420,6 +499,51 @@
       document.getElementById('count').textContent = rows.length ? `${done}/${rows.length} saved` : '';
       document.getElementById('aiBtn').disabled = rows.length === 0;
       document.getElementById('saveBtn').disabled = rows.length === 0;
+    }
+
+    // --- Video preview + thumbnail picker ---
+    let previewRowId = null, previewUrl = null;
+    function openPreview(id) {
+      const row = rows.find(r => r.id === id); if (!row || !row.file) return;
+      previewRowId = id;
+      const modal = document.getElementById('previewModal');
+      const video = document.getElementById('previewVideo');
+      if (previewUrl) { try { URL.revokeObjectURL(previewUrl); } catch(e){} }
+      previewUrl = URL.createObjectURL(row.file);
+      video.src = previewUrl;
+      document.getElementById('previewTitle').textContent = row.name || 'Preview';
+      modal.classList.add('open');
+    }
+    function closePreview() {
+      const modal = document.getElementById('previewModal');
+      const video = document.getElementById('previewVideo');
+      video.pause(); video.removeAttribute('src'); video.load();
+      if (previewUrl) { try { URL.revokeObjectURL(previewUrl); } catch(e){} previewUrl = null; }
+      modal.classList.remove('open'); previewRowId = null;
+    }
+    // Grab whatever frame is showing as the new thumbnail.
+    function useCurrentFrame() {
+      const row = rows.find(r => r.id === previewRowId); if (!row) return;
+      const video = document.getElementById('previewVideo');
+      try {
+        const w = 320, scale = w / (video.videoWidth || 320);
+        const c = document.createElement('canvas');
+        c.width = w; c.height = Math.round((video.videoHeight || 240) * scale);
+        c.getContext('2d').drawImage(video, 0, 0, c.width, c.height);
+        row.thumb = c.toDataURL('image/jpeg', 0.7);
+        render();
+      } catch (e) { alert('Could not grab that frame — try a different spot in the clip.'); }
+    }
+    function onThumbFile(file) {
+      const row = rows.find(r => r.id === previewRowId); if (!row || !file) return;
+      const reader = new FileReader();
+      reader.onload = () => { row.thumb = reader.result; render(); };
+      reader.readAsDataURL(file);
+    }
+
+    // Fill the specific/secondary-muscle type-ahead list once.
+    function initMuscleList() {
+      document.getElementById('muscleDetailList').innerHTML = MUSCLE_DETAILS.map(m => `<option value="${m}"></option>`).join('');
     }
 
     // --- AI fill ---
@@ -473,6 +597,7 @@
 
         const created = await apiCall('/.netlify/functions/exercises', { method:'POST', body: JSON.stringify({
           coachId: saveTo, name: row.name.trim(), muscleGroup: row.muscleGroup, equipment: row.equipment,
+          brand: (row.brand || '').trim() || null, primaryMuscles: (row.primaryMuscles || '').trim() || null,
           exerciseType: row.exerciseType, difficulty: row.difficulty, isUnilateral: row.isUnilateral,
           isCompound: row.isCompound, secondaryMuscles: row.secondaryMuscles || [],
           description: row.description || null, caloriesPerMinute: row.caloriesPerMinute,
@@ -530,6 +655,13 @@
     document.getElementById('fileInput').addEventListener('change', (e) => { handleFiles(e.target.files); e.target.value = ''; });
     document.getElementById('loadInboxBtn').addEventListener('click', loadInboxClips);
     document.getElementById('aiBtn').addEventListener('click', aiFill);
+    // Preview modal wiring
+    document.getElementById('closePreviewBtn').addEventListener('click', closePreview);
+    document.getElementById('useFrameBtn').addEventListener('click', useCurrentFrame);
+    document.getElementById('uploadThumbBtn').addEventListener('click', () => document.getElementById('thumbFileInput').click());
+    document.getElementById('thumbFileInput').addEventListener('change', (e) => { onThumbFile(e.target.files[0]); e.target.value = ''; });
+    document.getElementById('previewModal').addEventListener('click', (e) => { if (e.target.id === 'previewModal') closePreview(); });
+    initMuscleList();
     document.getElementById('saveBtn').addEventListener('click', saveAll);
 
     checkAuth();
