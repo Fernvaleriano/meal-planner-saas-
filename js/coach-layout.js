@@ -82,11 +82,96 @@
         dashLink.insertAdjacentElement('afterend', a);
     }
 
+    // ── Account-aware nav visibility + branding ──────────────────────────
+    // Runs on every coach page (this script is included on all of them). Some
+    // items are hidden for everyone; some only for non-Ziquecoach accounts.
+    const MASTER_EMAIL = 'contact@ziquefitness.com';
+    const SB_REF = 'qewqcjzlfqamqwbccapr';
+
+    function injectStyle(css) {
+        const s = document.createElement('style');
+        s.setAttribute('data-zique-layout', '1');
+        s.textContent = css;
+        document.head.appendChild(s);
+    }
+
+    const SB_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFld3FjanpsZnFhbXF3YmNjYXByIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM2OTg0NzAsImV4cCI6MjA3OTI3NDQ3MH0.mQnMC33O88oLkLLGWD2oG-oaSHGI-NfHmtQCZxnxSLs';
+
+    // Fast path: read the logged-in account (email + id) straight from the stored
+    // Supabase session — no network, no dependency on the page's own client.
+    function accountFromStorage() {
+        try {
+            const raw = localStorage.getItem('sb-' + SB_REF + '-auth-token');
+            if (!raw) return {};
+            const o = JSON.parse(raw);
+            const u = o?.user || o?.currentSession?.user || o?.session?.user || o?.data?.session?.user;
+            return { email: (u?.email || '').toLowerCase(), coachId: u?.id || '' };
+        } catch (e) { return {}; }
+    }
+
+    // Robust path: fall back to a Supabase client if the fast read didn't work,
+    // so the account-specific hiding reliably applies.
+    async function getAccount() {
+        const fast = accountFromStorage();
+        if (fast.email) return fast;
+        try {
+            let client = window.supabaseClient;
+            if ((!client || !client.auth) && window.supabase && window.supabase.createClient) {
+                client = window.supabase.createClient('https://' + SB_REF + '.supabase.co', SB_ANON);
+            }
+            if (client && client.auth && client.auth.getSession) {
+                const { data } = await client.auth.getSession();
+                const u = data?.session?.user;
+                if (u) return { email: (u.email || '').toLowerCase(), coachId: u.id || '' };
+            }
+        } catch (e) { /* leave defaults */ }
+        return fast;
+    }
+
+    // Swap the sidebar logo to the coach/gym's OWN brand — only when they have a
+    // genuinely custom logo (get-coach-branding returns the Ziquecoach default
+    // otherwise, which we leave alone).
+    function brandSidebarLogo(coachId) {
+        if (!coachId) return;
+        fetch('/.netlify/functions/get-coach-branding?coachId=' + encodeURIComponent(coachId))
+            .then(r => (r.ok ? r.json() : null))
+            .then(b => {
+                if (!b || !b.brand_logo_url || /ziquecoach-logo/i.test(b.brand_logo_url)) return;
+                document.querySelectorAll('.sidebar-logo-img').forEach(img => {
+                    img.src = b.brand_logo_url;
+                    img.alt = b.brand_name || b.brand_app_name || 'Gym';
+                });
+            })
+            .catch(() => {});
+    }
+
+    async function applyAccountLayout() {
+        // Hidden for EVERY account: Command Center (not injected below) and
+        // Challenges (nav links everywhere + the gym "Active challenges" card).
+        injectStyle(
+            'a[href$="coach-challenges.html"], #gymChallengesCard { display:none !important; }'
+        );
+
+        const { email, coachId } = await getAccount();
+        if (!email) return; // couldn't read the session — leave the full default
+        if (email === MASTER_EMAIL) return; // Ziquecoach keeps everything
+
+        // Non-Ziquecoach accounts: hide Subscriptions, Reminders, Billing.
+        injectStyle(
+            'a[href$="reminder-settings.html"], a[href$="coach-billing.html"], ' +
+            '#subscriptionCard { display:none !important; }'
+        );
+        // ...and show their own brand in the corner instead of Ziquecoach.
+        brandSidebarLogo(coachId);
+    }
+
     function init() {
         injectToggleButton();
         loadClientSwitcher();
         loadMasterProtector();
-        injectCommandCenterNavItem();
+        // Command Center hidden for now (kept for later) — intentionally NOT injected.
+        // injectCommandCenterNavItem();
+        applyAccountLayout();
     }
 
     if (document.readyState === 'loading') {
