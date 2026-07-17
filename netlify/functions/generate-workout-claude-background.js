@@ -423,29 +423,43 @@ The coach typed these for THIS client. They are non-negotiable and override vari
 
   // ── Session duration → time-budget + scaled phases ──────────────────────────
   // Make the whole workout actually fit the chosen minutes. Short sessions trim
-  // warm-up/cool-down and exercise count; long ones get the full structure.
+  // warm-up/cool-down and exercise count; long ones get more volume.
+  //
+  // Counts calibrated (July 2026) against utils/workout-estimates.js so the
+  // duration the client sees lands near the minutes picked: 30 min → 3-4 mains,
+  // 45 → 4-5, 60 → 5-6, 90 → 7-9 with fuller sets/rests. Mirrors
+  // generate-workout-claude.js — keep the two in sync.
   const sd = parseInt(sessionDuration) || 60;
   let warmupLine, mainLine, cooldownLine, budgetLine;
   if (sd <= 22) {
-    budgetLine = `=== TIME BUDGET: ~${sd} MIN TOTAL (SHORT SESSION) ===\nThis client is short on time. The ENTIRE session (warm-up + work + cool-down) must fit in about ${sd} minutes. Keep it tight and efficient.`;
+    budgetLine = `=== TIME BUDGET: ~${sd} MIN TOTAL (SHORT SESSION) ===\nThis client is short on time. The ENTIRE session (warm-up + work + cool-down + ALL rest between sets) must fit in about ${sd} minutes. Keep it tight and efficient.`;
     warmupLine = `PHASE 1 — QUICK WARM-UP (1-2 min): just 1 short dynamic/cardio movement. Mark "isWarmup": true, "phase": "warmup".`;
     mainLine = `PHASE 2 — MAIN WORKOUT: only 3-4 main exercises, shorter rest (30-45s). Pairing exercises into supersets to save time is encouraged. Mark "phase": "main".`;
     cooldownLine = `PHASE 3 — COOL-DOWN: 1 quick stretch only (or omit). Mark "isStretch": true, "phase": "cooldown".`;
   } else if (sd <= 35) {
-    budgetLine = `=== TIME BUDGET: ~${sd} MIN TOTAL ===\nKeep the whole session to about ${sd} minutes.`;
-    warmupLine = `PHASE 1 — WARM-UP (5 min): 1 short cardio + 1 dynamic prep. Mark "isWarmup": true, "phase": "warmup".`;
-    mainLine = `PHASE 2 — MAIN WORKOUT: 4-5 main exercises. Mark "phase": "main".`;
-    cooldownLine = `PHASE 3 — COOL-DOWN (3-4 min): 1-2 static stretches. Mark "isStretch": true, "phase": "cooldown". Reps "30s hold".`;
+    budgetLine = `=== TIME BUDGET: ~${sd} MIN TOTAL ===\nKeep the whole session to about ${sd} minutes INCLUDING all rest between sets — do not program a 45-minute session.`;
+    warmupLine = `PHASE 1 — WARM-UP (3-4 min): 1 short cardio (2-3 min, reps in TIME format like "3 min") + 1 dynamic prep. Mark "isWarmup": true, "phase": "warmup".`;
+    mainLine = `PHASE 2 — MAIN WORKOUT: 3-4 main exercises. Keep rest tight so it fits: 60-90s after the heaviest compound, 45-60s after everything else. Mark "phase": "main".`;
+    cooldownLine = `PHASE 3 — COOL-DOWN (2-3 min): 1-2 static stretches. Mark "isStretch": true, "phase": "cooldown". Reps "30s hold".`;
   } else if (sd <= 50) {
-    budgetLine = `=== TIME BUDGET: ~${sd} MIN TOTAL ===\nAim for about ${sd} minutes total.`;
+    budgetLine = `=== TIME BUDGET: ~${sd} MIN TOTAL ===\nAim for about ${sd} minutes total INCLUDING all rest between sets.`;
     warmupLine = `PHASE 1 — WARM-UP (5 min): 1 cardio (5 min) + 1 dynamic prep. Mark "isWarmup": true, "phase": "warmup". Cardio reps in TIME format ("5 min").`;
-    mainLine = `PHASE 2 — MAIN WORKOUT: ${Math.max(5, minEx || 5)}-${Math.max(6, maxEx || 6)} main exercises. Mark "phase": "main".`;
+    mainLine = `PHASE 2 — MAIN WORKOUT: 4-5 main exercises (a 6th only if supersetting saves the time). Mark "phase": "main".`;
     cooldownLine = `PHASE 3 — COOL-DOWN (5 min): 2 static stretches matching trained muscles. Mark "isStretch": true, "phase": "cooldown". Reps "30s hold".`;
-  } else {
+  } else if (sd <= 70) {
     budgetLine = `=== TIME BUDGET: ~${sd} MIN TOTAL ===\nA full session of about ${sd} minutes.`;
     warmupLine = `PHASE 1 — WARM-UP (5-8 min): 1 cardio (5 min) + 1-2 dynamic prep. Mark "isWarmup": true, "phase": "warmup". Cardio reps in TIME format ("5 min").`;
     mainLine = `PHASE 2 — MAIN WORKOUT: ${minEx}-${maxEx} main exercises. Mark "phase": "main".`;
     cooldownLine = `PHASE 3 — COOL-DOWN (5-7 min): 2-3 static stretches matching trained muscles. Mark "isStretch": true, "phase": "cooldown". Reps "30s hold".`;
+  } else {
+    // 90-minute pick: must NOT get the same content as 60 — scale volume up.
+    // max() keeps a coach's explicitly larger exerciseCount (6-8 / 8-10) intact.
+    const longMin = Math.max(minEx || 5, 7);
+    const longMax = Math.max(maxEx || 6, 9);
+    budgetLine = `=== TIME BUDGET: ~${sd} MIN TOTAL (LONG SESSION) ===\nThis is a LONG session of about ${sd} minutes. A standard 60-minute workout is TOO SHORT for it — program enough exercises, sets, and full rest periods to genuinely fill about ${sd} minutes.`;
+    warmupLine = `PHASE 1 — WARM-UP (8-10 min): 1 cardio (5 min) + 2 dynamic preps. Mark "isWarmup": true, "phase": "warmup". Cardio reps in TIME format ("5 min").`;
+    mainLine = `PHASE 2 — MAIN WORKOUT: ${longMin}-${longMax} main exercises. Use 4 sets on most main lifts and take the FULL rest window for the goal (this long session is not rushed). Mark "phase": "main".`;
+    cooldownLine = `PHASE 3 — COOL-DOWN (5-7 min): 3 static stretches matching trained muscles. Mark "isStretch": true, "phase": "cooldown". Reps "30s hold".`;
   }
   const phasesBlock = `${budgetLine}\n\n=== MANDATORY WORKOUT PHASES ===\n${warmupLine}\n${mainLine}\n${cooldownLine}`;
 
