@@ -92,6 +92,7 @@
     <div class="toolbar">
       <label class="file btn primary" for="fileInput">＋ Add videos</label>
       <input id="fileInput" type="file" accept="video/*" multiple />
+      <button class="btn ghost" id="loadInboxBtn" style="display:none;">📥 Load gym uploads</button>
       <button class="btn ghost" id="aiBtn" disabled>✨ AI-fill blanks</button>
       <button class="btn primary" id="saveBtn" disabled>⬆ Upload &amp; save all</button>
       <span class="count" id="count"></span>
@@ -123,6 +124,9 @@
     let targetCoachId = null, targetLabel = '';
     let rows = [];
     let uid = 0;
+    // Clips a gym has dropped in its inbox, waiting to be named/tagged/saved.
+    let pendingInbox = [];
+    const loadedInboxPaths = new Set();
 
     const EQUIPMENT = ['dumbbell','barbell','kettlebell','cable','machine','bodyweight','bands','pullup_bar','sled','punching_bag','medicine_ball','battle_ropes','box','bench','other'];
     const MUSCLES = ['chest','back','shoulders','biceps','triceps','legs','glutes','hamstrings','quads','calves','core','full body','cardio','mobility'];
@@ -198,7 +202,67 @@
         const opt = sel.options[sel.selectedIndex];
         targetLabel = sel.value === currentCoachId ? 'My account (test)' : (opt.getAttribute('data-label') || opt.textContent.trim());
         updateTargetHint();
+        refreshInbox();
       });
+      refreshInbox();
+    }
+
+    // Check what the selected gym has waiting in its inbox, and label the button.
+    async function refreshInbox() {
+      const btn = document.getElementById('loadInboxBtn');
+      pendingInbox = [];
+      // Works for a real gym, or for the admin's own account when practicing.
+      if (!targetCoachId) { btn.style.display = 'none'; return; }
+      btn.style.display = 'inline-block';
+      btn.disabled = true; btn.textContent = '📥 Checking uploads…';
+      try {
+        const res = await apiCall('/.netlify/functions/list-gym-inbox', { method:'POST', body: JSON.stringify({ gymId: targetCoachId }) });
+        // Skip clips already pulled into the grid this session.
+        pendingInbox = (res.clips || []).filter(c => !loadedInboxPaths.has(c.path));
+      } catch (e) { pendingInbox = []; }
+      if (pendingInbox.length) {
+        btn.disabled = false;
+        btn.textContent = `📥 Load ${pendingInbox.length} waiting clip${pendingInbox.length > 1 ? 's' : ''}`;
+      } else {
+        btn.disabled = true;
+        btn.textContent = '📥 No uploads waiting';
+      }
+    }
+
+    // Pull the gym's dropped clips into the grid so they can be named & saved.
+    async function loadInboxClips() {
+      const btn = document.getElementById('loadInboxBtn');
+      const clips = pendingInbox.slice();
+      if (!clips.length) return;
+      btn.disabled = true; btn.textContent = `📥 Loading ${clips.length}…`;
+      for (const clip of clips) {
+        if (loadedInboxPaths.has(clip.path) || !clip.url) continue;
+        try {
+          const resp = await fetch(clip.url);
+          if (!resp.ok) throw new Error('fetch failed');
+          const blob = await resp.blob();
+          const { contentType, ext } = typeFor({ type: blob.type, name: clip.storedName });
+          const file = new File([blob], clip.storedName, { type: contentType });
+          const row = {
+            id: ++uid, file, contentType,
+            fileName: `custom-${Date.now()}-${uid}.${ext}`,
+            thumb: null,
+            name: niceName(clip.name || clip.storedName),
+            muscleGroup: 'full body', equipment: 'other', exerciseType: 'strength',
+            difficulty: 'intermediate', isUnilateral: false, isCompound: false, instructions: '',
+            description: '', secondaryMuscles: [], caloriesPerMinute: null,
+            coachingCues: [], commonMistakes: [], tags: [], enriched: false,
+            status: 'ready', error: '',
+            vw: 0, vh: 0, dur: 0, qc: 'checking', issues: [], warnings: [],
+            inboxPath: clip.path // deleted from the inbox once it's saved
+          };
+          loadedInboxPaths.add(clip.path);
+          rows.push(row);
+          makeThumb(file).then(meta => { row.thumb = meta.thumb; row.vw = meta.vw; row.vh = meta.vh; row.dur = meta.dur; validateRow(row); render(); });
+        } catch (e) { /* skip a clip that won't load; it stays in the inbox */ }
+      }
+      render();
+      refreshInbox();
     }
 
     function updateTargetHint() {
@@ -422,6 +486,12 @@
           try { await apiCall('/.netlify/functions/upload-exercise-thumbnail', { method:'POST', body: JSON.stringify({ exerciseId: created.exercise.id, imageBase64: row.thumb, imageName: 'thumb.jpg' }) }); }
           catch(e){ /* thumbnail is non-fatal */ }
         }
+        // Saved into the gym's library — clear it out of the gym's inbox so the
+        // "waiting clips" count only ever shows what's still to do.
+        if (row.inboxPath) {
+          try { await apiCall('/.netlify/functions/delete-gym-inbox-file', { method:'POST', body: JSON.stringify({ path: row.inboxPath }) }); }
+          catch(e){ /* non-fatal — leftover inbox file can be cleaned later */ }
+        }
         row.status = 'done'; row.error = '';
       } catch (e) {
         row.status = 'error'; row.error = e.message || 'Failed';
@@ -458,6 +528,7 @@
     }
 
     document.getElementById('fileInput').addEventListener('change', (e) => { handleFiles(e.target.files); e.target.value = ''; });
+    document.getElementById('loadInboxBtn').addEventListener('click', loadInboxClips);
     document.getElementById('aiBtn').addEventListener('click', aiFill);
     document.getElementById('saveBtn').addEventListener('click', saveAll);
 

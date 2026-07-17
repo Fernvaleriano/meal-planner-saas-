@@ -36,6 +36,13 @@
   to = "/.netlify/functions/gym-join-page"
   status = 200
 
+# Clean link a gym uses to drop their raw exercise clips into a private inbox.
+# The gym id (?g=) still rides along; this just gives a tidy /gym-upload path.
+[[redirects]]
+  from = "/gym-upload"
+  to = "/gym-upload.html"
+  status = 200
+
 # SPA routing - /app is the primary client portal
 [[redirects]]
   from = "/app"

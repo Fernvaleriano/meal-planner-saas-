@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Upload Your Exercise Videos</title>
+  <style>
+    :root { --bg:#0A1F2E; --card:#12293a; --accent:#2EC4B6; --line:#24404f; --muted:#9fb3c0; --err:#ff6b6b; --ok:#33c27f; --warn:#f7b955; }
+    * { box-sizing:border-box; margin:0; padding:0; }
+    body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; background:var(--bg); color:#fff; padding:20px; }
+    .wrap { max-width:760px; margin:0 auto; }
+    h1 { font-size:24px; font-weight:800; }
+    .gym { color:var(--accent); }
+    .sub { color:var(--muted); font-size:14px; margin:8px 0 20px; line-height:1.5; }
+    .rules { background:#0c1e2b; border:1.5px solid var(--line); border-radius:12px; padding:14px 18px; margin-bottom:18px; font-size:14px; color:var(--muted); }
+    .rules h3 { color:#fff; font-size:14px; margin-bottom:8px; }
+    .rules ul { margin:0 0 0 18px; line-height:1.8; }
+    .rules b { color:var(--accent); }
+    .toolbar { display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin-bottom:16px; }
+    .btn { border:none; border-radius:10px; padding:13px 18px; font-size:15px; font-weight:700; cursor:pointer; }
+    .btn.primary { background:var(--accent); color:#06121a; }
+    .btn:disabled { opacity:.5; cursor:default; }
+    #fileInput { display:none; }
+    .count { color:var(--muted); font-size:13px; margin-left:auto; }
+    .row { display:grid; grid-template-columns:84px 1fr; gap:12px; background:var(--card); border-radius:12px; padding:10px; margin-bottom:10px; align-items:center; }
+    .thumb { width:84px; height:64px; border-radius:8px; background:#0c1e2b center/cover no-repeat; display:flex; align-items:center; justify-content:center; color:var(--muted); font-size:11px; }
+    .rname { font-weight:600; font-size:14px; word-break:break-word; }
+    .meta { display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin-top:5px; font-size:12px; }
+    .flag { font-weight:700; padding:1px 8px; border-radius:20px; }
+    .flag.good { color:var(--ok); } .flag.warn { color:var(--warn); } .flag.bad { color:var(--err); }
+    .status { font-weight:700; }
+    .s-uploading { color:var(--accent); } .s-done { color:var(--ok); } .s-error { color:var(--err); } .s-ready { color:var(--muted); }
+    .row.done { opacity:.65; }
+    .empty { text-align:center; color:var(--muted); padding:44px 0; border:1.5px dashed var(--line); border-radius:12px; }
+    .bar { height:6px; background:var(--line); border-radius:4px; overflow:hidden; margin:6px 0 16px; display:none; }
+    .bar > div { height:100%; background:var(--accent); width:0%; transition:width .2s; }
+    .done-msg { display:none; background:rgba(51,194,127,.12); border:1.5px solid var(--ok); color:#dff7ea; border-radius:12px; padding:16px 18px; margin-bottom:16px; font-size:15px; line-height:1.5; }
+    .fatal { text-align:center; padding:60px 20px; }
+    .fatal h2 { font-size:20px; margin-bottom:10px; }
+    .fatal p { color:var(--muted); max-width:440px; margin:0 auto; line-height:1.6; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div id="loading" class="fatal"><p>Loading…</p></div>
+
+    <div id="badlink" class="fatal" style="display:none;">
+      <h2>This upload link isn’t valid</h2>
+      <p>Double-check the link your coach sent you, or ask them for a new one.</p>
+    </div>
+
+    <div id="app" style="display:none;">
+      <h1>Upload your exercise videos</h1>
+      <p class="sub">For <span class="gym" id="gymName">your gym</span>. Add your clips below and hit upload — that's it. Your coach takes it from here and gets them into your app.</p>
+
+      <div class="rules">
+        <h3>Please film them like this 👇</h3>
+        <ul>
+          <li>Hold your phone <b>sideways</b> (horizontal) — never upright.</li>
+          <li>Keep each clip <b>about 20 seconds</b> — one or two clean reps, no talking needed.</li>
+          <li>Use normal <b>1080p / Full HD</b>. Turn <b>off</b> 4K if your phone has it on.</li>
+          <li>Steady phone, the whole movement in frame, good light, tidy background.</li>
+          <li><b>One exercise per clip</b>, and name the file after the exercise if you can.</li>
+        </ul>
+      </div>
+
+      <div class="done-msg" id="doneMsg"></div>
+
+      <div class="toolbar">
+        <label class="btn primary" for="fileInput">＋ Add videos</label>
+        <input id="fileInput" type="file" accept="video/*" multiple />
+        <button class="btn primary" id="uploadBtn" disabled>⬆ Upload all</button>
+        <span class="count" id="count"></span>
+      </div>
+      <div class="bar" id="bar"><div></div></div>
+
+      <div id="list"></div>
+      <div class="empty" id="empty">No videos added yet. Tap “Add videos” and choose your clips.</div>
+    </div>
+  </div>
+
+  <script>
+    const params = new URLSearchParams(location.search);
+    const GYM_ID = (params.get('g') || '').trim();
+    let rows = [], uid = 0, uploading = false;
+
+    async function apiCall(url, options = {}) {
+      const res = await fetch(url, { headers: { 'Content-Type':'application/json', ...(options.headers||{}) }, ...options });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || data.message || 'Request failed');
+      return data;
+    }
+
+    async function init() {
+      if (!GYM_ID) return showBadLink();
+      try {
+        const info = await apiCall('/.netlify/functions/gym-upload-info?g=' + encodeURIComponent(GYM_ID), { method:'GET' });
+        if (!info.valid) return showBadLink();
+        document.getElementById('gymName').textContent = info.gymName;
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('app').style.display = 'block';
+      } catch (e) { showBadLink(); }
+    }
+    function showBadLink() {
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('badlink').style.display = 'block';
+    }
+
+    function typeFor(file) {
+      const t = (file.type || '').toLowerCase();
+      if (t.includes('webm')) return { contentType:'video/webm', ext:'webm' };
+      if (t.includes('quicktime') || (file.name||'').toLowerCase().endsWith('.mov')) return { contentType:'video/quicktime', ext:'mov' };
+      return { contentType:'video/mp4', ext:'mp4' };
+    }
+
+    // Thumbnail + read dimensions/duration so we can gently flag bad clips.
+    function probe(file) {
+      return new Promise((resolve) => {
+        const video = document.createElement('video');
+        video.preload = 'metadata'; video.muted = true; video.playsInline = true;
+        const url = URL.createObjectURL(file);
+        let done = false, meta = { thumb:null, vw:0, vh:0, dur:0 };
+        const finish = () => { if (done) return; done = true; try { URL.revokeObjectURL(url); } catch(e){} resolve(meta); };
+        video.onloadedmetadata = () => {
+          meta.vw = video.videoWidth||0; meta.vh = video.videoHeight||0;
+          meta.dur = (video.duration && isFinite(video.duration)) ? video.duration : 0;
+          try { video.currentTime = Math.min(1, (video.duration||2)/2); } catch(e){ finish(); }
+        };
+        video.onseeked = () => {
+          try {
+            const w=200, scale=w/(video.videoWidth||200);
+            const c=document.createElement('canvas'); c.width=w; c.height=Math.round((video.videoHeight||150)*scale);
+            c.getContext('2d').drawImage(video,0,0,c.width,c.height); meta.thumb=c.toDataURL('image/jpeg',0.7);
+          } catch(e){}
+          finish();
+        };
+        video.onerror = () => finish();
+        video.src = url;
+        setTimeout(finish, 8000);
+      });
+    }
+
+    function validate(row) {
+      const issues=[], warnings=[]; const { vw, vh, dur, file } = row;
+      if (vw && vh) {
+        if (vh >= vw) issues.push('Filmed upright — please film sideways');
+        if (vh > 1080) warnings.push('Bigger than 1080p');
+      }
+      if (dur) { if (dur > 30) warnings.push(`Long (${Math.round(dur)}s)`); else if (dur < 3) warnings.push(`Very short (${Math.round(dur)}s)`); }
+      if (file && file.size > 200*1024*1024) warnings.push(`Big file (${(file.size/1024/1024).toFixed(0)}MB)`);
+      row.issues=issues; row.warnings=warnings;
+      row.qc = issues.length ? 'bad' : warnings.length ? 'warn' : 'good';
+    }
+
+    function handleFiles(fileList) {
+      const files = Array.from(fileList).filter(f => (f.type||'').startsWith('video/') || /\.(mp4|mov|webm|m4v)$/i.test(f.name));
+      files.forEach(file => {
+        const { contentType } = typeFor(file);
+        const row = { id:++uid, file, contentType, name:file.name, thumb:null, vw:0, vh:0, dur:0, qc:'checking', issues:[], warnings:[], status:'ready', error:'' };
+        rows.push(row);
+        probe(file).then(m => { row.thumb=m.thumb; row.vw=m.vw; row.vh=m.vh; row.dur=m.dur; validate(row); render(); });
+      });
+      render();
+    }
+
+    function render() {
+      document.getElementById('empty').style.display = rows.length ? 'none' : 'block';
+      document.getElementById('list').innerHTML = rows.map(r => {
+        const st = r.status==='done'?'✓ Uploaded':r.status==='uploading'?'Uploading…':r.status==='error'?('✕ '+(r.error||'Error')):'Ready';
+        const qcTxt = r.qc==='good'?'✓ Looks good':r.qc==='bad'?('✕ '+r.issues.concat(r.warnings).join(' · ')):r.qc==='warn'?('⚠ '+r.warnings.join(' · ')):'';
+        const qc = r.qc==='checking'?'':`<span class="flag ${r.qc}">${qcTxt}</span>`;
+        return `<div class="row ${r.status==='done'?'done':''}">
+          <div class="thumb" style="${r.thumb?`background-image:url(${r.thumb})`:''}">${r.thumb?'':'…'}</div>
+          <div><div class="rname">${(r.name||'').replace(/</g,'&lt;')}</div>
+            <div class="meta">${qc}<span class="status s-${r.status}">${st}</span></div>
+          </div></div>`;
+      }).join('');
+      const done = rows.filter(r => r.status==='done').length;
+      document.getElementById('count').textContent = rows.length ? `${done}/${rows.length} uploaded` : '';
+      document.getElementById('uploadBtn').disabled = uploading || rows.length===0 || rows.every(r => r.status==='done');
+    }
+
+    async function uploadRow(row) {
+      row.status='uploading'; render();
+      try {
+        const up = await apiCall('/.netlify/functions/get-gym-upload-url', { method:'POST', body: JSON.stringify({ coachId: GYM_ID, fileName: row.name, contentType: row.contentType }) });
+        if (!up.success) throw new Error(up.error || 'Upload URL failed');
+        const put = await fetch(up.uploadUrl, { method:'PUT', headers:{ 'Content-Type': row.contentType }, body: row.file });
+        if (!put.ok) throw new Error('Upload failed — check your connection');
+        row.status='done'; row.error='';
+      } catch (e) { row.status='error'; row.error = e.message || 'Failed'; }
+    }
+
+    async function uploadAll() {
+      const queue = rows.filter(r => r.status !== 'done');
+      if (!queue.length) return;
+      uploading = true; document.getElementById('uploadBtn').disabled = true;
+      const bar = document.getElementById('bar'); bar.style.display='block'; const fill = bar.firstElementChild;
+      let done=0; const total=queue.length; let i=0;
+      const worker = async () => { while (i < queue.length) { await uploadRow(queue[i++]); done++; fill.style.width = Math.round(done/total*100)+'%'; render(); } };
+      await Promise.all([worker(), worker(), worker()]);
+      uploading = false;
+      bar.style.display='none'; fill.style.width='0%';
+      const failed = rows.filter(r => r.status==='error').length;
+      const msg = document.getElementById('doneMsg');
+      msg.style.display='block';
+      msg.textContent = failed
+        ? `${total-failed} uploaded. ${failed} didn't go through — tap “Upload all” again to retry those.`
+        : `All done — ${total} video${total>1?'s':''} sent to your coach! You can close this page, or add more.`;
+      render();
+    }
+
+    document.getElementById('fileInput').addEventListener('change', e => { handleFiles(e.target.files); e.target.value=''; });
+    document.getElementById('uploadBtn').addEventListener('click', uploadAll);
+    init();
+  </script>
+</body>
+</html>
