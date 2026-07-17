@@ -578,13 +578,22 @@
         if (!frame) { alert('Could not read that frame (your browser may not support this video format). A thumbnail will be generated automatically when you save.'); return; }
         row.thumb = frame;
         render();
+        coverSaved(); // visible confirmation + close, so the new cover is seen
       } catch (e) { alert('Could not grab that frame — try a different spot in the clip.'); }
     }
     function onThumbFile(file) {
       const row = rows.find(r => r.id === previewRowId); if (!row || !file) return;
       const reader = new FileReader();
-      reader.onload = () => { row.thumb = reader.result; render(); };
+      reader.onload = () => { row.thumb = reader.result; render(); coverSaved(); };
       reader.readAsDataURL(file);
+    }
+    // Flash a confirmation on the button, then close the preview so the updated
+    // cover image (which sits on the row behind the modal) is visible.
+    function coverSaved() {
+      const btn = document.getElementById('useFrameBtn');
+      const prev = btn.textContent;
+      btn.textContent = '✓ Cover set!';
+      setTimeout(() => { btn.textContent = prev; closePreview(); }, 700);
     }
 
     // Fill the specific/secondary-muscle type-ahead list once.
