@@ -14,6 +14,8 @@ const headers = {
 // pulls from. Kept separate from exercise-videos/ so nothing here is ever live
 // until the admin names/tags it and saves it into the gym's library.
 const INBOX_ROOT = 'gym-video-inbox';
+// The admin account may use its own inbox to practice/test the flow.
+const MASTER_EMAIL = 'contact@ziquefitness.com';
 
 function safeName(name) {
   return String(name || 'clip')
@@ -46,9 +48,11 @@ exports.handler = async (event) => {
       return { statusCode: 400, headers, body: JSON.stringify({ error: 'Only video files can be uploaded here.' }) };
     }
 
-    // Confirm the target really is a gym before letting anything land in it.
-    const { data: gym } = await supabase.from('coaches').select('id, is_gym').eq('id', coachId).maybeSingle();
-    if (!gym || !gym.is_gym) {
+    // Confirm the target really is a gym (or the admin practicing) before
+    // letting anything land in it.
+    const { data: gym } = await supabase.from('coaches').select('id, is_gym, email').eq('id', coachId).maybeSingle();
+    const isPracticeAdmin = (gym?.email || '').toLowerCase() === MASTER_EMAIL;
+    if (!gym || (!gym.is_gym && !isPracticeAdmin)) {
       return { statusCode: 404, headers, body: JSON.stringify({ error: 'This upload link isn’t valid.' }) };
     }
 

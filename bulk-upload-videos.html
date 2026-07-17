@@ -211,7 +211,8 @@
     async function refreshInbox() {
       const btn = document.getElementById('loadInboxBtn');
       pendingInbox = [];
-      if (!targetCoachId || targetCoachId === currentCoachId) { btn.style.display = 'none'; return; }
+      // Works for a real gym, or for the admin's own account when practicing.
+      if (!targetCoachId) { btn.style.display = 'none'; return; }
       btn.style.display = 'inline-block';
       btn.disabled = true; btn.textContent = '📥 Checking uploads…';
       try {

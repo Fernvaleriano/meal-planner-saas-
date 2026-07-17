@@ -2,6 +2,9 @@ const { createClient } = require('@supabase/supabase-js');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
+// The admin account can use its own drop-off link to practice/test the flow,
+// even though it isn't a gym.
+const MASTER_EMAIL = 'contact@ziquefitness.com';
 
 const headers = {
   'Content-Type': 'application/json',
@@ -38,11 +41,12 @@ exports.handler = async (event) => {
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
     const { data: gym, error } = await supabase
       .from('coaches')
-      .select('id, is_gym, name, brand_name, brand_app_name')
+      .select('id, is_gym, email, name, brand_name, brand_app_name')
       .eq('id', coachId)
       .maybeSingle();
 
-    if (error || !gym || !gym.is_gym) {
+    const isPracticeAdmin = (gym?.email || '').toLowerCase() === MASTER_EMAIL;
+    if (error || !gym || (!gym.is_gym && !isPracticeAdmin)) {
       return { statusCode: 404, headers, body: JSON.stringify({ valid: false, error: 'This upload link isn’t valid.' }) };
     }
 
