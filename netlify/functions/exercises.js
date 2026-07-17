@@ -204,8 +204,10 @@ exports.handler = async (event) => {
         description,
         instructions,
         muscleGroup,
+        primaryMuscles,
         secondaryMuscles,
         equipment,
+        brand,
         exerciseType,
         difficulty,
         animationUrl,
@@ -233,8 +235,10 @@ exports.handler = async (event) => {
         description,
         instructions,
         muscle_group: muscleGroup,
+        primary_muscles: primaryMuscles || null,
         secondary_muscles: secondaryMuscles || [],
         equipment,
+        brand: brand || null,
         exercise_type: exerciseType,
         difficulty,
         animation_url: animationUrl,
@@ -261,7 +265,7 @@ exports.handler = async (event) => {
       // core exercise still saves.
       if (error && error.message && error.message.includes('schema cache')) {
         console.warn('Optional column not in schema cache, retrying without extras:', error.message);
-        const { reference_links, coaching_cues, common_mistakes, tags: _tags, ...core } = insertData;
+        const { reference_links, coaching_cues, common_mistakes, tags: _tags, primary_muscles, brand: _brand, ...core } = insertData;
         const retryResult = await supabase
           .from('exercises')
           .insert([core])
