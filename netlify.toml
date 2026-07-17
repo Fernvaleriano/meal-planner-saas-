@@ -236,10 +236,13 @@
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
 
+# HTML must revalidate on every load (cheap ETag 304s). With max-age=3600,
+# browsers kept serving hour-old page HTML that referenced old versioned
+# script URLs, so deployed fixes reached some pages but not others.
 [[headers]]
   for = "/*.html"
   [headers.values]
-    Cache-Control = "public, max-age=3600, must-revalidate"
+    Cache-Control = "public, max-age=0, must-revalidate"
     Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://unpkg.com https://browser.sentry-cdn.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https: ; media-src 'self' blob: https://*.supabase.co https://*.supabase.in; connect-src 'self' https://*.supabase.co https://*.supabase.in wss://*.supabase.co https://cdn.jsdelivr.net https://api.stripe.com https://*.netlify.app https://*.netlify.com https://*.ingest.us.sentry.io; frame-src 'self' https://js.stripe.com https://hooks.stripe.com; worker-src 'self' blob:;"
 
 [[headers]]

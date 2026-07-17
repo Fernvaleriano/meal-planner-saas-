@@ -1,6 +1,6 @@
 // Ziquecoach PWA Service Worker
-const CACHE_NAME = 'ziquecoach-v19';
-const STATIC_CACHE = 'zique-static-v18';
+const CACHE_NAME = 'ziquecoach-v20';
+const STATIC_CACHE = 'zique-static-v19';
 const DATA_CACHE = 'zique-data-v12';
 const CDN_CACHE = 'zique-cdn-v7';
 
@@ -291,10 +291,16 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // For HTML pages - network first, fallback to cache
+  // For HTML pages - network first, fallback to cache.
+  // cache:'no-cache' forces revalidation with the server (cheap ETag 304)
+  // instead of trusting the browser's HTTP cache — a stored HTML copy that is
+  // still "fresh" per its max-age would otherwise keep referencing old script
+  // URLs for up to an hour after a deploy (the sidebar-logo-flash bug).
   if (request.headers.get('accept')?.includes('text/html')) {
     event.respondWith(
-      fetch(request)
+      fetch(request, { cache: 'no-cache' })
+        // Some browsers reject the init combo on navigation requests — retry plain
+        .catch(() => fetch(request))
         .then((response) => {
           // Cache the fresh response — only if it's a good one, so error
           // pages (404/5xx during deploys) never poison the offline cache
@@ -316,13 +322,18 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // For other assets - cache first, fallback to network
+  // For other assets - cache first, fallback to network.
+  // Both fetches use cache:'no-cache' so revalidation talks to the SERVER,
+  // not the browser's HTTP cache. Without this, an asset pinned in the HTTP
+  // cache by an old immutable header (e.g. /js/coach-layout.js before the
+  // netlify.toml header fix) kept re-feeding its stale content into the SW
+  // cache forever, so deployed fixes never reached the page.
   event.respondWith(
     caches.match(request)
       .then((cachedResponse) => {
         if (cachedResponse) {
           // Return cached version and update cache in background
-          fetch(request).then((response) => {
+          fetch(request, { cache: 'no-cache' }).then((response) => {
             if (response.ok) {
               caches.open(CACHE_NAME).then((cache) => {
                 cache.put(request, response);
@@ -333,7 +344,7 @@ self.addEventListener('fetch', (event) => {
         }
 
         // Not in cache - fetch from network
-        return fetch(request).then((response) => {
+        return fetch(request, { cache: 'no-cache' }).then((response) => {
           // Cache the response for next time — only if ok, so deploy-window
           // 404s for old hashed chunks aren't cached and served forever
           if (response.ok) {
