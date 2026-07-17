@@ -83,6 +83,10 @@ export default {
   srcGym: 'เฉพาะยิม',
   srcGymHint: 'เพิ่มวิดีโอก่อน',
 
+  quickTitle: 'สร้างด่วน',
+  moreOptions: 'ตัวเลือกเพิ่มเติม',
+  fewerOptions: 'ซ่อนตัวเลือก',
+
   generateBtn: 'สร้างเวิร์กเอาต์',
   errNoGenerate: 'สร้างเวิร์กเอาต์ไม่สำเร็จ กรุณาลองอีกครั้ง',
   errNoMatch: 'ไม่พบท่าที่ตรงกัน ลองอีกครั้งหรือขยายแหล่งที่มา',

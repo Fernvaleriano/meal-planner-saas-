@@ -83,6 +83,10 @@ export default {
   srcGym: 'Solo gimnasio',
   srcGymHint: 'Agrega vídeos primero',
 
+  quickTitle: 'Generación rápida',
+  moreOptions: 'MÁS OPCIONES',
+  fewerOptions: 'MENOS OPCIONES',
+
   generateBtn: 'Generar entrenamiento',
   errNoGenerate: 'No se pudo generar un entrenamiento. Inténtalo de nuevo.',
   errNoMatch: 'No se encontraron ejercicios que coincidan. Inténtalo de nuevo o amplía la fuente.',

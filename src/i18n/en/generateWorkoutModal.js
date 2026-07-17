@@ -96,6 +96,11 @@ export default {
   srcGym: 'Gym only',
   srcGymHint: 'Add videos first',
 
+  // ── Quick generate + collapsed options ────────────────────────────
+  quickTitle: 'Quick generate',
+  moreOptions: 'MORE OPTIONS',
+  fewerOptions: 'FEWER OPTIONS',
+
   // ── Submit + errors ───────────────────────────────────────────────
   generateBtn: 'Generate workout',
   errNoGenerate: 'Could not generate a workout. Please try again.',
