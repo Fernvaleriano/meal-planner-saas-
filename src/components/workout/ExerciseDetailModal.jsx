@@ -3482,6 +3482,18 @@ function ExerciseDetailModal({
           )}
         </div>
 
+        {/* How to do it — only when the exercise has coach/gym instructions
+            (stock library exercises have none, so this stays hidden for them) */}
+        {typeof exercise.instructions === 'string' && exercise.instructions.trim() && (
+          <div className="exercise-instructions-section">
+            <div className="exercise-instructions-header">
+              <NotebookPen size={16} />
+              <span>{t('exerciseDetail.howToDoIt')}</span>
+            </div>
+            <p className="exercise-instructions-text">{exercise.instructions.trim()}</p>
+          </div>
+        )}
+
         {/* Muscle Groups */}
         <div className="muscle-groups-section">
           <h4>{t('exerciseDetail.muscleGroups')}</h4>

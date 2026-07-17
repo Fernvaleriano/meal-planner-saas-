@@ -119,6 +119,9 @@ export default {
   historyDeleteNo: 'No',
   historyDeleteTitle: 'Delete this entry',
 
+  // ── How-to / instructions section ─────────────────────────────────
+  howToDoIt: 'How to do it',
+
   // ── Muscle groups section ─────────────────────────────────────────
   muscleGroups: 'Muscle groups',
   muscleGroupGeneral: 'General',
