@@ -178,7 +178,7 @@
 
         const { email, coachId } = await getAccount();
         if (!email) return; // couldn't read the session — leave the full default
-        if (email === MASTER_EMAIL) { injectRanksNavItem(); return; } // Ziquecoach: Challenges → Ranks
+        if (email === MASTER_EMAIL) return; // Ziquecoach keeps everything; Ranks is gyms-only
 
         // Non-Ziquecoach accounts: hide Subscriptions, Reminders, Billing.
         injectStyle(
