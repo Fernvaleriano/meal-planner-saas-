@@ -50,7 +50,7 @@ exports.handler = async (event) => {
     // --- Fetch every gym account for the picker ---
     const { data: gyms, error } = await supabase
       .from('coaches')
-      .select('id, email, name, brand_name, is_gym')
+      .select('id, email, name, brand_name, is_gym, video_upload_code')
       .eq('is_gym', true);
     if (error) throw error;
 
@@ -58,7 +58,8 @@ exports.handler = async (event) => {
       .map(g => ({
         id: g.id,
         email: g.email,
-        label: (g.brand_name || g.name || g.email || 'Unnamed gym').trim()
+        label: (g.brand_name || g.name || g.email || 'Unnamed gym').trim(),
+        uploadCode: g.video_upload_code || null
       }))
       .sort((a, b) => a.label.localeCompare(b.label));
 
