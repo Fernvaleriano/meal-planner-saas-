@@ -121,6 +121,7 @@ export default {
   historyDeleteTitle: 'Eliminar este registro',
 
   // ── Muscle groups section ─────────────────────────────────────────
+  howToDoIt: 'Cómo hacerlo',
   muscleGroups: 'Grupos musculares',
   muscleGroupGeneral: 'General',
 
