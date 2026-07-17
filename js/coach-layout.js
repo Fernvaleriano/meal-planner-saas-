@@ -6,9 +6,21 @@
     }
 
     function applyInitialState() {
-        if (isCollapsed()) {
+        if (!isCollapsed()) return;
+        // On pages that load this script from <head>, document.body doesn't
+        // exist yet — touching it crashed the whole script (killing branding
+        // and nav fixes) and lost the collapsed state on those pages. Apply
+        // the class the instant <body> is parsed, before it can paint.
+        if (document.body) {
             document.body.classList.add('sidebar-is-collapsed');
+            return;
         }
+        new MutationObserver((_, obs) => {
+            if (document.body) {
+                document.body.classList.add('sidebar-is-collapsed');
+                obs.disconnect();
+            }
+        }).observe(document.documentElement, { childList: true });
     }
 
     function buildButton() {
@@ -129,6 +141,7 @@
     }
 
     const LOGO_CACHE_PREFIX = 'zq-brand-logo-';
+    const GYM_CACHE_PREFIX = 'zq-brand-gym-';
 
     function revealSidebarLogo() {
         const hold = document.getElementById('zique-logo-hold');
@@ -193,13 +206,22 @@
     //  - add the "Ranks" nav item if this is a gym (Challenges → Ranks).
     function applyBrandingAndRanks(coachId) {
         if (!coachId) { revealSidebarLogo(); return; }
+        // Known gym → add Ranks NOW, not 1-2s later when the fetch resolves.
+        // Waiting made the nav item pop in after paint on every page load —
+        // the sidebar looked different from page to page while loading.
+        try {
+            if (localStorage.getItem(GYM_CACHE_PREFIX + coachId) === '1') injectRanksNavItem();
+        } catch (e) { /* ignore */ }
         fetch('/.netlify/functions/get-coach-branding?coachId=' + encodeURIComponent(coachId))
             .then(r => (r.ok ? r.json() : null))
             .then(b => {
                 if (b) {
                     const url = b.brand_logo_url;
                     const isCustom = url && !/ziquecoach-logo/i.test(url);
-                    try { localStorage.setItem(LOGO_CACHE_PREFIX + coachId, isCustom ? url : 'default'); } catch (e) { /* ignore */ }
+                    try {
+                        localStorage.setItem(LOGO_CACHE_PREFIX + coachId, isCustom ? url : 'default');
+                        localStorage.setItem(GYM_CACHE_PREFIX + coachId, b.is_gym ? '1' : '0');
+                    } catch (e) { /* ignore */ }
                     if (b.is_gym) injectRanksNavItem();
                     if (isCustom) {
                         setBrandLogoAndReveal(url, b.brand_name || b.brand_app_name || 'Gym');
