@@ -44,6 +44,57 @@ macro-tracking UI on a gym. Detect a gym member in the client app with the
 app-wide convention: `!clientData?.is_coach && !isModuleVisible('diary')`.
 If unsure which product a request is about, ask.
 
+## 🆕 ONBOARDING A NEW COACH/GYM — PRESETS (locked July 2026)
+
+A coach/gym account's "view" is controlled by **two things** on the
+`coaches` row: `is_gym` (which dashboard the OWNER sees — gym-dashboard vs
+dashboard) and `client_modules` (a JSON object of on/off toggles for what
+their MEMBERS see). Keys: `diary` (meal logging), `plans` (meal plans),
+`workouts`, `messages`, `recipes`, `check_in`, `progress`, `leaderboard`
+(ranks), `shop`. Branding + login live on the same row / `gym_join_codes`.
+
+**The four presets the founder approved — apply `is_gym` + these
+`client_modules` exactly:**
+
+| Preset | is_gym | diary | plans | recipes | workouts | messages | check_in | progress | leaderboard |
+|---|---|---|---|---|---|---|---|---|---|
+| **Full Coaching** (e.g. contact@ziquefitness.com) | false | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| **Lite Coach** | false | ✗ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| **Gym** | true | ✗ | ✓ (view-only) | ✗ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| **Basic Gym** | true | ✗ | ✗ | ✗ | ✓ | ✓ | ✓ | ✓ | ✓ |
+
+- `shop` defaults OFF for all; turn on only if asked.
+- Lite Coach = coaching account with **no meal logging** (diary off), but
+  meal plans + recipes + ranks stay.
+- Gym vs Basic Gym: the ONLY difference is the view-only meal plan
+  (`plans`) — Gym has it, Basic Gym has zero nutrition.
+- "View-only meal plan" on gyms = `plans:true` + `diary:false` (they see
+  the plan/macros, no tracking) — matches the gym rule above.
+
+**Intake — what to get from the founder per new account (the rest I set up):**
+1. **Preset** (Full Coaching / Lite Coach / Gym / Basic Gym) + any one-off
+   toggle exception ("but they DO want meal logging").
+2. **Owner email** (their login) + whether to set a temp password or invite.
+3. **Brand kit**: business name, logo image, and their website (pull
+   colors/logo from it); app name/short name if different from the business
+   name.
+4. **Member cap** (join-code limit) — gyms.
+5. **Web address**: shared ziquecoach.com + join code/link, OR their own
+   white-label domain (needs DNS on their end; see gym domain map in
+   `gym-join-page.js` / `gym-join.html`).
+
+**Mechanics to apply (via Supabase MCP `execute_sql` + branding):**
+- `coaches` row: set `is_gym`, `subscription_tier`, `client_modules`
+  (the preset JSON), `brand_name`, `brand_logo_url`, brand colors,
+  `brand_app_name`, `brand_short_name`.
+- Gyms: create a `gym_join_codes` row (`code`, `coach_id`, `member_cap`,
+  `is_active:true`) AND set `coaches.video_upload_code` (for the
+  `/gym-upload` drop-off). The gym's video upload link is
+  `ziquecoach.com/gym-upload?g=<coach_id>&c=<video_upload_code>`.
+- Branding is read by `get-coach-branding.js`; the coach sidebar logo swap
+  + Ranks nav item are driven by `coaches.brand_logo_url` + `is_gym` (see
+  `js/coach-layout.js`).
+
 ## ⚠️ OPERATIONAL REMINDERS — ACTION REQUIRED (read me)
 
 - **DECISION (May 2026): WEB-ONLY. Native / App Store is intentionally
