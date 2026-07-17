@@ -14,6 +14,7 @@
     <script src="/js/theme.js"></script>
     <link rel="stylesheet" href="/css/coach-layout.css">
     <script src="/js/coach-layout.js?v=3"></script>
+    <script src="/js/gym-context.js"></script>
     <script src="https://unpkg.com/lucide@0.312.0/dist/umd/lucide.min.js" onload="if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',()=>lucide.createIcons())}else{lucide.createIcons()}"></script>
     <link rel="stylesheet" href="/css/voice-commander.css">
     <script src="/js/gym-features.js"></script>
@@ -7937,6 +7938,7 @@
 
         // State
         let currentCoachId = null;
+        let currentTrainerId = null; // set when the login is a gym trainer
         let currentAccessToken = null;
         let currentProgramId = null;
         let programs = [];
@@ -8042,10 +8044,19 @@
             currentCoachId = session.user.id;
             currentAccessToken = session.access_token;
 
+            // Gym trainer login? Their data scope is the GYM's coach id — the
+            // backend then limits them to their assigned members.
+            const gymCtx = await window.ZqGymContext?.resolve(supabaseClient, session.user.id);
+            if (gymCtx && gymCtx.role === 'trainer') {
+                currentCoachId = gymCtx.gymCoachId;
+                currentTrainerId = gymCtx.trainerId;
+                window.ZqGymContext.applyTrainerChrome(gymCtx);
+            }
+
             // White-label: fetch this coach's brand for client-facing PDF
             // exports (js/workout-pdf.js reads window.ZQ_PDF_BRAND_NAME).
             // Best-effort — the PDF falls back to 'Ziquecoach' without it.
-            fetch('/.netlify/functions/get-coach-branding?coachId=' + encodeURIComponent(session.user.id))
+            fetch('/.netlify/functions/get-coach-branding?coachId=' + encodeURIComponent(currentCoachId))
                 .then(function (r) { return r.json(); })
                 .then(function (b) {
                     if (b && b.has_branding_access && (b.brand_app_name || b.brand_name)) {
@@ -11698,7 +11709,7 @@
             if (_assignEndCache) return;
             _assignEndCache = {};
             try {
-                const res = await apiCall(`/.netlify/functions/workout-assignments?coachId=${encodeURIComponent(currentCoachId)}&activeOnly=true&summary=true`);
+                const res = await apiCall(`/.netlify/functions/workout-assignments?coachId=${encodeURIComponent(currentCoachId)}${currentTrainerId ? "&trainerId=" + currentTrainerId : ""}&activeOnly=true&summary=true`);
                 for (const a of (res.assignments || [])) {
                     const cid = String(a.client_id);
                     if (a.end_date && !_assignEndCache[cid]) _assignEndCache[cid] = a.end_date; // newest-first → keep current
@@ -12222,7 +12233,7 @@
 
                 // Fetch active client count for this program (server-side filter keeps payload tiny)
                 try {
-                    const result = await apiCall(`/.netlify/functions/workout-assignments?coachId=${currentCoachId}&programId=${currentProgramId}&activeOnly=true`);
+                    const result = await apiCall(`/.netlify/functions/workout-assignments?coachId=${currentCoachId}${currentTrainerId ? "&trainerId=" + currentTrainerId : ""}&programId=${currentProgramId}&activeOnly=true`);
                     const activeForProgram = (result.assignments || []).filter(
                         a => Number(a.program_id) === Number(currentProgramId) && a.is_active
                     );
@@ -12271,7 +12282,7 @@
 
             // Fetch affected clients to show in confirmation (server-side filter keeps payload tiny)
             try {
-                const result = await apiCall(`/.netlify/functions/workout-assignments?coachId=${currentCoachId}&programId=${currentProgramId}&activeOnly=true`);
+                const result = await apiCall(`/.netlify/functions/workout-assignments?coachId=${currentCoachId}${currentTrainerId ? "&trainerId=" + currentTrainerId : ""}&programId=${currentProgramId}&activeOnly=true`);
                 const activeForProgram = (result.assignments || []).filter(
                     a => Number(a.program_id) === Number(currentProgramId) && a.is_active
                 );
@@ -14544,7 +14555,7 @@
             _bulkAssignments = {};
             _bulkActivity = {};
             try {
-                const res = await apiCall(`/.netlify/functions/workout-assignments?coachId=${encodeURIComponent(currentCoachId)}&activeOnly=true&summary=true&withProgram=true&withActivity=true`);
+                const res = await apiCall(`/.netlify/functions/workout-assignments?coachId=${encodeURIComponent(currentCoachId)}${currentTrainerId ? "&trainerId=" + currentTrainerId : ""}&activeOnly=true&summary=true&withProgram=true&withActivity=true`);
                 // ordered newest-first by the API, so the first row per client is their current plan
                 for (const a of (res.assignments || [])) {
                     const cid = String(a.client_id);

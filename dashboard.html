@@ -5578,6 +5578,7 @@
     </style>
     <link rel="stylesheet" href="/css/coach-layout.css">
     <script src="/js/coach-layout.js?v=3"></script>
+    <script src="/js/gym-context.js"></script>
     <script src="https://unpkg.com/lucide@0.312.0/dist/umd/lucide.min.js" onload="if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',()=>lucide.createIcons())}else{lucide.createIcons()}"></script>
     <style>body{-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none;overscroll-behavior:none;-webkit-overflow-scrolling:touch;}</style>
     <link rel="stylesheet" href="/css/apple-refresh.css">
@@ -9415,6 +9416,18 @@
 
                     // Check if coach record exists
                     if (!coachData) {
+                        // Gym trainers have their own login but no coaches row —
+                        // their home is the client list, scoped to their members.
+                        try {
+                            const gymCtx = await window.ZqGymContext?.resolve(supabaseClient, user.id);
+                            if (gymCtx && gymCtx.role === 'trainer') {
+                                console.log('User is a gym trainer, redirecting to client list...');
+                                window.location.replace('manage-clients.html');
+                                return;
+                            }
+                        } catch (e) {
+                            console.warn('Trainer check failed:', e);
+                        }
                         console.error('No coach record found for user ID:', user.id);
                         throw new Error('Coach account not found. Please contact support.');
                     }

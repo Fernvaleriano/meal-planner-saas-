@@ -2,7 +2,7 @@
 // Sends an intake form link where clients fill out their profile and set password
 const { createClient } = require('@supabase/supabase-js');
 const { sendIntakeInvitationEmail } = require('./utils/email-service');
-const { handleCors, authenticateCoach, corsHeaders } = require('./utils/auth');
+const { handleCors, authenticateClientManager, corsHeaders } = require('./utils/auth');
 const crypto = require('crypto');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
@@ -51,7 +51,7 @@ exports.handler = async (event, context) => {
     }
 
     // ✅ SECURITY: Verify the authenticated user owns this coach account
-    const { user, error: authError } = await authenticateCoach(event, coachId);
+    const { user, error: authError } = await authenticateClientManager(event, coachId, clientId);
     if (authError) return authError;
 
     // Initialize Supabase client with service key for admin operations

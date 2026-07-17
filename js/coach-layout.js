@@ -117,8 +117,21 @@
             if (!raw) return {};
             const o = JSON.parse(raw);
             const u = o?.user || o?.currentSession?.user || o?.session?.user || o?.data?.session?.user;
-            return { email: (u?.email || '').toLowerCase(), coachId: u?.id || '' };
+            return { email: (u?.email || '').toLowerCase(), coachId: brandCoachId(u?.id || '') };
         } catch (e) { return {}; }
+    }
+
+    // Multi-trainer: a gym trainer's login should show the GYM's branding, not
+    // their own (they have no coaches row). js/gym-context.js caches the
+    // resolved context in sessionStorage; prefer its gymCoachId when present.
+    function brandCoachId(userId) {
+        try {
+            const ctx = JSON.parse(sessionStorage.getItem('zq-gym-context') || 'null');
+            if (ctx && ctx.userId === userId && ctx.role === 'trainer' && ctx.gymCoachId) {
+                return ctx.gymCoachId;
+            }
+        } catch (e) { /* ignore */ }
+        return userId;
     }
 
     // Robust path: fall back to a Supabase client if the fast read didn't work,
@@ -134,7 +147,7 @@
             if (client && client.auth && client.auth.getSession) {
                 const { data } = await client.auth.getSession();
                 const u = data?.session?.user;
-                if (u) return { email: (u.email || '').toLowerCase(), coachId: u.id || '' };
+                if (u) return { email: (u.email || '').toLowerCase(), coachId: brandCoachId(u.id || '') };
             }
         } catch (e) { /* leave defaults */ }
         return fast;

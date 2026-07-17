@@ -1,6 +1,6 @@
 // Netlify Function to retrieve all clients for a coach
 const { createClient } = require('@supabase/supabase-js');
-const { handleCors, authenticateCoach, corsHeaders } = require('./utils/auth');
+const { handleCors, authenticateGymMember, corsHeaders } = require('./utils/auth');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -32,9 +32,11 @@ exports.handler = async (event, context) => {
       };
     }
 
-    // ✅ SECURITY: Verify the authenticated user owns this coach account
-    const { user, error: authError } = await authenticateCoach(event, coachId);
-    if (authError) return authError;
+    // ✅ SECURITY: the caller must be this coach account itself OR one of the
+    // gym's active trainers (multi-trainer feature). Owners behave exactly as
+    // before; trainers are additionally scoped to their assigned clients below.
+    const gymCtx = await authenticateGymMember(event, coachId);
+    if (gymCtx.error) return gymCtx.error;
 
     // Initialize Supabase client with service key
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
@@ -44,6 +46,11 @@ exports.handler = async (event, context) => {
       .from('clients')
       .select('*')
       .eq('coach_id', coachId);
+
+    // Trainers only ever see the clients assigned to them.
+    if (gymCtx.role === 'trainer') {
+      query = query.eq('trainer_id', gymCtx.trainerId);
+    }
 
     // Filter by archived status
     if (archivedOnly) {

@@ -1,6 +1,6 @@
 // Netlify Function to create a new client
 const { createClient } = require('@supabase/supabase-js');
-const { handleCors, authenticateCoach, corsHeaders } = require('./utils/auth');
+const { handleCors, authenticateGymMember, corsHeaders } = require('./utils/auth');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -45,9 +45,19 @@ exports.handler = async (event, context) => {
       };
     }
 
-    // ✅ SECURITY: Verify the authenticated user owns this coach account
-    const { user, error: authError } = await authenticateCoach(event, coachId);
-    if (authError) return authError;
+    // ✅ SECURITY: the caller must be this coach account itself OR one of the
+    // gym's active trainers (multi-trainer feature). Client limits below are
+    // always checked against the gym owner's plan (coachId), never the trainer.
+    const gymCtx = await authenticateGymMember(event, coachId);
+    if (gymCtx.error) return gymCtx.error;
+
+    if (gymCtx.role === 'trainer' && gymCtx.trainer && gymCtx.trainer.can_create_clients === false) {
+      return {
+        statusCode: 403,
+        headers: corsHeaders,
+        body: JSON.stringify({ error: 'Your gym has not allowed you to add new members. Ask the gym owner to add them.' })
+      };
+    }
 
     // Initialize Supabase client with service key
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
@@ -204,6 +214,9 @@ exports.handler = async (event, context) => {
       .insert([
         {
           coach_id: coachId,
+          // A client added by a trainer is automatically assigned to that
+          // trainer; owner-added clients stay with the owner (null).
+          trainer_id: gymCtx.role === 'trainer' ? gymCtx.trainerId : null,
           client_name: clientName,
           email: email || null,
           phone: phone || null,

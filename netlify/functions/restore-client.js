@@ -1,6 +1,6 @@
 // Netlify Function to restore an archived client
 const { createClient } = require('@supabase/supabase-js');
-const { handleCors, authenticateCoach, corsHeaders } = require('./utils/auth');
+const { handleCors, authenticateClientManager, corsHeaders } = require('./utils/auth');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -33,7 +33,7 @@ exports.handler = async (event, context) => {
     }
 
     // ✅ SECURITY: Verify the authenticated user owns this coach account
-    const { user, error: authError } = await authenticateCoach(event, coachId);
+    const { user, error: authError } = await authenticateClientManager(event, coachId, clientId);
     if (authError) return authError;
 
     // Initialize Supabase client with service key

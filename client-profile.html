@@ -26,6 +26,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/css/coach-layout.css">
     <script src="/js/coach-layout.js?v=3"></script>
+    <script src="/js/gym-context.js"></script>
     <style>
         :root {
             --brand-primary: #2dd4bf;
@@ -10026,6 +10027,15 @@
                 currentUser = session.user;
                 document.getElementById('sidebarEmail').textContent = currentUser.email;
                 console.log('User authenticated:', currentUser.id);
+
+                // Gym trainer login? Every data call on this page keys off
+                // currentUser.id as the coach id, so swap in the GYM's coach id.
+                // The backend + RLS limit trainers to their assigned members.
+                const gymCtx = await window.ZqGymContext?.resolve(supabaseClient, session.user.id);
+                if (gymCtx && gymCtx.role === 'trainer') {
+                    currentUser = Object.assign({}, session.user, { id: gymCtx.gymCoachId });
+                    window.ZqGymContext.applyTrainerChrome(gymCtx);
+                }
 
                 // Load client data and plans
                 await refreshAllData();

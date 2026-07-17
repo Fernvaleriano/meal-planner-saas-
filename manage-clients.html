@@ -2052,6 +2052,7 @@
     </style>
     <link rel="stylesheet" href="/css/coach-layout.css">
     <script src="/js/coach-layout.js?v=3"></script>
+    <script src="/js/gym-context.js"></script>
     <!-- API Helper for authenticated requests -->
     <script src="/js/api-helper.js"></script>
     <script src="https://unpkg.com/lucide@0.312.0/dist/umd/lucide.min.js" onload="if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',()=>lucide.createIcons())}else{lucide.createIcons()}"></script>
@@ -2956,6 +2957,14 @@
                 currentCoachId = session.user.id;
                 userEmailSpan.textContent = session.user.email;
                 console.log('User authenticated:', currentCoachId);
+
+                // Gym trainer login? Their data scope is the GYM's coach id —
+                // the backend then limits them to their assigned members.
+                const gymCtx = await window.ZqGymContext?.resolve(supabaseClient, session.user.id);
+                if (gymCtx && gymCtx.role === 'trainer') {
+                    currentCoachId = gymCtx.gymCoachId;
+                    window.ZqGymContext.applyTrainerChrome(gymCtx);
+                }
 
                 // Check subscription status
                 const { data: coachData, error: coachError } = await supabaseClient

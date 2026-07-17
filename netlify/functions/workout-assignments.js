@@ -697,6 +697,12 @@ exports.handler = withTimeout(async (event) => {
         if (programId) {
           query = query.eq('program_id', programId);
         }
+        // Multi-trainer: a gym trainer only sees assignments belonging to
+        // their own members (clients.trainer_id).
+        const trainerId = (event.queryStringParameters || {}).trainerId;
+        if (trainerId) {
+          query = query.eq('clients.trainer_id', trainerId);
+        }
         if (activeOnly === 'true') {
           query = query.eq('is_active', true);
         }

@@ -761,21 +761,34 @@
             });
         }
 
-        // Coaches: shows real trainers once the multi-trainer plumbing is live;
-        // until then, an opt-in card describing the paid add-on. Feature-detected
-        // so it lights up automatically when the gym_trainers table exists.
+        // Coaches: the multi-trainer PAID ADD-ON. Gated per gym by
+        // coach_settings.multi_trainer_enabled — switched on manually when a
+        // gym buys it. Off → the opt-in card; on → the real trainer list.
         async function renderCoaches(coachId) {
             const el = document.getElementById('coachesBody');
-            let trainers = null;
+
+            let enabled = false;
             try {
-                const { data, error } = await supabaseClient
-                    .from('gym_trainers')
-                    .select('id, name, email, status')
-                    .eq('gym_coach_id', coachId);
-                if (error) throw error; // table missing / not enabled -> upsell
-                trainers = data || [];
-            } catch (e) {
-                trainers = null;
+                const { data: settings } = await supabaseClient
+                    .from('coach_settings')
+                    .select('multi_trainer_enabled')
+                    .eq('coach_id', coachId)
+                    .maybeSingle();
+                enabled = !!(settings && settings.multi_trainer_enabled);
+            } catch (e) { enabled = false; }
+
+            let trainers = null;
+            if (enabled) {
+                try {
+                    const { data, error } = await supabaseClient
+                        .from('gym_trainers')
+                        .select('id, name, email, status')
+                        .eq('gym_coach_id', coachId);
+                    if (error) throw error;
+                    trainers = data || [];
+                } catch (e) {
+                    trainers = [];
+                }
             }
 
             if (trainers === null) {

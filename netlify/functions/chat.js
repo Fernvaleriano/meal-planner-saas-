@@ -21,17 +21,22 @@ exports.handler = async (event) => {
     // GET - Fetch conversations or messages
     if (event.httpMethod === 'GET') {
       const params = event.queryStringParameters || {};
-      const { action, coachId, clientId, limit = '50', before } = params;
+      const { action, coachId, clientId, trainerId, limit = '50', before } = params;
 
       // Get conversation list for a coach (all clients with last message + unread count)
       if (action === 'conversations' && coachId) {
-        // Get all clients for this coach
-        const { data: clients, error: clientsError } = await supabase
+        // Get all clients for this coach. When a gym trainer asks (trainerId),
+        // only the clients assigned to that trainer are included.
+        let clientsQuery = supabase
           .from('clients')
           .select('id, client_name, last_activity_at, profile_photo_url')
           .eq('coach_id', coachId)
           .or('is_archived.eq.false,is_archived.is.null')
           .order('client_name');
+        if (trainerId) {
+          clientsQuery = clientsQuery.eq('trainer_id', trainerId);
+        }
+        const { data: clients, error: clientsError } = await clientsQuery;
 
         if (clientsError) {
           return { statusCode: 500, headers: corsHeaders, body: JSON.stringify({ error: clientsError.message }) };

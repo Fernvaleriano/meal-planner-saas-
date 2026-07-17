@@ -256,6 +256,38 @@ async function authenticateGymMember(event, gymCoachId) {
 }
 
 /**
+ * Authenticate a request that manages ONE specific client. Allows the gym
+ * owner (unchanged behavior) or an active trainer of that gym — but a trainer
+ * only passes if the client is actually assigned to them (clients.trainer_id).
+ *
+ * @param {object} event
+ * @param {string} gymCoachId - the coach_id the request targets
+ * @param {string|number} clientId - the client being managed
+ * @returns {Promise<{user, role, gymCoachId, trainerId, trainer, error}>}
+ */
+async function authenticateClientManager(event, gymCoachId, clientId) {
+  const ctx = await authenticateGymMember(event, gymCoachId);
+  if (ctx.error) return ctx;
+
+  if (ctx.role === 'trainer') {
+    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+    const { data: client } = await supabase
+      .from('clients')
+      .select('id, trainer_id')
+      .eq('id', clientId)
+      .eq('coach_id', gymCoachId)
+      .maybeSingle();
+
+    if (!client || client.trainer_id !== ctx.trainerId) {
+      console.warn(`Trainer ${ctx.trainerId} tried to manage client ${clientId} not assigned to them`);
+      return { ...ctx, user: null, error: forbiddenResponse('This member is not assigned to you') };
+    }
+  }
+
+  return ctx;
+}
+
+/**
  * Simple authentication - just verify the token is valid
  * @param {object} event - Netlify event object
  * @returns {Promise<{user: object|null, error: object|null}>}
@@ -346,6 +378,9 @@ module.exports = {
   authenticateCoach,
   authenticateClientAccess,
   authenticateRequest,
+  resolveGymContext,
+  authenticateGymMember,
+  authenticateClientManager,
   checkRateLimit,
   rateLimitResponse
 };

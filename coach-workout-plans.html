@@ -9,6 +9,7 @@
     <link rel="stylesheet" href="/css/voice-commander.css">
     <link rel="stylesheet" href="/css/coach-layout.css">
     <script src="/js/coach-layout.js?v=3"></script>
+    <script src="/js/gym-context.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -1221,10 +1222,18 @@
             currentCoachId = session.user.id;
             currentAccessToken = session.access_token;
 
+            // Gym trainer login? Their data scope is the GYM's coach id — the
+            // backend then limits them to their assigned members.
+            const gymCtx = await window.ZqGymContext?.resolve(supabase, session.user.id);
+            if (gymCtx && gymCtx.role === 'trainer') {
+                currentCoachId = gymCtx.gymCoachId;
+                window.ZqGymContext.applyTrainerChrome(gymCtx);
+            }
+
             // White-label: fetch this coach's brand for client-facing PDF
             // exports (js/workout-pdf.js reads window.ZQ_PDF_BRAND_NAME).
             // Best-effort — the PDF falls back to 'Ziquecoach' without it.
-            fetch('/.netlify/functions/get-coach-branding?coachId=' + encodeURIComponent(session.user.id))
+            fetch('/.netlify/functions/get-coach-branding?coachId=' + encodeURIComponent(currentCoachId))
                 .then(function (r) { return r.json(); })
                 .then(function (b) {
                     if (b && b.has_branding_access && (b.brand_app_name || b.brand_name)) {

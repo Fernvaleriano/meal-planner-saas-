@@ -1,5 +1,23 @@
 # Multi-Trainer Gyms — Build Status & Handoff
 
+> **STATUS UPDATE (July 2026): SHIPPED — Phase 1 + core Phase 2 are LIVE.**
+> - Both migrations are applied to prod (`supabase/migrations/034_multi_trainer_gyms.sql`
+>   + `035_multi_trainer_trainer_access.sql`); the copies below in
+>   `supabase-migrations/` are the archived originals.
+> - Flag is ON for Results Fitness (`results-fitness@ziquecoach.com`).
+> - Trainer login works end-to-end: `dashboard.html` routes trainers to
+>   `manage-clients.html`; `js/gym-context.js` resolves trainer→gym scope on
+>   manage-clients / coach-workouts / coach-workout-plans / coach-messages /
+>   client-profile; `get-clients`, `create-client`, client-management
+>   functions, `chat` conversations, and `workout-assignments` lists are all
+>   trainer-scoped server-side (see `authenticateGymMember` /
+>   `authenticateClientManager` in `utils/auth.js`, now exported).
+> - Gym dashboard Coaches card is gated on `coach_settings.multi_trainer_enabled`
+>   (upsell when off, real trainer list when on).
+> - Still open (nice-to-haves): trainer names on messages, per-trainer stats,
+>   trainer access to check-in reactions, `delete-client` stays owner-only by
+>   design. The original phase notes below are kept for reference.
+
 **Goal:** let one gym account (e.g. Huracan) have multiple trainers, each with
 their own login, where each trainer coaches only the clients assigned to them,
 and the gym owner sees everyone.
