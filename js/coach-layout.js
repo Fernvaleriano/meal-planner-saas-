@@ -135,6 +135,37 @@
         if (hold) hold.remove();
     }
 
+    // Swap the sidebar logo to the brand image and reveal it only once that
+    // image is actually renderable. Revealing right after changing src lets
+    // the browser keep painting the previous (default Ziquecoach) bitmap
+    // while the brand image downloads — the exact flash this prevents.
+    function setBrandLogoAndReveal(url, alt) {
+        const imgs = document.querySelectorAll('.sidebar-logo-img');
+        if (!imgs.length) {
+            // Sidebar not parsed yet (script/fetch ran from <head>) — retry
+            // once the DOM is ready instead of revealing the default.
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', () => setBrandLogoAndReveal(url, alt), { once: true });
+            } else {
+                revealSidebarLogo();
+            }
+            return;
+        }
+        let pending = imgs.length;
+        const done = () => { if (--pending <= 0) revealSidebarLogo(); };
+        imgs.forEach(img => {
+            if (alt) img.alt = alt;
+            if (img.src === url) { done(); return; }
+            img.src = url;
+            if (img.decode) img.decode().then(done, done);
+            else if (img.complete) done();
+            else {
+                img.addEventListener('load', done, { once: true });
+                img.addEventListener('error', done, { once: true });
+            }
+        });
+    }
+
     // Runs as early as possible (non-master only): hide the sidebar logo so the
     // default Ziquecoach logo never flashes before the coach/gym brand logo
     // loads, and apply a cached brand logo instantly when we already have one.
@@ -147,14 +178,7 @@
         s.id = 'zique-logo-hold';
         s.textContent = '.sidebar-logo-img{opacity:0 !important;}';
         (document.head || document.documentElement).appendChild(s);
-        if (cached) {
-            const apply = () => {
-                document.querySelectorAll('.sidebar-logo-img').forEach(img => { img.src = cached; });
-                revealSidebarLogo();
-            };
-            if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', apply);
-            else apply();
-        }
+        if (cached) setBrandLogoAndReveal(cached);
         // Failsafe: never leave the logo hidden if the fetch stalls.
         setTimeout(revealSidebarLogo, 4000);
         // No cache → stays hidden until applyBrandingAndRanks resolves and reveals it.
@@ -173,14 +197,12 @@
                 if (b) {
                     const url = b.brand_logo_url;
                     const isCustom = url && !/ziquecoach-logo/i.test(url);
-                    if (isCustom) {
-                        document.querySelectorAll('.sidebar-logo-img').forEach(img => {
-                            img.src = url;
-                            img.alt = b.brand_name || b.brand_app_name || 'Gym';
-                        });
-                    }
                     try { localStorage.setItem(LOGO_CACHE_PREFIX + coachId, isCustom ? url : 'default'); } catch (e) { /* ignore */ }
                     if (b.is_gym) injectRanksNavItem();
+                    if (isCustom) {
+                        setBrandLogoAndReveal(url, b.brand_name || b.brand_app_name || 'Gym');
+                        return;
+                    }
                 }
                 revealSidebarLogo();
             })
