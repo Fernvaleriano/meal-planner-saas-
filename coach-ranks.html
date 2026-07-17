@@ -1,114 +1,275 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Ranks — Gym Leaderboard</title>
-  <link rel="icon" href="https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/assets/icons/logo.png" type="image/png">
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <style>
-    :root { --bg:#0A1F2E; --card:#12293a; --accent:#2EC4B6; --line:#24404f; --muted:#9fb3c0; --gold:#f5c451; --silver:#cdd6dd; --bronze:#d99a6c; }
-    * { box-sizing:border-box; margin:0; padding:0; }
-    body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; background:var(--bg); color:#fff; padding:20px 16px 60px; }
-    .wrap { max-width:1000px; margin:0 auto; }
-    .top { display:flex; align-items:center; gap:12px; margin-bottom:6px; }
-    .back { color:var(--muted); text-decoration:none; font-size:14px; display:inline-flex; align-items:center; gap:6px; }
-    .back:hover { color:#fff; }
-    h1 { font-size:24px; font-weight:800; margin-top:8px; }
-    .sub { color:var(--muted); font-size:14px; margin:6px 0 20px; }
-    .lift-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:16px; }
-    .lift-card { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:16px; }
-    .lift-head { display:flex; align-items:center; gap:10px; margin-bottom:12px; }
-    .lift-emoji { font-size:22px; }
-    .lift-name { font-weight:700; font-size:16px; }
-    .lift-count { margin-left:auto; color:var(--muted); font-size:12px; }
-    .row { display:grid; grid-template-columns:28px 1fr auto; gap:10px; align-items:center; padding:8px 0; border-top:1px solid var(--line); }
-    .row:first-of-type { border-top:none; }
-    .rank { font-weight:800; font-size:14px; text-align:center; color:var(--muted); }
-    .rank.g1 { color:var(--gold); } .rank.g2 { color:var(--silver); } .rank.g3 { color:var(--bronze); }
-    .who { display:flex; align-items:center; gap:8px; min-width:0; }
-    .avatar { width:28px; height:28px; border-radius:50%; object-fit:cover; background:#0c1e2b; flex:none; display:flex; align-items:center; justify-content:center; font-size:12px; color:var(--muted); }
-    .who .nm { font-size:14px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-    .who .gd { font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; }
-    .val { text-align:right; }
-    .val .big { font-weight:700; font-size:14px; }
-    .val .small { font-size:11px; color:var(--muted); }
-    .verified { color:var(--accent); font-size:11px; }
-    .empty-lift { color:var(--muted); font-size:13px; padding:6px 0; }
-    .state { text-align:center; color:var(--muted); padding:60px 20px; }
-    .pill { display:inline-block; background:#0c1e2b; border:1px solid var(--line); border-radius:20px; padding:4px 12px; font-size:12px; color:var(--muted); margin-right:8px; }
-  </style>
+    <script src="/js/sentry-init.js"></script>
+    <meta charset="UTF-8">
+    <link rel="icon" href="https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/assets/icons/logo.png" type="image/png">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <script src="/js/theme.js"></script>
+    <title>Ranks - Gym Leaderboard</title>
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+    <link rel="preload" href="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" as="script">
+    <link rel="preconnect" href="https://qewqcjzlfqamqwbccapr.supabase.co" crossorigin>
+    <link rel="dns-prefetch" href="https://qewqcjzlfqamqwbccapr.supabase.co">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/coach-layout.css">
+    <script src="/js/coach-layout.js?v=3"></script>
+    <style>
+        .ranks-container { padding: 32px; max-width: 1100px; }
+        .ranks-sub { color: var(--gray-500, #64748b); font-size: 14px; margin-bottom: 16px; }
+        .pill { display: inline-block; background: var(--gray-100, #f1f5f9); border: 1px solid var(--gray-200, #e2e8f0); border-radius: 20px; padding: 4px 12px; font-size: 12px; color: var(--gray-500, #64748b); margin-right: 8px; }
+        [data-theme="dark"] .pill { background: var(--gray-800, #1e293b); border-color: var(--gray-700, #334155); color: var(--gray-400, #94a3b8); }
+
+        .lift-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
+        .lift-card { background: white; border: 1px solid var(--gray-200, #e2e8f0); border-radius: 14px; padding: 16px; }
+        [data-theme="dark"] .lift-card { background: var(--gray-800, #1e293b); border-color: var(--gray-700, #334155); }
+        .lift-head { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+        .lift-emoji { font-size: 22px; }
+        .lift-name { font-weight: 700; font-size: 16px; color: var(--gray-800, #1e293b); }
+        [data-theme="dark"] .lift-name { color: var(--gray-100, #f1f5f9); }
+        .lift-count { margin-left: auto; color: var(--gray-400, #94a3b8); font-size: 12px; }
+
+        .row { display: grid; grid-template-columns: 28px 1fr auto; gap: 10px; align-items: center; padding: 8px 0; border-top: 1px solid var(--gray-100, #f1f5f9); }
+        [data-theme="dark"] .row { border-color: var(--gray-700, #334155); }
+        .row:first-of-type { border-top: none; }
+        .rank { font-weight: 800; font-size: 14px; text-align: center; color: var(--gray-400, #94a3b8); }
+        .rank.g1 { color: #f5c451; } .rank.g2 { color: #94a3b8; } .rank.g3 { color: #d99a6c; }
+        .who { display: flex; align-items: center; gap: 8px; min-width: 0; }
+        .avatar { width: 28px; height: 28px; border-radius: 50%; object-fit: cover; background: var(--gray-100, #f1f5f9); flex: none; display: flex; align-items: center; justify-content: center; font-size: 12px; color: var(--gray-500, #64748b); }
+        [data-theme="dark"] .avatar { background: var(--gray-700, #334155); color: var(--gray-300, #cbd5e1); }
+        .who .nm { font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--gray-800, #1e293b); }
+        [data-theme="dark"] .who .nm { color: var(--gray-100, #f1f5f9); }
+        .who .gd { font-size: 10px; color: var(--gray-400, #94a3b8); text-transform: uppercase; letter-spacing: .04em; }
+        .val { text-align: right; }
+        .val .big { font-weight: 700; font-size: 14px; color: var(--gray-800, #1e293b); }
+        [data-theme="dark"] .val .big { color: var(--gray-100, #f1f5f9); }
+        .val .small { font-size: 11px; color: var(--gray-400, #94a3b8); }
+        .verified { color: var(--brand-primary, #2cb5a5); font-size: 11px; }
+        .empty-lift { color: var(--gray-400, #94a3b8); font-size: 13px; padding: 6px 0; }
+        .state { text-align: center; color: var(--gray-400, #94a3b8); padding: 60px 20px; }
+    </style>
+    <link rel="stylesheet" href="/css/apple-refresh.css">
 </head>
 <body>
-  <div class="wrap">
-    <div class="top">
-      <a class="back" href="dashboard.html">← Back</a>
-    </div>
-    <h1>🏆 Ranks</h1>
-    <p class="sub" id="sub">Your gym leaderboard — members ranked by their best video-proof lifts.</p>
-    <div id="counts" style="margin-bottom:18px;"></div>
-    <div id="content"><div class="state">Loading leaderboard…</div></div>
-  </div>
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <a href="dashboard.html" class="sidebar-logo">
+                <img src="https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/assets/ziquecoach-logo-white.png" alt="Ziquecoach" class="sidebar-logo-img">
+            </a>
+        </div>
+        <nav class="sidebar-nav">
+            <div class="sidebar-nav-section" data-section="menu">
+                <div class="sidebar-nav-label" onclick="toggleSidebarSection(this)">
+                    Menu
+                    <svg class="collapse-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                    </svg>
+                </div>
+                <div class="sidebar-nav-items">
+                    <a href="dashboard.html" class="sidebar-nav-item" data-tooltip="Dashboard">
+                        <span class="sidebar-nav-icon"><i data-lucide="layout-dashboard"></i></span>
+                        Dashboard
+                    </a>
+                    <a href="manage-clients.html" class="sidebar-nav-item" data-tooltip="Clients">
+                        <span class="sidebar-nav-icon"><i data-lucide="users"></i></span>
+                        Clients
+                    </a>
+                    <a href="manage-recipes.html" class="sidebar-nav-item" data-tooltip="Recipes">
+                        <span class="sidebar-nav-icon"><i data-lucide="book-open"></i></span>
+                        Recipes
+                    </a>
+                    <a href="coach-meal-plans.html" class="sidebar-nav-item" data-tooltip="Meal Plans">
+                        <span class="sidebar-nav-icon"><i data-lucide="sparkles"></i></span>
+                        Meal Plans
+                    </a>
+                    <a href="coach-workout-plans.html" class="sidebar-nav-item" data-tooltip="Workouts">
+                        <span class="sidebar-nav-icon"><i data-lucide="dumbbell"></i></span>
+                        Workouts
+                    </a>
+                </div>
+            </div>
+            <div class="sidebar-nav-section" data-section="settings">
+                <div class="sidebar-nav-label" onclick="toggleSidebarSection(this)">
+                    Settings
+                    <svg class="collapse-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                    </svg>
+                </div>
+                <div class="sidebar-nav-items">
+                    <a href="coach-profile.html" class="sidebar-nav-item" data-tooltip="My Profile">
+                        <span class="sidebar-nav-icon"><i data-lucide="user"></i></span>
+                        My Profile
+                    </a>
+                    <a href="branding-settings.html" class="sidebar-nav-item" data-tooltip="Branding">
+                        <span class="sidebar-nav-icon"><i data-lucide="palette"></i></span>
+                        Branding
+                    </a>
+                    <a href="supplement-protocols.html" class="sidebar-nav-item" data-tooltip="Supplements">
+                        <span class="sidebar-nav-icon"><i data-lucide="pill"></i></span>
+                        Supplements
+                    </a>
+                    <a href="reminder-settings.html" class="sidebar-nav-item" data-tooltip="Reminders">
+                        <span class="sidebar-nav-icon"><i data-lucide="bell"></i></span>
+                        Reminders
+                    </a>
+                    <a href="coach-billing.html" class="sidebar-nav-item" data-tooltip="Billing">
+                        <span class="sidebar-nav-icon"><i data-lucide="credit-card"></i></span>
+                        Billing
+                    </a>
+                    <a href="#" class="sidebar-nav-item sidebar-nav-logout" onclick="event.preventDefault(); logout();">
+                        <span class="sidebar-nav-icon"><i data-lucide="log-out"></i></span>
+                        Log Out
+                    </a>
+                </div>
+            </div>
+        </nav>
+        <div class="sidebar-footer">
+            <div class="sidebar-user">
+                <div class="sidebar-user-avatar" id="sidebarAvatar">C</div>
+                <div class="sidebar-user-info">
+                    <div class="sidebar-user-name" id="sidebarEmail">Loading...</div>
+                    <div class="sidebar-user-role">Coach</div>
+                </div>
+                <button class="sidebar-logout" onclick="logout()" title="Logout">
+                    <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </aside>
 
-  <script>
-    const SUPABASE_URL = 'https://qewqcjzlfqamqwbccapr.supabase.co';
-    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFld3FjanpsZnFhbXF3YmNjYXByIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM2OTg0NzAsImV4cCI6MjA3OTI3NDQ3MH0.mQnMC33O88oLkLLGWD2oG-oaSHGI-NfHmtQCZxnxSLs';
-    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
 
-    function esc(s){ return String(s||'').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
-    function initials(name){ return (name||'?').trim().charAt(0).toUpperCase(); }
+    <main class="main-content">
+        <header class="main-header">
+            <button class="mobile-menu-btn" id="mobileMenuBtn">
+                <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                </svg>
+            </button>
+            <h1 class="main-header-title">🏆 Ranks</h1>
+        </header>
 
-    function athleteRow(a, isReps) {
-      const gClass = a.rank === 1 ? 'g1' : a.rank === 2 ? 'g2' : a.rank === 3 ? 'g3' : '';
-      const medal = a.rank === 1 ? '🥇' : a.rank === 2 ? '🥈' : a.rank === 3 ? '🥉' : a.rank;
-      const av = a.photo ? `<img class="avatar" src="${esc(a.photo)}" alt="">` : `<div class="avatar">${initials(a.name)}</div>`;
-      // Weight lifts show weight × reps + estimated 1-rep max; rep lifts show reps.
-      const main = isReps ? `${a.reps} reps` : `${a.weight} ${a.weightUnit} × ${a.reps}`;
-      const smallLine = isReps ? '' : `<div class="small">${Math.round(a.score)} lb e1RM</div>`;
-      const gd = a.gender && a.gender !== 'other' ? `<span class="gd">${a.gender}</span>` : '';
-      return `<div class="row">
-        <div class="rank ${gClass}">${medal}</div>
-        <div class="who">${av}<div style="min-width:0"><div class="nm">${esc(a.name)} ${a.verified ? '<span class="verified">✓</span>' : ''}</div>${gd}</div></div>
-        <div class="val"><div class="big">${main}</div>${smallLine}</div>
-      </div>`;
-    }
+        <div class="ranks-container">
+            <p class="ranks-sub" id="sub">Your gym leaderboard — members ranked by their best video-proof lifts.</p>
+            <div id="counts" style="margin-bottom:18px;"></div>
+            <div id="content"><div class="state">Loading leaderboard…</div></div>
+        </div>
+    </main>
 
-    function render(data) {
-      const counts = document.getElementById('counts');
-      counts.innerHTML = `<span class="pill">${data.athleteCount || 0} athletes</span><span class="pill">${data.totalLifts || 0} lifts logged</span>`;
-      const content = document.getElementById('content');
-      if (!data.athleteCount) {
-        content.innerHTML = `<div class="state">No lifts on the leaderboard yet. Once members post video-proof lifts, they'll show up here ranked.</div>`;
-        return;
-      }
-      const lifts = data.lifts || [];
-      content.innerHTML = `<div class="lift-grid">` + lifts.map(l => {
-        const board = (data.boards && data.boards[l.key]) || [];
-        const isReps = l.metric === 'reps';
-        const rows = board.length
-          ? board.slice(0, 10).map(a => athleteRow(a, isReps)).join('')
-          : `<div class="empty-lift">No entries yet.</div>`;
-        return `<div class="lift-card">
-          <div class="lift-head"><span class="lift-emoji">${l.icon || '🏋️'}</span><span class="lift-name">${esc(l.name)}</span><span class="lift-count">${board.length}</span></div>
-          ${rows}
-        </div>`;
-      }).join('') + `</div>`;
-    }
+    <script src="https://unpkg.com/lucide@0.312.0/dist/umd/lucide.min.js" onload="if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',()=>lucide.createIcons())}else{lucide.createIcons()}"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        // Sidebar section collapse
+        function toggleSidebarSection(label) {
+            const section = label.parentElement;
+            section.classList.toggle('collapsed');
+            const sectionName = section.dataset.section;
+            const collapsedSections = JSON.parse(localStorage.getItem('sidebarCollapsed') || '{}');
+            collapsedSections[sectionName] = section.classList.contains('collapsed');
+            localStorage.setItem('sidebarCollapsed', JSON.stringify(collapsedSections));
+        }
 
-    async function init() {
-      const { data: { session } } = await supabaseClient.auth.getSession();
-      if (!session) { window.location.href = 'login.html'; return; }
-      const coachId = session.user.id;
-      try {
-        const res = await fetch('/.netlify/functions/gym-leaderboard?view=coach&coachId=' + encodeURIComponent(coachId));
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || 'Failed to load');
-        render(data);
-      } catch (e) {
-        document.getElementById('content').innerHTML = `<div class="state">Couldn't load the leaderboard: ${esc(e.message)}</div>`;
-      }
-    }
-    init();
-  </script>
+        // Restore sidebar collapsed state
+        (function restoreSidebarState() {
+            const collapsedSections = JSON.parse(localStorage.getItem('sidebarCollapsed') || '{}');
+            document.querySelectorAll('.sidebar-nav-section').forEach(section => {
+                const sectionName = section.dataset.section;
+                if (collapsedSections[sectionName]) {
+                    section.classList.add('collapsed');
+                }
+            });
+        })();
+
+        // Mobile sidebar
+        const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+        const sidebar = document.querySelector('.sidebar');
+        const sidebarOverlay = document.getElementById('sidebarOverlay');
+
+        if (mobileMenuBtn) {
+            mobileMenuBtn.addEventListener('click', () => {
+                sidebar.classList.toggle('open');
+                sidebarOverlay.classList.toggle('active');
+            });
+        }
+        if (sidebarOverlay) {
+            sidebarOverlay.addEventListener('click', () => {
+                sidebar.classList.remove('open');
+                sidebarOverlay.classList.remove('active');
+            });
+        }
+
+        const SUPABASE_URL = 'https://qewqcjzlfqamqwbccapr.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFld3FjanpsZnFhbXF3YmNjYXByIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM2OTg0NzAsImV4cCI6MjA3OTI3NDQ3MH0.mQnMC33O88oLkLLGWD2oG-oaSHGI-NfHmtQCZxnxSLs';
+        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        async function logout() {
+            try { await supabaseClient.auth.signOut({ scope: 'local' }); } catch (e) {}
+            localStorage.removeItem('supabase.auth.token');
+            sessionStorage.clear();
+            window.location.href = 'login.html';
+        }
+
+        function esc(s){ return String(s||'').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+        function initials(name){ return (name||'?').trim().charAt(0).toUpperCase(); }
+
+        function athleteRow(a, isReps) {
+            const gClass = a.rank === 1 ? 'g1' : a.rank === 2 ? 'g2' : a.rank === 3 ? 'g3' : '';
+            const medal = a.rank === 1 ? '🥇' : a.rank === 2 ? '🥈' : a.rank === 3 ? '🥉' : a.rank;
+            const av = a.photo ? `<img class="avatar" src="${esc(a.photo)}" alt="">` : `<div class="avatar">${initials(a.name)}</div>`;
+            // Weight lifts show weight × reps + estimated 1-rep max; rep lifts show reps.
+            const main = isReps ? `${a.reps} reps` : `${a.weight} ${a.weightUnit} × ${a.reps}`;
+            const smallLine = isReps ? '' : `<div class="small">${Math.round(a.score)} lb e1RM</div>`;
+            const gd = a.gender && a.gender !== 'other' ? `<span class="gd">${a.gender}</span>` : '';
+            return `<div class="row">
+                <div class="rank ${gClass}">${medal}</div>
+                <div class="who">${av}<div style="min-width:0"><div class="nm">${esc(a.name)} ${a.verified ? '<span class="verified">✓</span>' : ''}</div>${gd}</div></div>
+                <div class="val"><div class="big">${main}</div>${smallLine}</div>
+            </div>`;
+        }
+
+        function render(data) {
+            const counts = document.getElementById('counts');
+            counts.innerHTML = `<span class="pill">${data.athleteCount || 0} athletes</span><span class="pill">${data.totalLifts || 0} lifts logged</span>`;
+            const content = document.getElementById('content');
+            if (!data.athleteCount) {
+                content.innerHTML = `<div class="state">No lifts on the leaderboard yet. Once members post video-proof lifts, they'll show up here ranked.</div>`;
+                return;
+            }
+            const lifts = data.lifts || [];
+            content.innerHTML = `<div class="lift-grid">` + lifts.map(l => {
+                const board = (data.boards && data.boards[l.key]) || [];
+                const isReps = l.metric === 'reps';
+                const rows = board.length
+                    ? board.slice(0, 10).map(a => athleteRow(a, isReps)).join('')
+                    : `<div class="empty-lift">No entries yet.</div>`;
+                return `<div class="lift-card">
+                    <div class="lift-head"><span class="lift-emoji">${l.icon || '🏋️'}</span><span class="lift-name">${esc(l.name)}</span><span class="lift-count">${board.length}</span></div>
+                    ${rows}
+                </div>`;
+            }).join('') + `</div>`;
+        }
+
+        async function init() {
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            if (!session) { window.location.href = 'login.html'; return; }
+            document.getElementById('sidebarEmail').textContent = session.user.email;
+            document.getElementById('sidebarAvatar').textContent = initials(session.user.email);
+            const coachId = session.user.id;
+            try {
+                const res = await fetch('/.netlify/functions/gym-leaderboard?view=coach&coachId=' + encodeURIComponent(coachId));
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || 'Failed to load');
+                render(data);
+            } catch (e) {
+                document.getElementById('content').innerHTML = `<div class="state">Couldn't load the leaderboard: ${esc(e.message)}</div>`;
+            }
+        }
+        init();
+    </script>
 </body>
 </html>
