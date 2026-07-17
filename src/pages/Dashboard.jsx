@@ -1451,12 +1451,14 @@ function Dashboard() {
           </div>
           <span>{t('dashboard.quickActionFavorites')}</span>
         </div>
-        <Link to="/challenges" className="quick-action-card">
-          <div className="quick-action-card-icon">
-            <Trophy size={24} />
-          </div>
-          <span>{t('dashboard.quickActionChallenges')}</span>
-        </Link>
+        {isModuleVisible('leaderboard') && (
+          <Link to="/leaderboard" className="quick-action-card">
+            <div className="quick-action-card-icon">
+              <Trophy size={24} />
+            </div>
+            <span>{getLabel('ranks')}</span>
+          </Link>
+        )}
         <Link to="/settings" className="quick-action-card">
           <div className="quick-action-card-icon">
             <UserCircle size={24} />
