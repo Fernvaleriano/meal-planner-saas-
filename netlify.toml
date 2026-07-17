@@ -205,15 +205,22 @@
   timeout = 26
 
 # HTTP Caching Headers for optimal performance
+#
+# NOTE: when several header rules match the same path, Netlify does NOT let a
+# later rule override an earlier one — it sends BOTH values, and browsers then
+# honor the first/strongest Cache-Control they see. A blanket /*.js immutable
+# rule here used to merge with the /js/* revalidate rule below, so browsers
+# kept old /js scripts (coach-layout.js) for a year and code fixes never
+# reached returning users. Immutable is therefore scoped to the only genuinely
+# immutable scripts — the content-hashed Vite build output — and must never
+# be widened back to /*.js.
 [[headers]]
-  for = "/*.js"
+  for = "/app-test-dist/assets/*"
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
 
 # First-party app scripts under /js/ change over time (coach-layout.js, etc.).
-# The blanket /*.js immutable rule above would cache them for a year, so
-# updates never reach returning users. Revalidate these on every load instead.
-# (Declared after /*.js so it wins for /js/ paths.)
+# Revalidate these on every load so updates propagate (cheap 304s via ETag).
 [[headers]]
   for = "/js/*"
   [headers.values]
