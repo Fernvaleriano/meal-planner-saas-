@@ -193,7 +193,13 @@ function PepTalkModal() {
 
   // ---- Result view (after a quiz is submitted) ----------------------------
   if (quizResult) {
-    const { score } = quizResult;
+    const { score, results } = quizResult;
+    // Multiple-choice questions we scored — these are the ones we can review,
+    // showing the client the right answer for any they missed so they learn.
+    const reviewable = (current.questions || []).filter(q => {
+      const r = results && results[q.id];
+      return r && r.correctOption != null && Array.isArray(q.options);
+    });
     return (
       <div style={overlayStyle}>
         <div style={dialogStyle} onClick={(e) => e.stopPropagation()}>
@@ -208,6 +214,40 @@ function PepTalkModal() {
               <div style={{ fontSize: '1.05rem', fontWeight: 600 }}>{t('pepTalk.answersSubmitted')}</div>
             )}
           </div>
+
+          {reviewable.map((q, qi) => {
+            const r = results[q.id];
+            const picked = answers[q.id]?.selectedOption;
+            const gotIt = r.isCorrect === true;
+            return (
+              <div key={q.id} style={questionBox}>
+                <div style={questionText}>{qi + 1}. {q.questionText}</div>
+                <div style={{
+                  fontSize: '0.9rem',
+                  fontWeight: 600,
+                  color: gotIt ? '#34d399' : '#f87171',
+                  marginBottom: gotIt ? 0 : 8
+                }}>
+                  {gotIt ? `✓ ${t('pepTalk.answerCorrect')}` : `✗ ${t('pepTalk.answerIncorrect')}`}
+                </div>
+                {!gotIt && (
+                  <div style={{ fontSize: '0.9rem', color: '#e5e7eb' }}>
+                    {picked != null && q.options[picked] != null && (
+                      <div style={{ marginBottom: 4 }}>
+                        {t('pepTalk.youAnswered')}:{' '}
+                        <span style={{ color: '#f87171' }}>{q.options[picked]}</span>
+                      </div>
+                    )}
+                    <div>
+                      {t('pepTalk.correctAnswer')}:{' '}
+                      <span style={{ color: '#34d399', fontWeight: 600 }}>{q.options[r.correctOption]}</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+
           <button onClick={handleQuizDone} style={acknowledgeBtnStyle}>
             {t('pepTalk.done')}
           </button>

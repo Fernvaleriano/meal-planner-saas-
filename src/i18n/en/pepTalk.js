@@ -18,6 +18,9 @@ export default {
   submitFailed: 'Could not submit — please try again.',
   youScored: 'You scored {correct} out of {total}',
   answersSubmitted: 'Answers submitted — thanks!',
+  answerCorrect: 'Correct',
+  answerIncorrect: 'Not quite',
+  youAnswered: 'You answered',
   correctAnswer: 'Correct answer',
   done: 'Done',
 };

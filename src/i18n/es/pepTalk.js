@@ -18,6 +18,9 @@ export default {
   submitFailed: 'No se pudo enviar — inténtalo de nuevo.',
   youScored: 'Obtuviste {correct} de {total}',
   answersSubmitted: 'Respuestas enviadas — ¡gracias!',
+  answerCorrect: 'Correcto',
+  answerIncorrect: 'Casi',
+  youAnswered: 'Respondiste',
   correctAnswer: 'Respuesta correcta',
   done: 'Listo',
 };
