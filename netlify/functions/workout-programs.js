@@ -10,6 +10,33 @@ const headers = {
   'Content-Type': 'application/json'
 };
 
+// Shared cover-photo library. The founder curates these in the public
+// "Default Workout Pictures" bucket; every new program gets one so a card is
+// never left with a blank cover (the client AI generator picks one too, but we
+// default here as well so it always happens, even if the client couldn't).
+const DEFAULT_COVER_BUCKET = 'Default Workout Pictures';
+
+// Pick a random cover from the shared library. Best-effort: returns null on any
+// error so saving a program never fails just because of a cover lookup.
+async function pickRandomDefaultCover(supabase) {
+  try {
+    const { data: files, error } = await supabase.storage
+      .from(DEFAULT_COVER_BUCKET)
+      .list('', { limit: 200, sortBy: { column: 'name', order: 'asc' } });
+    if (error || !files) return null;
+    const covers = files.filter(
+      (f) => f && f.name && !f.name.startsWith('.') && /\.(jpe?g|png|webp|gif)$/i.test(f.name)
+    );
+    if (!covers.length) return null;
+    const pick = covers[Math.floor(Math.random() * covers.length)];
+    const { data } = supabase.storage.from(DEFAULT_COVER_BUCKET).getPublicUrl(pick.name);
+    return data?.publicUrl || null;
+  } catch (e) {
+    console.error('Could not pick a default cover:', e);
+    return null;
+  }
+}
+
 exports.handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') {
     return { statusCode: 200, headers, body: '' };
@@ -123,6 +150,16 @@ exports.handler = async (event) => {
         };
       }
 
+      // Cover photo: use whatever was chosen (explicit hero image, or one the
+      // client/AI generator already tucked into program_data). If none was
+      // provided, default to a random photo from the shared library so a
+      // program is never saved with a blank cover. The founder can change it
+      // later per program.
+      let resolvedImageUrl = heroImageUrl || (programData && programData.image_url) || null;
+      if (!resolvedImageUrl) {
+        resolvedImageUrl = await pickRandomDefaultCover(supabase);
+      }
+
       const { data: program, error } = await supabase
         .from('workout_programs')
         .insert([{
@@ -135,7 +172,7 @@ exports.handler = async (event) => {
           days_per_week: daysPerWeek,
           program_data: {
             ...(programData || {}),
-            image_url: heroImageUrl || null
+            image_url: resolvedImageUrl
           },
           is_template: isTemplate !== false,
           is_published: isPublished || false,
