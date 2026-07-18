@@ -554,3 +554,12 @@ it directly into his coach account via the Supabase MCP (`execute_sql`):
   If `matched < total`, an exercise name is wrong (didn't match the library).
 - Skip the insert only if that template name already exists for his coach_id
   (avoid duplicates).
+- **ALWAYS set a cover photo (locked July 2026):** every program you insert
+  MUST get a `program_data.image_url` from the shared "Default Workout
+  Pictures" storage bucket (public URL
+  `.../storage/v1/object/public/Default%20Workout%20Pictures/<file>`). Never
+  leave a program with a blank cover. This is the same curated pool the
+  client-facing AI generator picks from (`workout-cover-library.js` lists it),
+  and the server now defaults any coverless save to a random one from it
+  (`workout-programs.js` POST). Pick from the folder at random / spread them so
+  no two look alike; the founder can swap any later.
