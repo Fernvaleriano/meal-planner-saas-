@@ -136,7 +136,13 @@ exports.handler = async (event) => {
           answerMediaType = a.answerMediaType === 'video' ? 'video' : 'image';
         }
 
-        perQuestion[q.id] = { isCorrect };
+        // Include the correct choice so the client can show it back to the
+        // learner AFTER they've answered (the answer key is never sent before
+        // submit — see list-pep-talks-for-client, which strips correct_option).
+        perQuestion[q.id] = {
+          isCorrect,
+          correctOption: (hasOptions && q.correct_option != null) ? q.correct_option : null
+        };
         rows.push({
           question_id: q.id,
           pep_talk_id: pepTalkId,
