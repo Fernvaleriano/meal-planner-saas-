@@ -712,6 +712,41 @@ const DEFAULT_PROGRAMS = [
       }
 
     ]}
+  },
+
+  {
+    name: 'Chest & Triceps - Full Gym (1 Day)',
+    description: 'Intermediate | 1 day/week | ~60 min | Warm-up + Chest & Triceps + Stretches',
+    program_type: 'hypertrophy',
+    difficulty: 'intermediate',
+    days_per_week: 1,
+    program_data: { days: [
+      {
+        name: 'Day 1 — Chest & Triceps',
+        exercises: [
+          // WARM-UP (5-6 min)
+          { name: 'Jumping Jack', sets: 1, trackingType: 'time', duration: 60, setsData: [{ duration: 60, restSeconds: 15 }], notes: 'WARM-UP — Get the heart rate up. Light, bouncy pace.', section: 'warm-up' },
+          { name: 'Arm Circle', sets: 1, trackingType: 'time', duration: 30, setsData: [{ duration: 30, restSeconds: 10 }], notes: 'WARM-UP — 15 sec forward, 15 sec backward. Open up the shoulders.', section: 'warm-up' },
+          { name: 'Shoulder Circle', sets: 1, trackingType: 'time', duration: 30, setsData: [{ duration: 30, restSeconds: 10 }], notes: 'WARM-UP — Loosen the shoulder joints before pressing.', section: 'warm-up' },
+          { name: 'Push Ups Bodyweight', sets: 1, trackingType: 'reps', setsData: [{ reps: 10, restSeconds: 30 }], notes: 'WARM-UP — One easy set to prime the chest and triceps. Stop well short of failure.', section: 'warm-up' },
+
+          // MAIN WORKOUT — Chest (heavy → isolation), then triceps
+          { name: 'Barbell Bench Press', sets: 4, trackingType: 'reps', setsData: [{ reps: 10, restSeconds: 90 }, { reps: 8, restSeconds: 90 }, { reps: 8, restSeconds: 90 }, { reps: 6, restSeconds: 120 }], notes: 'Primary chest builder. Shoulder blades pinned, feet planted, bar to mid-chest. Add weight as reps drop.' },
+          { name: 'Dumbbell Incline Bench Press', sets: 3, trackingType: 'reps', setsData: [{ reps: 10, restSeconds: 75 }, { reps: 10, restSeconds: 75 }, { reps: 10, restSeconds: 75 }], notes: 'Upper chest focus. 30-45 degree incline. Deep stretch at the bottom, press up and slightly in.' },
+          { name: 'Machine Fly', sets: 3, trackingType: 'reps', setsData: [{ reps: 12, restSeconds: 60 }, { reps: 12, restSeconds: 60 }, { reps: 12, restSeconds: 60 }], notes: 'Chest isolation. Slight elbow bend, squeeze hard in the middle for 1 sec, slow on the way back.' },
+          { name: 'Barbell Lying Triceps Skull Crushers', sets: 3, trackingType: 'reps', setsData: [{ reps: 10, restSeconds: 75 }, { reps: 10, restSeconds: 75 }, { reps: 10, restSeconds: 75 }], notes: 'Elbows tucked and pointing at the ceiling. Lower to the forehead, extend without flaring.' },
+          { name: 'Cable Pushdown', sets: 3, trackingType: 'reps', setsData: [{ reps: 12, restSeconds: 60 }, { reps: 12, restSeconds: 60 }, { reps: 12, restSeconds: 60 }], notes: 'Elbows pinned to your sides. Full lockout, squeeze the triceps at the bottom.' },
+          { name: 'Cable Overhead Extension Rope', sets: 3, trackingType: 'reps', setsData: [{ reps: 12, restSeconds: 60 }, { reps: 12, restSeconds: 60 }, { reps: 12, restSeconds: 60 }], notes: 'Long-head stretch. Face away from the stack, extend overhead, control the return.' },
+          { name: 'Bench Dip (knees Bent)', sets: 3, trackingType: 'reps', setsData: [{ reps: 12, restSeconds: 60 }, { reps: 12, restSeconds: 60 }, { reps: 12, restSeconds: 60 }], notes: 'Finisher — go close to failure. Shoulders down and back, elbows point straight behind you.' },
+
+          // COOL-DOWN STRETCHES (hold each ~30 sec)
+          { name: 'Above Head Chest Stretch', sets: 1, trackingType: 'time', duration: 30, setsData: [{ duration: 30, restSeconds: 0 }], notes: 'COOL-DOWN — Clasp hands overhead, open up the chest. Deep breaths.', section: 'cool-down' },
+          { name: 'Bent Arm Chest Stretch', sets: 1, trackingType: 'time', duration: 30, setsData: [{ duration: 30, restSeconds: 0 }], notes: 'COOL-DOWN — Forearm on a wall or rack, 15 sec per side. Gentle stretch, no pain.', section: 'cool-down' },
+          { name: 'Overhead Triceps Stretch Side Angle', sets: 1, trackingType: 'time', duration: 30, setsData: [{ duration: 30, restSeconds: 0 }], notes: 'COOL-DOWN — 15 sec per arm. Reach down the spine, gently press the elbow.', section: 'cool-down' },
+          { name: 'Cross Body Shoulder Stretch', sets: 1, trackingType: 'time', duration: 30, setsData: [{ duration: 30, restSeconds: 0 }], notes: 'COOL-DOWN — 15 sec per arm. Great session — fuel up and recover.', section: 'cool-down' }
+        ]
+      }
+    ]}
   }
 ];
 
@@ -776,11 +811,41 @@ exports.handler = async (event) => {
     // only genuinely custom-only names get enriched from the coach set.
     const { data: allDbExercises, error: exError } = await supabase
       .from('exercises')
-      .select('id, name, video_url, animation_url, thumbnail_url, muscle_group, equipment, coach_id')
+      .select('id, name, video_url, animation_url, thumbnail_url, muscle_group, equipment, coach_id, reference_links')
       .or(`coach_id.is.null,coach_id.eq.${coachId}`)
       .limit(5000);
 
     if (exError) throw exError;
+
+    // ── Coach's globally saved reference links ──────────────────────────
+    // The builder merges coach_exercise_references into every exercise at
+    // add-time (addExerciseToDay / swap / AI import all do this), so the
+    // links live inside program_data and flow to client assignments. Seeded
+    // templates must bake them in the same way — otherwise the coach has to
+    // tap "Load" on each exercise before the links reach a client.
+    const { data: coachGlobalRefs, error: refsError } = await supabase
+      .from('coach_exercise_references')
+      .select('exercise_name, reference_links')
+      .eq('coach_id', coachId);
+
+    if (refsError) throw refsError;
+
+    const globalRefsMap = new Map();
+    for (const ref of (coachGlobalRefs || [])) {
+      globalRefsMap.set(ref.exercise_name.toLowerCase(), ref.reference_links || []);
+    }
+
+    // Exercise-level links first, then any coach globals not already present
+    // (same precedence + URL dedupe as the builder).
+    const mergeReferenceLinks = (exerciseName, exerciseRefs) => {
+      const merged = Array.isArray(exerciseRefs) ? exerciseRefs.map(r => ({ ...r })) : [];
+      const globals = globalRefsMap.get((exerciseName || '').toLowerCase()) || [];
+      const existingUrls = new Set(merged.map(l => l.url));
+      for (const ref of globals) {
+        if (!existingUrls.has(ref.url)) merged.push({ ...ref });
+      }
+      return merged;
+    };
 
     const exerciseLookup = new Map();
     // Globals first (priority), then fill in any custom-only names.
@@ -799,7 +864,10 @@ exports.handler = async (event) => {
         ...day,
         exercises: day.exercises.map(ex => {
           const dbMatch = exerciseLookup.get(ex.name.toLowerCase());
-          if (!dbMatch) return ex;
+          if (!dbMatch) {
+            const refLinks = mergeReferenceLinks(ex.name, ex.reference_links);
+            return refLinks.length > 0 ? { ...ex, reference_links: refLinks } : ex;
+          }
           return {
             ...ex,
             name: dbMatch.name,  // Use exact DB name (correct casing)
@@ -808,7 +876,8 @@ exports.handler = async (event) => {
             animation_url: dbMatch.animation_url || null,
             thumbnail_url: dbMatch.thumbnail_url || null,
             muscle_group: dbMatch.muscle_group || ex.muscle_group,
-            equipment: dbMatch.equipment || ex.equipment
+            equipment: dbMatch.equipment || ex.equipment,
+            reference_links: mergeReferenceLinks(dbMatch.name, dbMatch.reference_links)
           };
         })
       }));

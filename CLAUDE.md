@@ -534,6 +534,16 @@ it directly into his coach account via the Supabase MCP (`execute_sql`):
   `thumbnail_url`, `muscle_group`, `equipment`, and overwrite `name` with the
   exact DB casing. An exercise WITHOUT these enriched fields shows up with no
   video/thumbnail — that's the failure the founder keeps catching.
+- **⚠️ ALSO attach `reference_links` (fixed July 2026 — do NOT regress):**
+  merge, deduped by `url`, (a) the `exercises.reference_links` column of the
+  matched row + (b) his saved global links from `coach_exercise_references`
+  (`coach_id` = his, `exercise_name` matched case-insensitively — he has one
+  saved for ~430 exercises). The builder bakes these into `program_data` at
+  add-time, so a workout inserted WITHOUT them forces him to tap "Load" on
+  every exercise before the links reach a client's calendar — that was the
+  long-standing "reference links don't upload" bug. The seeder
+  (`seed-default-workouts.js`) now does this merge — copy its
+  `mergeReferenceLinks` behavior.
 - **Do the enrichment + insert in ONE `execute_sql`** so the big program_data
   JSON never has to be hand-retyped: generate it with a small node script
   (read `DEFAULT_PROGRAMS`, dollar-quote the raw `program_data`, then a SQL CTE
