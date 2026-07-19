@@ -100,8 +100,36 @@ export default {
 
   // Meal prep modal
   mealPrepModalHeading: 'Meal Prep Guide',
-  mealPrepLoading: 'Generating meal prep guide...',
+  mealPrepLoading: 'Building your prep plan...',
   mealPrepEmpty: 'Click to generate a meal prep guide for this plan.',
+
+  // Meal prep — setup step
+  mealPrepSetupIntro: "Let's build a prep plan that fits your week. A few quick questions:",
+  mealPrepQDays: 'How many days do you want to prep?',
+  mealPrepDayCount: '{count} days',
+  mealPrepWholePlan: 'Whole plan ({count})',
+  mealPrepQSessions: 'How many cook sessions this week?',
+  mealPrepSessionsOne: 'One big prep',
+  mealPrepSessionsTwo: 'Two sessions',
+  mealPrepQTime: 'How much time per session?',
+  mealPrepTimeQuick: 'Quick (under 1 hr)',
+  mealPrepTimeStandard: 'Standard (1–2 hrs)',
+  mealPrepTimeAllIn: 'All in (2 hr+)',
+  mealPrepQExperience: 'How comfortable are you cooking?',
+  mealPrepExpBeginner: 'Beginner',
+  mealPrepExpIntermediate: 'Comfortable',
+  mealPrepExpAdvanced: 'Pro',
+  mealPrepGenerateBtn: 'Build my prep plan',
+
+  // Meal prep — guide step
+  mealPrepStorageHeading: 'Storage guide',
+  mealPrepAssemblyHeading: 'Daily assembly',
+  mealPrepTipsHeading: 'Coach tips',
+  mealPrepFridge: 'Fridge',
+  mealPrepFreezer: 'Freezer',
+  mealPrepRedo: 'Start over',
+  mealPrepRetry: 'Try again',
+  mealPrepErrorBody: "Couldn't build your prep plan. Please try again.",
 
   // Custom meal modal
   customMealHeading: 'Custom Meal',
