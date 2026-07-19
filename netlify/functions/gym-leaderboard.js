@@ -267,22 +267,10 @@ exports.handler = async (event) => {
           if (!c) { c = { clientId: p.client_id, name: p.client_name || 'Member', photo: p.clients?.profile_photo_url || null, count: 0 }; checkins.set(p.client_id, c); }
           c.count += 1;
         }
-        // Show the WHOLE active roster, not just members who checked in — pull
-        // every non-archived, non-demo member of the gym and add anyone missing
-        // with a count of 0 so they rank at the bottom of the board.
-        const { data: roster } = await supabase
-          .from('clients')
-          .select('id, client_name, profile_photo_url')
-          .eq('coach_id', coachId)
-          .not('is_archived', 'is', true)
-          .not('is_demo', 'is', true);
-        for (const m of roster || []) {
-          if (!checkins.has(m.id)) {
-            checkins.set(m.id, { clientId: m.id, name: m.client_name || 'Member', photo: m.profile_photo_url || null, count: 0 });
-          }
-        }
+        // Just the top 10 check-in leaders — keep the board short.
         const checkinBoard = [...checkins.values()]
           .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name))
+          .slice(0, 10)
           .map((c, i) => ({ ...c, rank: i + 1, isMe: c.clientId === myId }));
 
         // ── PR Race: most lifts logged this month (keep grinding for PBs) ──
