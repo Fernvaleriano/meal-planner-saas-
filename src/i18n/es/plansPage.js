@@ -97,8 +97,36 @@ export default {
 
   // Meal prep modal
   mealPrepModalHeading: 'Guía de preparación',
-  mealPrepLoading: 'Generando guía de preparación...',
+  mealPrepLoading: 'Creando tu plan de preparación...',
   mealPrepEmpty: 'Toca para generar una guía de preparación para este plan.',
+
+  // Meal prep — paso de configuración
+  mealPrepSetupIntro: 'Vamos a crear un plan de preparación que se adapte a tu semana. Unas preguntas rápidas:',
+  mealPrepQDays: '¿Cuántos días quieres preparar?',
+  mealPrepDayCount: '{count} días',
+  mealPrepWholePlan: 'Plan completo ({count})',
+  mealPrepQSessions: '¿Cuántas sesiones de cocina esta semana?',
+  mealPrepSessionsOne: 'Una gran preparación',
+  mealPrepSessionsTwo: 'Dos sesiones',
+  mealPrepQTime: '¿Cuánto tiempo por sesión?',
+  mealPrepTimeQuick: 'Rápido (menos de 1 h)',
+  mealPrepTimeStandard: 'Normal (1–2 h)',
+  mealPrepTimeAllIn: 'A tope (2 h+)',
+  mealPrepQExperience: '¿Qué tan cómodo te sientes cocinando?',
+  mealPrepExpBeginner: 'Principiante',
+  mealPrepExpIntermediate: 'Cómodo',
+  mealPrepExpAdvanced: 'Experto',
+  mealPrepGenerateBtn: 'Crear mi plan de preparación',
+
+  // Meal prep — paso de guía
+  mealPrepStorageHeading: 'Guía de conservación',
+  mealPrepAssemblyHeading: 'Montaje diario',
+  mealPrepTipsHeading: 'Consejos del coach',
+  mealPrepFridge: 'Nevera',
+  mealPrepFreezer: 'Congelador',
+  mealPrepRedo: 'Empezar de nuevo',
+  mealPrepRetry: 'Reintentar',
+  mealPrepErrorBody: 'No se pudo crear tu plan de preparación. Inténtalo de nuevo.',
 
   // Custom meal modal
   customMealHeading: 'Comida personalizada',

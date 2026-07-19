@@ -191,8 +191,18 @@ function Plans() {
 
   // Meal prep modal state
   const [showMealPrepModal, setShowMealPrepModal] = useState(false);
-  const [mealPrepGuide, setMealPrepGuide] = useState(null);
+  const [mealPrepGuide, setMealPrepGuide] = useState(null); // parsed object, or string (fallback)
   const [mealPrepLoading, setMealPrepLoading] = useState(false);
+  // Two-step flow: 'setup' asks the client a few questions, then 'guide' shows
+  // the AI-generated, coach-style plan built from those answers.
+  const [mealPrepStep, setMealPrepStep] = useState('setup');
+  const [mealPrepError, setMealPrepError] = useState(false);
+  const [mealPrepSetup, setMealPrepSetup] = useState({
+    days: null,               // how many days of the plan to prep (null = whole plan)
+    sessions: 1,              // cook sessions per week
+    time: 'standard',         // 'quick' | 'standard' | 'allin'
+    experience: 'intermediate' // 'beginner' | 'intermediate' | 'advanced'
+  });
 
   // Scroll position is managed centrally by Layout (per-path restoration).
 
@@ -447,6 +457,9 @@ function Plans() {
     // Clear state belonging to any previously viewed plan
     setUndoData(null);
     setMealPrepGuide(null);
+    setMealPrepStep('setup');
+    setMealPrepError(false);
+    setMealPrepSetup({ days: null, sessions: 1, time: 'standard', experience: 'intermediate' });
 
     if (!selectedPlan) {
       setOriginalPlanData(null);
@@ -1580,39 +1593,143 @@ Return ONLY valid JSON:
       .trim();
   };
 
-  // Generate meal prep guide
-  const handleMealPrep = async () => {
+  // Open the Meal Prep modal. We no longer auto-generate on open — the client
+  // first tells us how they want to prep (days, sessions, time, experience),
+  // then we build a guide tailored to those answers. If a guide already exists
+  // for this plan, jump straight back to it.
+  const handleMealPrep = () => {
+    setMealPrepError(false);
+    // Default the day count to the whole plan the first time the modal opens.
+    setMealPrepSetup(prev => (
+      prev.days == null
+        ? { ...prev, days: getPlanDays(selectedPlan).length || 1 }
+        : prev
+    ));
+    setMealPrepStep(mealPrepGuide ? 'guide' : 'setup');
     setShowMealPrepModal(true);
+  };
 
-    if (mealPrepGuide) return; // Already generated
+  // Turn the model's raw text response into a structured guide object. The
+  // backend passes AI text straight through, and the Gemini fallback forces
+  // JSON — so we accept JSON in either raw or code-fenced form and extract the
+  // outermost object. Returns null when it isn't the shape we expect, so the
+  // caller can fall back to plain-text rendering.
+  const parseMealPrepResponse = (raw) => {
+    if (!raw) return null;
+    if (typeof raw === 'object') {
+      return (raw.overview || raw.sessions || raw.storage || raw.assembly || raw.tips) ? raw : null;
+    }
+    let text = String(raw).trim().replace(/```json/gi, '').replace(/```/g, '').trim();
+    const first = text.indexOf('{');
+    const last = text.lastIndexOf('}');
+    if (first === -1 || last === -1 || last <= first) return null;
+    try {
+      const obj = JSON.parse(text.slice(first, last + 1));
+      if (obj && (obj.overview || obj.sessions || obj.storage || obj.assembly || obj.tips)) return obj;
+      return null;
+    } catch {
+      return null;
+    }
+  };
 
+  // Flatten a structured (or plain-string) guide into readable text — used by
+  // the PDF export and the plain-text fallback so raw JSON braces never show.
+  const mealPrepGuideToText = (guide) => {
+    if (!guide) return '';
+    if (typeof guide === 'string') return cleanMealPrepText(guide);
+    const lines = [];
+    if (guide.overview) { lines.push(guide.overview, ''); }
+    (guide.sessions || []).forEach(s => {
+      lines.push(`${s.title || 'Prep session'}${s.time ? ` — ${s.time}` : ''}`);
+      (s.tasks || []).forEach(tk => lines.push(`• ${tk.text}${tk.tip ? ` (${tk.tip})` : ''}`));
+      lines.push('');
+    });
+    if ((guide.storage || []).length) {
+      lines.push(t('plansPage.mealPrepStorageHeading'));
+      guide.storage.forEach(it => lines.push(
+        `• ${it.item}: ${it.howTo || ''}${it.fridge ? ` — Fridge: ${it.fridge}` : ''}${it.freezer ? `, Freezer: ${it.freezer}` : ''}`
+      ));
+      lines.push('');
+    }
+    if ((guide.assembly || []).length) {
+      lines.push(t('plansPage.mealPrepAssemblyHeading'));
+      guide.assembly.forEach(a => lines.push(`• ${a.label}: ${a.text}`));
+      lines.push('');
+    }
+    if ((guide.tips || []).length) {
+      lines.push(t('plansPage.mealPrepTipsHeading'));
+      guide.tips.forEach(tp => lines.push(`• ${tp}`));
+    }
+    return lines.join('\n').replace(/\n{3,}/g, '\n\n').trim();
+  };
+
+  // Generate the meal prep guide from the client's setup answers.
+  const generateMealPrepGuide = async () => {
+    setMealPrepStep('guide');
+    setMealPrepError(false);
     setMealPrepLoading(true);
     try {
-      const days = getPlanDays(selectedPlan);
-      const allMeals = [];
+      const allDays = getPlanDays(selectedPlan);
+      const dayCount = Math.min(mealPrepSetup.days || allDays.length, allDays.length) || 1;
+      const days = allDays.slice(0, dayCount);
 
-      days.forEach((day, dayIdx) => {
+      const mealLines = [];
+      days.forEach((day, i) => {
         (day.plan || []).forEach(meal => {
-          allMeals.push({
-            day: dayIdx + 1,
-            name: meal.name,
-            type: meal.type || meal.meal_type,
-            ingredients: meal.ingredients || []
-          });
+          const ings = (meal.ingredients || [])
+            .map(x => (typeof x === 'string' ? x : (x?.name || x?.food || '')))
+            .filter(Boolean);
+          mealLines.push(
+            `Day ${i + 1} ${meal.type || meal.meal_type || 'Meal'}: ${meal.name}${ings.length ? ` — ${ings.join(', ')}` : ''}`
+          );
         });
       });
 
-      const prompt = `Create a concise meal prep guide for this ${days.length}-day meal plan:
+      const timeLabel = {
+        quick: 'under 1 hour total — keep it fast and minimal',
+        standard: '1 to 2 hours',
+        allin: '2+ hours and happy to batch-cook everything at once'
+      }[mealPrepSetup.time] || '1 to 2 hours';
 
-${allMeals.map(m => `Day ${m.day} ${m.type}: ${m.name}`).join('\n')}
+      const expLabel = {
+        beginner: 'a beginner cook — keep steps simple and explain the basics',
+        intermediate: 'a comfortable home cook',
+        advanced: 'an experienced cook — be efficient and skip the obvious'
+      }[mealPrepSetup.experience] || 'a comfortable home cook';
 
-Provide:
-1. What to prep on Day 1 (proteins, grains, vegetables that can be prepped ahead)
-2. Storage tips for each prepped item
-3. Daily assembly instructions
-4. Time-saving tips
+      const prompt = `You are an expert fitness coach writing a personal MEAL PREP GUIDE for one of your clients. Be warm, clear and practical — like a coach who actually cooks.
 
-Keep it practical and brief. Format with clear sections.`;
+CLIENT'S PREP SET-UP:
+- They want to prep ${dayCount} day(s) of their plan.
+- They want to cook in ${mealPrepSetup.sessions} prep session(s) across the week.
+- They have ${timeLabel} per prep session.
+- They are ${expLabel}.
+
+MEALS TO PREP:
+${mealLines.join('\n')}
+
+Build a guide that respects their time, number of sessions and experience. Group cooking tasks logically (proteins, carbs, vegetables, sauces). If they chose 2 sessions, split the work sensibly (e.g. a big Sunday cook + a quick mid-week top-up so nothing goes stale).
+
+Respond with ONLY valid JSON — no markdown, no code fences, no text before or after. Use EXACTLY this shape:
+{
+  "overview": "2-3 warm, motivating sentences in a coach's voice about the game plan for the week",
+  "sessions": [
+    {
+      "title": "short name, e.g. Sunday Big Cook",
+      "time": "rough time, e.g. 75 min",
+      "tasks": [
+        { "text": "one clear cooking/prep action", "tip": "short pro tip or the reason — can be an empty string" }
+      ]
+    }
+  ],
+  "storage": [
+    { "item": "food name", "howTo": "how to store it", "fridge": "e.g. 4 days", "freezer": "e.g. 3 months, or 'Not ideal'" }
+  ],
+  "assembly": [
+    { "label": "Day 1", "text": "quick grab-and-go instructions to assemble that day's meals from what was prepped" }
+  ],
+  "tips": [ "3 to 5 short, punchy time-saving or flavor tips" ]
+}`;
 
       const response = await apiPost('/.netlify/functions/generate-meal-plan', {
         prompt,
@@ -1620,14 +1737,20 @@ Keep it practical and brief. Format with clear sections.`;
         language
       });
 
-      if (response.data) {
-        setMealPrepGuide(response.data);
+      const raw = response?.data;
+      const parsed = parseMealPrepResponse(raw);
+      if (parsed) {
+        setMealPrepGuide(parsed);
+      } else if (raw) {
+        // Not the expected JSON — render whatever we got as cleaned text so the
+        // client still gets a usable guide instead of an error.
+        setMealPrepGuide(String(raw));
       } else {
-        setMealPrepGuide('Unable to generate meal prep guide. Please try again.');
+        setMealPrepError(true);
       }
     } catch (err) {
       console.error('Meal prep error:', err);
-      setMealPrepGuide('Failed to generate meal prep guide. Please try again.');
+      setMealPrepError(true);
     } finally {
       setMealPrepLoading(false);
     }
@@ -1757,7 +1880,7 @@ Keep it practical and brief. Format with clear sections.`;
 
     // Add meal prep guide section if available
     if (mealPrepGuide) {
-      const cleanedGuide = cleanMealPrepText(mealPrepGuide);
+      const cleanedGuide = mealPrepGuideToText(mealPrepGuide);
       content += `
         <div class="meal-prep-section">
           <h2>👨‍🍳 ${pdfMealPrepHeading}</h2>
@@ -2280,16 +2403,193 @@ Keep it practical and brief. Format with clear sections.`;
                 </button>
               </div>
               <div className="meal-prep-content">
-                {mealPrepLoading ? (
+                {mealPrepStep === 'setup' ? (
+                  <div className="meal-prep-setup">
+                    <p className="meal-prep-setup-intro">{t('plansPage.mealPrepSetupIntro')}</p>
+
+                    {/* How many days */}
+                    <div className="meal-prep-q">
+                      <label>{t('plansPage.mealPrepQDays')}</label>
+                      <div className="meal-prep-chips">
+                        {Array.from({ length: getPlanDays(selectedPlan).length || 1 }, (_, i) => i + 1).map(n => {
+                          const total = getPlanDays(selectedPlan).length || 1;
+                          const selected = (mealPrepSetup.days || total) === n;
+                          return (
+                            <button
+                              key={n}
+                              type="button"
+                              className={`meal-prep-chip ${selected ? 'selected' : ''}`}
+                              onClick={() => setMealPrepSetup(prev => ({ ...prev, days: n }))}
+                            >
+                              {n === total
+                                ? t('plansPage.mealPrepWholePlan', { count: n })
+                                : t('plansPage.mealPrepDayCount', { count: n })}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Cook sessions per week */}
+                    <div className="meal-prep-q">
+                      <label>{t('plansPage.mealPrepQSessions')}</label>
+                      <div className="meal-prep-chips">
+                        {[1, 2].map(n => (
+                          <button
+                            key={n}
+                            type="button"
+                            className={`meal-prep-chip ${mealPrepSetup.sessions === n ? 'selected' : ''}`}
+                            onClick={() => setMealPrepSetup(prev => ({ ...prev, sessions: n }))}
+                          >
+                            {n === 1 ? t('plansPage.mealPrepSessionsOne') : t('plansPage.mealPrepSessionsTwo')}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Time available */}
+                    <div className="meal-prep-q">
+                      <label>{t('plansPage.mealPrepQTime')}</label>
+                      <div className="meal-prep-chips">
+                        {[
+                          { key: 'quick', label: t('plansPage.mealPrepTimeQuick') },
+                          { key: 'standard', label: t('plansPage.mealPrepTimeStandard') },
+                          { key: 'allin', label: t('plansPage.mealPrepTimeAllIn') }
+                        ].map(opt => (
+                          <button
+                            key={opt.key}
+                            type="button"
+                            className={`meal-prep-chip ${mealPrepSetup.time === opt.key ? 'selected' : ''}`}
+                            onClick={() => setMealPrepSetup(prev => ({ ...prev, time: opt.key }))}
+                          >
+                            {opt.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Experience */}
+                    <div className="meal-prep-q">
+                      <label>{t('plansPage.mealPrepQExperience')}</label>
+                      <div className="meal-prep-chips">
+                        {[
+                          { key: 'beginner', label: t('plansPage.mealPrepExpBeginner') },
+                          { key: 'intermediate', label: t('plansPage.mealPrepExpIntermediate') },
+                          { key: 'advanced', label: t('plansPage.mealPrepExpAdvanced') }
+                        ].map(opt => (
+                          <button
+                            key={opt.key}
+                            type="button"
+                            className={`meal-prep-chip ${mealPrepSetup.experience === opt.key ? 'selected' : ''}`}
+                            onClick={() => setMealPrepSetup(prev => ({ ...prev, experience: opt.key }))}
+                          >
+                            {opt.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <button type="button" className="meal-prep-generate-btn" onClick={generateMealPrepGuide}>
+                      <ChefHat size={18} /> {t('plansPage.mealPrepGenerateBtn')}
+                    </button>
+                  </div>
+                ) : mealPrepLoading ? (
                   <div className="meal-prep-loading">
                     <div className="meal-image-spinner"></div>
                     <p>{t('plansPage.mealPrepLoading')}</p>
                   </div>
+                ) : mealPrepError ? (
+                  <div className="meal-prep-error">
+                    <p>{t('plansPage.mealPrepErrorBody')}</p>
+                    <button type="button" className="meal-prep-generate-btn" onClick={generateMealPrepGuide}>
+                      {t('plansPage.mealPrepRetry')}
+                    </button>
+                  </div>
+                ) : mealPrepGuide && typeof mealPrepGuide === 'object' ? (
+                  <div className="meal-prep-guide-v2">
+                    {mealPrepGuide.overview && (
+                      <div className="mp-overview">
+                        <ChefHat size={18} />
+                        <p>{mealPrepGuide.overview}</p>
+                      </div>
+                    )}
+
+                    {(mealPrepGuide.sessions || []).map((session, si) => (
+                      <div key={si} className="mp-card">
+                        <div className="mp-card-head">
+                          <h3>{session.title}</h3>
+                          {session.time && <span className="mp-time"><Clock size={13} /> {session.time}</span>}
+                        </div>
+                        <ul className="mp-tasks">
+                          {(session.tasks || []).map((task, ti) => (
+                            <li key={ti}>
+                              <Check size={15} className="mp-check" />
+                              <span>
+                                {task.text}
+                                {task.tip ? <em className="mp-tip">{task.tip}</em> : null}
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    ))}
+
+                    {(mealPrepGuide.storage || []).length > 0 && (
+                      <div className="mp-card">
+                        <div className="mp-card-head"><h3>{t('plansPage.mealPrepStorageHeading')}</h3></div>
+                        <div className="mp-storage">
+                          {mealPrepGuide.storage.map((it, ii) => (
+                            <div key={ii} className="mp-storage-row">
+                              <div className="mp-storage-item">{it.item}</div>
+                              {it.howTo && <div className="mp-storage-how">{it.howTo}</div>}
+                              <div className="mp-storage-badges">
+                                {it.fridge && <span className="mp-badge fridge">{t('plansPage.mealPrepFridge')} {it.fridge}</span>}
+                                {it.freezer && <span className="mp-badge freezer">{t('plansPage.mealPrepFreezer')} {it.freezer}</span>}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {(mealPrepGuide.assembly || []).length > 0 && (
+                      <div className="mp-card">
+                        <div className="mp-card-head"><h3>{t('plansPage.mealPrepAssemblyHeading')}</h3></div>
+                        <div className="mp-assembly">
+                          {mealPrepGuide.assembly.map((a, ai) => (
+                            <div key={ai} className="mp-assembly-row">
+                              <span className="mp-day-pill">{a.label}</span>
+                              <span>{a.text}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {(mealPrepGuide.tips || []).length > 0 && (
+                      <div className="mp-card mp-tips-card">
+                        <div className="mp-card-head"><h3>{t('plansPage.mealPrepTipsHeading')}</h3></div>
+                        <ul className="mp-tips">
+                          {mealPrepGuide.tips.map((tip, tii) => (
+                            <li key={tii}>{tip}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    <button type="button" className="meal-prep-redo-btn" onClick={() => { setMealPrepGuide(null); setMealPrepStep('setup'); }}>
+                      <RotateCcw size={15} /> {t('plansPage.mealPrepRedo')}
+                    </button>
+                  </div>
                 ) : mealPrepGuide ? (
+                  // Plain-text fallback (model didn't return the expected JSON)
                   <div className="meal-prep-guide">
-                    {cleanMealPrepText(mealPrepGuide).split('\n').map((line, idx) => (
+                    {mealPrepGuideToText(mealPrepGuide).split('\n').map((line, idx) => (
                       line.trim() ? <p key={idx}>{line}</p> : null
                     ))}
+                    <button type="button" className="meal-prep-redo-btn" onClick={() => { setMealPrepGuide(null); setMealPrepStep('setup'); }}>
+                      <RotateCcw size={15} /> {t('plansPage.mealPrepRedo')}
+                    </button>
                   </div>
                 ) : (
                   <p>{t('plansPage.mealPrepEmpty')}</p>

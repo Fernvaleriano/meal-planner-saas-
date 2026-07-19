@@ -14774,6 +14774,356 @@ textarea,
     color: var(--gray-300);
 }
 
+/* ============================================
+   MEAL PREP — SETUP STEP (question chips)
+   ============================================ */
+.meal-prep-setup-intro {
+    color: var(--gray-600);
+    margin-bottom: 22px;
+    line-height: 1.6;
+}
+
+.meal-prep-q {
+    margin-bottom: 22px;
+}
+
+.meal-prep-q > label {
+    display: block;
+    font-weight: 700;
+    font-size: 0.95rem;
+    color: var(--gray-800);
+    margin-bottom: 12px;
+}
+
+.meal-prep-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.meal-prep-chip {
+    padding: 10px 16px;
+    border-radius: 999px;
+    border: 1.5px solid var(--gray-300);
+    background: var(--gray-50, #f8fafc);
+    color: var(--gray-700);
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.meal-prep-chip:active {
+    transform: scale(0.96);
+}
+
+.meal-prep-chip.selected {
+    background: var(--primary, #10b981);
+    border-color: var(--primary, #10b981);
+    color: #fff;
+}
+
+.meal-prep-generate-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    margin-top: 8px;
+    padding: 15px;
+    border: none;
+    border-radius: 14px;
+    background: var(--primary, #10b981);
+    color: #fff;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: opacity 0.15s ease, transform 0.1s ease;
+}
+
+.meal-prep-generate-btn:active {
+    transform: scale(0.98);
+    opacity: 0.9;
+}
+
+.meal-prep-error {
+    text-align: center;
+    padding: 30px 10px;
+    color: var(--gray-600);
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    align-items: center;
+}
+
+/* ============================================
+   MEAL PREP — GUIDE STEP (structured cards)
+   ============================================ */
+.meal-prep-guide-v2 {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.mp-overview {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    padding: 16px;
+    border-radius: 14px;
+    background: color-mix(in srgb, var(--primary, #10b981) 10%, transparent);
+    border: 1px solid color-mix(in srgb, var(--primary, #10b981) 25%, transparent);
+}
+
+.mp-overview svg {
+    color: var(--primary, #10b981);
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+
+.mp-overview p {
+    color: var(--gray-700);
+    line-height: 1.6;
+    font-weight: 500;
+}
+
+.mp-card {
+    border: 1px solid var(--gray-200);
+    border-radius: 14px;
+    padding: 16px;
+    background: #fff;
+}
+
+.mp-card-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+
+.mp-card-head h3 {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--gray-800);
+    margin: 0;
+}
+
+.mp-time {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--primary, #10b981);
+    background: color-mix(in srgb, var(--primary, #10b981) 12%, transparent);
+    padding: 4px 10px;
+    border-radius: 999px;
+    white-space: nowrap;
+}
+
+.mp-tasks {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.mp-tasks li {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    line-height: 1.5;
+    color: var(--gray-700);
+}
+
+.mp-check {
+    color: var(--primary, #10b981);
+    flex-shrink: 0;
+    margin-top: 3px;
+}
+
+.mp-tip {
+    display: block;
+    font-style: normal;
+    font-size: 0.85rem;
+    color: var(--gray-500);
+    margin-top: 3px;
+}
+
+.mp-storage {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.mp-storage-row {
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--gray-100);
+}
+
+.mp-storage-row:last-child {
+    padding-bottom: 0;
+    border-bottom: none;
+}
+
+.mp-storage-item {
+    font-weight: 700;
+    color: var(--gray-800);
+    margin-bottom: 4px;
+}
+
+.mp-storage-how {
+    font-size: 0.9rem;
+    color: var(--gray-600);
+    line-height: 1.5;
+    margin-bottom: 8px;
+}
+
+.mp-storage-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.mp-badge {
+    font-size: 0.78rem;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: 999px;
+}
+
+.mp-badge.fridge {
+    background: #e0f2fe;
+    color: #0369a1;
+}
+
+.mp-badge.freezer {
+    background: #ede9fe;
+    color: #6d28d9;
+}
+
+.mp-assembly {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.mp-assembly-row {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    line-height: 1.5;
+    color: var(--gray-700);
+}
+
+.mp-day-pill {
+    flex-shrink: 0;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--gray-700);
+    background: var(--gray-100);
+    padding: 3px 10px;
+    border-radius: 8px;
+    white-space: nowrap;
+}
+
+.mp-tips {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.mp-tips li {
+    position: relative;
+    padding-left: 20px;
+    line-height: 1.5;
+    color: var(--gray-700);
+}
+
+.mp-tips li::before {
+    content: '💡';
+    position: absolute;
+    left: 0;
+    top: 0;
+    font-size: 0.9rem;
+}
+
+.meal-prep-redo-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    margin: 8px auto 0;
+    padding: 10px 20px;
+    border: 1.5px solid var(--gray-300);
+    border-radius: 12px;
+    background: transparent;
+    color: var(--gray-600);
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+/* Dark theme — setup + guide */
+[data-theme="dark"] .meal-prep-setup-intro,
+[data-theme="dark"] .mp-overview p,
+[data-theme="dark"] .mp-tasks li,
+[data-theme="dark"] .mp-assembly-row,
+[data-theme="dark"] .mp-tips li {
+    color: var(--gray-300);
+}
+
+[data-theme="dark"] .meal-prep-q > label,
+[data-theme="dark"] .mp-card-head h3,
+[data-theme="dark"] .mp-storage-item {
+    color: var(--gray-100);
+}
+
+[data-theme="dark"] .meal-prep-chip {
+    background: var(--gray-700);
+    border-color: var(--gray-600);
+    color: var(--gray-200);
+}
+
+[data-theme="dark"] .meal-prep-chip.selected {
+    background: var(--primary, #10b981);
+    border-color: var(--primary, #10b981);
+    color: #fff;
+}
+
+[data-theme="dark"] .mp-card {
+    background: var(--gray-800);
+    border-color: var(--gray-700);
+}
+
+[data-theme="dark"] .mp-storage-how {
+    color: var(--gray-400);
+}
+
+[data-theme="dark"] .mp-storage-row {
+    border-color: var(--gray-700);
+}
+
+[data-theme="dark"] .mp-day-pill {
+    background: var(--gray-700);
+    color: var(--gray-200);
+}
+
+[data-theme="dark"] .mp-tip {
+    color: var(--gray-400);
+}
+
+[data-theme="dark"] .meal-prep-redo-btn {
+    border-color: var(--gray-600);
+    color: var(--gray-300);
+}
+
 /* Action bar is already 2x2 grid - no media query needed */
 
 /* ========================================
