@@ -5264,29 +5264,65 @@ IMPORTANT FORMATTING RULES:
 
 Provide helpful, detailed meal prep guidance.${languageInstruction(lang)}`;
 
-  try {
-    const message = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
-      // Structured multi-section guides (meal prep) need headroom so the JSON
-      // is never cut off mid-object — a truncated object fails to parse.
-      max_tokens: structured ? 6000 : 4096,
-      messages: [
-        {
-          role: 'user',
-          content: prompt
-        }
-      ],
-      system: systemPrompt
-    });
+  // Quick check: can this text be parsed as JSON (tolerating markdown fences /
+  // surrounding prose the way extractJSON does downstream)? Used to decide
+  // whether a retry is worthwhile.
+  const quickJsonOk = (text) => {
+    if (!text) return false;
+    let t = text.trim();
+    if (t.startsWith('```')) {
+      t = t.replace(/^```json\s*/i, '').replace(/^```\s*/, '').replace(/\s*```$/, '').trim();
+    }
+    try { JSON.parse(t); return true; } catch (_) {}
+    const m = t.match(/[\[{][\s\S]*[\]}]/);
+    if (m) { try { JSON.parse(m[0]); return true; } catch (_) {} }
+    return false;
+  };
 
-    // Extract text from response
-    const responseText = message.content[0].text;
+  // JSON callers (meal plans + structured guides) get a validate-and-retry
+  // loop so an occasional malformed response self-heals instead of 500ing —
+  // mirrors the resilience the Gemini path already has. Lower temperature on
+  // the retry tightens output toward strictly valid JSON. Plain markdown
+  // callers make a single call as before.
+  const wantsJson = isJson || structured;
+  const maxAttempts = wantsJson ? 2 : 1;
+  let lastText = '';
 
-    return responseText;
-  } catch (error) {
-    console.error('❌ Claude API Error:', error.message);
-    throw error;
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      const message = await anthropic.messages.create({
+        model: 'claude-sonnet-4-20250514',
+        // Structured multi-section guides (meal prep) need headroom so the JSON
+        // is never cut off mid-object — a truncated object fails to parse.
+        max_tokens: structured ? 6000 : 4096,
+        // Slightly lower temperature for JSON keeps output well-formed; drop
+        // further on retry. Per-day variety is driven by a variation seed in
+        // the prompt, so this does not reduce meal variety.
+        ...(wantsJson ? { temperature: attempt === 1 ? 0.7 : 0.4 } : {}),
+        messages: [
+          {
+            role: 'user',
+            content: prompt
+          }
+        ],
+        system: systemPrompt
+      });
+
+      // Extract text from response
+      lastText = message.content[0].text;
+
+      if (!wantsJson) return lastText;
+      if (quickJsonOk(lastText)) return lastText;
+
+      console.warn(`⚠️ Claude returned unparseable JSON (attempt ${attempt}/${maxAttempts})`);
+    } catch (error) {
+      console.error('❌ Claude API Error:', error.message);
+      if (attempt >= maxAttempts) throw error;
+    }
   }
+
+  // Best effort after retries — let extractJSON attempt repair (or throw) downstream.
+  return lastText;
 }
 
 /**
