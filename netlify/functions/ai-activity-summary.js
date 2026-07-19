@@ -966,7 +966,7 @@ async function handleQuestion(event) {
           })(),
           programStartDate: clientAssignment?.start_date || null,
           programEndDate: clientAssignment?.end_date || null,
-          programSchedule: clientAssignment?.workout_data?.schedule?.selectedDays || null,
+          programSchedule: clientAssignment?.workout_data?.schedule?.selectedDays || clientAssignment?.workout_data?.schedule?.days || null,
           hasMultiplePrograms: allClientAssignments.length > 1,
           // Week-to-date adherence: workouts completed since Monday vs scheduled
           // days that have already elapsed this week. Avoids flagging "low
@@ -974,10 +974,10 @@ async function handleQuestion(event) {
           // scheduled workout days yet.
           workoutsThisWeek: clientWorkoutLogs.filter(w => new Date(w.created_at) >= startOfWeek).length,
           scheduledDaysPerWeek: clientAssignment?.workout_data?.schedule?.selectedDays?.length || 0,
-          scheduledDaysElapsedThisWeek: scheduledDaysElapsedThisWeek(clientAssignment?.workout_data?.schedule?.selectedDays || []),
+          scheduledDaysElapsedThisWeek: scheduledDaysElapsedThisWeek(clientAssignment?.workout_data?.schedule?.selectedDays || clientAssignment?.workout_data?.schedule?.days || []),
           daysIntoWeek,
           adherencePercent: (() => {
-            const selectedDays = clientAssignment?.workout_data?.schedule?.selectedDays || [];
+            const selectedDays = clientAssignment?.workout_data?.schedule?.selectedDays || clientAssignment?.workout_data?.schedule?.days || [];
             if (selectedDays.length === 0) return null;
             const elapsed = scheduledDaysElapsedThisWeek(selectedDays);
             if (elapsed === 0) return null; // No scheduled workouts due yet this week

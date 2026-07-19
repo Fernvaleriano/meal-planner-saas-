@@ -11678,7 +11678,12 @@
             // Smart start date: land on the client's next chosen training day AFTER
             // their current plan ends (no overlap, no mid-week guessing). Falls back
             // to today if there's no current plan / end date.
-            document.getElementById('startDate').value = new Date().toISOString().split('T')[0];
+            // Local date, NOT toISOString() — that returns the UTC date, which
+            // after ~5pm US time is already TOMORROW, so an evening assignment
+            // silently started a day late and showed nothing on the client's
+            // calendar "today".
+            const _today = new Date();
+            document.getElementById('startDate').value = `${_today.getFullYear()}-${String(_today.getMonth() + 1).padStart(2, '0')}-${String(_today.getDate()).padStart(2, '0')}`;
             _assignEndCache = null;        // refresh end dates each time the modal opens
             _applySmartStartDate();
 

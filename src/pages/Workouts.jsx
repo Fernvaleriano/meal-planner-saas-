@@ -2239,7 +2239,7 @@ function Workouts() {
           }];
         }
         const assignSchedule = workoutData.schedule || assignment.schedule || {};
-        const selectedDays = assignSchedule.selectedDays || ['mon', 'tue', 'wed', 'thu', 'fri'];
+        const selectedDays = assignSchedule.selectedDays || assignSchedule.days || ['mon', 'tue', 'wed', 'thu', 'fri'];
         const startDate = new Date(assignment.start_date || assignment.created_at);
 
         // Normalize to UTC midnight so day-level comparisons match the server
@@ -2253,7 +2253,7 @@ function Workouts() {
         const targetUTC = Date.UTC(date.getFullYear(), date.getMonth(), date.getDate());
 
         // Check end boundary (exclusive UTC-midnight timestamp)
-        const weeksToUse = assignSchedule.weeksAmount || 12;
+        const weeksToUse = assignSchedule.weeksAmount || assignSchedule.weeks || 12;
         let endBoundaryUTC;
         if (assignment.end_date) {
           const endDate = new Date(assignment.end_date + 'T00:00:00Z');
@@ -2391,12 +2391,12 @@ function Workouts() {
           const workoutData = assignment.workout_data || {};
           const days = workoutData.days || [];
           const assignSchedule = workoutData.schedule || assignment.schedule || {};
-          const selectedDays = assignSchedule.selectedDays || ['mon', 'tue', 'wed', 'thu', 'fri'];
+          const selectedDays = assignSchedule.selectedDays || assignSchedule.days || ['mon', 'tue', 'wed', 'thu', 'fri'];
           const startDate = new Date(assignment.start_date || assignment.created_at);
 
           if (date < startDate) continue;
 
-          const weeksToUse = assignSchedule.weeksAmount || 12;
+          const weeksToUse = assignSchedule.weeksAmount || assignSchedule.weeks || 12;
           let endBoundary;
           if (assignment.end_date) {
             endBoundary = new Date(assignment.end_date + 'T23:59:59');

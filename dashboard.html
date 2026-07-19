@@ -12082,7 +12082,7 @@
                     // Find the client's most relevant active assignment
                     if (!assignmentMap[a.client_id] || (a.end_date && !assignmentMap[a.client_id].end_date)) {
                         const schedule = a.workout_data?.schedule || {};
-                        const selectedDays = schedule.selectedDays || [];
+                        const selectedDays = schedule.selectedDays || schedule.days || [];
                         assignmentMap[a.client_id] = {
                             name: a.name,
                             scheduledDaysPerWeek: selectedDays.length,
