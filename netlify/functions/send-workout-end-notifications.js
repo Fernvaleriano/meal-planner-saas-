@@ -194,8 +194,8 @@ exports.handler = async (event, context) => {
                 const workoutData = assignment.workout_data || {};
                 const days = workoutData.days || [];
                 const schedule = workoutData.schedule || {};
-                const selectedDays = schedule.selectedDays || ['mon', 'tue', 'wed', 'thu', 'fri'];
-                const weeksAmount = schedule.weeksAmount || Math.ceil(daysUntilEnd / 7) || 4;
+                const selectedDays = schedule.selectedDays || schedule.days || ['mon', 'tue', 'wed', 'thu', 'fri'];
+                const weeksAmount = schedule.weeksAmount || schedule.weeks || Math.ceil(daysUntilEnd / 7) || 4;
                 const plannedWorkouts = days.length > 0 ? selectedDays.length * weeksAmount : 0;
 
                 // Determine which alert type (if any) to send

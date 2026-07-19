@@ -158,8 +158,8 @@ exports.handler = async (event) => {
                 const daysRemaining = Math.ceil((endDate - now) / (1000 * 60 * 60 * 24));
                 const workoutData = a.workout_data || {};
                 const schedule = workoutData.schedule || {};
-                const selectedDays = schedule.selectedDays || ['mon', 'tue', 'wed', 'thu', 'fri'];
-                const weeksAmount = schedule.weeksAmount || 4;
+                const selectedDays = schedule.selectedDays || schedule.days || ['mon', 'tue', 'wed', 'thu', 'fri'];
+                const weeksAmount = schedule.weeksAmount || schedule.weeks || 4;
                 const days = workoutData.days || [];
                 const plannedWorkouts = days.length > 0 ? selectedDays.length * weeksAmount : 0;
 

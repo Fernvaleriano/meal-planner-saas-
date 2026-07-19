@@ -14056,7 +14056,7 @@
                     const workoutData = assignment.workout_data || {};
                     const days = workoutData.days || [];
                     const schedule = workoutData.schedule || {};
-                    const selectedDays = schedule.selectedDays || ['mon', 'tue', 'wed', 'thu', 'fri'];
+                    const selectedDays = schedule.selectedDays || schedule.days || ['mon', 'tue', 'wed', 'thu', 'fri'];
                     const dateOverrides = workoutData.date_overrides || {};
                     const programName = assignment.name || 'Workout';
 
@@ -14809,13 +14809,17 @@
                     if (adhocWorkout) {
                         const exercises = (adhocWorkout.workout_data || {}).exercises || [];
                         exercises.push(...exercisesToAdd);
-                        await fetch('/.netlify/functions/adhoc-workouts', {
+                        const putRes = await fetch('/.netlify/functions/adhoc-workouts', {
                             method: 'PUT',
                             headers: { 'Content-Type': 'application/json', ...(await acAuthHeader()) },
                             body: JSON.stringify({ workoutId: adhocWorkout.id, workoutData: { exercises } })
                         });
+                        if (!putRes.ok) {
+                            const errBody = await putRes.json().catch(() => ({}));
+                            throw new Error(errBody.error || `Save failed (${putRes.status})`);
+                        }
                     } else {
-                        await fetch('/.netlify/functions/adhoc-workouts', {
+                        const postRes = await fetch('/.netlify/functions/adhoc-workouts', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json', ...(await acAuthHeader()) },
                             body: JSON.stringify({
@@ -14825,6 +14829,10 @@
                                 workoutData: { exercises: exercisesToAdd }
                             })
                         });
+                        if (!postRes.ok) {
+                            const errBody = await postRes.json().catch(() => ({}));
+                            throw new Error(errBody.error || `Save failed (${postRes.status})`);
+                        }
                     }
                 }
                 if (!acAssignmentCache[targetDate]) acAssignmentCache[targetDate] = [];
@@ -15475,7 +15483,13 @@
                         workoutData: { exercises: [] }
                     })
                 });
-                const data = await res.json();
+                const data = await res.json().catch(() => ({}));
+                // A failed save (expired session, server error) must NOT paint
+                // the workout onto the local calendar — the coach would see it
+                // while the client never got it.
+                if (!res.ok || !data.workout) {
+                    throw new Error(data.error || `Save failed (${res.status})`);
+                }
 
                 cpInvalidateFeed();
                 if (!acAssignmentCache[dateStr]) acAssignmentCache[dateStr] = [];
@@ -15599,7 +15613,7 @@
             const name = `${program.name} - ${day.name || 'Day ' + (dayIndex + 1)}`;
 
             try {
-                await fetch('/.netlify/functions/adhoc-workouts', {
+                const res = await fetch('/.netlify/functions/adhoc-workouts', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', ...(await acAuthHeader()) },
                     body: JSON.stringify({
@@ -15609,6 +15623,13 @@
                         workoutData: { exercises }
                     })
                 });
+                // A failed save must NOT paint the workout onto the local
+                // calendar — the coach would see it while the client never got
+                // it (the old silent-success path here was exactly that bug).
+                if (!res.ok) {
+                    const errBody = await res.json().catch(() => ({}));
+                    throw new Error(errBody.error || `Save failed (${res.status})`);
+                }
 
                 cpInvalidateFeed();
                 if (!acAssignmentCache[dateStr]) acAssignmentCache[dateStr] = [];
@@ -17714,7 +17735,7 @@
                         <div class="wpr-modal-title">Assign: ${escapeHtml(program.name)}</div>
                         <div class="wpr-form-group">
                             <label class="wpr-form-label">Start Date</label>
-                            <input type="date" class="wpr-form-input" id="assignStartDate" value="${new Date().toISOString().split('T')[0]}">
+                            <input type="date" class="wpr-form-input" id="assignStartDate" value="${acFormatDate(new Date())}">
                         </div>
                         <div class="wpr-form-group">
                             <label class="wpr-form-label">Schedule Days (select ${daysPerWeek})</label>
@@ -17841,7 +17862,10 @@
                         programId: program.id,
                         name: program.name,
                         workoutData: workoutData,
-                        schedule: { days: selectedDays, weeksAmount },
+                        // selectedDays is the key every calendar reader uses
+                        // (server day queries, client app week view). `days` is
+                        // kept as a legacy alias for old readers on this page.
+                        schedule: { selectedDays: selectedDays, days: selectedDays, weeksAmount, startDate },
                         startDate: startDate,
                         endDate: endDate
                     })
@@ -18292,7 +18316,14 @@
             if (selectedDays.length === 0) { alert('Please select at least one day.'); return; }
 
             const updatedData = JSON.parse(JSON.stringify(clientActiveAssignment.workout_data));
-            updatedData.schedule = { days: selectedDays };
+            // Merge instead of replace: replacing dropped weeksAmount/startDate,
+            // and writing only `days` (not `selectedDays`) made the client app
+            // fall back to its Mon–Fri default after every schedule edit.
+            updatedData.schedule = {
+                ...(updatedData.schedule || {}),
+                selectedDays: selectedDays,
+                days: selectedDays
+            };
 
             const updatePayload = {
                 assignmentId: clientActiveAssignment.id,

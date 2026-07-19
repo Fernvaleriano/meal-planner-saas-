@@ -19,7 +19,13 @@ function AssignWorkoutModal({ program, coachId, onClose, onAssigned }) {
   const [loadingClients, setLoadingClients] = useState(true);
   const [selectedClients, setSelectedClients] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [startDate, setStartDate] = useState(() => new Date().toISOString().split('T')[0]);
+  // Local date, NOT toISOString() — the UTC date is already tomorrow after
+  // ~5pm US time, which made evening assignments start a day late (nothing
+  // on the client's calendar "today").
+  const [startDate, setStartDate] = useState(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  });
   const [selectedDays, setSelectedDays] = useState(['mon', 'tue', 'wed', 'thu', 'fri']);
   const [weeksAmount, setWeeksAmount] = useState(12);
   const [assigning, setAssigning] = useState(false);

@@ -253,7 +253,7 @@ OVERVIEW:
     } else {
       activeAssignments.forEach(a => {
         const schedule = a.workout_data?.schedule || {};
-        const selectedDays = schedule.selectedDays || [];
+        const selectedDays = schedule.selectedDays || schedule.days || [];
         const weeksAmount = schedule.weeksAmount || 0;
         const programDays = a.workout_data?.days || [];
         const dayNames = selectedDays.length > 0 ? selectedDays.join(', ') : 'not specified';
@@ -322,7 +322,7 @@ OVERVIEW:
     // Adherence tracking: compare this week's workouts vs scheduled days
     const activeAssignment = assignments.find(a => a.is_active);
     if (activeAssignment) {
-      const scheduledDays = activeAssignment.workout_data?.schedule?.selectedDays || [];
+      const scheduledDays = activeAssignment.workout_data?.schedule?.selectedDays || activeAssignment.workout_data?.schedule?.days || [];
       if (scheduledDays.length > 0) {
         const thisWeekLogs = (workoutLogs || []).filter(w => {
           const wDate = new Date(w.workout_date || w.created_at);

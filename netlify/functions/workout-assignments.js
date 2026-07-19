@@ -175,6 +175,29 @@ function estimateProgramSessionMinutes(programData) {
   }
 }
 
+// Normalize a stored/incoming schedule object so every reader finds the keys
+// it expects. Historically different assign paths wrote the weekday list under
+// different names (`selectedDays` vs `days` vs `scheduleDays`) and the weeks
+// under `weeksAmount` vs `weeks`. Readers (this function's GET-by-date, the
+// client app's week view, reminder crons) all look for `selectedDays` /
+// `weeksAmount` and silently fell back to Mon–Fri / 12 weeks when the writer
+// used the other key — which made coach-picked schedules (e.g. Sat/Sun) never
+// show on the client's calendar. Mirroring the values onto every alias fixes
+// both directions without breaking any existing reader.
+function normalizeSchedule(schedule) {
+  if (!schedule || typeof schedule !== 'object' || Array.isArray(schedule)) return schedule;
+  const out = { ...schedule };
+  const dayList = [out.selectedDays, out.days, out.scheduleDays]
+    .find(v => Array.isArray(v) && v.length > 0 && v.every(d => typeof d === 'string'));
+  if (dayList) {
+    out.selectedDays = dayList;
+    out.days = dayList;
+  }
+  const weeks = [out.weeksAmount, out.weeks].find(v => Number.isFinite(Number(v)) && Number(v) > 0);
+  if (weeks != null) out.weeksAmount = Number(weeks);
+  return out;
+}
+
 exports.handler = withTimeout(async (event) => {
   if (event.httpMethod === 'OPTIONS') {
     return { statusCode: 200, headers, body: '' };
@@ -358,8 +381,16 @@ exports.handler = withTimeout(async (event) => {
                 estimatedCalories: workoutData.estimatedCalories || estimateWorkoutCalories(workoutData.exercises)
               }];
             }
-            const schedule = workoutData.schedule || activeAssignment.schedule || {};
+            const schedule = normalizeSchedule(workoutData.schedule || activeAssignment.schedule || {}) || {};
             const startDate = activeAssignment.start_date ? new Date(activeAssignment.start_date) : new Date(activeAssignment.created_at);
+            // Truncate to UTC midnight. start_date ('YYYY-MM-DD') already parses
+            // to midnight, but the created_at fallback keeps its time-of-day —
+            // which made `targetDate >= startDate` FALSE for the whole creation
+            // day (targetDate is midnight), so a workout assigned without an
+            // explicit start date never showed on day 1. Also keeps the
+            // day-count rotation aligned with the client's UTC-midnight math
+            // in Workouts.jsx.
+            startDate.setUTCHours(0, 0, 0, 0);
 
             // Resolve image_url: use assignment's image, or fall back to pre-fetched program image
             const resolvedImageUrl = workoutData.image_url || programImageMap.get(activeAssignment.program_id) || null;
@@ -824,17 +855,20 @@ exports.handler = withTimeout(async (event) => {
         }
       }
 
-      // Store schedule in workout_data to avoid needing a new column
+      // Store schedule in workout_data to avoid needing a new column.
+      // Normalized so the stored object always carries `selectedDays` +
+      // `weeksAmount` regardless of which alias the calling page sent.
+      const normSchedule = normalizeSchedule(schedule);
       const workoutDataWithSchedule = {
         ...finalWorkoutData,
-        schedule: schedule || { selectedDays: ['mon', 'tue', 'wed', 'thu', 'fri'] }
+        schedule: normSchedule || { selectedDays: ['mon', 'tue', 'wed', 'thu', 'fri'] }
       };
 
       // Calculate end_date if not provided but we have start + weeks
       let finalEndDate = endDate;
       if (!finalEndDate) {
-        const effectiveStart = startDate || schedule?.startDate;
-        const weeks = schedule?.weeksAmount;
+        const effectiveStart = startDate || normSchedule?.startDate;
+        const weeks = normSchedule?.weeksAmount;
         if (effectiveStart && weeks) {
           // end_date is the INCLUSIVE last day, so an N-week window covers
           // exactly N*7 days: start .. start + N*7 - 1. Without the -1 the
@@ -913,7 +947,18 @@ exports.handler = withTimeout(async (event) => {
       if (updateData.name !== undefined) updateFields.name = updateData.name;
       if (updateData.startDate !== undefined) updateFields.start_date = updateData.startDate;
       if (updateData.endDate !== undefined) updateFields.end_date = updateData.endDate;
-      if (updateData.workoutData !== undefined) updateFields.workout_data = updateData.workoutData;
+      if (updateData.workoutData !== undefined) {
+        updateFields.workout_data = updateData.workoutData;
+        // Schedule edits arrive inside the full workout_data blob — normalize
+        // the key aliases here too so an edit can't strip `selectedDays` and
+        // silently flip the client back to the Mon–Fri default.
+        if (updateFields.workout_data && updateFields.workout_data.schedule) {
+          updateFields.workout_data = {
+            ...updateFields.workout_data,
+            schedule: normalizeSchedule(updateFields.workout_data.schedule)
+          };
+        }
+      }
       if (updateData.isActive !== undefined) updateFields.is_active = updateData.isActive;
 
       // When deactivating, clamp end_date to today if it's null or in the

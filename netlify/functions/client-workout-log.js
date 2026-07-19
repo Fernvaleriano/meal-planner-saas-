@@ -479,7 +479,7 @@ exports.handler = async (event) => {
         const targetDayOfWeek = targetDate.getDay();
         const dayNames = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
         const targetDayName = dayNames[targetDayOfWeek];
-        const selectedDays = schedule.selectedDays || ['mon', 'tue', 'wed', 'thu', 'fri'];
+        const selectedDays = schedule.selectedDays || schedule.days || ['mon', 'tue', 'wed', 'thu', 'fri'];
 
         let dayIndex = 0;
         let isWorkoutDay = selectedDays.includes(targetDayName);
@@ -491,7 +491,7 @@ exports.handler = async (event) => {
 
         // Check if target date is after the assignment end date
         if (isWorkoutDay) {
-          const weeksToUse = schedule.weeksAmount || 12; // Default to 12 weeks if not set
+          const weeksToUse = schedule.weeksAmount || schedule.weeks || 12; // Default to 12 weeks if not set
           let endBoundary = null;
           if (assignment.end_date) {
             endBoundary = new Date(assignment.end_date + 'T23:59:59');
