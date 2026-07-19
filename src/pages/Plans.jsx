@@ -325,101 +325,137 @@ function Plans() {
       .finally(() => setLoading(false));
   }, [clientData?.id, planId]);
 
-  // Reusable function to load meal images for a plan
+  // Meal names already sent for on-the-spot generation this session,
+  // so a re-render/reload can't kick off the same generation twice
+  const imageGenAttemptedRef = useRef(new Set());
+
+  // Apply a { mealName: imageUrl } map onto the currently viewed plan
+  const applyImagesToPlan = (imagesByName) => {
+    if (!imagesByName || Object.keys(imagesByName).length === 0) return;
+    setSelectedPlan(prevPlan => {
+      if (!prevPlan) return prevPlan;
+      const updatedPlan = { ...prevPlan, plan_data: { ...prevPlan.plan_data } };
+      const updatedDays = getPlanDays(prevPlan).map(day => ({
+        ...day,
+        plan: (day.plan || []).map(meal => ({
+          ...meal,
+          image_url: imagesByName[meal.name] || meal.image_url
+        }))
+      }));
+      if (updatedPlan.plan_data.currentPlan) {
+        updatedPlan.plan_data.currentPlan = updatedDays;
+      } else if (updatedPlan.plan_data.days) {
+        updatedPlan.plan_data.days = updatedDays;
+      }
+      return updatedPlan;
+    });
+  };
+
+  // Merge found images into the localStorage-backed cache.
+  // Null results (no image exists) must NOT be stored — they used to
+  // count toward the 50-entry cap and evict real cached images.
+  const mergeImagesIntoCache = (imagesByName) => {
+    const entries = Object.entries(imagesByName).filter(([, url]) => url);
+    if (entries.length === 0) return;
+    setMealImages(prev => {
+      const newImages = { ...prev };
+      entries.forEach(([name, url]) => { newImages[name] = url; });
+      // Cap cache at 50 entries to prevent localStorage overflow
+      const keys = Object.keys(newImages);
+      if (keys.length > 50) {
+        keys.slice(0, keys.length - 50).forEach(k => delete newImages[k]);
+      }
+      try { localStorage.setItem('mealImageCache', JSON.stringify(newImages)); } catch (e) { /* quota exceeded */ }
+      return newImages;
+    });
+  };
+
+  // Reusable function to load meal images for a plan.
+  // 1) apply locally cached images, 2) batch-look-up the rest,
+  // 3) generate any image that doesn't exist anywhere yet. Step 3 is
+  // what makes pictures reliably appear: plans saved before the coach's
+  // page finished generating, swapped/revised meals, and template plans
+  // used to stay blank until the client happened to open Details.
   const loadMealImagesForPlan = async (planToLoad) => {
     if (!planToLoad) return;
 
     const days = getPlanDays(planToLoad);
-    const mealNames = [];
+    const namesToFetch = new Set();
+    const cheapModelByName = {};
     const cachedImageUrls = {};
-    let needsUpdate = false;
 
     // Collect meal names that need fetching AND apply cached images
     days.forEach(day => {
       (day.plan || []).forEach(meal => {
-        if (meal.name) {
-          // Check if we have a cached image for this meal
-          if (mealImages[meal.name]) {
-            // Apply cached image if meal doesn't have one
-            if (!meal.image_url) {
-              cachedImageUrls[meal.name] = mealImages[meal.name];
-              needsUpdate = true;
-            }
-          } else {
-            // Need to fetch this image
-            mealNames.push(meal.name);
-          }
+        if (!meal.name) return;
+        if (meal.useCheapModel) cheapModelByName[meal.name] = true;
+        if (meal.image_url) return; // already has a picture
+        if (mealImages[meal.name]) {
+          cachedImageUrls[meal.name] = mealImages[meal.name];
+        } else {
+          namesToFetch.add(meal.name);
         }
       });
     });
 
-    // First, apply any cached images immediately (with proper immutable update)
-    if (needsUpdate) {
-      setSelectedPlan(prevPlan => {
-        if (!prevPlan) return prevPlan;
-        const updatedPlan = { ...prevPlan, plan_data: { ...prevPlan.plan_data } };
-        const prevDays = getPlanDays(prevPlan);
+    // First, apply any cached images immediately
+    applyImagesToPlan(cachedImageUrls);
 
-        // Deep clone and update each day/meal
-        const updatedDays = prevDays.map(day => ({
-          ...day,
-          plan: (day.plan || []).map(meal => ({
-            ...meal,
-            image_url: cachedImageUrls[meal.name] || meal.image_url
-          }))
-        }));
-
-        if (updatedPlan.plan_data.currentPlan) {
-          updatedPlan.plan_data.currentPlan = updatedDays;
-        } else if (updatedPlan.plan_data.days) {
-          updatedPlan.plan_data.days = updatedDays;
-        }
-        return updatedPlan;
-      });
-    }
-
-    // Then fetch any missing images
+    // Then look up any missing images (deduped, and chunked so a big
+    // plan can't trip the server's 50-name limit and lose everything)
+    const mealNames = [...namesToFetch];
     if (mealNames.length === 0) return;
 
+    const missing = [];
     try {
-      const response = await apiPost('/.netlify/functions/meal-image-batch', { mealNames });
-      if (response.images) {
-        const newImages = { ...mealImages, ...response.images };
-        // Cap cache at 50 entries to prevent localStorage overflow
-        const keys = Object.keys(newImages);
-        if (keys.length > 50) {
-          keys.slice(0, keys.length - 50).forEach(k => delete newImages[k]);
-        }
-        setMealImages(newImages);
-        try { localStorage.setItem('mealImageCache', JSON.stringify(newImages)); } catch (e) { /* quota exceeded */ }
-
-        // Update the meals with their new image URLs (with proper immutable update)
-        setSelectedPlan(prevPlan => {
-          if (!prevPlan) return prevPlan;
-
-          const updatedPlan = { ...prevPlan, plan_data: { ...prevPlan.plan_data } };
-          const prevDays = getPlanDays(prevPlan);
-
-          // Deep clone and update each day/meal
-          const updatedDays = prevDays.map(day => ({
-            ...day,
-            plan: (day.plan || []).map(meal => ({
-              ...meal,
-              image_url: response.images[meal.name] || meal.image_url
-            }))
-          }));
-
-          if (updatedPlan.plan_data.currentPlan) {
-            updatedPlan.plan_data.currentPlan = updatedDays;
-          } else if (updatedPlan.plan_data.days) {
-            updatedPlan.plan_data.days = updatedDays;
-          }
-          return updatedPlan;
+      for (let i = 0; i < mealNames.length; i += 50) {
+        const chunk = mealNames.slice(i, i + 50);
+        const response = await apiPost('/.netlify/functions/meal-image-batch', { mealNames: chunk });
+        const found = {};
+        chunk.forEach(name => {
+          const url = response?.images?.[name];
+          if (url) found[name] = url;
+          else missing.push(name);
         });
+        mergeImagesIntoCache(found);
+        applyImagesToPlan(found);
       }
     } catch (err) {
+      // Lookup failed — don't generate anything, we can't tell what's
+      // truly missing. The next visit will retry the lookup.
       console.error('Error loading meal images:', err);
+      return;
     }
+
+    // Finally, generate images that don't exist anywhere yet. Each one
+    // is stored server-side under the meal's normalized name, so this
+    // is a one-time cost per unique meal — after that every lookup
+    // (this client, other clients, the coach's planner) finds it.
+    const toGenerate = missing.filter(name => !imageGenAttemptedRef.current.has(name));
+    if (toGenerate.length === 0) return;
+    toGenerate.forEach(name => imageGenAttemptedRef.current.add(name));
+
+    const CONCURRENCY = 2;
+    let nextIdx = 0;
+    const worker = async () => {
+      while (nextIdx < toGenerate.length) {
+        const name = toGenerate[nextIdx++];
+        try {
+          const response = await apiPost('/.netlify/functions/meal-image', {
+            mealName: name,
+            ...(cheapModelByName[name] && { cheapModel: true })
+          });
+          if (response?.imageUrl) {
+            mergeImagesIntoCache({ [name]: response.imageUrl });
+            applyImagesToPlan({ [name]: response.imageUrl });
+          }
+        } catch (err) {
+          // Image is optional — leave the card without one this session
+          console.error('Error generating meal image:', err);
+        }
+      }
+    };
+    await Promise.all(Array.from({ length: Math.min(CONCURRENCY, toGenerate.length) }, worker));
   };
 
   // Load meal images when plan is selected
