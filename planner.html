@@ -13535,68 +13535,122 @@ function openImageStylingModal(mealName, imageId) {
 
 // Generate 3 smart prompt suggestions based on meal ingredients
 function generatePromptSuggestions(mealName) {
-    // Parse out ingredient names (strip grams/quantities)
-    const cleaned = mealName.replace(/\([^)]*\)/g, '').replace(/\d+\s*(g|whole|oz|ml|cups?|tbsp|tsp)\b/gi, '');
-    const parts = cleaned.split(/,|\band\b|with/i).map(s => s.trim()).filter(Boolean);
-    const mainItem = parts[0] || mealName;
-    const ingredients = parts.length > 1 ? parts.slice(1).join(', ') : '';
-    const sides = ingredients || 'the sides';
+    // Strip quantities AND prep words ("dry", "raw"...) so the ingredients
+    // read like a finished, cooked dish instead of a shopping list.
+    const cleaned = mealName
+        .replace(/\([^)]*\)/g, '')
+        .replace(/\b\d+([.\/]\d+)?\s*(g|kg|oz|ml|l|cups?|tbsp|tsp|scoops?|slices?|cans?|whole|large|medium|small|handful)\b/gi, '')
+        .replace(/\b(dry|raw|uncooked|cooked|fresh|of)\b/gi, '')
+        .replace(/\s{2,}/g, ' ')
+        .trim();
+
+    // Clean, lowercased ingredient list (lowercase so it reads naturally mid-sentence)
+    const parts = cleaned.split(/,|\band\b|\bwith\b|\+/i)
+        .map(s => s.trim().replace(/^[-•\s]+/, '').toLowerCase())
+        .filter(Boolean);
+
+    // Natural "a, b and c" phrasing
+    const listPhrase = (arr) => arr.length <= 1
+        ? (arr[0] || cleaned.toLowerCase())
+        : arr.slice(0, -1).join(', ') + ' and ' + arr[arr.length - 1];
+    const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+    const foods = listPhrase(parts);
+    const mainItem = parts[0] || cleaned.toLowerCase();
 
     const hasEggs = /egg/i.test(mealName);
-    const hasMeat = /turkey|chicken|beef|steak|salmon|fish|tilapia|tuna|shrimp|pork|lamb/i.test(mealName);
+    const hasMeat = /turkey|chicken|beef|steak|salmon|fish|tilapia|tuna|shrimp|pork|lamb|cod/i.test(mealName);
     const hasRice = /rice/i.test(mealName);
     const hasPasta = /pasta|spaghetti|noodle/i.test(mealName);
+    const hasPotato = /potato/i.test(mealName);
     const hasVeggies = /pepper|onion|broccoli|spinach|tomato|lettuce|cucumber|zucchini|asparagus|kale|carrot/i.test(mealName);
-    const hasPotato = /potato|sweet potato/i.test(mealName);
     const isShake = /shake|smoothie|protein powder|whey/i.test(mealName);
-    const isBreakfast = hasEggs || /oat|pancake|waffle|toast|cereal|yogurt|cottage cheese/i.test(mealName);
+    const isBreakfast = hasEggs || /oat|pancake|waffle|toast|cereal|yogurt|cottage cheese|granola/i.test(mealName);
     const isSalad = /salad/i.test(mealName);
 
-    // Shared photography framing — this is what makes the prompts read like pro food-photo prompts
-    const FRAME = 'Photorealistic, appetizing, high detail, realistic portion size, no text or labels.';
+    // Turn a raw ingredient into how it actually looks once cooked and plated,
+    // so the prompt describes a finished dish (not a shopping list).
+    const prep = (item) => {
+        if (/oat/.test(item)) return 'cooked oatmeal';
+        if (/banana/.test(item)) return 'fresh banana slices';
+        if (/chicken/.test(item)) return 'grilled chicken breast';
+        if (/turkey/.test(item)) return 'lean turkey';
+        if (/steak|beef/.test(item)) return 'seared steak slices';
+        if (/salmon/.test(item)) return 'grilled salmon fillet';
+        if (/tilapia|cod|tuna|fish/.test(item)) return 'grilled fish fillet';
+        if (/shrimp|prawn/.test(item)) return 'sautéed shrimp';
+        if (/rice/.test(item)) return 'steamed rice';
+        if (/pasta|spaghetti|noodle/.test(item)) return 'pasta';
+        if (/sweet potato/.test(item)) return 'roasted sweet potato';
+        if (/potato/.test(item)) return 'roasted potatoes';
+        if (/broccoli/.test(item)) return 'steamed broccoli';
+        if (/spinach|kale/.test(item)) return 'fresh greens';
+        if (/avocado/.test(item)) return 'sliced avocado';
+        if (/berr/.test(item)) return 'fresh berries';
+        if (/yogurt|yoghurt/.test(item)) return 'creamy yogurt';
+        if (/toast|bread|bagel/.test(item)) return 'golden toast';
+        if (/pancake/.test(item)) return 'fluffy pancakes';
+        if (/pepper|onion|tomato|zucchini|asparagus|carrot|mushroom/.test(item)) return item + ', lightly roasted';
+        return item;
+    };
 
-    // Suggestion 1 — clean, studio-style plating
+    // Build the plated ingredient description, merging eggs + egg whites nicely
+    const preparedParts = [];
+    let eggDone = false;
+    parts.forEach(item => {
+        if (/egg/.test(item)) {
+            if (eggDone) return;
+            eggDone = true;
+            const hasWhite = parts.some(p => /egg white/.test(p));
+            const hasWhole = parts.some(p => /egg/.test(p) && !/white/.test(p));
+            if (hasWhite && hasWhole) preparedParts.push('fluffy scrambled eggs (made from whole eggs and egg whites)');
+            else if (/white/.test(item)) preparedParts.push('a fluffy egg-white scramble');
+            else preparedParts.push('fluffy scrambled eggs');
+            return;
+        }
+        preparedParts.push(prep(item));
+    });
+    const plated = listPhrase(preparedParts);
+    const closeupSubject = preparedParts[0] || foods;
+    const steam = isBreakfast || hasMeat || hasRice || hasPasta;
+
+    const dishLabel = isSalad ? 'a fresh, colorful salad'
+        : isBreakfast ? 'a healthy high-protein breakfast'
+        : (hasMeat && (hasRice || hasPasta || hasPotato || hasVeggies)) ? 'a balanced high-protein meal'
+        : 'a healthy, balanced meal';
+
+    // Shared closing framing — quality + negatives (matches the founder's reference brief)
+    const FRAME = 'shallow depth of field, fresh and appetizing, no text, no hands.';
+
+    // Suggestion 1 — plated, 45-degree studio look
     let plating;
     if (isShake) {
-        plating = `Overhead photo of ${mainItem} in a tall clear glass${ingredients ? `, ${sides} arranged neatly beside it` : ''}, on a simple light surface, soft natural daylight, clean light background. ${FRAME}`;
-    } else if (isBreakfast) {
-        plating = `Overhead photo of a clean breakfast bowl: ${mainItem}${ingredients ? ` topped with ${sides}` : ''}, soft natural daylight, clean light background. ${FRAME}`;
-    } else if (isSalad) {
-        plating = `Overhead photo of a fresh, colorful salad in a wide white bowl, ingredients layered and vibrant, soft natural daylight, clean light background. ${FRAME}`;
-    } else if (hasMeat) {
-        plating = `45-degree photo of ${mainItem} plated on a simple white dish${ingredients ? `, ${sides} arranged neatly around it` : ''}, soft natural daylight, clean light background. ${FRAME}`;
+        plating = `Photorealistic food photo of a protein shake blended from ${foods}, in a tall clear glass on a clean light-gray stone surface, 45-degree angle, soft natural window light, ${FRAME}`;
     } else {
-        plating = `45-degree photo of ${mainItem} plated in a simple white bowl${ingredients ? `, ${sides} visible` : ''}, soft natural daylight, clean light background. ${FRAME}`;
+        plating = `Photorealistic food photo of ${dishLabel} on a white plate: ${plated}. 45-degree angle, soft natural window light, clean light-gray stone surface${steam ? ', steam rising slightly' : ''}, ${FRAME}`;
     }
 
     // Suggestion 2 — natural / lifestyle setting
     let lifestyle;
     if (isShake) {
-        lifestyle = `${mainItem} in a glass on a light wooden table${ingredients ? ` with ${sides} nearby` : ''}, warm morning sunlight, cozy kitchen feel, shallow depth of field. ${FRAME}`;
+        lifestyle = `Photorealistic food photo of a ${mainItem} shake in a glass on a light wooden table in a bright, airy kitchen, warm morning sunlight, ${FRAME}`;
     } else if (isBreakfast) {
-        lifestyle = `${mainItem}${ingredients ? ` with ${sides}` : ''} on a light wooden table in a bright kitchen, warm morning sunlight, a coffee cup softly blurred behind. ${FRAME}`;
+        lifestyle = `Photorealistic food photo of ${plated} served on a light wooden table in a bright kitchen, warm morning sunlight, a coffee cup softly blurred behind, ${FRAME}`;
     } else {
-        lifestyle = `${mainItem}${ingredients ? ` with ${sides}` : ''} served on a light wooden table, warm natural window light, homemade restaurant-quality feel, shallow depth of field. ${FRAME}`;
+        lifestyle = `Photorealistic food photo of ${plated} served on a rustic light wooden table by a sunny window, homemade restaurant-quality feel, ${FRAME}`;
     }
 
     // Suggestion 3 — close-up / texture
     let closeup;
-    if (hasEggs) {
-        closeup = `Close-up of ${mainItem} with a runny yolk and steam rising${hasVeggies ? `, ${sides} sautéed alongside` : ''}, natural light, shallow depth of field, textures in sharp focus. ${FRAME}`;
-    } else if (hasMeat) {
-        closeup = `Close-up of ${mainItem} showing juicy texture and seasoning${hasPotato ? ', golden potatoes beside it' : hasVeggies ? `, ${sides} glistening beside it` : ''}, natural light, shallow depth of field. ${FRAME}`;
-    } else if (hasPasta || hasRice) {
-        closeup = `Close-up of ${mainItem} with steam rising${ingredients ? `, ${sides} mixed in` : ''}, natural light, shallow depth of field, textures in sharp focus. ${FRAME}`;
-    } else if (isShake) {
-        closeup = `Close-up of ${mainItem} in a glass with condensation on the surface${ingredients ? `, ${sides} in soft focus behind` : ''}, natural light, shallow depth of field. ${FRAME}`;
+    if (isShake) {
+        closeup = `Photorealistic close-up of the shake with condensation on the glass, macro detail, soft natural light, clean neutral background, ${FRAME}`;
     } else {
-        closeup = `Macro close-up of ${mainItem} showing colors and textures${ingredients ? `, ${sides} in sharp detail` : ''}, natural light, shallow depth of field. ${FRAME}`;
+        closeup = `Photorealistic close-up of ${closeupSubject}, macro detail showing rich texture${steam ? ', gentle steam rising' : ''}, soft natural light, clean neutral background, ${FRAME}`;
     }
 
     return [
-        { icon: '🍽️', text: plating },
-        { icon: '📸', text: lifestyle },
-        { icon: '🔍', text: closeup }
+        { icon: '🍽️', text: cap(plating) },
+        { icon: '📸', text: cap(lifestyle) },
+        { icon: '🔍', text: cap(closeup) }
     ];
 }
 
