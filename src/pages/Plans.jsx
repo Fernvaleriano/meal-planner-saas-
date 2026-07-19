@@ -1615,22 +1615,85 @@ Return ONLY valid JSON:
   // JSON — so we accept JSON in either raw or code-fenced form and extract the
   // outermost object. Returns null when it isn't the shape we expect, so the
   // caller can fall back to plain-text rendering.
+  const isGuideShape = (obj) =>
+    obj && typeof obj === 'object' &&
+    (obj.overview || obj.sessions || obj.storage || obj.assembly || obj.tips);
+
+  // Best-effort repair of a JSON string that got cut off mid-generation:
+  // close any open string, then close any still-open brackets/braces in order.
+  // Lets a truncated response still render as structured cards.
+  const repairTruncatedJson = (str) => {
+    const stack = [];
+    let inStr = false;
+    let escaped = false;
+    for (let i = 0; i < str.length; i++) {
+      const c = str[i];
+      if (escaped) { escaped = false; continue; }
+      if (c === '\\') { escaped = true; continue; }
+      if (c === '"') { inStr = !inStr; continue; }
+      if (inStr) continue;
+      if (c === '{' || c === '[') stack.push(c);
+      else if (c === '}' || c === ']') stack.pop();
+    }
+    let fixed = str;
+    if (inStr) fixed += '"';
+    // Drop a dangling ",  or ": that can't be completed
+    fixed = fixed.replace(/,\s*$/, '').replace(/:\s*$/, ': ""');
+    while (stack.length) {
+      fixed += stack.pop() === '{' ? '}' : ']';
+    }
+    return fixed;
+  };
+
   const parseMealPrepResponse = (raw) => {
     if (!raw) return null;
-    if (typeof raw === 'object') {
-      return (raw.overview || raw.sessions || raw.storage || raw.assembly || raw.tips) ? raw : null;
-    }
+    if (typeof raw === 'object') return isGuideShape(raw) ? raw : null;
+
     let text = String(raw).trim().replace(/```json/gi, '').replace(/```/g, '').trim();
     const first = text.indexOf('{');
-    const last = text.lastIndexOf('}');
-    if (first === -1 || last === -1 || last <= first) return null;
-    try {
-      const obj = JSON.parse(text.slice(first, last + 1));
-      if (obj && (obj.overview || obj.sessions || obj.storage || obj.assembly || obj.tips)) return obj;
-      return null;
-    } catch {
-      return null;
+    if (first === -1) return null;
+    const body = text.slice(first);
+
+    // 1) Try a clean parse of the outermost object.
+    const last = body.lastIndexOf('}');
+    if (last > 0) {
+      try {
+        const obj = JSON.parse(body.slice(0, last + 1));
+        if (isGuideShape(obj)) return obj;
+      } catch { /* fall through to repair */ }
     }
+    // 2) Response was cut off — repair and retry so we still get cards.
+    try {
+      const obj = JSON.parse(repairTruncatedJson(body));
+      if (isGuideShape(obj)) return obj;
+    } catch { /* give up — caller humanizes the text */ }
+    return null;
+  };
+
+  // Last-resort: turn a JSON-ish (possibly broken) string into readable prose
+  // so the client NEVER sees raw braces/keys. Strips structural punctuation and
+  // relabels "key": into a friendly heading.
+  const humanizeGuideText = (raw) => {
+    let s = String(raw);
+    const keyLabels = {
+      overview: '', title: '', time: '⏱ ', text: '• ', tip: '↳ ',
+      item: '• ', howTo: '', fridge: 'Fridge: ', freezer: 'Freezer: ',
+      label: '', sessions: 'Prep sessions', storage: 'Storage guide',
+      assembly: 'Daily assembly', tasks: '', tips: 'Coach tips'
+    };
+    s = s
+      .replace(/```json/gi, '').replace(/```/g, '')
+      .replace(/"(\w+)"\s*:\s*"([^"]*)"/g, (m, k, v) =>
+        k in keyLabels ? `${keyLabels[k]}${v}` : `${v}`)
+      .replace(/"(\w+)"\s*:\s*\[/g, (m, k) =>
+        k in keyLabels && keyLabels[k] ? `\n${keyLabels[k]}` : '')
+      .replace(/"(\w+)"\s*:\s*/g, '')
+      .replace(/[{}\[\]]/g, '')
+      .replace(/^[\s,]+$/gm, '')
+      .replace(/,\s*$/gm, '')
+      .replace(/\n{3,}/g, '\n\n')
+      .trim();
+    return cleanMealPrepText(s);
   };
 
   // Flatten a structured (or plain-string) guide into readable text — used by
@@ -1725,6 +1788,8 @@ ${mealLines.join('\n')}
 
 Build a guide that respects their time, number of sessions and experience. Give real batch quantities so they know how much to cook for ${targetDays} days. Group cooking tasks logically (proteins, carbs, vegetables, sauces). If they chose 2 sessions, split the work sensibly (e.g. a big Sunday cook + a quick mid-week top-up so nothing goes stale).
 
+Keep it TIGHT and COMPLETE: at most 6 tasks per session, one short sentence each, tips one short line, at most 5 storage items and 5 tips. The whole JSON must be finished and valid — never cut off mid-object.
+
 Respond with ONLY valid JSON — no markdown, no code fences, no text before or after. Use EXACTLY this shape:
 {
   "overview": "2-3 warm, motivating sentences in a coach's voice about the game plan for the week",
@@ -1749,6 +1814,7 @@ Respond with ONLY valid JSON — no markdown, no code fences, no text before or 
       const response = await apiPost('/.netlify/functions/generate-meal-plan', {
         prompt,
         isJson: false,
+        structured: true, // use the clean JSON system prompt, not the markdown one
         language
       }, { timeoutMs: 45000 }); // AI generation is slow — don't abort at the 15s default
 
@@ -2596,9 +2662,10 @@ Respond with ONLY valid JSON — no markdown, no code fences, no text before or 
                     </button>
                   </div>
                 ) : mealPrepGuide ? (
-                  // Plain-text fallback (model didn't return the expected JSON)
+                  // Plain-text fallback (model didn't return the expected JSON).
+                  // humanizeGuideText strips any JSON syntax so brackets never show.
                   <div className="meal-prep-guide">
-                    {mealPrepGuideToText(mealPrepGuide).split('\n').map((line, idx) => (
+                    {humanizeGuideText(mealPrepGuide).split('\n').map((line, idx) => (
                       line.trim() ? <p key={idx}>{line}</p> : null
                     ))}
                     <button type="button" className="meal-prep-redo-btn" onClick={() => { setMealPrepGuide(null); setMealPrepStep('setup'); }}>

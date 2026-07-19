@@ -5217,7 +5217,7 @@ async function optimizeMealMacros(geminiMeal, mealTargets, skipAutoScale = false
  * Generate meal plan using Claude API
  * Claude provides more consistent, well-formatted output compared to Gemini
  */
-async function generateWithClaude(prompt, isJson = true, lang = 'en') {
+async function generateWithClaude(prompt, isJson = true, lang = 'en', structured = false) {
   if (!ANTHROPIC_API_KEY) {
     throw new Error('ANTHROPIC_API_KEY not configured');
   }
@@ -5226,8 +5226,16 @@ async function generateWithClaude(prompt, isJson = true, lang = 'en') {
     apiKey: ANTHROPIC_API_KEY
   });
 
-  // System prompt to ensure consistent output format
-  const systemPrompt = isJson ? `You are a professional nutritionist and meal planning assistant.
+  // Structured-text callers (e.g. the meal-prep guide) send their own JSON
+  // schema in the user prompt and parse it client-side. They must NOT get the
+  // "write markdown prose" system prompt below — that contradicts the JSON
+  // request and produces malformed/half-finished output. Give them a clean,
+  // JSON-only instruction instead.
+  const systemPrompt = (!isJson && structured) ? `You are an expert fitness coach and nutritionist.
+Follow the user's instructions exactly and respond with ONLY valid JSON — no markdown, no code fences, no commentary before or after.
+The JSON must be complete and parseable with JSON.parse(): double-quoted keys and strings, no trailing commas, all brackets and braces closed.
+Keep every string concise so the whole response fits comfortably in one reply.${languageInstruction(lang)}`
+  : isJson ? `You are a professional nutritionist and meal planning assistant.
 You MUST respond with valid JSON only - no markdown, no code blocks, no explanations.
 
 CRITICAL FORMATTING RULES:
@@ -5259,7 +5267,9 @@ Provide helpful, detailed meal prep guidance.${languageInstruction(lang)}`;
   try {
     const message = await anthropic.messages.create({
       model: 'claude-sonnet-4-20250514',
-      max_tokens: 4096,
+      // Structured multi-section guides (meal prep) need headroom so the JSON
+      // is never cut off mid-object — a truncated object fails to parse.
+      max_tokens: structured ? 6000 : 4096,
       messages: [
         {
           role: 'user',
@@ -5412,7 +5422,7 @@ exports.handler = async (event, context) => {
   }
 
   try {
-    const { prompt, targets, mealsPerDay, previousAttempt, isJson, skipAutoScale, useGemini, language } = JSON.parse(event.body);
+    const { prompt, targets, mealsPerDay, previousAttempt, isJson, skipAutoScale, useGemini, language, structured } = JSON.parse(event.body);
     const lang = (language || 'en').toString().toLowerCase();
 
     if (!prompt) {
@@ -5433,7 +5443,7 @@ exports.handler = async (event, context) => {
 
     if (useClaude) {
       try {
-        responseText = await generateWithClaude(prompt, isJson !== false, lang);
+        responseText = await generateWithClaude(prompt, isJson !== false, lang, structured === true);
         generatorUsed = 'claude';
       } catch (claudeError) {
         console.error('❌ Claude failed, falling back to Gemini:', claudeError.message);
