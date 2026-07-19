@@ -3577,6 +3577,13 @@
                     <input type="checkbox" id="equip_blender" value="Blender" checked>
                 </div>
 
+                <!-- Special Requests - free-text box the coach can use to steer the plan -->
+                <div id="special-request-section" class="form-section">
+                    <label for="dp_special_request" class="form-section-label">Special Requests <span style="color:#94a3b8;font-weight:normal;">(optional)</span></label>
+                    <textarea id="dp_special_request" class="input-field" rows="3" placeholder="Anything you want in this plan — e.g. high-protein breakfasts, Mexican dinners, no seafood, quick 15-min meals, include overnight oats..." style="resize:vertical;"></textarea>
+                    <p class="text-xs text-gray-500 mt-1">Write it however you'd say it to a client. We'll factor it into every meal.</p>
+                </div>
+
                 <!-- Plan Name - Right before generate -->
                 <div id="plan-name-section" class="form-section">
                     <label class="form-section-label">Plan Name <span style="color: #ef4444;">*</span></label>
@@ -5630,6 +5637,12 @@ async function generateDietPlan() {
     const dislikedFoods = document.getElementById('dp_disliked_foods').value || 'none';
     const preferredFoods = document.getElementById('dp_preferred_foods').value || 'none';
     const budget = document.getElementById('dp_budget').value || 'none';
+    const specialRequestEl = document.getElementById('dp_special_request');
+    const specialRequest = specialRequestEl ? specialRequestEl.value.trim() : '';
+    // High-priority instruction block injected into every meal prompt when the coach types a request.
+    const specialRequestText = specialRequest
+        ? `\n\n⭐ COACH'S SPECIAL REQUEST (HIGHEST PRIORITY — follow this exactly, even over the general guidance below):\n"${specialRequest.replace(/"/g, "'")}"\n`
+        : '';
     const meals = document.getElementById('dp_meals').value;
     const numDays = parseInt(document.getElementById('dp_days').value);
 
@@ -5738,6 +5751,7 @@ async function generateDietPlan() {
         preferredFoods,
         budget,
         equipmentStr,
+        specialRequest,
         meals,
         originalTargets,
         useBrandedFoods
@@ -6042,7 +6056,7 @@ Avoid: ${allergies}
 Disliked Foods: ${dislikedFoods}
 Preferred Foods/Cuisines: ${preferredFoods}
 Budget: ${budget}
-Available Equipment: ${equipmentStr}${previousMealsText}${favoriteMealsText}
+Available Equipment: ${equipmentStr}${specialRequestText}${previousMealsText}${favoriteMealsText}
 
 Daily targets: ${calories} cal, ${protein}g protein, ${carbs}g carbs, ${fat}g fat
 ${brandedFoodsNote}
@@ -6525,7 +6539,7 @@ CRITICAL REQUIREMENTS:
 - Target: ~${targetCal} calories, ~${targetProt}g protein
 
 Diet preference: ${preference}
-Avoid: ${allergies}
+Avoid: ${allergies}${specialRequestText}
 
 VALID PROTEIN SOURCES (pick at least one):
 - Chicken Breast (150-200g) = 45-60g protein
@@ -10701,7 +10715,7 @@ Avoid: ${lastPlanQuery.allergies}
 Disliked Foods: ${lastPlanQuery.dislikedFoods}
 Preferred Foods/Cuisines: ${lastPlanQuery.preferredFoods}
 Budget: ${lastPlanQuery.budget}
-Available Equipment: ${lastPlanQuery.equipmentStr}${previousMealsText}
+Available Equipment: ${lastPlanQuery.equipmentStr}${lastPlanQuery.specialRequest ? `\n\n⭐ COACH'S SPECIAL REQUEST (HIGHEST PRIORITY — follow this exactly):\n"${lastPlanQuery.specialRequest.replace(/"/g, "'")}"\n` : ''}${previousMealsText}
 
 Daily targets: ${targets.calories} cal, ${targets.protein}g protein, ${targets.carbs}g carbs, ${targets.fat}g fat
 
