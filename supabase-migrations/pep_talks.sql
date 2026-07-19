@@ -160,7 +160,7 @@ VALUES (
     'pep-talk-videos',
     'pep-talk-videos',
     TRUE,
-    104857600,                                  -- 100 MB cap per file
+    314572800,                                  -- 300 MB cap per file
     ARRAY['video/mp4', 'video/quicktime', 'video/webm']
 )
 ON CONFLICT (id) DO NOTHING;

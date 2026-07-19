@@ -11610,9 +11610,9 @@
                 return;
             }
 
-            const MAX_BYTES = 100 * 1024 * 1024;                      // 100 MB - matches bucket limit
+            const MAX_BYTES = 300 * 1024 * 1024;                      // 300 MB - matches bucket limit
             if (file.size > MAX_BYTES) {
-                alert(`${isImage ? 'Photo' : 'Video'} is too large. Please pick a file under 100 MB.`);
+                alert(`${isImage ? 'Photo' : 'Video'} is too large. Please pick a file under 300 MB.`);
                 event.target.value = '';
                 return;
             }
