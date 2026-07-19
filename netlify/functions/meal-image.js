@@ -352,17 +352,12 @@ exports.handler = async (event, context) => {
       }
 
       if (existingImage) {
-        // If regenerate flag is set, delete the old image first
+        // If regenerate flag is set, replace the database record.
+        // IMPORTANT: do NOT delete the old file from storage — meal
+        // plans store a frozen copy of the image URL inside plan_data,
+        // so removing the file breaks the picture in every plan that
+        // saved the old link (July 2026 "breakfast picture missing" bug).
         if (regenerate) {
-
-          // Delete from storage
-          if (existingImage.storage_path) {
-            await supabase.storage
-              .from(BUCKET_NAME)
-              .remove([existingImage.storage_path]);
-          }
-
-          // Delete from database
           await supabase
             .from('meal_images')
             .delete()
