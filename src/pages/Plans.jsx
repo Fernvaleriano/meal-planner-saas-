@@ -179,6 +179,10 @@ function Plans() {
     } catch (e) { return {}; }
   });
 
+  // Picture links that failed to load this session (file no longer
+  // exists). Kept in state so cards re-render once a replacement loads.
+  const [deadImageUrls, setDeadImageUrls] = useState(() => new Set());
+
   // Log confirmation modal state
   const [showLogConfirm, setShowLogConfirm] = useState(false);
   const [mealToLog, setMealToLog] = useState(null);
@@ -368,6 +372,55 @@ function Plans() {
       try { localStorage.setItem('mealImageCache', JSON.stringify(newImages)); } catch (e) { /* quota exceeded */ }
       return newImages;
     });
+  };
+
+  // A plan stores a frozen copy of each picture link, so the link can
+  // die later (e.g. the picture was regenerated and the old file
+  // removed). When an <img> fails to load, drop the dead link and
+  // re-look-up the meal by name so the card heals itself.
+  const recoverMealImage = async (mealName, deadUrl, useCheap) => {
+    try {
+      const resp = await apiPost('/.netlify/functions/meal-image-batch', { mealNames: [mealName] });
+      const url = resp?.images?.[mealName];
+      if (url && url !== deadUrl) {
+        mergeImagesIntoCache({ [mealName]: url });
+        applyImagesToPlan({ [mealName]: url });
+        return;
+      }
+      if (imageGenAttemptedRef.current.has(mealName)) return;
+      imageGenAttemptedRef.current.add(mealName);
+      // If the image library itself points at the dead file, regenerate
+      // to replace the broken record; otherwise just generate fresh.
+      const gen = await apiPost('/.netlify/functions/meal-image', {
+        mealName,
+        ...(url === deadUrl && { regenerate: true }),
+        ...(useCheap && { cheapModel: true })
+      });
+      if (gen?.imageUrl && gen.imageUrl !== deadUrl) {
+        mergeImagesIntoCache({ [mealName]: gen.imageUrl });
+        applyImagesToPlan({ [mealName]: gen.imageUrl });
+      }
+    } catch (err) {
+      console.error('Error recovering meal image:', err);
+    }
+  };
+
+  const handleMealImageError = (meal) => {
+    const deadUrl = meal.image_url;
+    if (!deadUrl || deadImageUrls.has(deadUrl)) return;
+    setDeadImageUrls(prev => new Set(prev).add(deadUrl));
+    // Purge the dead link from the localStorage-backed cache
+    setMealImages(prev => {
+      const cleaned = { ...prev };
+      let changed = false;
+      Object.keys(cleaned).forEach(k => {
+        if (cleaned[k] === deadUrl) { delete cleaned[k]; changed = true; }
+      });
+      if (!changed) return prev;
+      try { localStorage.setItem('mealImageCache', JSON.stringify(cleaned)); } catch (e) { /* quota exceeded */ }
+      return cleaned;
+    });
+    recoverMealImage(meal.name, deadUrl, meal.useCheapModel);
   };
 
   // Reusable function to load meal images for a plan.
@@ -2026,12 +2079,12 @@ Keep it practical and brief. Format with clear sections.`;
                       </div>
                     )}
 
-                    {meal.image_url && (
+                    {meal.image_url && !deadImageUrls.has(meal.image_url) && (
                       <div className="meal-card-image">
                         <img
                           src={meal.image_url}
                           alt={meal.name}
-                          onError={(e) => { e.target.parentElement.style.display = 'none'; }}
+                          onError={() => handleMealImageError(meal)}
                         />
                       </div>
                     )}
@@ -2352,7 +2405,10 @@ Keep it practical and brief. Format with clear sections.`;
                   <img
                     src={mealImageUrl}
                     alt={selectedMeal.name}
-                    onError={(e) => { e.target.parentElement.style.display = 'none'; }}
+                    onError={() => {
+                      setMealImageUrl(null);
+                      if (selectedMeal) handleMealImageError(selectedMeal);
+                    }}
                   />
                 </div>
               ) : null}
