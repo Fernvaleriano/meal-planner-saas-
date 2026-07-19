@@ -204,6 +204,12 @@
 [functions."generate-workout-claude"]
   timeout = 26
 
+# AI meal generator (Claude/Gemini). Full-plan generation and the structured
+# meal-prep guide can run past the 10s default, so give it headroom to avoid
+# the call being cut off mid-generation. Used by the client meal planner.
+[functions."generate-meal-plan"]
+  timeout = 26
+
 # HTTP Caching Headers for optimal performance
 #
 # NOTE: when several header rules match the same path, Netlify does NOT let a

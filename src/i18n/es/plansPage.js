@@ -105,9 +105,9 @@ export default {
 
   // Meal prep — paso de configuración
   mealPrepSetupIntro: 'Vamos a crear un plan de preparación que se adapte a tu semana. Unas preguntas rápidas:',
-  mealPrepQDays: '¿Cuántos días quieres preparar?',
+  mealPrepQDays: '¿Para cuántos días quieres dejar comida lista?',
   mealPrepDayCount: '{count} días',
-  mealPrepWholePlan: 'Plan completo ({count})',
+  mealPrepDayCountOne: '1 día',
   mealPrepQSessions: '¿Cuántas sesiones de cocina esta semana?',
   mealPrepSessionsOne: 'Una gran preparación',
   mealPrepSessionsTwo: 'Dos sesiones',
