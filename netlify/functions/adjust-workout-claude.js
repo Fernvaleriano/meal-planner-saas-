@@ -11,6 +11,12 @@
 //   • travel      — adapt the planned session to limited equipment (hotel gym /
 //                   minimal / bodyweight), swapping only what the gear forces.
 //   • short_time  — condense the planned session into the minutes they have today.
+//   • tired       — a lighter, dialed-back version of the planned session for a
+//                   day they're sore / low-energy (keeps the main lifts, cuts
+//                   volume + intensity).
+//
+// The client can also add a free-text note ("tweaked my shoulder", "no squat
+// rack") that the AI must account for.
 //
 // In every case the reference is the client's existing plan + goal. The output is
 // a SINGLE workout in the same shape generate-workout-claude returns for
@@ -186,14 +192,18 @@ exports.handler = async (event) => {
     const body = JSON.parse(event.body || '{}');
     const {
       clientId,
-      situation = 'behind',            // 'behind' | 'travel' | 'short_time'
+      situation = 'behind',            // 'behind' | 'travel' | 'short_time' | 'tired'
       referenceWorkouts = [],          // [{ name, exercises: [{ name, sets, reps, muscleGroup, notes }] }]
       goal = '',                       // client's stated goal (from their plan/profile)
       equipmentContext = 'full',       // travel only: 'full' | 'hotel_gym' | 'minimal' | 'bodyweight'
       timeMinutes = null,              // short_time only
+      notes = '',                      // client's free-text "anything I should know?"
       injuryCodes = [],
       language = 'en',
     } = body;
+
+    // Cap the free-text note so a huge paste can't blow up the prompt.
+    const clientNote = String(notes || '').trim().slice(0, 300);
 
     const lang = (language || 'en').toString().toLowerCase();
 
@@ -203,7 +213,7 @@ exports.handler = async (event) => {
     if (!Array.isArray(referenceWorkouts) || referenceWorkouts.length === 0) {
       return { statusCode: 400, headers, body: JSON.stringify({ success: false, error: 'No plan to adjust. This tool needs your assigned workouts as a reference.' }) };
     }
-    const validSituations = ['behind', 'travel', 'short_time'];
+    const validSituations = ['behind', 'travel', 'short_time', 'tired'];
     const sit = validSituations.includes(situation) ? situation : 'behind';
 
     // Auth: caller must be the client or their coach.
@@ -265,6 +275,8 @@ exports.handler = async (event) => {
     } else if (sit === 'travel') {
       const gearLabel = EQUIPMENT_LABELS[equipmentContext] || 'limited equipment';
       mission = `The client is training away from their usual gym with ${gearLabel}. Adapt the planned session below to that equipment: keep any listed exercise they CAN still do, and for any move that needs gear they don't have, swap it for the closest equivalent from AVAILABLE EXERCISES that trains the same muscle. Keep the training effect as close to the original plan as possible. Aim for ~${durationTarget} minutes.`;
+    } else if (sit === 'tired') {
+      mission = `The client made it in but is beat up and low on energy today (sore, run down, poor sleep). Produce a LIGHTER version of the planned session below: keep the main movements but dial total volume back by roughly 25-30% (drop a set or two, cut the most fatiguing accessory work), ease the intensity, and keep rest generous. This is a recovery-minded day — a note reminding them to move well and not grind is welcome. Same session, dialed back — NOT a different workout. Aim for ~${durationTarget} minutes.`;
     } else {
       mission = `The client only has ${durationTarget} minutes today. Condense the planned session below into a focused ${durationTarget}-minute version: keep the main lifts, cut or shorten the least essential accessory work, and tighten rest where sensible. Same muscles, less filler.`;
     }
@@ -296,10 +308,15 @@ Return ONLY valid JSON in EXACTLY this shape, nothing else:
 AVAILABLE EXERCISES (use these exact names for any swap; custom = the coach's own filmed moves, prefer them):
 ${availableList}${languageInstruction(lang)}`;
 
+    const noteBlock = clientNote
+      ? `\n\n⚠️ THE CLIENT ADDED A NOTE — YOU MUST ACCOUNT FOR IT: "${clientNote}"
+If it mentions pain, soreness, or an injury, avoid movements that would aggravate it and pick safer alternatives from AVAILABLE EXERCISES. If it names equipment they do or don't have, respect that. Honour this note over any default choice.`
+      : '';
+
     const userMessage = `CLIENT GOAL: ${resolvedGoal}
 
 THE CLIENT'S PLANNED SESSION(S) TO ADJUST:
-${formatReferenceWorkouts(referenceWorkouts)}
+${formatReferenceWorkouts(referenceWorkouts)}${noteBlock}
 
 Build the single adjusted session now. Return ONLY the JSON.`;
 

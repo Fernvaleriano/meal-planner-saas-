@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X, Sparkles, Dumbbell, CalendarX, Plane, Clock } from 'lucide-react';
+import { X, Sparkles, Dumbbell, CalendarX, Plane, Clock, BatteryLow } from 'lucide-react';
 import { apiGet, apiPost } from '../../utils/api';
 import { useLanguage } from '../../context/LanguageContext';
 
@@ -30,6 +30,7 @@ const SITUATIONS = [
   { value: 'behind', label: 'I fell behind', hint: 'Squeeze my missed days into one', Icon: CalendarX },
   { value: 'travel', label: "I'm traveling", hint: 'Limited or no gym', Icon: Plane },
   { value: 'short_time', label: 'Short on time', hint: 'Fit it into what I have', Icon: Clock },
+  { value: 'tired', label: 'Feeling beat up', hint: 'Go lighter today', Icon: BatteryLow },
 ];
 
 // Travel equipment presets — map 1:1 to the backend's EQUIPMENT_PRESETS keys.
@@ -57,6 +58,7 @@ function AdjustWorkoutModal({
   const [situation, setSituation] = useState(hasMissed ? 'behind' : 'travel');
   const [equipmentContext, setEquipmentContext] = useState('hotel_gym');
   const [timeMinutes, setTimeMinutes] = useState(30);
+  const [note, setNote] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -145,6 +147,7 @@ function AdjustWorkoutModal({
       if (goal) payload.goal = goal;
       if (situation === 'travel') payload.equipmentContext = equipmentContext;
       if (situation === 'short_time') payload.timeMinutes = timeMinutes;
+      if (note.trim()) payload.notes = note.trim();
 
       const res = await apiPost('/.netlify/functions/adjust-workout-claude', payload, { timeoutMs: 60000 });
       if (!res?.success) throw new Error(res?.error || 'Could not adjust your workout. Please try again.');
@@ -202,12 +205,14 @@ function AdjustWorkoutModal({
   });
   const smallChip = (active) => ({ ...chip(active), flex: '0 1 auto', minWidth: 76, padding: '10px 12px', fontSize: 13 });
 
+  const missedLabels = missedDates.map(d => d.dayLabel).filter(Boolean);
   const subtitle = {
     behind: hasMissed
       ? `You missed ${missedDates.length} planned ${missedDates.length === 1 ? 'day' : 'days'} this week. I'll blend the key work into one session to get you back on track.`
       : "You're all caught up — nothing missed this week.",
     travel: 'I\'ll adapt your planned session to whatever you\'ve got with you.',
     short_time: 'I\'ll trim your planned session down to the time you have.',
+    tired: 'I\'ll keep the main lifts but dial the volume and intensity back for a recovery-minded day.',
   }[situation];
 
   return (
@@ -261,6 +266,12 @@ function AdjustWorkoutModal({
 
               <div style={{ ...groupHint, marginTop: 12 }}>{subtitle}</div>
 
+              {situation === 'behind' && missedLabels.length > 0 && (
+                <div style={{ fontSize: 13, fontWeight: 700, margin: '2px 2px 4px', color: 'var(--brand-primary, #FF5A1F)' }}>
+                  Catching up: {missedLabels.join(' + ')}
+                </div>
+              )}
+
               {situation === 'travel' && (
                 <>
                   <div style={groupLabel}>WHAT DO YOU HAVE?</div>
@@ -286,11 +297,24 @@ function AdjustWorkoutModal({
                 </>
               )}
 
-              {(situation === 'travel' || situation === 'short_time') && !referenceDate && !hasMissed && (
+              {(situation === 'travel' || situation === 'short_time' || situation === 'tired') && !referenceDate && !hasMissed && (
                 <div style={{ ...groupHint, marginTop: 12, color: '#e5a23d' }}>
                   No workout scheduled right now — open this on a training day and I'll have a session to adjust.
                 </div>
               )}
+
+              <div style={groupLabel}>ANYTHING I SHOULD KNOW?</div>
+              <textarea
+                style={{
+                  width: '100%', minHeight: 52, borderRadius: 11, padding: '10px 12px',
+                  border: '1.5px solid rgba(128,128,128,0.28)', background: 'transparent',
+                  color: 'inherit', fontSize: 14, fontFamily: 'inherit', resize: 'vertical',
+                }}
+                placeholder="e.g. tweaked my shoulder, no squat rack today, knees a bit sore"
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                maxLength={300}
+              />
             </div>
 
             <div style={footer}>
