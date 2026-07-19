@@ -1535,17 +1535,34 @@
         }
 
         .import-diet-meal-item {
+            padding: 6px 0;
+            font-size: 13px;
+            color: #374151;
+            border-bottom: 1px dashed #f3f4f6;
+        }
+
+        .import-diet-meal-item:last-child {
+            border-bottom: none;
+        }
+
+        .import-diet-meal-item .meal-item-row {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 4px 0;
-            font-size: 13px;
-            color: #374151;
+            gap: 8px;
         }
 
         .import-diet-meal-item .meal-macros {
             font-size: 11px;
             color: #6b7280;
+            white-space: nowrap;
+        }
+
+        .import-diet-meal-item .meal-ingredients {
+            font-size: 11px;
+            color: #9ca3af;
+            margin-top: 2px;
+            line-height: 1.4;
         }
 
         /* Image Gallery Styles */
@@ -3796,7 +3813,7 @@
             <!-- Step 1: Upload/Paste -->
             <div id="importDietStep1">
                 <p class="text-gray-600 text-sm mb-4" style="line-height: 1.6;">
-                    Upload a diet plan file or paste the text. The AI will extract meals, calories, macros, and ingredients, then load them into your meal planner.
+                    Upload a diet plan file or paste the text — most formats work. Meals, calories, macros, and ingredients are picked out automatically, and daily totals or notes are kept out of the meal list. You'll get a preview to check before anything is added to your planner.
                 </p>
 
                 <div class="import-diet-drop-zone" id="importDietDropZone" onclick="document.getElementById('importDietFileInput').click()">
@@ -3816,7 +3833,7 @@
 
                 <div class="import-diet-or-divider">or paste text</div>
 
-                <textarea class="import-diet-paste-area" id="importDietPasteArea" placeholder="Paste your diet plan text here...&#10;&#10;Example:&#10;Day 1: Monday&#10;Breakfast: Oatmeal with Berries - 350 cal, 12g protein, 55g carbs, 8g fat&#10;Lunch: Grilled Chicken Salad - 450 cal, 40g protein, 20g carbs, 22g fat&#10;Dinner: Salmon with Sweet Potato - 550 cal, 38g protein, 45g carbs, 20g fat&#10;..." rows="8"></textarea>
+                <textarea class="import-diet-paste-area" id="importDietPasteArea" placeholder="Paste your diet plan text here... Most formats work, for example:&#10;&#10;Breakfast: Oatmeal with Berries - 350 cal, 12g protein, 55g carbs, 8g fat&#10;Lunch: Grilled Chicken Salad - 450 cal, 40g protein, 20g carbs, 22g fat&#10;&#10;or:&#10;&#10;MEAL 1 — BREAKFAST&#10;~560 cal | 40P | 60C | 17F&#10;- 3 whole eggs, scrambled&#10;- 1/2 cup oats&#10;- 1 banana" rows="10"></textarea>
             </div>
 
             <!-- Step 2: Processing -->
@@ -3860,11 +3877,15 @@
                 </div>
 
                 <div id="importDietPreview" style="max-height: 300px; overflow-y: auto; border: 1px solid #e5e7eb; border-radius: 8px; padding: 12px;"></div>
+                <p class="text-gray-500" style="font-size: 12px; margin-top: 8px; line-height: 1.5;">
+                    Check the meals above. If something looks off, hit Back, tidy up that part of the text, and import again. You can also rename or edit any meal once it's in the planner.
+                </p>
             </div>
 
             <!-- Footer Buttons -->
             <div class="flex gap-2 mt-4">
                 <button data-action="close-import-diet-plan" class="btn btn-secondary flex-1">Cancel</button>
+                <button id="importDietBackBtn" onclick="importDietGoBack()" class="btn btn-secondary flex-1" style="display: none;">&larr; Back</button>
                 <button id="importDietBtn" onclick="startDietImport()" class="btn flex-1" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white; font-weight: 600;">
                     Import Plan
                 </button>
@@ -11726,6 +11747,7 @@ function openImportDietPlanModal() {
     document.getElementById('importDietStep3').style.display = 'none';
     document.getElementById('importDietPasteArea').value = '';
     document.getElementById('importDietFileInfo').style.display = 'none';
+    document.getElementById('importDietBackBtn').style.display = 'none';
     importDietFileContent = null;
     importedDietPlanData = null;
     const btn = document.getElementById('importDietBtn');
@@ -11858,18 +11880,23 @@ async function startDietImport() {
         let previewHTML = '';
         for (const day of result.plan.currentPlan) {
             previewHTML += `<div class="import-diet-day-preview">`;
-            previewHTML += `<div class="import-diet-day-title">${day.name || 'Day ' + day.day}</div>`;
+            previewHTML += `<div class="import-diet-day-title">${escapeHtml(day.name || 'Day ' + day.day)}</div>`;
             for (const meal of day.plan) {
+                const ingredientsText = (meal.ingredients || []).join(', ');
                 previewHTML += `<div class="import-diet-meal-item">
-                    <span><strong>${meal.type}:</strong> ${meal.name}</span>
-                    <span class="meal-macros">${meal.calories} cal | P:${meal.protein}g C:${meal.carbs}g F:${meal.fat}g</span>
+                    <div class="meal-item-row">
+                        <span><strong>${escapeHtml(meal.type)}:</strong> ${escapeHtml(meal.name)}</span>
+                        <span class="meal-macros">${meal.calories} cal | P:${meal.protein}g C:${meal.carbs}g F:${meal.fat}g</span>
+                    </div>
+                    ${ingredientsText ? `<div class="meal-ingredients">${escapeHtml(ingredientsText)}</div>` : ''}
                 </div>`;
             }
             previewHTML += `</div>`;
         }
         previewEl.innerHTML = previewHTML;
 
-        // Update button to "Apply to Planner"
+        // Update button to "Apply to Planner", offer a way back to the text
+        document.getElementById('importDietBackBtn').style.display = '';
         btn.disabled = false;
         btn.innerHTML = 'Apply to Planner';
         btn.onclick = applyImportedDietPlan;
@@ -11882,10 +11909,25 @@ async function startDietImport() {
         document.getElementById('importDietStep1').style.display = '';
         document.getElementById('importDietStep2').style.display = 'none';
         document.getElementById('importDietStep3').style.display = 'none';
+        document.getElementById('importDietBackBtn').style.display = 'none';
         btn.disabled = false;
         btn.innerHTML = 'Import Plan';
         btn.onclick = startDietImport;
     }
+}
+
+// Return from the preview to the paste step (text is kept) so the coach
+// can fix the plan text and import again.
+function importDietGoBack() {
+    importedDietPlanData = null;
+    document.getElementById('importDietStep1').style.display = '';
+    document.getElementById('importDietStep2').style.display = 'none';
+    document.getElementById('importDietStep3').style.display = 'none';
+    document.getElementById('importDietBackBtn').style.display = 'none';
+    const btn = document.getElementById('importDietBtn');
+    btn.disabled = false;
+    btn.innerHTML = 'Import Plan';
+    btn.onclick = startDietImport;
 }
 
 async function applyImportedDietPlan() {
