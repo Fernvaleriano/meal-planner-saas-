@@ -102,9 +102,9 @@ export default {
 
   // Meal prep — setup step
   mealPrepSetupIntro: "Let's build a prep plan that fits your week. A few quick questions:",
-  mealPrepQDays: 'How many days do you want to prep?',
+  mealPrepQDays: 'How many days of food do you want to prep ahead?',
   mealPrepDayCount: '{count} days',
-  mealPrepWholePlan: 'Whole plan ({count})',
+  mealPrepDayCountOne: '1 day',
   mealPrepQSessions: 'How many cook sessions this week?',
   mealPrepSessionsOne: 'One big prep',
   mealPrepSessionsTwo: 'Two sessions',

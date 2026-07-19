@@ -1599,12 +1599,13 @@ Return ONLY valid JSON:
   // for this plan, jump straight back to it.
   const handleMealPrep = () => {
     setMealPrepError(false);
-    // Default the day count to the whole plan the first time the modal opens.
-    setMealPrepSetup(prev => (
-      prev.days == null
-        ? { ...prev, days: getPlanDays(selectedPlan).length || 1 }
-        : prev
-    ));
+    // Default the batch target: a multi-day plan defaults to its own length,
+    // a single-day plan defaults to a typical 5-day batch.
+    setMealPrepSetup(prev => {
+      if (prev.days != null) return prev;
+      const distinct = getPlanDays(selectedPlan).length || 1;
+      return { ...prev, days: distinct > 1 ? Math.min(distinct, 7) : 5 };
+    });
     setMealPrepStep(mealPrepGuide ? 'guide' : 'setup');
     setShowMealPrepModal(true);
   };
@@ -1670,17 +1671,22 @@ Return ONLY valid JSON:
     setMealPrepLoading(true);
     try {
       const allDays = getPlanDays(selectedPlan);
-      const dayCount = Math.min(mealPrepSetup.days || allDays.length, allDays.length) || 1;
-      const days = allDays.slice(0, dayCount);
+      const distinctDays = allDays.length || 1;
+      // How many days of FOOD the client wants ready (batch target). For a
+      // single-day plan this is how many times to repeat that day; for a
+      // multi-day plan it's how far into the plan to prep.
+      const targetDays = mealPrepSetup.days || (distinctDays > 1 ? Math.min(distinctDays, 7) : 5);
+      const daysToList = distinctDays > 1 ? allDays.slice(0, Math.min(targetDays, distinctDays)) : allDays;
 
       const mealLines = [];
-      days.forEach((day, i) => {
+      daysToList.forEach((day, i) => {
         (day.plan || []).forEach(meal => {
           const ings = (meal.ingredients || [])
             .map(x => (typeof x === 'string' ? x : (x?.name || x?.food || '')))
             .filter(Boolean);
+          const dayLabel = distinctDays > 1 ? `Day ${i + 1} ` : '';
           mealLines.push(
-            `Day ${i + 1} ${meal.type || meal.meal_type || 'Meal'}: ${meal.name}${ings.length ? ` — ${ings.join(', ')}` : ''}`
+            `${dayLabel}${meal.type || meal.meal_type || 'Meal'}: ${meal.name}${ings.length ? ` — ${ings.join(', ')}` : ''}`
           );
         });
       });
@@ -1697,18 +1703,27 @@ Return ONLY valid JSON:
         advanced: 'an experienced cook — be efficient and skip the obvious'
       }[mealPrepSetup.experience] || 'a comfortable home cook';
 
+      // Tell the model whether it's scaling one day up, or prepping several
+      // distinct days — this is what makes it a real BATCH prep guide.
+      const scaleInstruction = distinctDays > 1
+        ? `The plan below has ${daysToList.length} distinct day(s) of meals. Help them prep all of them at once.`
+        : `The plan below is ONE day of meals. The client wants ${targetDays} days of food from it, so BATCH it: multiply every ingredient by ${targetDays} and tell them the TOTAL amount to cook or buy (e.g. "cook ${targetDays} portions / ~X total"). Portion into ${targetDays} containers.`;
+
       const prompt = `You are an expert fitness coach writing a personal MEAL PREP GUIDE for one of your clients. Be warm, clear and practical — like a coach who actually cooks.
 
 CLIENT'S PREP SET-UP:
-- They want to prep ${dayCount} day(s) of their plan.
+- They want ${targetDays} day(s) of food prepped and ready.
 - They want to cook in ${mealPrepSetup.sessions} prep session(s) across the week.
 - They have ${timeLabel} per prep session.
 - They are ${expLabel}.
 
+BATCHING:
+${scaleInstruction}
+
 MEALS TO PREP:
 ${mealLines.join('\n')}
 
-Build a guide that respects their time, number of sessions and experience. Group cooking tasks logically (proteins, carbs, vegetables, sauces). If they chose 2 sessions, split the work sensibly (e.g. a big Sunday cook + a quick mid-week top-up so nothing goes stale).
+Build a guide that respects their time, number of sessions and experience. Give real batch quantities so they know how much to cook for ${targetDays} days. Group cooking tasks logically (proteins, carbs, vegetables, sauces). If they chose 2 sessions, split the work sensibly (e.g. a big Sunday cook + a quick mid-week top-up so nothing goes stale).
 
 Respond with ONLY valid JSON — no markdown, no code fences, no text before or after. Use EXACTLY this shape:
 {
@@ -1735,7 +1750,7 @@ Respond with ONLY valid JSON — no markdown, no code fences, no text before or 
         prompt,
         isJson: false,
         language
-      });
+      }, { timeoutMs: 45000 }); // AI generation is slow — don't abort at the 15s default
 
       const raw = response?.data;
       const parsed = parseMealPrepResponse(raw);
@@ -2407,13 +2422,12 @@ Respond with ONLY valid JSON — no markdown, no code fences, no text before or 
                   <div className="meal-prep-setup">
                     <p className="meal-prep-setup-intro">{t('plansPage.mealPrepSetupIntro')}</p>
 
-                    {/* How many days */}
+                    {/* How many days of food to batch-prep */}
                     <div className="meal-prep-q">
                       <label>{t('plansPage.mealPrepQDays')}</label>
                       <div className="meal-prep-chips">
-                        {Array.from({ length: getPlanDays(selectedPlan).length || 1 }, (_, i) => i + 1).map(n => {
-                          const total = getPlanDays(selectedPlan).length || 1;
-                          const selected = (mealPrepSetup.days || total) === n;
+                        {[1, 2, 3, 4, 5, 6, 7].map(n => {
+                          const selected = mealPrepSetup.days === n;
                           return (
                             <button
                               key={n}
@@ -2421,8 +2435,8 @@ Respond with ONLY valid JSON — no markdown, no code fences, no text before or 
                               className={`meal-prep-chip ${selected ? 'selected' : ''}`}
                               onClick={() => setMealPrepSetup(prev => ({ ...prev, days: n }))}
                             >
-                              {n === total
-                                ? t('plansPage.mealPrepWholePlan', { count: n })
+                              {n === 1
+                                ? t('plansPage.mealPrepDayCountOne')
                                 : t('plansPage.mealPrepDayCount', { count: n })}
                             </button>
                           );

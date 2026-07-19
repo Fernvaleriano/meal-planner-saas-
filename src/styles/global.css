@@ -14775,10 +14775,14 @@ textarea,
 }
 
 /* ============================================
-   MEAL PREP — SETUP STEP (question chips)
+   MEAL PREP — SETUP + GUIDE
+   The modal background is light in BOTH themes (in dark mode it resolves to
+   the near-white --gray-800), so every text colour here is a fixed dark value
+   on purpose — theme-inverted grey vars would render light-on-white. Do not
+   swap these back to --gray-* vars without re-checking dark mode.
    ============================================ */
 .meal-prep-setup-intro {
-    color: var(--gray-600);
+    color: #475569;
     margin-bottom: 22px;
     line-height: 1.6;
 }
@@ -14791,7 +14795,7 @@ textarea,
     display: block;
     font-weight: 700;
     font-size: 0.95rem;
-    color: var(--gray-800);
+    color: #1e293b;
     margin-bottom: 12px;
 }
 
@@ -14804,9 +14808,9 @@ textarea,
 .meal-prep-chip {
     padding: 10px 16px;
     border-radius: 999px;
-    border: 1.5px solid var(--gray-300);
-    background: var(--gray-50, #f8fafc);
-    color: var(--gray-700);
+    border: 1.5px solid #cbd5e1;
+    background: #f1f5f9;
+    color: #334155;
     font-size: 0.9rem;
     font-weight: 600;
     cursor: pointer;
@@ -14849,16 +14853,15 @@ textarea,
 .meal-prep-error {
     text-align: center;
     padding: 30px 10px;
-    color: var(--gray-600);
+    color: #334155;
+    font-weight: 500;
     display: flex;
     flex-direction: column;
     gap: 16px;
     align-items: center;
 }
 
-/* ============================================
-   MEAL PREP — GUIDE STEP (structured cards)
-   ============================================ */
+/* ---- Guide (structured cards) ---- */
 .meal-prep-guide-v2 {
     display: flex;
     flex-direction: column;
@@ -14871,8 +14874,8 @@ textarea,
     align-items: flex-start;
     padding: 16px;
     border-radius: 14px;
-    background: color-mix(in srgb, var(--primary, #10b981) 10%, transparent);
-    border: 1px solid color-mix(in srgb, var(--primary, #10b981) 25%, transparent);
+    background: color-mix(in srgb, var(--primary, #10b981) 10%, #ffffff);
+    border: 1px solid color-mix(in srgb, var(--primary, #10b981) 25%, #ffffff);
 }
 
 .mp-overview svg {
@@ -14882,13 +14885,13 @@ textarea,
 }
 
 .mp-overview p {
-    color: var(--gray-700);
+    color: #334155;
     line-height: 1.6;
     font-weight: 500;
 }
 
 .mp-card {
-    border: 1px solid var(--gray-200);
+    border: 1px solid #e2e8f0;
     border-radius: 14px;
     padding: 16px;
     background: #fff;
@@ -14905,7 +14908,7 @@ textarea,
 .mp-card-head h3 {
     font-size: 1.05rem;
     font-weight: 700;
-    color: var(--gray-800);
+    color: #1e293b;
     margin: 0;
 }
 
@@ -14915,8 +14918,8 @@ textarea,
     gap: 4px;
     font-size: 0.8rem;
     font-weight: 600;
-    color: var(--primary, #10b981);
-    background: color-mix(in srgb, var(--primary, #10b981) 12%, transparent);
+    color: var(--primary, #0f9e73);
+    background: color-mix(in srgb, var(--primary, #10b981) 12%, #ffffff);
     padding: 4px 10px;
     border-radius: 999px;
     white-space: nowrap;
@@ -14936,7 +14939,7 @@ textarea,
     gap: 10px;
     align-items: flex-start;
     line-height: 1.5;
-    color: var(--gray-700);
+    color: #334155;
 }
 
 .mp-check {
@@ -14949,7 +14952,7 @@ textarea,
     display: block;
     font-style: normal;
     font-size: 0.85rem;
-    color: var(--gray-500);
+    color: #64748b;
     margin-top: 3px;
 }
 
@@ -14961,7 +14964,7 @@ textarea,
 
 .mp-storage-row {
     padding-bottom: 12px;
-    border-bottom: 1px solid var(--gray-100);
+    border-bottom: 1px solid #eef2f6;
 }
 
 .mp-storage-row:last-child {
@@ -14971,13 +14974,13 @@ textarea,
 
 .mp-storage-item {
     font-weight: 700;
-    color: var(--gray-800);
+    color: #1e293b;
     margin-bottom: 4px;
 }
 
 .mp-storage-how {
     font-size: 0.9rem;
-    color: var(--gray-600);
+    color: #475569;
     line-height: 1.5;
     margin-bottom: 8px;
 }
@@ -15016,15 +15019,15 @@ textarea,
     gap: 10px;
     align-items: flex-start;
     line-height: 1.5;
-    color: var(--gray-700);
+    color: #334155;
 }
 
 .mp-day-pill {
     flex-shrink: 0;
     font-size: 0.78rem;
     font-weight: 700;
-    color: var(--gray-700);
-    background: var(--gray-100);
+    color: #334155;
+    background: #f1f5f9;
     padding: 3px 10px;
     border-radius: 8px;
     white-space: nowrap;
@@ -15043,7 +15046,7 @@ textarea,
     position: relative;
     padding-left: 20px;
     line-height: 1.5;
-    color: var(--gray-700);
+    color: #334155;
 }
 
 .mp-tips li::before {
@@ -15061,67 +15064,13 @@ textarea,
     gap: 6px;
     margin: 8px auto 0;
     padding: 10px 20px;
-    border: 1.5px solid var(--gray-300);
+    border: 1.5px solid #cbd5e1;
     border-radius: 12px;
     background: transparent;
-    color: var(--gray-600);
+    color: #475569;
     font-size: 0.9rem;
     font-weight: 600;
     cursor: pointer;
-}
-
-/* Dark theme — setup + guide */
-[data-theme="dark"] .meal-prep-setup-intro,
-[data-theme="dark"] .mp-overview p,
-[data-theme="dark"] .mp-tasks li,
-[data-theme="dark"] .mp-assembly-row,
-[data-theme="dark"] .mp-tips li {
-    color: var(--gray-300);
-}
-
-[data-theme="dark"] .meal-prep-q > label,
-[data-theme="dark"] .mp-card-head h3,
-[data-theme="dark"] .mp-storage-item {
-    color: var(--gray-100);
-}
-
-[data-theme="dark"] .meal-prep-chip {
-    background: var(--gray-700);
-    border-color: var(--gray-600);
-    color: var(--gray-200);
-}
-
-[data-theme="dark"] .meal-prep-chip.selected {
-    background: var(--primary, #10b981);
-    border-color: var(--primary, #10b981);
-    color: #fff;
-}
-
-[data-theme="dark"] .mp-card {
-    background: var(--gray-800);
-    border-color: var(--gray-700);
-}
-
-[data-theme="dark"] .mp-storage-how {
-    color: var(--gray-400);
-}
-
-[data-theme="dark"] .mp-storage-row {
-    border-color: var(--gray-700);
-}
-
-[data-theme="dark"] .mp-day-pill {
-    background: var(--gray-700);
-    color: var(--gray-200);
-}
-
-[data-theme="dark"] .mp-tip {
-    color: var(--gray-400);
-}
-
-[data-theme="dark"] .meal-prep-redo-btn {
-    border-color: var(--gray-600);
-    color: var(--gray-300);
 }
 
 /* Action bar is already 2x2 grid - no media query needed */
