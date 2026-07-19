@@ -164,6 +164,9 @@ function Plans() {
 
   // Grocery list state
   const [showGroceryModal, setShowGroceryModal] = useState(false);
+  // Day multiplier for the grocery list — 1 = shop for the plan as written,
+  // 2+ = multiply every ingredient amount to cover that many repeats
+  const [groceryDays, setGroceryDays] = useState(1);
   const [groceryChecks, setGroceryChecks] = useState(() => {
     try {
       const stored = localStorage.getItem(`grocery-checks-${planId || 'default'}`);
@@ -471,6 +474,7 @@ function Plans() {
     } catch (e) {
       setGroceryChecks({});
     }
+    setGroceryDays(1);
   }, [selectedPlan?.id]);
 
   // Get plan details
@@ -1506,12 +1510,45 @@ Return ONLY valid JSON:
     }
   };
 
-  // Generate grocery list from plan
-  const generateGroceryList = () => {
+  // Pull a leading amount ("1.5", "1/2", "1 1/2") off an ingredient string
+  // so amounts can be added up and scaled. Returns null if there's no
+  // leading number (e.g. "salt to taste") — those items are never scaled.
+  const parseIngredientAmount = (text) => {
+    const match = text.match(/^(\d+\s+\d+\/\d+|\d+\/\d+|\d+(?:\.\d+)?)\s+(.+)$/);
+    if (!match) return null;
+    const qty = match[1].split(/\s+/).reduce((sum, part) => {
+      if (part.includes('/')) {
+        const [num, den] = part.split('/');
+        return sum + parseFloat(num) / parseFloat(den);
+      }
+      return sum + parseFloat(part);
+    }, 0);
+    if (!isFinite(qty) || qty <= 0) return null;
+    return { qty, rest: match[2] };
+  };
+
+  // "1 cup" scaled to 3 should read "3 cups" — anything not in these maps is
+  // left untouched. Units pluralize whenever they lead ("3 cups dry oats");
+  // foods only when they're the whole item ("3 bananas", but "12 egg whites")
+  const GROCERY_UNIT_PLURALS = {
+    cup: 'cups', slice: 'slices', scoop: 'scoops', serving: 'servings',
+    piece: 'pieces', clove: 'cloves', can: 'cans', bottle: 'bottles',
+    bag: 'bags', packet: 'packets', bar: 'bars'
+  };
+  const GROCERY_FOOD_PLURALS = {
+    egg: 'eggs', banana: 'bananas', apple: 'apples', orange: 'oranges',
+    potato: 'potatoes', tortilla: 'tortillas'
+  };
+
+  const formatGroceryQty = (qty) => String(Math.round(qty * 100) / 100);
+
+  // Generate grocery list from plan. daysMultiplier scales every parsed
+  // amount, e.g. 3 = buy enough to eat this plan three times over.
+  const generateGroceryList = (daysMultiplier = 1) => {
     if (!selectedPlan) return {};
 
     const days = getPlanDays(selectedPlan);
-    const groceryItems = {};
+    const grouped = {};
 
     // Categories for common ingredients
     const categorize = (ingredient) => {
@@ -1527,40 +1564,78 @@ Return ONLY valid JSON:
       return t('plansPage.groceryCategoryOther');
     };
 
+    // Singularize the first word so "cups rice" and "cup rice" group together
+    const normalizeKey = (rest) => {
+      const words = rest.toLowerCase().trim().split(/\s+/);
+      if (words[0] && words[0].length > 3 && words[0].endsWith('s')) {
+        words[0] = words[0].slice(0, -1);
+      }
+      return words.join(' ');
+    };
+
     days.forEach(day => {
       (day.plan || []).forEach(meal => {
         if (meal.ingredients && Array.isArray(meal.ingredients)) {
           meal.ingredients.forEach(ing => {
-            const ingStr = typeof ing === 'string' ? ing : `${ing.amount || ''} ${ing.name || ing}`.trim();
+            const ingStr = (typeof ing === 'string' ? ing : `${ing.amount || ''} ${ing.name || ing}`).trim();
+            if (!ingStr) return;
+
             const category = categorize(ingStr);
+            if (!grouped[category]) grouped[category] = new Map();
 
-            if (!groceryItems[category]) {
-              groceryItems[category] = [];
-            }
+            const parsed = parseIngredientAmount(ingStr);
+            const normKey = parsed ? normalizeKey(parsed.rest) : ingStr.toLowerCase();
+            const existing = grouped[category].get(normKey);
 
-            // Avoid duplicates (simple check)
-            const exists = groceryItems[category].some(item =>
-              item.toLowerCase().includes(ingStr.toLowerCase().split('(')[0].trim()) ||
-              ingStr.toLowerCase().includes(item.toLowerCase().split('(')[0].trim())
-            );
-
-            if (!exists && ingStr.trim()) {
-              groceryItems[category].push(ingStr);
+            if (existing) {
+              // Same item in another meal/day — add the amounts together
+              if (existing.qty !== null && parsed) existing.qty += parsed.qty;
+            } else {
+              grouped[category].set(normKey, {
+                qty: parsed ? parsed.qty : null,
+                rest: parsed ? parsed.rest : null,
+                text: ingStr
+              });
             }
           });
         }
       });
     });
 
+    // Build display strings, scaling amounts by the day multiplier
+    const groceryItems = {};
+    Object.entries(grouped).forEach(([category, itemsMap]) => {
+      groceryItems[category] = [];
+      itemsMap.forEach((item, normKey) => {
+        let label = item.text;
+        if (item.qty !== null) {
+          const total = item.qty * daysMultiplier;
+          let rest = item.rest;
+          if (total > 1) {
+            const words = rest.split(/\s+/);
+            const first = words[0]?.toLowerCase();
+            const plural = GROCERY_UNIT_PLURALS[first] ||
+              (words.length === 1 ? GROCERY_FOOD_PLURALS[first] : undefined);
+            if (plural) {
+              words[0] = plural;
+              rest = words.join(' ');
+            }
+          }
+          label = `${formatGroceryQty(total)} ${rest}`;
+        }
+        groceryItems[category].push({ key: normKey, label });
+      });
+    });
+
     return groceryItems;
   };
 
-  // Toggle grocery item checked
-  const toggleGroceryCheck = (category, index) => {
-    const key = `${category}-${index}`;
+  // Toggle grocery item checked — keyed by item name (not list position) so
+  // checks survive changing the day count, which only rewrites the amounts
+  const toggleGroceryCheck = (itemKey) => {
     setGroceryChecks(prev => {
-      const updated = { ...prev, [key]: !prev[key] };
-      localStorage.setItem(`grocery-checks-${planId || 'default'}`, JSON.stringify(updated));
+      const updated = { ...prev, [itemKey]: !prev[itemKey] };
+      localStorage.setItem(`grocery-checks-${selectedPlan?.id || planId || 'default'}`, JSON.stringify(updated));
       return updated;
     });
   };
@@ -1746,7 +1821,7 @@ Keep it practical and brief. Format with clear sections.`;
           <div class="grocery-category">
             <h3>${category}</h3>
             <ul>
-              ${items.map(item => `<li>${item}</li>`).join('')}
+              ${items.map(item => `<li>${item.label}</li>`).join('')}
             </ul>
           </div>
         `;
@@ -2236,35 +2311,61 @@ Keep it practical and brief. Format with clear sections.`;
                   <X size={24} />
                 </button>
               </div>
-              <div className="grocery-content">
-                {Object.entries(generateGroceryList()).length === 0 ? (
-                  <p className="empty-grocery">{t('plansPage.groceryEmpty')}</p>
-                ) : (
-                  Object.entries(generateGroceryList()).map(([category, items]) => (
-                    <div key={category} className="grocery-category">
-                      <h3>{category}</h3>
-                      <ul>
-                        {items.map((item, idx) => {
-                          const key = `${category}-${idx}`;
-                          const isChecked = groceryChecks[key];
+              {(() => {
+                const planDayCount = Math.max(getPlanDays(selectedPlan).length, 1);
+                const multiplierOptions = planDayCount === 1 ? [1, 2, 3, 4, 5, 6, 7] : [1, 2, 3, 4];
+                const groceryList = generateGroceryList(groceryDays);
+                return (
+                  <>
+                    <div className="grocery-days-row">
+                      <span className="grocery-days-label">{t('plansPage.groceryDaysLabel')}</span>
+                      <div className="grocery-days-chips">
+                        {multiplierOptions.map(m => {
+                          const n = m * planDayCount;
                           return (
-                            <li
-                              key={idx}
-                              className={`grocery-item ${isChecked ? 'checked' : ''}`}
-                              onClick={() => toggleGroceryCheck(category, idx)}
+                            <button
+                              key={m}
+                              className={`grocery-day-chip ${groceryDays === m ? 'active' : ''}`}
+                              onClick={() => setGroceryDays(m)}
                             >
-                              <span className="grocery-checkbox">
-                                {isChecked && <Check size={14} />}
-                              </span>
-                              <span className="grocery-text">{item}</span>
-                            </li>
+                              {n === 1 ? t('plansPage.groceryDayOne') : t('plansPage.groceryDaysN', { n })}
+                            </button>
                           );
                         })}
-                      </ul>
+                      </div>
                     </div>
-                  ))
-                )}
-              </div>
+                    <div className="grocery-content">
+                      {Object.entries(groceryList).length === 0 ? (
+                        <p className="empty-grocery">{t('plansPage.groceryEmpty')}</p>
+                      ) : (
+                        Object.entries(groceryList).map(([category, items]) => (
+                          <div key={category} className="grocery-category">
+                            <h3>{category}</h3>
+                            <ul>
+                              {items.map((item) => {
+                                const key = `${category}|${item.key}`;
+                                const isChecked = groceryChecks[key];
+                                return (
+                                  <li
+                                    key={item.key}
+                                    className={`grocery-item ${isChecked ? 'checked' : ''}`}
+                                    onClick={() => toggleGroceryCheck(key)}
+                                  >
+                                    <span className="grocery-checkbox">
+                                      {isChecked && <Check size={14} />}
+                                    </span>
+                                    <span className="grocery-text">{item.label}</span>
+                                  </li>
+                                );
+                              })}
+                            </ul>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </>
+                );
+              })()}
             </div>
           </div>
         )}

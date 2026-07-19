@@ -94,6 +94,9 @@ export default {
   // Grocery list modal
   groceryModalHeading: 'Lista de compras',
   groceryEmpty: 'No se encontraron ingredientes en este plan de comida.',
+  groceryDaysLabel: 'Comprar para:',
+  groceryDayOne: '1 día',
+  groceryDaysN: '{n} días',
 
   // Meal prep modal
   mealPrepModalHeading: 'Guía de preparación',

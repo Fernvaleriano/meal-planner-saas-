@@ -75,6 +75,9 @@ export default {
 
   groceryModalHeading: 'รายการซื้อของ',
   groceryEmpty: 'ไม่พบส่วนผสมในแผนอาหารนี้',
+  groceryDaysLabel: 'ซื้อสำหรับ:',
+  groceryDayOne: '1 วัน',
+  groceryDaysN: '{n} วัน',
 
   mealPrepModalHeading: 'คู่มือเตรียมอาหาร',
   mealPrepLoading: 'กำลังสร้างคู่มือเตรียมอาหาร...',
