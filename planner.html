@@ -13553,53 +13553,98 @@ function generatePromptSuggestions(mealName) {
     const listPhrase = (arr) => arr.length <= 1
         ? (arr[0] || cleaned.toLowerCase())
         : arr.slice(0, -1).join(', ') + ' and ' + arr[arr.length - 1];
+    const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
     const foods = listPhrase(parts);
     const mainItem = parts[0] || cleaned.toLowerCase();
-    const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
 
     const hasEggs = /egg/i.test(mealName);
-    const hasMeat = /turkey|chicken|beef|steak|salmon|fish|tilapia|tuna|shrimp|pork|lamb/i.test(mealName);
+    const hasMeat = /turkey|chicken|beef|steak|salmon|fish|tilapia|tuna|shrimp|pork|lamb|cod/i.test(mealName);
     const hasRice = /rice/i.test(mealName);
     const hasPasta = /pasta|spaghetti|noodle/i.test(mealName);
+    const hasPotato = /potato/i.test(mealName);
+    const hasVeggies = /pepper|onion|broccoli|spinach|tomato|lettuce|cucumber|zucchini|asparagus|kale|carrot/i.test(mealName);
     const isShake = /shake|smoothie|protein powder|whey/i.test(mealName);
     const isBreakfast = hasEggs || /oat|pancake|waffle|toast|cereal|yogurt|cottage cheese|granola/i.test(mealName);
     const isSalad = /salad/i.test(mealName);
 
-    // Shared photography framing — keeps every suggestion reading like a pro food-photo brief
-    const FRAME = 'Photorealistic food photography, soft natural light, appetizing, realistic portion size, shallow depth of field, no text or labels.';
+    // Turn a raw ingredient into how it actually looks once cooked and plated,
+    // so the prompt describes a finished dish (not a shopping list).
+    const prep = (item) => {
+        if (/oat/.test(item)) return 'cooked oatmeal';
+        if (/banana/.test(item)) return 'fresh banana slices';
+        if (/chicken/.test(item)) return 'grilled chicken breast';
+        if (/turkey/.test(item)) return 'lean turkey';
+        if (/steak|beef/.test(item)) return 'seared steak slices';
+        if (/salmon/.test(item)) return 'grilled salmon fillet';
+        if (/tilapia|cod|tuna|fish/.test(item)) return 'grilled fish fillet';
+        if (/shrimp|prawn/.test(item)) return 'sautéed shrimp';
+        if (/rice/.test(item)) return 'steamed rice';
+        if (/pasta|spaghetti|noodle/.test(item)) return 'pasta';
+        if (/sweet potato/.test(item)) return 'roasted sweet potato';
+        if (/potato/.test(item)) return 'roasted potatoes';
+        if (/broccoli/.test(item)) return 'steamed broccoli';
+        if (/spinach|kale/.test(item)) return 'fresh greens';
+        if (/avocado/.test(item)) return 'sliced avocado';
+        if (/berr/.test(item)) return 'fresh berries';
+        if (/yogurt|yoghurt/.test(item)) return 'creamy yogurt';
+        if (/toast|bread|bagel/.test(item)) return 'golden toast';
+        if (/pancake/.test(item)) return 'fluffy pancakes';
+        if (/pepper|onion|tomato|zucchini|asparagus|carrot|mushroom/.test(item)) return item + ', lightly roasted';
+        return item;
+    };
 
-    // Suggestion 1 — clean overhead / plated
+    // Build the plated ingredient description, merging eggs + egg whites nicely
+    const preparedParts = [];
+    let eggDone = false;
+    parts.forEach(item => {
+        if (/egg/.test(item)) {
+            if (eggDone) return;
+            eggDone = true;
+            const hasWhite = parts.some(p => /egg white/.test(p));
+            const hasWhole = parts.some(p => /egg/.test(p) && !/white/.test(p));
+            if (hasWhite && hasWhole) preparedParts.push('fluffy scrambled eggs (made from whole eggs and egg whites)');
+            else if (/white/.test(item)) preparedParts.push('a fluffy egg-white scramble');
+            else preparedParts.push('fluffy scrambled eggs');
+            return;
+        }
+        preparedParts.push(prep(item));
+    });
+    const plated = listPhrase(preparedParts);
+    const closeupSubject = preparedParts[0] || foods;
+    const steam = isBreakfast || hasMeat || hasRice || hasPasta;
+
+    const dishLabel = isSalad ? 'a fresh, colorful salad'
+        : isBreakfast ? 'a healthy high-protein breakfast'
+        : (hasMeat && (hasRice || hasPasta || hasPotato || hasVeggies)) ? 'a balanced high-protein meal'
+        : 'a healthy, balanced meal';
+
+    // Shared closing framing — quality + negatives (matches the founder's reference brief)
+    const FRAME = 'shallow depth of field, fresh and appetizing, no text, no hands.';
+
+    // Suggestion 1 — plated, 45-degree studio look
     let plating;
     if (isShake) {
-        plating = `Overhead shot of a ${mainItem} shake in a tall clear glass on a clean light surface. ${FRAME}`;
-    } else if (isSalad) {
-        plating = `Overhead shot of a fresh, colorful salad with ${foods} in a wide white bowl, ingredients layered and vibrant. ${FRAME}`;
-    } else if (isBreakfast) {
-        plating = `Overhead shot of a wholesome breakfast bowl with ${foods}, arranged neatly on a clean light plate. ${FRAME}`;
+        plating = `Photorealistic food photo of a protein shake blended from ${foods}, in a tall clear glass on a clean light-gray stone surface, 45-degree angle, soft natural window light, ${FRAME}`;
     } else {
-        plating = `Overhead shot of ${foods} plated neatly on a simple white dish, clean light background. ${FRAME}`;
+        plating = `Photorealistic food photo of ${dishLabel} on a white plate: ${plated}. 45-degree angle, soft natural window light, clean light-gray stone surface${steam ? ', steam rising slightly' : ''}, ${FRAME}`;
     }
 
     // Suggestion 2 — natural / lifestyle setting
     let lifestyle;
     if (isShake) {
-        lifestyle = `A ${mainItem} shake in a glass on a light wooden table, warm morning sunlight, cozy kitchen feel. ${FRAME}`;
+        lifestyle = `Photorealistic food photo of a ${mainItem} shake in a glass on a light wooden table in a bright, airy kitchen, warm morning sunlight, ${FRAME}`;
     } else if (isBreakfast) {
-        lifestyle = `${cap(foods)} served on a light wooden table in a bright kitchen, warm morning sunlight, a coffee cup softly blurred behind. ${FRAME}`;
+        lifestyle = `Photorealistic food photo of ${plated} served on a light wooden table in a bright kitchen, warm morning sunlight, a coffee cup softly blurred behind, ${FRAME}`;
     } else {
-        lifestyle = `${cap(foods)} served on a light wooden table by a sunny window, homemade restaurant-quality feel. ${FRAME}`;
+        lifestyle = `Photorealistic food photo of ${plated} served on a rustic light wooden table by a sunny window, homemade restaurant-quality feel, ${FRAME}`;
     }
 
     // Suggestion 3 — close-up / texture
     let closeup;
     if (isShake) {
-        closeup = `Close-up of the ${mainItem} shake with condensation on the glass, natural light, textures in sharp focus. ${FRAME}`;
-    } else if (hasMeat) {
-        closeup = `Close-up of the ${mainItem} showing juicy texture and seasoning, steam rising, natural light. ${FRAME}`;
-    } else if (hasPasta || hasRice) {
-        closeup = `Close-up of the ${mainItem} with steam rising and a glossy texture, natural light, sharp focus. ${FRAME}`;
+        closeup = `Photorealistic close-up of the shake with condensation on the glass, macro detail, soft natural light, clean neutral background, ${FRAME}`;
     } else {
-        closeup = `Close-up of ${foods} showing rich colors and textures in sharp detail, natural light. ${FRAME}`;
+        closeup = `Photorealistic close-up of ${closeupSubject}, macro detail showing rich texture${steam ? ', gentle steam rising' : ''}, soft natural light, clean neutral background, ${FRAME}`;
     }
 
     return [
