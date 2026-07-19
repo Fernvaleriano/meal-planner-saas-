@@ -13,6 +13,7 @@ import AddActivityModal from '../components/workout/AddActivityModal';
 import SwapExerciseModal from '../components/workout/SwapExerciseModal';
 import CreateWorkoutModal from '../components/workout/CreateWorkoutModal';
 import GenerateWorkoutModal from '../components/workout/GenerateWorkoutModal';
+import AdjustWorkoutModal from '../components/workout/AdjustWorkoutModal';
 import ClubWorkoutsModal from '../components/workout/ClubWorkoutsModal';
 import GuidedWorkoutModal from '../components/workout/GuidedWorkoutModal';
 import SetEditorModal from '../components/workout/SetEditorModal';
@@ -904,6 +905,15 @@ function Workouts() {
   // generator. Full coaching clients don't — their coach builds their programs.
   const isGymMember = !clientData?.is_coach && !isModuleVisible('diary');
 
+  // "Adjust my workout" — the RESTRICTED, plan-anchored AI tool for full
+  // coaching clients. Unlike the gym generator it can't build a fresh program;
+  // it only reshapes the coach's assigned plan around a missed week / travel /
+  // a time crunch. Scoped to specific coaches' rosters for now (the founder's
+  // own clients) — widen this list to roll it out to more coaches later.
+  const ADJUST_WORKOUT_COACH_IDS = ['ab3acf54-0499-46b7-b130-63e836e70503'];
+  const canAdjustWorkout = !clientData?.is_coach && !isGymMember
+    && ADJUST_WORKOUT_COACH_IDS.includes(clientData?.coach_id);
+
   // User's preferred weight unit (default to lbs for imperial)
   const weightUnit = clientData?.unit_preference === 'metric' ? 'kg' : 'lbs';
   // Client's body weight in kg (or undefined → calorie estimator falls back to its default)
@@ -982,6 +992,7 @@ function Workouts() {
   const [showCreateWorkout, setShowCreateWorkout] = useState(false);
   const [showClubWorkouts, setShowClubWorkouts] = useState(false);
   const [showGenerateWorkout, setShowGenerateWorkout] = useState(false);
+  const [showAdjustWorkout, setShowAdjustWorkout] = useState(false);
   const [showGuidedWorkout, setShowGuidedWorkout] = useState(false);
 
   // Soft-reset (iOS memory escape valve): bumping softResetSession remounts
@@ -2504,6 +2515,25 @@ function Workouts() {
     const todayHasWorkout = weekSchedule.find(d => d.isToday)?.hasWorkout || false;
     return { totalWorkouts, completedWorkouts, todayHasWorkout };
   }, [weekSchedule]);
+
+  // Days this week the client had a planned workout but has no evidence of doing
+  // it (past + scheduled + not worked out) — the "I fell behind" catch-up set.
+  const missedDates = useMemo(() => {
+    if (!weekSchedule) return [];
+    return weekSchedule
+      .filter(d => d.isPast && d.hasWorkout && !d.workedOut)
+      .map(d => ({ dateStr: d.dateStr, dayLabel: d.dayLabel }));
+  }, [weekSchedule]);
+
+  // The planned session to adapt for travel / short-on-time: today if it's a
+  // training day, otherwise the next upcoming scheduled workout.
+  const adjustReference = useMemo(() => {
+    if (!weekSchedule) return { dateStr: null, label: '' };
+    const today = weekSchedule.find(d => d.isToday && d.hasWorkout);
+    if (today) return { dateStr: today.dateStr, label: 'Today' };
+    const next = (upcomingWorkouts && upcomingWorkouts[0]) || null;
+    return next ? { dateStr: next.dateStr, label: next.dayLabel } : { dateStr: null, label: '' };
+  }, [weekSchedule, upcomingWorkouts]);
 
   // Navigate weeks - with safety checks
   const goToPreviousWeek = useCallback(() => {
@@ -6173,6 +6203,15 @@ function Workouts() {
                       <span>{t('workoutsPage.aiGenerate')}</span>
                     </button>
                   )}
+                  {canAdjustWorkout && (
+                    <button
+                      className="card-action-btn"
+                      onClick={() => setShowAdjustWorkout(true)}
+                    >
+                      <Sparkles size={16} />
+                      <span>Adjust workout</span>
+                    </button>
+                  )}
                   <button
                     className="card-action-btn"
                     onClick={() => setShowClubWorkouts(true)}
@@ -6308,6 +6347,15 @@ function Workouts() {
                     >
                       <Sparkles size={18} />
                       <span>{t('workoutsPage.aiGenerate')}</span>
+                    </button>
+                  )}
+                  {canAdjustWorkout && (
+                    <button
+                      className="rest-day-create-btn"
+                      onClick={() => setShowAdjustWorkout(true)}
+                    >
+                      <Sparkles size={18} />
+                      <span>Adjust my workout</span>
                     </button>
                   )}
                   <button
@@ -7057,6 +7105,19 @@ function Workouts() {
           onProgramGenerated={handleCreateProgram}
           clientId={clientData?.id}
           coachId={clientData?.coach_id}
+        />
+      )}
+
+      {showAdjustWorkout && (
+        <AdjustWorkoutModal
+          onClose={() => setShowAdjustWorkout(false)}
+          onGenerated={handleCreateWorkout}
+          clientId={clientData?.id}
+          goal={clientData?.default_goal || ''}
+          language={clientData?.language || 'en'}
+          missedDates={missedDates}
+          referenceDate={adjustReference.dateStr}
+          referenceLabel={adjustReference.label}
         />
       )}
 
