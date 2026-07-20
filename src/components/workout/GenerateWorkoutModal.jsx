@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { X, Sparkles, Dumbbell, Zap, ChevronDown, ChevronUp } from 'lucide-react';
 import { apiGet, apiPost } from '../../utils/api';
+import { pickBestCover } from '../../utils/workoutCoverMatch';
 import { useLanguage } from '../../context/LanguageContext';
 
 /**
@@ -225,7 +226,7 @@ function loadSavedPrefs(clientId) {
 // Bucket → translation key for the "last workout hit …" suggestion line.
 const BUCKET_KEYS = { push: 'bucketPush', pull: 'bucketPull', legs: 'bucketLegs', core: 'bucketCore' };
 
-function GenerateWorkoutModal({ onClose, onGenerated, onProgramGenerated, clientId = null, coachId = null }) {
+function GenerateWorkoutModal({ onClose, onGenerated, onProgramGenerated, clientId = null, coachId = null, gender = null }) {
   const { t, language } = useLanguage();
   const savedRef = useRef(undefined);
   if (savedRef.current === undefined) savedRef.current = loadSavedPrefs(clientId);
@@ -400,17 +401,21 @@ function GenerateWorkoutModal({ onClose, onGenerated, onProgramGenerated, client
       const exercises = (workout?.exercises || []).filter((e) => e && e.id);
       if (!exercises.length) throw new Error(t('generateWorkoutModal.errNoMatch'));
 
-      // Give the AI workout a random cover from the shared photo library so it
-      // isn't left with a blank background. Best-effort: if the library is empty
-      // or the lookup fails, the workout just saves without a cover (same as
-      // before this feature).
+      // Give the AI workout a cover from the shared photo library so it isn't
+      // left with a blank background — picking the photo that best fits the
+      // client (skip opposite-gender photos) and the workout's content (a
+      // kettlebell session gets the kettlebell photo, etc.). Best-effort: if the
+      // library is empty or the lookup fails, the workout just saves without a
+      // cover (same as before this feature).
       let coverUrl = null;
       try {
         const lib = await apiGet('/.netlify/functions/workout-cover-library');
         const covers = Array.isArray(lib?.covers) ? lib.covers : [];
-        if (covers.length) {
-          coverUrl = covers[Math.floor(Math.random() * covers.length)].url;
-        }
+        coverUrl = pickBestCover(covers, {
+          gender,
+          exercises,
+          extra: [goal, focus, style, workout.name],
+        });
       } catch (coverErr) {
         console.error('Could not fetch a cover for the AI workout:', coverErr);
       }
@@ -505,12 +510,17 @@ function GenerateWorkoutModal({ onClose, onGenerated, onProgramGenerated, client
         builtDays.push({ name: day.dayName, exercises });
       }
 
-      // Random cover from the shared library (best-effort — saves fine without one).
+      // Cover from the shared library — best fit for the client + the program's
+      // content (best-effort; saves fine without one).
       let coverUrl = null;
       try {
         const lib = await apiGet('/.netlify/functions/workout-cover-library');
         const covers = Array.isArray(lib?.covers) ? lib.covers : [];
-        if (covers.length) coverUrl = covers[Math.floor(Math.random() * covers.length)].url;
+        coverUrl = pickBestCover(covers, {
+          gender,
+          exercises: builtDays.flatMap((d) => d.exercises || []),
+          extra: [goal, style, split],
+        });
       } catch (coverErr) {
         console.error('Could not fetch a cover for the AI program:', coverErr);
       }

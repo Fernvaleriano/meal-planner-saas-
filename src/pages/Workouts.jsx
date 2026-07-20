@@ -7105,6 +7105,7 @@ function Workouts() {
           onProgramGenerated={handleCreateProgram}
           clientId={clientData?.id}
           coachId={clientData?.coach_id}
+          gender={clientData?.gender || clientData?.preferred_exercise_gender}
         />
       )}
 
