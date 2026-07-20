@@ -5285,25 +5285,22 @@ Provide helpful, detailed meal prep guidance.${languageInstruction(lang)}`;
   // the retry tightens output toward strictly valid JSON. Plain markdown
   // callers make a single call as before.
   const wantsJson = isJson || structured;
-  // Cost-first generation: use cheap Haiku by default. If a JSON caller's output
-  // still won't parse after Haiku's retries, the FINAL attempt escalates to the
-  // stronger Sonnet model so the rare malformed response self-heals. Cheap in the
-  // common case, reliable in the tail, and all-Claude (Gemini stays a last resort
-  // only if the whole Claude call throws — handled by the caller).
-  const CHEAP_MODEL = 'claude-haiku-4-5';
-  const ESCALATE_MODEL = 'claude-sonnet-4-20250514';
+  // Generate with Sonnet for consistent, well-formed output. JSON callers get a
+  // validate-and-retry loop so an occasional malformed response self-heals; if it
+  // STILL won't parse after these attempts, the handler falls back to the other
+  // engine downstream instead of failing the request.
+  const MODEL = 'claude-sonnet-4-20250514';
   const maxAttempts = wantsJson ? 3 : 1;
   let lastText = '';
 
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-    // Escalate to the stronger model only on the final JSON attempt.
-    const model = (wantsJson && attempt === maxAttempts) ? ESCALATE_MODEL : CHEAP_MODEL;
     try {
       const message = await anthropic.messages.create({
-        model,
-        // Structured multi-section guides (meal prep) need headroom so the JSON
-        // is never cut off mid-object — a truncated object fails to parse.
-        max_tokens: structured ? 6000 : 4096,
+        model: MODEL,
+        // Give JSON/structured responses generous headroom so a full day's plan is
+        // never cut off mid-object — truncation is a common cause of unparseable
+        // JSON (the tail of the object is missing, so a brace/quote never closes).
+        max_tokens: wantsJson ? 8000 : 4096,
         // Slightly lower temperature for JSON keeps output well-formed; drop
         // further on retry. Per-day variety is driven by a variation seed in
         // the prompt, so this does not reduce meal variety.
@@ -5522,8 +5519,25 @@ exports.handler = async (event, context) => {
       };
     }
 
-    // Parse JSON (handle markdown-wrapped responses)
-    const jsonData = extractJSON(responseText);
+    // Parse JSON (handle markdown-wrapped responses). If the primary engine's
+    // output can't be parsed even after repair, regenerate once with the other
+    // engine and parse that — so a rare malformed response self-heals instead of
+    // returning a 500. This is the safety net that was missing: extractJSON used
+    // to throw straight past the Gemini fallback on a bad Claude batch.
+    let jsonData;
+    try {
+      jsonData = extractJSON(responseText);
+    } catch (parseErr) {
+      console.error(`⚠️ Could not parse ${generatorUsed} output: ${parseErr.message}`);
+      if (generatorUsed === 'claude' && hasGeminiKey) {
+        console.warn('↩️ Falling back to Gemini after unparseable Claude output');
+        responseText = await generateWithGemini(prompt);
+        generatorUsed = 'claude+gemini-fallback';
+        jsonData = extractJSON(responseText); // if this also fails, it's a genuine failure → outer catch
+      } else {
+        throw parseErr;
+      }
+    }
 
     // 🎯 NEW: Optimize meal portions using Claude
     let correctedData = jsonData;
