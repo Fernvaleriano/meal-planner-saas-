@@ -46,7 +46,10 @@ function normalizeGender(g) {
 
 // The gender a photo depicts, from its filename, or null if it shows no person.
 export function coverGender(name) {
-  const s = String(name || '').toLowerCase();
+  // Collapse every non-letter (spaces, underscores, digits, punctuation) to a
+  // single space first. Underscores matter: "\b" treats "_" as a word char, so
+  // a name like "wave_male.png" would otherwise hide the "male" from \bmale\b.
+  const s = String(name || '').toLowerCase().replace(/[^a-z]+/g, ' ');
   const has = (w) => new RegExp(`\\b${w}\\b`).test(s);
   if (FEMALE_WORDS.some(has)) return 'female';
   if (MALE_WORDS.some(has)) return 'male';
