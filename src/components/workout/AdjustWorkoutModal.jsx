@@ -35,6 +35,7 @@ const SITUATIONS = [
 
 // Travel equipment presets — map 1:1 to the backend's EQUIPMENT_PRESETS keys.
 const EQUIPMENT = [
+  { value: 'full', label: 'Full gym', hint: 'Barbells, racks, machines' },
   { value: 'hotel_gym', label: 'Hotel gym', hint: 'Dumbbells + a few machines' },
   { value: 'minimal', label: 'Minimal', hint: 'Dumbbells / bands' },
   { value: 'bodyweight', label: 'No equipment', hint: 'Bodyweight only' },

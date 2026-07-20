@@ -137,6 +137,7 @@ const EQUIPMENT_PRESETS = {
   bodyweight: ['bodyweight'],
 };
 const EQUIPMENT_LABELS = {
+  full: 'a fully equipped gym (barbells, racks, machines and dumbbells — everything their plan needs)',
   hotel_gym: 'a hotel gym (dumbbells, a few machines/cables, no heavy barbell setup)',
   minimal: 'minimal equipment (a pair of dumbbells and/or resistance bands)',
   bodyweight: 'bodyweight only (no equipment at all)',
