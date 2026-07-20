@@ -5285,13 +5285,22 @@ Provide helpful, detailed meal prep guidance.${languageInstruction(lang)}`;
   // the retry tightens output toward strictly valid JSON. Plain markdown
   // callers make a single call as before.
   const wantsJson = isJson || structured;
-  const maxAttempts = wantsJson ? 2 : 1;
+  // Cost-first generation: use cheap Haiku by default. If a JSON caller's output
+  // still won't parse after Haiku's retries, the FINAL attempt escalates to the
+  // stronger Sonnet model so the rare malformed response self-heals. Cheap in the
+  // common case, reliable in the tail, and all-Claude (Gemini stays a last resort
+  // only if the whole Claude call throws — handled by the caller).
+  const CHEAP_MODEL = 'claude-haiku-4-5';
+  const ESCALATE_MODEL = 'claude-sonnet-4-20250514';
+  const maxAttempts = wantsJson ? 3 : 1;
   let lastText = '';
 
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    // Escalate to the stronger model only on the final JSON attempt.
+    const model = (wantsJson && attempt === maxAttempts) ? ESCALATE_MODEL : CHEAP_MODEL;
     try {
       const message = await anthropic.messages.create({
-        model: 'claude-sonnet-4-20250514',
+        model,
         // Structured multi-section guides (meal prep) need headroom so the JSON
         // is never cut off mid-object — a truncated object fails to parse.
         max_tokens: structured ? 6000 : 4096,
@@ -6088,7 +6097,7 @@ function extractJSON(text) {
         } catch (e3) {
           console.error('JSON recovery also failed:', e3.message);
           console.error('Problematic JSON (first 500 chars):', repaired.substring(0, 500));
-          throw new Error(`Could not parse JSON from Gemini response: ${e3.message}`);
+          throw new Error(`Could not parse JSON from AI response: ${e3.message}`);
         }
       }
     }
