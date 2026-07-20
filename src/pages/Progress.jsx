@@ -92,6 +92,7 @@ const METRIC_CONFIGS = [
   { key: 'rightThigh', labelKey: 'metricRightThigh',   dbField: 'right_thigh',               unitKey: 'circumference' },
   { key: 'bpSystolic', labelKey: 'metricBpSystolic',   dbField: 'blood_pressure_systolic',   unitKey: 'mmHg' },
   { key: 'bpDiastolic',labelKey: 'metricBpDiastolic',  dbField: 'blood_pressure_diastolic',  unitKey: 'mmHg' },
+  { key: 'pulse',      labelKey: 'metricPulse',        dbField: 'pulse',                     unitKey: 'bpm' },
 ];
 
 // Extra InBody numbers shown only in the tucked-away "InBody details" panel
@@ -254,7 +255,7 @@ function Progress() {
     date: getLocalDateString(),
     weight: '', bodyFat: '', muscleMass: '', visceralFat: '', chest: '', waist: '', hips: '',
     leftArm: '', rightArm: '', leftThigh: '', rightThigh: '',
-    bpSystolic: '', bpDiastolic: '', notes: ''
+    bpSystolic: '', bpDiastolic: '', pulse: '', notes: ''
   });
   const [savingMeasurement, setSavingMeasurement] = useState(false);
 
@@ -400,6 +401,7 @@ function Progress() {
     if (unitKey === 'weight') return weightUnit;
     if (unitKey === 'percent') return '%';
     if (unitKey === 'mmHg') return 'mmHg';
+    if (unitKey === 'bpm') return 'bpm';
     if (unitKey === 'level') return '';
     return circumUnit;
   };
@@ -437,6 +439,7 @@ function Progress() {
         rightThigh: 'rightThigh',
         bpSystolic: 'bloodPressureSystolic',
         bpDiastolic: 'bloodPressureDiastolic',
+        pulse: 'pulse',
       };
 
       const apiField = fieldMap[quickLogMetric.key];
@@ -487,6 +490,7 @@ function Progress() {
         rightThigh: parseFloat(measurementForm.rightThigh) || null,
         bloodPressureSystolic: parseFloat(measurementForm.bpSystolic) || null,
         bloodPressureDiastolic: parseFloat(measurementForm.bpDiastolic) || null,
+        pulse: parseFloat(measurementForm.pulse) || null,
         notes: measurementForm.notes || null,
         inbodyData: pendingInbodyData,
         inbodyScanImage: pendingInbodyImage
@@ -498,7 +502,7 @@ function Progress() {
         date: getLocalDateString(),
         weight: '', bodyFat: '', muscleMass: '', visceralFat: '', chest: '', waist: '', hips: '',
         leftArm: '', rightArm: '', leftThigh: '', rightThigh: '',
-        bpSystolic: '', bpDiastolic: '', notes: ''
+        bpSystolic: '', bpDiastolic: '', pulse: '', notes: ''
       });
       setPendingInbodyData(null);
       setPendingInbodyImage(null);
@@ -1442,6 +1446,12 @@ function Progress() {
                     <input type="number" inputMode="decimal" step="1" placeholder="80"
                       value={measurementForm.bpDiastolic}
                       onChange={(e) => handleMeasurementChange('bpDiastolic', e.target.value)} />
+                  </div>
+                  <div className="form-group">
+                    <label>{t('progressPage.formPulse')}</label>
+                    <input type="number" inputMode="decimal" step="1" placeholder="72"
+                      value={measurementForm.pulse}
+                      onChange={(e) => handleMeasurementChange('pulse', e.target.value)} />
                   </div>
                 </div>
 

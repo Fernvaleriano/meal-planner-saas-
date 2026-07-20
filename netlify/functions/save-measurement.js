@@ -108,6 +108,7 @@ exports.handler = async (event, context) => {
       measurementUnit,
       bloodPressureSystolic,
       bloodPressureDiastolic,
+      pulse,
       notes,
       inbodyData,
       inbodyScanImage,
@@ -166,6 +167,7 @@ exports.handler = async (event, context) => {
         measurement_unit: measurementUnit || 'in',
         blood_pressure_systolic: bloodPressureSystolic || null,
         blood_pressure_diastolic: bloodPressureDiastolic || null,
+        pulse: pulse || null,
         notes: notes || null,
         inbody_data: inbodyDataToStore,
         inbody_scan_url: inbodyScanUrl

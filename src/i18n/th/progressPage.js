@@ -32,6 +32,7 @@ export default {
   metricRightThigh: 'ต้นขาขวา',
   metricBpSystolic: 'ความดันโลหิต - ตัวบน',
   metricBpDiastolic: 'ความดันโลหิต - ตัวล่าง',
+  metricPulse: 'ชีพจร',
 
   logAllMeasurements: 'บันทึกการวัดทั้งหมด',
   scanInbody: 'สแกน InBody',
@@ -109,6 +110,7 @@ export default {
   formRightThigh: 'ต้นขาขวา ({unit})',
   formBpSystolic: 'ความดันตัวบน (mmHg)',
   formBpDiastolic: 'ความดันตัวล่าง (mmHg)',
+  formPulse: 'ชีพจร (ครั้ง/นาที)',
   formNotes: 'หมายเหตุ (ไม่บังคับ)',
   formNotesPh: 'หมายเหตุเพิ่มเติม...',
   saveMeasurement: 'บันทึกการวัด',

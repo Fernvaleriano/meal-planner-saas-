@@ -40,6 +40,7 @@ export default {
   metricRightThigh: 'Right Thigh',
   metricBpSystolic: 'Blood Pressure - Systolic',
   metricBpDiastolic: 'Blood Pressure - Diastolic',
+  metricPulse: 'Pulse',
 
   // ── Measurements tab ─────────────────────────────────────────
   logAllMeasurements: 'Log All Measurements',
@@ -132,6 +133,7 @@ export default {
   formRightThigh: 'Right Thigh ({unit})',
   formBpSystolic: 'BP Systolic (mmHg)',
   formBpDiastolic: 'BP Diastolic (mmHg)',
+  formPulse: 'Pulse (bpm)',
   formNotes: 'Notes (optional)',
   formNotesPh: 'Any notes...',
   saveMeasurement: 'Save Measurement',

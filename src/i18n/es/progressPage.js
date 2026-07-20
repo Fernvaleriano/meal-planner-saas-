@@ -38,6 +38,7 @@ export default {
   metricRightThigh: 'Muslo derecho',
   metricBpSystolic: 'Presión arterial - Sistólica',
   metricBpDiastolic: 'Presión arterial - Diastólica',
+  metricPulse: 'Pulso',
 
   // ── Measurements tab ─────────────────────────────────────────
   logAllMeasurements: 'Registrar todas las medidas',
@@ -123,6 +124,7 @@ export default {
   formRightThigh: 'Muslo derecho ({unit})',
   formBpSystolic: 'PA Sistólica (mmHg)',
   formBpDiastolic: 'PA Diastólica (mmHg)',
+  formPulse: 'Pulso (ppm)',
   formNotes: 'Notas (opcional)',
   formNotesPh: 'Cualquier nota...',
   saveMeasurement: 'Guardar medida',
