@@ -14415,5 +14415,215 @@ document.addEventListener('click', async (e) => {
     <script src="/js/trainer-support-agent.js"></script>
     <script src="/js/voice-commander.js"></script>
     <script src="/js/twemoji-init.js"></script>
+
+    <!-- =====================================================================
+         AI MODE — MEAL PLANS (Phase 1, BETA)
+         Self-contained, additive. Shows only for allow-listed coach accounts.
+         The AI proposes a draft SETUP; clicking "Build draft" runs the EXISTING
+         generateDietPlan() so the draft lands in the normal editor. Nothing is
+         saved-as-published or sent to a client here — that stays on the coach's
+         existing Submit/Assign buttons.
+         ===================================================================== -->
+    <style>
+      #aiModeFab{position:fixed;right:20px;bottom:84px;z-index:1400;display:none;align-items:center;gap:8px;
+        background:#0A1F2E;color:#fff;border:none;border-radius:999px;padding:12px 18px;font-size:14px;font-weight:700;
+        cursor:pointer;box-shadow:0 6px 20px rgba(10,31,46,.35);}
+      #aiModeFab .dot{width:9px;height:9px;border-radius:50%;background:#2EC4B6;box-shadow:0 0 0 4px rgba(46,196,182,.25);}
+      #aiModePanel{position:fixed;top:0;right:0;height:100%;width:390px;max-width:92vw;z-index:1500;
+        background:#fff;box-shadow:-8px 0 30px rgba(0,0,0,.18);transform:translateX(105%);transition:transform .25s ease;
+        display:flex;flex-direction:column;}
+      #aiModePanel.open{transform:translateX(0);}
+      #aiModePanel .aim-head{background:#0A1F2E;color:#fff;padding:16px 18px;display:flex;justify-content:space-between;align-items:flex-start;}
+      #aiModePanel .aim-head h3{margin:0;font-size:16px;font-weight:800;}
+      #aiModePanel .aim-head .aim-sub{font-size:11px;color:#9fb3bd;margin-top:3px;}
+      #aiModePanel .aim-badge{background:#2EC4B6;color:#04231f;font-size:9px;font-weight:800;padding:2px 7px;border-radius:6px;letter-spacing:.4px;}
+      #aiModePanel .aim-close{background:none;border:none;color:#9fb3bd;font-size:22px;cursor:pointer;line-height:1;}
+      #aiModeMsgs{flex:1;overflow-y:auto;padding:16px;background:#f7fafb;}
+      #aiModeMsgs .aim-row{margin-bottom:12px;display:flex;}
+      #aiModeMsgs .aim-row.user{justify-content:flex-end;}
+      #aiModeMsgs .aim-bub{max-width:88%;padding:9px 12px;border-radius:14px;font-size:13px;line-height:1.45;white-space:pre-wrap;}
+      #aiModeMsgs .user .aim-bub{background:#0A1F2E;color:#fff;border-bottom-right-radius:3px;}
+      #aiModeMsgs .ai .aim-bub{background:#e6f7f5;color:#0A1F2E;border-bottom-left-radius:3px;}
+      #aiModeMsgs .aim-build{margin-top:8px;background:#2EC4B6;color:#04231f;border:none;border-radius:10px;
+        padding:9px 14px;font-weight:800;font-size:13px;cursor:pointer;}
+      #aiModeMsgs .aim-build:disabled{opacity:.55;cursor:default;}
+      #aiModeMsgs .aim-note{font-size:11px;color:#5b7480;margin-top:6px;}
+      .aim-foot{padding:12px;border-top:1px solid #e6edf0;background:#fff;}
+      .aim-foot textarea{width:100%;border:1px solid #cdd9de;border-radius:10px;padding:9px 11px;font-size:13px;
+        resize:none;font-family:inherit;box-sizing:border-box;}
+      .aim-foot .aim-send{margin-top:8px;width:100%;background:#0A1F2E;color:#fff;border:none;border-radius:10px;
+        padding:10px;font-weight:800;font-size:13px;cursor:pointer;}
+      .aim-foot .aim-send:disabled{opacity:.6;cursor:default;}
+      .aim-typing::after{content:'';animation:aimDots 1.3s steps(4,end) infinite;}
+      @keyframes aimDots{0%{content:'';}25%{content:'.';}50%{content:'..';}75%{content:'...';}100%{content:'';}}
+    </style>
+    <script>
+    (function(){
+      // Beta allow-list — keep in sync with AI_MODE_COACH_IDS in ai-meal-agent.js
+      var AI_MODE_COACH_IDS = ['ab3acf54-0499-46b7-b130-63e836e70503'];
+      var aiChat = [];      // [{role, content}]
+      var aiBusy = false;
+      var built = false;
+
+      function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g, function(c){
+        return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+
+      function injectUI(){
+        if (document.getElementById('aiModeFab')) return;
+        var fab = document.createElement('button');
+        fab.id = 'aiModeFab';
+        fab.innerHTML = '<span class="dot"></span> AI mode';
+        fab.onclick = openPanel;
+        document.body.appendChild(fab);
+
+        var panel = document.createElement('div');
+        panel.id = 'aiModePanel';
+        panel.innerHTML =
+          '<div class="aim-head">'+
+            '<div><h3>AI mode <span class="aim-badge">BETA</span></h3>'+
+            '<div class="aim-sub">Meal plans &middot; drafts only, you send</div></div>'+
+            '<button class="aim-close" title="Close" aria-label="Close">&times;</button>'+
+          '</div>'+
+          '<div id="aiModeMsgs"></div>'+
+          '<div class="aim-foot">'+
+            '<textarea id="aiModeInput" rows="3" placeholder="e.g. Make Fernando Valeriano a 2,500 cal weight-loss plan. Protein 1g/lb, balanced carbs &amp; fats, 3 meals + a snack. He hates cooking in the morning."></textarea>'+
+            '<button class="aim-send" id="aiModeSend">Send</button>'+
+          '</div>';
+        document.body.appendChild(panel);
+        fab.style.display = 'flex';
+
+        panel.querySelector('.aim-close').onclick = closePanel;
+        document.getElementById('aiModeSend').onclick = send;
+        document.getElementById('aiModeInput').addEventListener('keydown', function(e){
+          if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); send(); }
+        });
+
+        addAI("Hi! Tell me who the plan is for and what you want — I'll pull that client's saved info and build a draft in the editor for you to review and edit. Nothing gets sent to the client until you hit Submit yourself.");
+      }
+
+      function openPanel(){ var p=document.getElementById('aiModePanel'); if(p){p.classList.add('open'); var i=document.getElementById('aiModeInput'); if(i) i.focus();} }
+      function closePanel(){ var p=document.getElementById('aiModePanel'); if(p) p.classList.remove('open'); }
+
+      function addUser(text){
+        aiChat.push({role:'user', content:text});
+        var m=document.getElementById('aiModeMsgs');
+        m.insertAdjacentHTML('beforeend', '<div class="aim-row user"><div class="aim-bub">'+esc(text)+'</div></div>');
+        m.scrollTop=m.scrollHeight;
+      }
+      function addAI(text){
+        var m=document.getElementById('aiModeMsgs');
+        m.insertAdjacentHTML('beforeend', '<div class="aim-row ai"><div class="aim-bub">'+esc(text)+'</div></div>');
+        m.scrollTop=m.scrollHeight;
+      }
+      function addTyping(){
+        var m=document.getElementById('aiModeMsgs');
+        var id='aim-t-'+Date.now();
+        m.insertAdjacentHTML('beforeend', '<div class="aim-row ai" id="'+id+'"><div class="aim-bub"><span class="aim-typing">Thinking</span></div></div>');
+        m.scrollTop=m.scrollHeight; return id;
+      }
+
+      function addProposal(text, proposal){
+        aiChat.push({role:'assistant', content:text});
+        var m=document.getElementById('aiModeMsgs');
+        var wrap=document.createElement('div'); wrap.className='aim-row ai';
+        var bub=document.createElement('div'); bub.className='aim-bub';
+        bub.innerHTML = esc(text);
+        var btn=document.createElement('button'); btn.className='aim-build'; btn.textContent='✅ Build this draft in the editor';
+        var note=document.createElement('div'); note.className='aim-note'; note.textContent='Opens in your normal editor — edit anything, then Submit to send.';
+        btn.onclick=function(){ btn.disabled=true; btn.textContent='Building draft…'; buildDraft(proposal, btn); };
+        bub.appendChild(document.createElement('br'));
+        bub.appendChild(btn); bub.appendChild(note);
+        wrap.appendChild(bub); m.appendChild(wrap); m.scrollTop=m.scrollHeight;
+      }
+
+      async function send(){
+        if (aiBusy) return;
+        var input=document.getElementById('aiModeInput');
+        var text=(input.value||'').trim();
+        if (!text) return;
+        input.value='';
+        addUser(text);
+        aiBusy=true;
+        var sendBtn=document.getElementById('aiModeSend'); sendBtn.disabled=true;
+        var tid=addTyping();
+        try{
+          if (typeof currentCoach==='undefined' || !currentCoach){ throw new Error('Not signed in yet — give it a second and try again.'); }
+          var data = await apiPost('/.netlify/functions/ai-meal-agent', {
+            coachId: currentCoach.id,
+            message: text,
+            chatHistory: aiChat.slice(-6)
+          });
+          var t=document.getElementById(tid); if(t) t.remove();
+          if (data.type==='proposal' && data.proposal){
+            addProposal(data.message || 'Here is a draft to review.', data.proposal);
+          } else {
+            addAI(data.message || "I couldn't put that together — try again.");
+            aiChat.push({role:'assistant', content:data.message||''});
+          }
+        }catch(err){
+          var t2=document.getElementById(tid); if(t2) t2.remove();
+          addAI('⚠️ ' + (err && err.message ? err.message : 'Something went wrong. Try again.'));
+        }finally{
+          aiBusy=false; sendBtn.disabled=false;
+        }
+      }
+
+      // Apply the AI's proposed setup to the EXISTING planner form, then run the
+      // EXISTING generator. This is exactly what the coach does by hand.
+      function buildDraft(p, btn){
+        try{
+          var selector=document.getElementById('dp_client_selector');
+          if (!selector){ addAI('Could not find the client selector on this page.'); return; }
+          // Turn off scratch/template so the normal AI generation path runs.
+          var scratch=document.getElementById('dp_start_from_scratch'); if(scratch) scratch.checked=false;
+          var useTpl=document.getElementById('dp_use_template'); if(useTpl) useTpl.checked=false;
+
+          selector.value=String(p.clientId);
+          selector.dispatchEvent(new Event('change'));   // auto-fills profile + targets from DB
+
+          // Let the change handler's async fetches (latest weight, calorie goals)
+          // settle, THEN apply the coach's request as overrides so they win.
+          setTimeout(function(){
+            var set=function(id,val){ var el=document.getElementById(id); if(el!=null && val!=null && val!=='') el.value=val; };
+            set('dp_plan_name', p.planName);
+            set('dp_meals', p.mealsPerDay);
+            set('dp_days', p.daysCount);
+            if (p.goal) set('dp_goal', p.goal);
+            if (p.dietType) set('dp_preference', p.dietType);
+            if (p.macroPreference) set('dp_macro_preference', p.macroPreference);
+            if (p.specialRequest) set('dp_special_request', p.specialRequest);
+
+            if (p.useCustomTargets){
+              var cb=document.getElementById('dp_custom_targets');
+              if (cb && !cb.checked){ cb.checked=true; cb.dispatchEvent(new Event('change')); }
+              set('dp_custom_calories', p.calories);
+              set('dp_custom_protein', p.protein);
+              set('dp_custom_carbs', p.carbs);
+              set('dp_custom_fat', p.fat);
+            }
+
+            addAI('Building your draft now — it will appear in the editor. Review it, tweak anything, then hit Submit when you\'re happy.');
+            closePanel();
+            if (typeof generateDietPlan==='function'){ generateDietPlan(); }
+            else { addAI('Could not start the generator on this page.'); }
+          }, 1000);
+        }catch(e){
+          addAI('⚠️ Could not build the draft: ' + (e && e.message ? e.message : 'unknown error'));
+          if (btn){ btn.disabled=false; btn.textContent='✅ Build this draft in the editor'; }
+        }
+      }
+
+      // Wait for the page to know who the coach is, then show AI mode only for
+      // allow-listed accounts.
+      var tries=0;
+      var poll=setInterval(function(){
+        tries++;
+        if (typeof currentCoach!=='undefined' && currentCoach && currentCoach.id){
+          clearInterval(poll);
+          if (AI_MODE_COACH_IDS.indexOf(currentCoach.id)!==-1){ injectUI(); }
+        } else if (tries>40){ clearInterval(poll); }  // ~20s give-up
+      }, 500);
+    })();
+    </script>
 </body>
 </html>
