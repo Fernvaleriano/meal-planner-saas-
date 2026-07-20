@@ -6070,7 +6070,7 @@ function Workouts() {
                           <div
                             key={workout.instance_id || `${workout.id}-${workout.day_index}`}
                             className="workout-card-v3"
-                            style={cardImage ? { backgroundImage: `url(${cardImage})` } : {}}
+                            style={cardImage ? { backgroundImage: `url("${cardImage}")` } : {}}
                             onClick={() => handleSelectWorkoutCard(workout)}
                           >
                             {cardImage && (
@@ -6121,7 +6121,7 @@ function Workouts() {
                         <div
                           key={first.instance_id || `${first.id}-group`}
                           className="workout-card-v3"
-                          style={cardImage ? { backgroundImage: `url(${cardImage})` } : {}}
+                          style={cardImage ? { backgroundImage: `url("${cardImage}")` } : {}}
                         >
                           {cardImage && (
                             <img src={cardImage} alt="" className="card-bg-img" onError={(e) => { e.target.style.display = 'none'; e.target.parentElement.style.backgroundImage = 'none'; }} />
@@ -6537,7 +6537,7 @@ function Workouts() {
           {/* Hero Section */}
           <div
             className="workout-hero-v3"
-            style={workoutImage ? { backgroundImage: `url(${workoutImage})` } : {}}
+            style={workoutImage ? { backgroundImage: `url("${workoutImage}")` } : {}}
           >
             {workoutImage && (
               <img
@@ -6907,7 +6907,7 @@ function Workouts() {
 
             {/* Preview Card */}
             <div className="share-card-preview" ref={shareCardRef}>
-              <div className="share-card-bg" style={shareBgImage ? { backgroundImage: `url(${shareBgImage})`, backgroundSize: 'cover', backgroundPosition: 'center' } : undefined}>
+              <div className="share-card-bg" style={shareBgImage ? { backgroundImage: `url("${shareBgImage}")`, backgroundSize: 'cover', backgroundPosition: 'center' } : undefined}>
                 <div className="share-card-overlay" />
                 <div className="share-card-scrim-top" />
                 <div className="share-card-scrim-bottom" />

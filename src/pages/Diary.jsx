@@ -2999,7 +2999,7 @@ function Diary() {
 
             {/* Preview Card */}
             <div className="share-card-preview">
-              <div className="share-card-bg diary-share-bg" style={shareDiaryBgImage ? { backgroundImage: `url(${shareDiaryBgImage})`, backgroundSize: 'cover', backgroundPosition: 'center' } : undefined}>
+              <div className="share-card-bg diary-share-bg" style={shareDiaryBgImage ? { backgroundImage: `url("${shareDiaryBgImage}")`, backgroundSize: 'cover', backgroundPosition: 'center' } : undefined}>
                 <div className="share-card-overlay" />
                 <div className="share-card-content diary-share-content">
                   <div className="share-card-brand">
