@@ -122,38 +122,43 @@ export function pickBestCover(covers, context = {}) {
   const haystack =
     context.haystack != null ? String(context.haystack).toLowerCase() : buildWorkoutHaystack(context);
 
-  // 1. Drop opposite-gender photos. If that would leave nothing, keep the full
-  //    list so we always return a cover.
-  let eligible = list;
-  if (gender) {
-    const kept = list.filter((c) => {
-      const g = coverGender(c.name);
-      return !g || g === gender;
-    });
-    if (kept.length) eligible = kept;
-  }
+  // 1. Decide which photos are allowed for this client:
+  //    - Known gender  → same-gender people + gender-neutral photos.
+  //    - Unknown gender → neutral photos ONLY. Never put a person of a guessed
+  //      gender on a workout whose owner's gender we don't know (that's how a
+  //      male-named plan ended up with a woman photo). Neutral = equipment /
+  //      scenery shots with no person.
+  let eligible = list.filter((c) => {
+    const g = coverGender(c.name);
+    if (!g) return true; // neutral photo — always fine
+    return gender ? g === gender : false;
+  });
+  if (!eligible.length) eligible = list; // safety net so we always return a cover
 
-  // 2. Score each remaining photo by how many of its content words appear in the
-  //    workout.
+  // 2. Score each allowed photo by how many of its content words appear in the
+  //    workout (kettlebell photo for a kettlebell session, etc.).
   const scored = eligible.map((c) => {
     const tokens = coverContentTokens(c.name);
     let matches = 0;
     for (const tok of tokens) if (haystack.includes(tok)) matches += 1;
-    return { cover: c, matches };
+    return { cover: c, matches, sameGender: gender && coverGender(c.name) === gender };
   });
 
-  const maxMatches = scored.reduce((m, s) => Math.max(m, s.matches), 0);
-  let top = scored.filter((s) => s.matches === maxMatches);
+  // 3. Prefer photos that actually relate to the workout, but don't lock onto
+  //    the single best one — that made every full-body plan share one photo.
+  //    Keep all reasonably-relevant photos (>=1 match) as candidates, then pick
+  //    at random weighted toward relevance and the client's gender. Result:
+  //    varied covers that still make sense and respect gender.
+  let pool = scored.filter((s) => s.matches >= 1);
+  if (!pool.length) pool = scored;
 
-  // 3. On a real content match, if both a gender-matching and a neutral photo
-  //    tie, prefer the one that also matches the client's gender.
-  if (maxMatches > 0 && gender) {
-    const gm = top.filter((s) => coverGender(s.cover.name) === gender);
-    if (gm.length) top = gm;
-  }
-
-  // Random tiebreak (and full randomness when nothing matched) keeps variety.
   const rng = typeof context.random === 'function' ? context.random : Math.random;
-  const chosen = top[Math.floor(rng() * top.length)] || top[0];
-  return chosen ? chosen.cover.url : null;
+  const weightOf = (s) => s.matches * 2 + (s.sameGender ? 2 : 0) + 1;
+  const total = pool.reduce((sum, s) => sum + weightOf(s), 0);
+  let roll = rng() * total;
+  for (const s of pool) {
+    roll -= weightOf(s);
+    if (roll < 0) return s.cover.url;
+  }
+  return pool[pool.length - 1].cover.url;
 }
