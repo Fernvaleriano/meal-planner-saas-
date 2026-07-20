@@ -267,6 +267,10 @@ function Progress() {
   const [expandedScans, setExpandedScans] = useState({});
   const inbodyInputRef = useRef(null);
 
+  // Blood-pressure photo auto-fill — snap the monitor, AI fills the BP fields.
+  const [scanningBp, setScanningBp] = useState(false);
+  const bpInputRef = useRef(null);
+
   // Photo modal
   const [showPhotoModal, setShowPhotoModal] = useState(false);
   const [photoPreview, setPhotoPreview] = useState(null);
@@ -566,6 +570,37 @@ function Progress() {
       showError(err.message || t('progressPage.inbodyScanFailed'));
     } finally {
       setScanningInbody(false);
+    }
+  };
+
+  // ── Blood-pressure photo auto-fill ──
+  // Read a photo of a home BP monitor with AI, then pre-fill the systolic /
+  // diastolic / pulse fields. Nothing is saved automatically — the client
+  // reviews the numbers and taps Save, so a misread can't silently log.
+  const handleBpPhotoSelect = async (e) => {
+    const file = e.target.files?.[0];
+    if (e.target) e.target.value = ''; // allow re-picking the same file later
+    if (!file) return;
+    setScanningBp(true);
+    try {
+      const compressed = await compressImage(file, 1600, 0.85);
+      const data = await apiPost('/.netlify/functions/analyze-bp-photo', { image: compressed });
+      if (!data?.systolic || !data?.diastolic) {
+        showError(t('progressPage.bpScanFailed'));
+        return;
+      }
+      setMeasurementForm(prev => ({
+        ...prev,
+        bpSystolic: String(data.systolic),
+        bpDiastolic: String(data.diastolic),
+        pulse: data.pulse != null ? String(data.pulse) : prev.pulse,
+      }));
+      showSuccess(t('progressPage.bpScanned'));
+    } catch (err) {
+      console.error('Error reading BP photo:', err);
+      showError(err.message || t('progressPage.bpScanFailed'));
+    } finally {
+      setScanningBp(false);
     }
   };
 
@@ -1433,6 +1468,26 @@ function Progress() {
                     value={measurementForm.rightThigh}
                     onChange={(e) => handleMeasurementChange('rightThigh', e.target.value)} />
                 </div>
+
+                {/* Scan a BP monitor — AI reads the display and fills the fields below */}
+                <button
+                  type="button"
+                  className="btn-log-all"
+                  style={{ background: 'transparent', border: '1.5px solid #4ec5b7', color: '#4ec5b7', marginBottom: '8px' }}
+                  onClick={() => bpInputRef.current?.click()}
+                  disabled={scanningBp}
+                >
+                  <Sparkles size={18} />
+                  <span>{scanningBp ? t('progressPage.bpScanning') : t('progressPage.scanBp')}</span>
+                </button>
+                <input
+                  ref={bpInputRef}
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  onChange={handleBpPhotoSelect}
+                  style={{ display: 'none' }}
+                />
 
                 <div className="form-row">
                   <div className="form-group">
