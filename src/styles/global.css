@@ -32056,9 +32056,9 @@ textarea,
 .add-activity-search input {
     flex: 1;
     background: white;
-    border: 2px solid var(--gray-200);
-    padding: 12px 16px;
-    border-radius: 12px;
+    border: 1.5px solid var(--gray-200);
+    padding: 13px 18px;
+    border-radius: 999px;
     font-size: 15px;
     color: var(--gray-800);
     outline: none;
@@ -32071,8 +32071,8 @@ textarea,
 }
 
 [data-theme="dark"] .add-activity-search input {
-    background: rgba(255, 255, 255, 0.05);
-    border-color: rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.12);
     color: #f1f5f9;
 }
 
@@ -32244,15 +32244,17 @@ textarea,
 .filter-chip {
     appearance: none;
     -webkit-appearance: none;
-    background: #2a2a2a;
-    border: 1px solid #3a3a3a;
-    border-radius: 20px;
-    padding: 8px 32px 8px 14px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 999px;
+    padding: 9px 34px 9px 16px;
     font-size: 13px;
-    font-weight: 500;
-    color: #e0e0e0;
+    font-weight: 600;
+    color: #cbd5e1;
     cursor: pointer;
     transition: all 0.2s ease;
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
     width: auto !important;
     min-width: 0;
     max-width: 160px;
@@ -32262,20 +32264,21 @@ textarea,
 }
 
 .filter-chip:hover {
-    background: #3a3a3a;
-    border-color: #4a4a4a;
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.18);
 }
 
 .filter-chip:focus {
     outline: none;
     border-color: var(--brand-primary, #2cb5a5);
-    box-shadow: 0 0 0 2px rgba(13, 148, 136, 0.2);
+    box-shadow: 0 0 0 3px rgba(46, 196, 182, 0.18);
 }
 
 .filter-chip.active {
-    background: rgba(13, 148, 136, 0.2);
-    border-color: var(--brand-primary, #2cb5a5);
+    background: rgba(46, 196, 182, 0.16);
+    border-color: rgba(46, 196, 182, 0.55);
     color: var(--brand-primary-soft, #4ec5b7);
+    box-shadow: 0 0 0 1px rgba(46, 196, 182, 0.25);
 }
 
 /* Light theme filter chips */
@@ -32325,7 +32328,7 @@ textarea,
 .add-exercise-list {
     flex: 1;
     overflow-y: auto;
-    padding: 8px 0;
+    padding: 10px 0;
     padding-bottom: 20px;
     /* Prevent list from overlapping pills */
     position: relative;
@@ -32336,35 +32339,54 @@ textarea,
 .add-exercise-item {
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 12px 20px;
-    background: transparent;
-    border: none;
-    width: 100%;
+    gap: 14px;
+    padding: 11px 14px;
+    margin: 5px 12px;
+    background: var(--gray-50);
+    border: 1px solid var(--gray-200);
+    border-radius: 16px;
+    width: auto;
     text-align: left;
     cursor: pointer;
-    transition: background 0.2s;
+    transition: transform 0.15s ease, background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
     touch-action: manipulation;
-    -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
+    -webkit-tap-highlight-color: transparent;
 }
 
-.add-exercise-item:hover,
+.add-exercise-item:hover {
+    background: white;
+    border-color: rgba(46, 196, 182, 0.35);
+    box-shadow: 0 4px 14px rgba(15, 23, 42, 0.06);
+}
+
 .add-exercise-item:active {
-    background: var(--gray-100);
+    transform: scale(0.985);
 }
 
-[data-theme="dark"] .add-exercise-item:hover,
-[data-theme="dark"] .add-exercise-item:active {
-    background: #334155;
+[data-theme="dark"] .add-exercise-item {
+    background: rgba(255, 255, 255, 0.03);
+    border-color: rgba(255, 255, 255, 0.07);
+}
+
+[data-theme="dark"] .add-exercise-item:hover {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(46, 196, 182, 0.4);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
 }
 
 .add-exercise-thumb {
     width: 56px;
     height: 56px;
-    border-radius: 10px;
+    border-radius: 14px;
     overflow: hidden;
     background: var(--gray-200);
     flex-shrink: 0;
+    box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.06);
+}
+
+[data-theme="dark"] .add-exercise-thumb {
+    background: rgba(255, 255, 255, 0.06);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
 }
 
 .add-exercise-thumb video,
@@ -32398,8 +32420,8 @@ textarea,
 }
 
 .add-icon {
-    width: 32px;
-    height: 32px;
+    width: 34px;
+    height: 34px;
     border-radius: 50%;
     background: var(--brand-primary);
     color: white;
@@ -32407,21 +32429,28 @@ textarea,
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
+    box-shadow: 0 2px 8px rgba(46, 196, 182, 0.35);
+    transition: transform 0.15s ease, box-shadow 0.2s ease;
+}
+
+.add-exercise-item:hover .add-icon {
+    transform: scale(1.06);
 }
 
 /* Multi-select exercise item styles */
 .add-exercise-item.selected {
-    background: rgba(13, 148, 136, 0.1);
-    border-left: 3px solid var(--brand-primary);
+    background: rgba(46, 196, 182, 0.1);
+    border-color: rgba(46, 196, 182, 0.55);
 }
 
 [data-theme="dark"] .add-exercise-item.selected {
-    background: rgba(13, 148, 136, 0.15);
+    background: rgba(46, 196, 182, 0.14);
+    border-color: rgba(46, 196, 182, 0.5);
 }
 
 .add-icon.selected {
     background: var(--brand-primary);
-    box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.3);
+    box-shadow: 0 0 0 4px rgba(46, 196, 182, 0.25);
 }
 
 /* Load More Button */
