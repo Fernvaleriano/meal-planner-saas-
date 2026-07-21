@@ -1119,7 +1119,7 @@ function Messages() {
             playsInline
             preload="metadata"
             className="chat-media-video"
-            onLoadedMetadata={() => scrollToBottom(true)}
+            onLoadedMetadata={() => { if (isAtBottomRef.current) scrollToBottom(true); }}
           />
         </div>
       );
@@ -1132,7 +1132,7 @@ function Messages() {
           src={msg.media_url}
           alt={msg.media_type === 'gif' ? t('messagesPage.gifAlt') : t('messagesPage.photoAlt')}
           className="chat-media-image"
-          onLoad={() => scrollToBottom(true)}
+          onLoad={() => { if (isAtBottomRef.current) scrollToBottom(true); }}
         />
       </div>
     );
