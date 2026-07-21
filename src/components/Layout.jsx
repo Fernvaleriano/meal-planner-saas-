@@ -181,7 +181,7 @@ function Layout() {
   }
 
   return (
-    <div className="app-layout">
+    <div className={`app-layout ${isMessagesPage ? 'messages-viewport' : ''}`}>
       <SyncIndicator />
       <VerifyEmailBanner />
       {!hideTopNav && <TopNav />}

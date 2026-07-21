@@ -701,19 +701,21 @@ function Messages() {
     isVisibleRef.current = location.pathname === '/messages';
   }, [location.pathname]);
 
-  // Restore scroll position when returning to the Messages tab.
-  // display:none → display:block resets scroll, so we re-anchor to bottom.
+  // Re-anchor to the newest messages when returning to the Messages tab.
+  // display:none → display:flex wipes the container's scroll position (it
+  // resets to the top = the OLDEST loaded message), and the old position
+  // can't be recovered — so always land on the latest messages, like any
+  // chat app. Keyed on pathname only: new-message arrivals while the tab
+  // is open are handled by the effect below, which respects isAtBottomRef.
   useEffect(() => {
     if (location.pathname !== '/messages') return;
-    // Tab just became visible — restore scroll if user was at bottom
-    const container = messagesContainerRef.current;
-    if (container && messages.length > 0 && isAtBottomRef.current) {
-      // Use rAF to wait for the browser to finish layout after display:block
-      requestAnimationFrame(() => {
-        scrollToBottom(true);
-      });
-    }
-  }, [location.pathname, scrollToBottom, messages.length]);
+    isAtBottomRef.current = true;
+    // Double-rAF waits for the browser to finish layout after display:flex
+    requestAnimationFrame(() => {
+      scrollToBottom(true);
+      requestAnimationFrame(() => scrollToBottom(true));
+    });
+  }, [location.pathname, scrollToBottom]);
 
   // Auto-scroll to bottom when new messages arrive (only if user is at bottom)
   useEffect(() => {

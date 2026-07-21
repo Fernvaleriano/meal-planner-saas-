@@ -23,6 +23,7 @@ export function usePullToRefresh(onRefresh, options = {}) {
   const containerRef = useRef(null);
   const indicatorRef = useRef(null);
   const touchStartRef = useRef(0);
+  const touchTargetRef = useRef(null);
   const pullDistanceRef = useRef(0);
   const refreshTimeoutRef = useRef(null);
   const isRefreshingRef = useRef(false);
@@ -67,13 +68,28 @@ export function usePullToRefresh(onRefresh, options = {}) {
     const container = containerEl;
     if (!container) return;
 
+    // True when a scrollable element between the touch target and this
+    // container is already scrolled down (e.g. the chat thread, which
+    // scrolls internally). Pulling down there should scroll that element
+    // back through its history, not arm pull-to-refresh.
+    const hasScrolledNestedContainer = (target) => {
+      let el = target instanceof Element ? target : null;
+      while (el && el !== container) {
+        if (el.scrollTop > 0) return true;
+        el = el.parentElement;
+      }
+      return false;
+    };
+
     const handleTouchStart = (e) => {
       if (isRefreshingRef.current) return;
       const scrollTop = container.scrollTop || window.scrollY;
-      if (scrollTop <= 0) {
+      if (scrollTop <= 0 && !hasScrolledNestedContainer(e.target)) {
         touchStartRef.current = e.touches[0].clientY;
+        touchTargetRef.current = e.target;
       } else {
         touchStartRef.current = 0;
+        touchTargetRef.current = null;
       }
     };
 
@@ -81,8 +97,9 @@ export function usePullToRefresh(onRefresh, options = {}) {
       if (!touchStartRef.current || isRefreshingRef.current) return;
 
       const scrollTop = container.scrollTop || window.scrollY;
-      if (scrollTop > 0) {
+      if (scrollTop > 0 || hasScrolledNestedContainer(touchTargetRef.current)) {
         touchStartRef.current = 0;
+        touchTargetRef.current = null;
         pullDistanceRef.current = 0;
         updateIndicatorDOM(0);
         return;
@@ -109,6 +126,7 @@ export function usePullToRefresh(onRefresh, options = {}) {
 
       // Always reset immediately
       touchStartRef.current = 0;
+      touchTargetRef.current = null;
       pullDistanceRef.current = 0;
       updateIndicatorDOM(0);
 
@@ -162,6 +180,7 @@ export function usePullToRefresh(onRefresh, options = {}) {
 
     const handleTouchCancel = () => {
       touchStartRef.current = 0;
+      touchTargetRef.current = null;
       pullDistanceRef.current = 0;
       updateIndicatorDOM(0);
     };
