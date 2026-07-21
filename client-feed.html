@@ -1417,7 +1417,7 @@
                     <div class="feed-client-info">
                         <div class="feed-client-name">${escFeed(meal.clientName)}</div>
                         <div class="feed-meta">
-                            <span class="feed-meal-badge ${meal.mealType}">${meal.mealType}</span>
+                            <span class="feed-meal-badge ${escFeed(meal.mealType)}">${escFeed(meal.mealType)}</span>
                             <span>${formatTime(meal.latestCreatedAt)}</span>
                         </div>
                     </div>
