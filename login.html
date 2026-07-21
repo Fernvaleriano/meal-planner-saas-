@@ -516,6 +516,43 @@
         const { createClient } = supabase;
         const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+        // ---- Gym-branded staff login -------------------------------------
+        // When a gym coachId is supplied (the /staff/<slug> address resolves the
+        // gym and lands here with ?coachId=<gym>), skin this page with that gym's
+        // logo, name and colours — the same branding the member login uses. With
+        // no coachId it stays the default Ziquecoach login. Purely additive; any
+        // hiccup just leaves the default look.
+        (async function applyStaffBranding() {
+            try {
+                const coachId = new URLSearchParams(window.location.search).get('coachId');
+                if (!coachId) return;
+                const res = await fetch('/.netlify/functions/get-coach-branding?coachId=' + encodeURIComponent(coachId));
+                if (!res.ok) return;
+                const b = await res.json();
+                if (!b || b.error) return;
+
+                const root = document.documentElement;
+                if (b.brand_primary_color) root.style.setProperty('--brand-primary', b.brand_primary_color);
+                if (b.brand_secondary_color) root.style.setProperty('--brand-secondary', b.brand_secondary_color);
+                if (b.brand_primary_color && b.brand_secondary_color) {
+                    root.style.setProperty('--brand-gradient',
+                        'linear-gradient(135deg, ' + b.brand_primary_color + ' 0%, ' + b.brand_secondary_color + ' 100%)');
+                }
+                const name = b.brand_name || 'Ziquecoach';
+                if (b.brand_logo_url) {
+                    document.querySelectorAll('.brand-logo-img, .mobile-logo-img').forEach(img => {
+                        img.src = b.brand_logo_url; img.alt = name;
+                    });
+                }
+                const tagline = document.querySelector('.brand-tagline');
+                if (tagline) tagline.textContent = name;
+                document.title = 'Log In - ' + name;
+                if (b.brand_favicon_url) {
+                    document.querySelectorAll('link[rel="icon"], link[rel="apple-touch-icon"]').forEach(l => { l.href = b.brand_favicon_url; });
+                }
+            } catch (e) { /* leave default branding on any hiccup */ }
+        })();
+
         const loginForm = document.getElementById('loginForm');
         const loginBtn = document.getElementById('loginBtn');
         const messageDiv = document.getElementById('message');
