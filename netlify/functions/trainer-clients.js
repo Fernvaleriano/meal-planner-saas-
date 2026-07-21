@@ -66,9 +66,9 @@ exports.handler = async (event) => {
       // display name + this trainer's own name/permissions here.
       const { data: gym } = await supabase
         .from('coaches')
-        .select('brand_name, brand_app_name, company_name, business_name, brand_logo_url')
+        .select('brand_name, brand_app_name, name, brand_logo_url')
         .eq('id', gymCoachId).maybeSingle();
-      const gymName = (gym && (gym.brand_name || gym.brand_app_name || gym.company_name || gym.business_name)) || 'Your gym';
+      const gymName = (gym && (gym.brand_name || gym.brand_app_name || gym.name)) || 'Your gym';
 
       return json(200, {
         role,
