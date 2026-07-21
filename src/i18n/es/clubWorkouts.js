@@ -88,6 +88,31 @@ export default {
   allWorkouts: 'Todos los entrenamientos',
   clearFilters: 'Borrar filtros',
 
+  // ── Muscle group filter ───────────────────────────────────────────
+  allMuscles: 'Todos los músculos',
+  muscleLegs: 'Piernas',
+  muscleChest: 'Pecho',
+  muscleBack: 'Espalda',
+  muscleShoulders: 'Hombros',
+  muscleArms: 'Brazos',
+  muscleCore: 'Core',
+  muscleCardio: 'Cardio',
+  muscleFullBody: 'Cuerpo completo',
+
+  // ── Equipment-type filter ─────────────────────────────────────────
+  anyEquipment: 'Cualquier equipo',
+  equipmentBodyweight: 'Peso corporal',
+  equipmentDumbbell: 'Mancuernas',
+  equipmentBarbell: 'Barra',
+  equipmentMachine: 'Máquinas y cables',
+  equipmentBand: 'Bandas',
+  equipmentKettlebell: 'Pesa rusa',
+
+  // ── Sort order ────────────────────────────────────────────────────
+  sortNewest: 'Más recientes',
+  sortShortest: 'Más cortos',
+  sortMostExercises: 'Más ejercicios',
+
   // ── Loading / empty states ────────────────────────────────────────
   loading: 'Cargando entrenamientos del club...',
   emptyNoWorkoutsTitle: 'Sin entrenamientos del club',

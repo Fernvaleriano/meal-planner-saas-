@@ -76,6 +76,31 @@ export default {
   allWorkouts: 'ทุกเวิร์กเอาต์',
   clearFilters: 'ล้างตัวกรอง',
 
+  // ── Muscle group filter ───────────────────────────────────────────
+  allMuscles: 'ทุกกล้ามเนื้อ',
+  muscleLegs: 'ขา',
+  muscleChest: 'อก',
+  muscleBack: 'หลัง',
+  muscleShoulders: 'ไหล่',
+  muscleArms: 'แขน',
+  muscleCore: 'แกนกลางลำตัว',
+  muscleCardio: 'คาร์ดิโอ',
+  muscleFullBody: 'เต็มตัว',
+
+  // ── Equipment-type filter ─────────────────────────────────────────
+  anyEquipment: 'ทุกอุปกรณ์',
+  equipmentBodyweight: 'บอดี้เวท',
+  equipmentDumbbell: 'ดัมเบล',
+  equipmentBarbell: 'บาร์เบล',
+  equipmentMachine: 'เครื่องและเคเบิล',
+  equipmentBand: 'ยางยืด',
+  equipmentKettlebell: 'เคตเทิลเบล',
+
+  // ── Sort order ────────────────────────────────────────────────────
+  sortNewest: 'ใหม่ล่าสุด',
+  sortShortest: 'สั้นที่สุด',
+  sortMostExercises: 'ท่ามากที่สุด',
+
   loading: 'กำลังโหลดเวิร์กเอาต์ของยิม...',
   emptyNoWorkoutsTitle: 'ยังไม่มีเวิร์กเอาต์ของยิม',
   emptyNoWorkoutsDesc: 'โค้ชของคุณยังไม่ได้สร้างเวิร์กเอาต์ของยิม กลับมาดูใหม่ภายหลังนะ!',
