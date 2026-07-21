@@ -4721,7 +4721,7 @@ document.addEventListener('DOMContentLoaded', () => {
 // Fetch calorie goals for a client and populate custom targets
 async function loadClientCalorieGoals(clientId) {
     try {
-        const response = await fetch(`/.netlify/functions/calorie-goals?clientId=${clientId}`);
+        const response = await authenticatedFetch(`/.netlify/functions/calorie-goals?clientId=${clientId}`);
         if (!response.ok) {
             console.warn('Could not fetch calorie goals for client');
             return;

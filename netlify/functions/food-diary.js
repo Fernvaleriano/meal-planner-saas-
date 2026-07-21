@@ -1,6 +1,7 @@
 const { createClient } = require('@supabase/supabase-js');
 const { getDefaultDate } = require('./utils/timezone');
 const { withTimeout } = require('./utils/with-timeout');
+const { authenticateClientAccess } = require('./utils/auth');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -41,6 +42,10 @@ exports.handler = withTimeout(async (event) => {
           body: JSON.stringify({ error: 'clientId is required' })
         };
       }
+
+      // Authorize: only the client themselves or their coach may read this diary.
+      const getAuth = await authenticateClientAccess(event, clientId);
+      if (getAuth.error) return getAuth.error;
 
       // Build entries query - only select columns used by the UI (reduces payload ~15%)
       // Removed: client_id (already known), created_at (only used for ordering, not display)
@@ -253,6 +258,10 @@ exports.handler = withTimeout(async (event) => {
         };
       }
 
+      // Authorize: only the client themselves or their coach may add entries.
+      const postAuth = await authenticateClientAccess(event, clientId);
+      if (postAuth.error) return postAuth.error;
+
       // Helper to safely parse numbers with optional decimal precision
       const safeNum = (val, defaultVal = 0, decimals = 0) => {
         const num = parseFloat(val);
@@ -377,6 +386,19 @@ exports.handler = withTimeout(async (event) => {
         };
       }
 
+      // Authorize: resolve the entry's owner, then confirm the caller is that
+      // client or their coach.
+      const { data: putOwner, error: putOwnerErr } = await supabase
+        .from('food_diary_entries')
+        .select('client_id')
+        .eq('id', entryId)
+        .single();
+      if (putOwnerErr || !putOwner) {
+        return { statusCode: 404, headers, body: JSON.stringify({ error: 'Entry not found' }) };
+      }
+      const putAuth = await authenticateClientAccess(event, putOwner.client_id);
+      if (putAuth.error) return putAuth.error;
+
       // Map camelCase to snake_case
       const updateFields = {};
       if (updateData.foodName !== undefined) updateFields.food_name = updateData.foodName;
@@ -454,7 +476,7 @@ exports.handler = withTimeout(async (event) => {
       // First verify the entry exists
       const { data: existing, error: findError } = await supabase
         .from('food_diary_entries')
-        .select('id')
+        .select('id, client_id')
         .eq('id', entryId)
         .single();
 
@@ -465,6 +487,10 @@ exports.handler = withTimeout(async (event) => {
           body: JSON.stringify({ error: 'Entry not found', details: findError?.message })
         };
       }
+
+      // Authorize: only the owning client or their coach may delete this entry.
+      const delAuth = await authenticateClientAccess(event, existing.client_id);
+      if (delAuth.error) return delAuth.error;
 
       const { error, count } = await supabase
         .from('food_diary_entries')
