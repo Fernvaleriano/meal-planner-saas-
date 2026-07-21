@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Trainer · Ziquecoach</title>
+  <style>
+    :root {
+      --navy: #0A1F2E;
+      --turq: #2EC4B6;
+      --turq-dark: #1fa295;
+      --bg: #f4f6f8;
+      --card: #ffffff;
+      --line: #e3e8ee;
+      --text: #1b2a35;
+      --muted: #6b7a88;
+      --danger: #d9534f;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: var(--bg); color: var(--text); }
+    header.topbar { background: var(--navy); color: #fff; padding: 14px 20px; display: flex; align-items: center; justify-content: space-between; }
+    header.topbar .brand { font-weight: 700; font-size: 18px; display: flex; align-items: center; gap: 10px; }
+    header.topbar .brand img { height: 26px; width: auto; border-radius: 5px; }
+    header.topbar .brand .tag { color: var(--turq); font-weight: 600; font-size: 13px; opacity: .9; }
+    header.topbar a { color: #cfe9e6; text-decoration: none; font-size: 14px; }
+    .wrap { max-width: 900px; margin: 0 auto; padding: 24px 16px 80px; }
+    h1 { font-size: 22px; margin: 8px 0 4px; }
+    .sub { color: var(--muted); margin: 0 0 24px; font-size: 14px; }
+    .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 18px; margin-bottom: 20px; }
+    .card h2 { font-size: 16px; margin: 0 0 14px; }
+    .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; }
+    label.fld { display: flex; flex-direction: column; font-size: 12px; color: var(--muted); gap: 4px; }
+    input[type=text], input[type=email], input[type=password], input[type=tel] { padding: 9px 11px; border: 1px solid var(--line); border-radius: 8px; font-size: 14px; min-width: 180px; background: #fff; }
+    button { background: var(--turq); color: #fff; border: none; border-radius: 8px; padding: 9px 16px; font-size: 14px; font-weight: 600; cursor: pointer; }
+    button:hover { background: var(--turq-dark); }
+    button:disabled { opacity: .6; cursor: default; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { text-align: left; padding: 10px 8px; border-bottom: 1px solid var(--line); font-size: 14px; vertical-align: middle; }
+    th { color: var(--muted); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: .03em; }
+    .empty { color: var(--muted); font-size: 14px; padding: 12px 0; }
+    .muted { color: var(--muted); font-size: 13px; }
+    .count-pill { display: inline-block; background: #e2f6f3; color: var(--turq-dark); border-radius: 999px; padding: 2px 10px; font-size: 12px; font-weight: 700; margin-left: 8px; }
+    .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: var(--navy); color: #fff; padding: 12px 20px; border-radius: 10px; font-size: 14px; opacity: 0; transition: opacity .2s; pointer-events: none; z-index: 50; max-width: 90%; }
+    .toast.show { opacity: 1; }
+    .hidden { display: none !important; }
+    .note { background: #eaf6ff; color: #1a5f8a; border: 1px solid #cfe6f5; border-radius: 10px; padding: 12px 14px; font-size: 13px; margin-bottom: 20px; }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <img id="gymLogo" class="hidden" alt="" />
+      <span id="gymName">Ziquecoach</span>
+      <span class="tag">· Trainer</span>
+    </div>
+    <a href="#" id="logoutLink">Log out</a>
+  </header>
+
+  <div class="wrap">
+    <div id="loading" class="empty">Loading…</div>
+
+    <div id="main" class="hidden">
+      <h1 id="hello">Your clients</h1>
+      <p class="sub">These are the clients your gym has assigned to you. Every client belongs to the gym — you coach the ones listed here.</p>
+
+      <div class="note">
+        You can add clients from here. Anyone you add is owned by the gym and assigned to you automatically.
+      </div>
+
+      <!-- Add client -->
+      <div class="card" id="addCard">
+        <h2>Add a client</h2>
+        <div class="row">
+          <label class="fld">Name
+            <input type="text" id="cName" placeholder="Jane Client" />
+          </label>
+          <label class="fld">Email (optional)
+            <input type="email" id="cEmail" placeholder="jane@example.com" />
+          </label>
+          <label class="fld">Phone (optional)
+            <input type="tel" id="cPhone" placeholder="(555) 123-4567" />
+          </label>
+          <label class="fld">Password (optional)
+            <input type="password" id="cPassword" placeholder="give them a login" />
+          </label>
+          <button id="addBtn">Add client</button>
+        </div>
+        <p class="muted" style="margin:10px 0 0;">Leave the password blank to add them without a login for now. Add a password to create their app login straight away.</p>
+      </div>
+
+      <!-- Clients list -->
+      <div class="card">
+        <h2>My clients <span class="count-pill" id="countPill">0</span></h2>
+        <div id="clientsWrap"><div class="empty">No clients yet.</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    const SUPABASE_URL = 'https://qewqcjzlfqamqwbccapr.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFld3FjanpsZnFhbXF3YmNjYXByIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM2OTg0NzAsImV4cCI6MjA3OTI3NDQ3MH0.mQnMC33O88oLkLLGWD2oG-oaSHGI-NfHmtQCZxnxSLs';
+    const { createClient } = supabase;
+    const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    const API = '/.netlify/functions/trainer-clients';
+    let TOKEN = null;
+    let clients = [];
+
+    const $ = (id) => document.getElementById(id);
+    function toast(msg) { const t = $('toast'); t.textContent = msg; t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2800); }
+    function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c])); }
+
+    async function api(method, body) {
+      const res = await fetch(API, {
+        method,
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + TOKEN },
+        body: body ? JSON.stringify(body) : undefined
+      });
+      let data = {};
+      try { data = await res.json(); } catch (e) { /* ignore */ }
+      return { ok: res.ok, status: res.status, data };
+    }
+
+    function renderClients() {
+      $('countPill').textContent = clients.length;
+      const wrap = $('clientsWrap');
+      if (!clients.length) { wrap.innerHTML = '<div class="empty">No clients yet. Add your first one above.</div>'; return; }
+      let html = '<table><thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>Login</th></tr></thead><tbody>';
+      for (const c of clients) {
+        html += '<tr>' +
+          '<td>' + esc(c.client_name || '—') + '</td>' +
+          '<td>' + esc(c.email || '—') + '</td>' +
+          '<td>' + esc(c.phone || '—') + '</td>' +
+          '<td>' + (c.user_id ? 'Has login' : '<span class="muted">No login yet</span>') + '</td>' +
+        '</tr>';
+      }
+      html += '</tbody></table>';
+      wrap.innerHTML = html;
+    }
+
+    async function addClient() {
+      const clientName = $('cName').value.trim();
+      if (!clientName) { toast('Enter a client name'); return; }
+      const email = $('cEmail').value.trim();
+      const phone = $('cPhone').value.trim();
+      const password = $('cPassword').value;
+      $('addBtn').disabled = true;
+      const { ok, data } = await api('POST', { clientName, email, phone, password: password || undefined });
+      $('addBtn').disabled = false;
+      if (!ok) { toast(data.error || 'Could not add client'); return; }
+      $('cName').value = ''; $('cEmail').value = ''; $('cPhone').value = ''; $('cPassword').value = '';
+      if (data.accountCreated) {
+        alert('Client added and their login is ready.\n\nEmail: ' + email + '\n(They sign in at the member app with the password you set.)');
+      } else {
+        toast('Client added');
+      }
+      await load();
+    }
+
+    async function load() {
+      const { ok, status, data } = await api('GET');
+      if (!ok) {
+        if (status === 403) { toast('Your trainer access is not active. Ask your gym to re-enable it.'); }
+        return false;
+      }
+      // An owner landing here belongs on the full coaching dashboard.
+      if (data.role === 'owner') { window.location.href = 'dashboard.html'; return false; }
+
+      clients = data.clients || [];
+      if (data.gym && data.gym.name) $('gymName').textContent = data.gym.name;
+      if (data.gym && data.gym.logo) { const l = $('gymLogo'); l.src = data.gym.logo; l.classList.remove('hidden'); }
+      if (data.me && data.me.name) $('hello').textContent = 'Hi ' + data.me.name.split(' ')[0] + ' — your clients';
+      // Hide the add card if the gym turned off client creation for this trainer.
+      if (data.me && data.me.canCreateClients === false) $('addCard').classList.add('hidden');
+      renderClients();
+      return true;
+    }
+
+    async function init() {
+      const { data: { session } } = await supabaseClient.auth.getSession();
+      if (!session) { window.location.href = 'login.html'; return; }
+      TOKEN = session.access_token;
+      const shown = await load();
+      $('loading').classList.add('hidden');
+      if (shown) $('main').classList.remove('hidden');
+    }
+
+    $('logoutLink').addEventListener('click', async (e) => {
+      e.preventDefault();
+      try { await supabaseClient.auth.signOut({ scope: 'local' }); } catch (err) {}
+      window.location.href = 'login.html';
+    });
+    $('addBtn').addEventListener('click', addClient);
+    init();
+  </script>
+</body>
+</html>
