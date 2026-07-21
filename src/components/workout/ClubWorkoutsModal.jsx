@@ -973,7 +973,7 @@ function ClubWorkoutsModal({ onClose, onSelectWorkout, onScheduleProgram, coachI
                     key={workout.id}
                     className={`club-workout-card ${heroImage ? 'has-image' : ''}`}
                     onClick={() => handleCardClick(workout)}
-                    style={heroImage ? { backgroundImage: `url(${heroImage})` } : undefined}
+                    style={heroImage ? { backgroundImage: `url("${heroImage}")` } : undefined}
                   >
                     {heroImage && <div className="club-workout-card-overlay" />}
                     <div className="club-workout-card-inner">
