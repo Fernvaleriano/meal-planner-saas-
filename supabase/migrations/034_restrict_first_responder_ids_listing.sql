@@ -1,0 +1,17 @@
+-- Security: the public bucket `first-responder-ids` stores uploaded
+-- government/first-responder ID documents. It had a broad anon SELECT policy
+-- on storage.objects that allowed anyone to LIST/enumerate every uploaded ID.
+--
+-- The bucket is public (public = true), so direct object reads via
+-- /object/public/first-responder-ids/<path> — used by the coach verification
+-- view (form-responses.html) and the verification email that embeds the image
+-- (netlify/functions/submit-apply-form.js) — are served through the bucket's
+-- public flag and do NOT depend on this policy. Dropping it stops anonymous
+-- enumeration without breaking uploads (the anon INSERT policy is kept), the
+-- admin view, or the emails.
+--
+-- Follow-up (not done here to avoid breaking the email image, which cannot use
+-- expiring signed URLs): to remove public read-by-URL entirely, make the bucket
+-- private and switch form-responses.html to signed URLs and the email to a link
+-- into the admin page instead of an embedded <img>.
+DROP POLICY IF EXISTS "Allow public read access to first-responder-ids" ON storage.objects;
