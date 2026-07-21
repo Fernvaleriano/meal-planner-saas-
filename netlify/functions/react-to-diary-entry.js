@@ -1,6 +1,6 @@
 // Netlify Function to save a reaction to a diary entry and notify the client
 const { createClient } = require('@supabase/supabase-js');
-const { authenticateCoach } = require('./utils/auth');
+const { authenticateCoach, forbiddenResponse } = require('./utils/auth');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -69,6 +69,16 @@ exports.handler = async (event) => {
     if (postAuth.error) return postAuth.error;
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+
+    // The target client must actually belong to this coach — otherwise a coach
+    // could react to a stranger's entry and inject a notification into their feed.
+    const { data: reactRel } = await supabase
+      .from('clients')
+      .select('id')
+      .eq('id', clientId)
+      .eq('coach_id', coachId)
+      .maybeSingle();
+    if (!reactRel) return forbiddenResponse('Not authorized for this client');
 
     // Check if this is a new reaction (not an update)
     const { data: existingReaction } = await supabase

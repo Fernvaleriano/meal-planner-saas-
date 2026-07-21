@@ -75,14 +75,17 @@ exports.handler = async (event) => {
 
       if (deleteError) throw deleteError;
 
-      // Recalculate PRs for this exercise across all remaining logs for this client
-      if (logToDelete.exercise_name && clientId) {
+      // Recalculate PRs for this exercise across all remaining logs for this
+      // client — use the log's REAL owner (parentLog), not the caller-supplied
+      // clientId, so a spoofed clientId can't rewrite another client's PR flags.
+      const ownerClientId = parentLog?.client_id;
+      if (logToDelete.exercise_name && ownerClientId) {
         try {
           // Get all remaining logs for this exercise, ordered by date
           const { data: remainingLogs } = await supabase
             .from('exercise_logs')
             .select('id, max_weight, sets_data, workout_logs!inner(workout_date, client_id)')
-            .eq('workout_logs.client_id', clientId)
+            .eq('workout_logs.client_id', ownerClientId)
             .eq('exercise_name', logToDelete.exercise_name)
             .order('created_at', { ascending: true });
 
