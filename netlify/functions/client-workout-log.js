@@ -1,4 +1,5 @@
 const { createClient } = require('@supabase/supabase-js');
+const { authenticateClientAccess } = require('./utils/auth');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -126,6 +127,10 @@ exports.handler = async (event) => {
           body: JSON.stringify({ error: 'Assignment not found' })
         };
       }
+
+      // Authorize: only the owning client or their coach may modify this plan.
+      const postAuth = await authenticateClientAccess(event, assignment.client_id);
+      if (postAuth.error) return postAuth.error;
 
       const currentWorkoutData = assignment.workout_data || {};
       const dateOverrides = currentWorkoutData.date_overrides || {};
@@ -285,6 +290,10 @@ exports.handler = async (event) => {
           body: JSON.stringify({ error: 'Assignment not found' })
         };
       }
+
+      // Authorize: only the owning client or their coach may modify this plan.
+      const putAuth = await authenticateClientAccess(event, assignment.client_id);
+      if (putAuth.error) return putAuth.error;
 
       const currentWorkoutData = assignment.workout_data || {};
       let updatedWorkoutData;
@@ -447,6 +456,9 @@ exports.handler = async (event) => {
           body: JSON.stringify({ error: 'clientId is required' })
         };
       }
+
+      const getAuth = await authenticateClientAccess(event, clientId);
+      if (getAuth.error) return getAuth.error;
 
       // Get the active assignment for this client
       const { data: assignment, error: assignmentError } = await supabase

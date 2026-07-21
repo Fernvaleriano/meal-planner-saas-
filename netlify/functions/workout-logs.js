@@ -1,5 +1,6 @@
 const { createClient } = require('@supabase/supabase-js');
 const { getDefaultDate } = require('./utils/timezone');
+const { authenticateClientAccess } = require('./utils/auth');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -88,6 +89,10 @@ exports.handler = async (event) => {
 
         if (workoutError) throw workoutError;
 
+        // Authorize: only the owning client or their coach may read this workout.
+        const wAuth = await authenticateClientAccess(event, workout?.client_id);
+        if (wAuth.error) return wAuth.error;
+
         // Get exercise logs for this workout
         const { data: exercises, error: exerciseError } = await supabase
           .from('exercise_logs')
@@ -117,6 +122,9 @@ exports.handler = async (event) => {
           body: JSON.stringify({ error: 'clientId is required' })
         };
       }
+
+      const getAuth = await authenticateClientAccess(event, clientId);
+      if (getAuth.error) return getAuth.error;
 
       const { date } = event.queryStringParameters || {};
 
@@ -208,6 +216,9 @@ exports.handler = async (event) => {
           body: JSON.stringify({ error: 'clientId is required' })
         };
       }
+
+      const postAuth = await authenticateClientAccess(event, clientId);
+      if (postAuth.error) return postAuth.error;
 
       // Auto-derive coach_id from client record if not provided
       let resolvedCoachId = coachId;
@@ -390,6 +401,12 @@ exports.handler = async (event) => {
         .select('client_id, coach_id')
         .eq('id', workoutId)
         .single();
+
+      // Authorize: only the owning client or their coach may modify this log.
+      if (workoutLogData?.client_id) {
+        const putAuth = await authenticateClientAccess(event, workoutLogData.client_id);
+        if (putAuth.error) return putAuth.error;
+      }
 
       // Backfill coach_id if missing
       if (workoutLogData && !workoutLogData.coach_id && workoutLogData.client_id) {
@@ -765,6 +782,17 @@ exports.handler = async (event) => {
           headers,
           body: JSON.stringify({ error: 'workoutId is required' })
         };
+      }
+
+      // Authorize: only the owning client or their coach may delete this log.
+      const { data: delWorkout } = await supabase
+        .from('workout_logs')
+        .select('client_id')
+        .eq('id', workoutId)
+        .maybeSingle();
+      if (delWorkout?.client_id) {
+        const delAuth = await authenticateClientAccess(event, delWorkout.client_id);
+        if (delAuth.error) return delAuth.error;
       }
 
       // Exercise logs will cascade delete

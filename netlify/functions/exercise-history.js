@@ -1,4 +1,5 @@
 const { createClient } = require('@supabase/supabase-js');
+const { authenticateClientAccess } = require('./utils/auth');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -54,6 +55,17 @@ exports.handler = async (event) => {
         .single();
 
       if (fetchError) throw fetchError;
+
+      // Authorize against the log's ACTUAL owner (its parent workout_log's
+      // client_id), not a caller-supplied clientId — the delete below is keyed
+      // only by exerciseLogId, so a spoofed clientId must not grant access.
+      const { data: parentLog } = await supabase
+        .from('workout_logs')
+        .select('client_id')
+        .eq('id', logToDelete.workout_log_id)
+        .maybeSingle();
+      const delAuth = await authenticateClientAccess(event, parentLog?.client_id);
+      if (delAuth.error) return delAuth.error;
 
       // Delete the exercise log
       const { error: deleteError } = await supabase
@@ -166,6 +178,9 @@ exports.handler = async (event) => {
         body: JSON.stringify({ error: 'clientId is required' })
       };
     }
+
+    const getAuth = await authenticateClientAccess(event, clientId);
+    if (getAuth.error) return getAuth.error;
 
     const selectFields = `
         id,
