@@ -44,6 +44,18 @@ macro-tracking UI on a gym. Detect a gym member in the client app with the
 app-wide convention: `!clientData?.is_coach && !isModuleVisible('diary')`.
 If unsure which product a request is about, ask.
 
+### Multi-trainer ("gym owns, trainer borrows") — see `MULTI-TRAINER-NOTES.md`
+A gym owner can add **trainers** (sub-coaches) who each coach a slice of the
+gym's clients. Locked model: **the gym owns every client** (`clients.coach_id`
+= gym owner); a trainer only sees/adds clients **assigned** to them
+(`clients.trainer_id`). A trainer is a login with a `gym_trainers` row and NO
+`coaches` row; `resolveGymContext()` in `netlify/functions/utils/auth.js` tells
+owner from trainer. Slice 1 (login + see/add assigned clients) is built:
+`trainer-dashboard.html`, `netlify/functions/trainer-clients.js`. Next slices
+(workouts, meal plans, messages) + a per-trainer permissions layer are pending.
+**Golden rule: SCOPE every trainer screen to their assigned clients — an
+unscoped page leaks the whole gym's roster.** Full risk log in the doc.
+
 ## 🆕 ONBOARDING A NEW COACH/GYM — PRESETS (locked July 2026)
 
 A coach/gym account's "view" is controlled by **two things** on the
