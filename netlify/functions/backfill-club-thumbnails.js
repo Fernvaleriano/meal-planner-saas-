@@ -28,6 +28,11 @@ exports.handler = async (event) => {
     return { statusCode: 200, headers: corsHeaders, body: '' };
   }
 
+  // Admin-only maintenance endpoint.
+  const { authenticateMaster } = require('./utils/auth');
+  const { error: authError } = await authenticateMaster(event);
+  if (authError) return authError;
+
   if (event.httpMethod !== 'POST') {
     return { statusCode: 405, headers: corsHeaders, body: JSON.stringify({ error: 'Method not allowed' }) };
   }

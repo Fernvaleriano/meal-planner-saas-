@@ -1,5 +1,10 @@
 node_modules/
 
+# Environment / secrets - NEVER commit real values (.env.example is the template)
+.env
+.env.*
+!.env.example
+
 # Vite/React SPA build output
 app-test-dist/
 

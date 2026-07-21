@@ -13,6 +13,7 @@
  */
 const { createClient } = require('@supabase/supabase-js');
 const Anthropic = require('@anthropic-ai/sdk').default;
+const { authenticateCoach } = require('./utils/auth');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -37,6 +38,10 @@ exports.handler = async (event) => {
   if (!coachId || !clientId) {
     return { statusCode: 400, headers: corsHeaders, body: JSON.stringify({ error: 'coachId and clientId required' }) };
   }
+
+  // Only the coach themselves may draft messages about their client.
+  const { error: authError } = await authenticateCoach(event, coachId);
+  if (authError) return authError;
   if (!SUPABASE_SERVICE_KEY) {
     return { statusCode: 500, headers: corsHeaders, body: JSON.stringify({ error: 'Database not configured' }) };
   }

@@ -25,6 +25,11 @@ exports.handler = async (event) => {
     return { statusCode: 200, headers, body: '' };
   }
 
+  // Admin-only maintenance endpoint.
+  const { authenticateMaster } = require('./utils/auth');
+  const { error: authError } = await authenticateMaster(event);
+  if (authError) return authError;
+
   if (!SUPABASE_SERVICE_KEY) {
     return {
       statusCode: 500,

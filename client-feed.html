@@ -1384,6 +1384,14 @@
             setTimeout(() => card.classList.remove('feed-card--highlight'), 3000);
         }
 
+        // Escape user-entered text before putting it in innerHTML, so a client's
+        // food/name text can't inject HTML that runs in the coach's session.
+        function escFeed(s) {
+            return String(s == null ? '' : s)
+                .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+        }
+
         function renderMealCard(meal) {
             const card = document.createElement('div');
             card.className = 'feed-card';
@@ -1398,16 +1406,16 @@
             // Generate items list HTML
             const itemsHtml = meal.items.map(item => `
                 <div class="meal-item-row">
-                    <span class="meal-item-name">${item.foodName}</span>
+                    <span class="meal-item-name">${escFeed(item.foodName)}</span>
                     <span class="meal-item-cal">${Math.round(item.calories)} cal</span>
                 </div>
             `).join('');
 
             card.innerHTML = `
                 <div class="feed-card-header">
-                    <div class="feed-avatar">${meal.clientPhoto ? `<img src="${meal.clientPhoto}" alt="">` : initials}</div>
+                    <div class="feed-avatar">${meal.clientPhoto ? `<img src="${escFeed(meal.clientPhoto)}" alt="">` : escFeed(initials)}</div>
                     <div class="feed-client-info">
-                        <div class="feed-client-name">${meal.clientName}</div>
+                        <div class="feed-client-name">${escFeed(meal.clientName)}</div>
                         <div class="feed-meta">
                             <span class="feed-meal-badge ${meal.mealType}">${meal.mealType}</span>
                             <span>${formatTime(meal.latestCreatedAt)}</span>
@@ -1447,8 +1455,8 @@
                     <div class="comment-list">
                         ${(meal.comments || []).map(c => `
                             <div class="comment-item">
-                                <div class="comment-author">${c.authorType === 'coach' ? 'You' : meal.clientName}</div>
-                                <div class="comment-text">${c.comment}</div>
+                                <div class="comment-author">${c.authorType === 'coach' ? 'You' : escFeed(meal.clientName)}</div>
+                                <div class="comment-text">${escFeed(c.comment)}</div>
                                 <div class="comment-time">${formatTime(c.createdAt)}</div>
                             </div>
                         `).join('')}
@@ -1566,7 +1574,7 @@
                     list.innerHTML += `
                         <div class="comment-item">
                             <div class="comment-author">You</div>
-                            <div class="comment-text">${comment}</div>
+                            <div class="comment-text">${escFeed(comment)}</div>
                             <div class="comment-time">just now</div>
                         </div>
                     `;

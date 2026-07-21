@@ -1,8 +1,17 @@
 const { createClient } = require('@supabase/supabase-js');
+const crypto = require('crypto');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
 const WEBHOOK_SECRET = process.env.STORAGE_WEBHOOK_SECRET;
+
+// Constant-time secret comparison (avoids leaking the secret via timing).
+function safeEqual(a, b) {
+  if (typeof a !== 'string' || typeof b !== 'string') return false;
+  const ab = Buffer.from(a);
+  const bb = Buffer.from(b);
+  return ab.length === bb.length && crypto.timingSafeEqual(ab, bb);
+}
 
 const VIDEO_BUCKET = 'exercise-videos';
 const THUMBNAIL_BUCKET = 'exercise-thumbnails';
@@ -170,11 +179,15 @@ exports.handler = async (event) => {
   if (event.httpMethod !== 'POST') return { statusCode: 405, headers, body: JSON.stringify({ error: 'Method not allowed' }) };
   if (!SUPABASE_SERVICE_KEY) return { statusCode: 500, headers, body: JSON.stringify({ error: 'Missing SUPABASE_SERVICE_KEY' }) };
 
-  if (WEBHOOK_SECRET) {
-    const provided = event.headers['x-webhook-secret'] || event.headers['X-Webhook-Secret'];
-    if (provided !== WEBHOOK_SECRET) {
-      return { statusCode: 401, headers, body: JSON.stringify({ error: 'Unauthorized' }) };
-    }
+  // Fail closed: never accept an unverifiable webhook. The secret is set in
+  // prod, so this only guards against it being missing/misconfigured.
+  if (!WEBHOOK_SECRET) {
+    console.error('STORAGE_WEBHOOK_SECRET not configured — rejecting webhook');
+    return { statusCode: 500, headers, body: JSON.stringify({ error: 'Webhook secret not configured' }) };
+  }
+  const provided = event.headers['x-webhook-secret'] || event.headers['X-Webhook-Secret'];
+  if (!safeEqual(provided, WEBHOOK_SECRET)) {
+    return { statusCode: 401, headers, body: JSON.stringify({ error: 'Unauthorized' }) };
   }
 
   let payload;

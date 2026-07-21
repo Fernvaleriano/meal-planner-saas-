@@ -10294,9 +10294,13 @@
             `;
 
             try {
+                const { data: { session } } = await supabaseClient.auth.getSession();
                 const response = await fetch('/.netlify/functions/ai-activity-summary', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...(session?.access_token && { 'Authorization': `Bearer ${session.access_token}` })
+                    },
                     body: JSON.stringify({
                         coachId: currentUserId,
                         question: question
@@ -11432,9 +11436,13 @@
             deleteBtn.textContent = 'Deleting...';
 
             try {
+                const { data: { session } } = await supabaseClient.auth.getSession();
                 const response = await fetch('/.netlify/functions/delete-story', {
                     method: 'DELETE',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...(session?.access_token && { 'Authorization': `Bearer ${session.access_token}` })
+                    },
                     body: JSON.stringify({
                         storyId: storyToDelete.id,
                         coachId: currentUserId

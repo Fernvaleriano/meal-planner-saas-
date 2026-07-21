@@ -277,6 +277,33 @@ async function authenticateRequest(event) {
 }
 
 /**
+ * Master/admin account email. Maintenance endpoints that act across ALL
+ * coaches (backfills, global exercise cleanup, diagnostics) must be limited to
+ * this account. Verified via a real signed JWT, never a client-supplied value.
+ */
+const MASTER_EMAIL = 'contact@ziquefitness.com';
+
+/**
+ * Authenticate a request and require it to be the master/admin account.
+ * @param {object} event - Netlify event object
+ * @returns {Promise<{user: object|null, error: object|null}>}
+ */
+async function authenticateMaster(event) {
+  const token = extractToken(event);
+  if (!token) {
+    return { user: null, error: unauthorizedResponse('Missing authorization token') };
+  }
+  const { user, error } = await verifyToken(token);
+  if (error || !user) {
+    return { user: null, error: unauthorizedResponse(error || 'Invalid token') };
+  }
+  if ((user.email || '').toLowerCase() !== MASTER_EMAIL) {
+    return { user: null, error: forbiddenResponse('Admin only') };
+  }
+  return { user, error: null };
+}
+
+/**
  * Rate limiting store (in-memory, resets on function cold start)
  * For production, consider using Redis or a database
  */
@@ -346,6 +373,7 @@ module.exports = {
   authenticateCoach,
   authenticateClientAccess,
   authenticateRequest,
+  authenticateMaster,
   resolveGymContext,
   authenticateGymMember,
   checkRateLimit,

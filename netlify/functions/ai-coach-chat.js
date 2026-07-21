@@ -1,4 +1,5 @@
 const OpenAI = require('openai');
+const { authenticateRequest } = require('./utils/auth');
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
@@ -25,6 +26,11 @@ exports.handler = async (event) => {
       body: JSON.stringify({ error: 'Method not allowed' })
     };
   }
+
+  // Require a valid signed-in user before calling the paid LLM (blocks
+  // anonymous cost-abuse). Live callers already send the Bearer token.
+  const { error: authError } = await authenticateRequest(event);
+  if (authError) return { ...authError, headers: { ...headers, ...authError.headers } };
 
   try {
     const body = JSON.parse(event.body || '{}');

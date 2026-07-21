@@ -86,6 +86,12 @@ exports.handler = async (event) => {
       return { statusCode: 400, headers, body: JSON.stringify({ error: 'coachId is required' }) };
     }
 
+    // Only the coach themselves may backfill their own data (coach-workouts.html
+    // sends the Bearer token via apiCall).
+    const { authenticateCoach } = require('./utils/auth');
+    const { error: authError } = await authenticateCoach(event, coachId);
+    if (authError) return authError;
+
     // 1. Fetch coach's global exercise references
     const { data: globalRefs, error: refsError } = await supabase
       .from('coach_exercise_references')

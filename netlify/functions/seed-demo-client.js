@@ -90,11 +90,9 @@ exports.handler = async (event) => {
       statusCode: 500,
       headers: corsHeaders,
       body: JSON.stringify({
-        // Include the underlying message in `error` so the UI surfaces it
-        // (apiPost only reads `data.error`, not `data.details`).
-        error: `Failed to seed demo client: ${error.message}`,
-        details: error.message,
-        stack: error.stack ? error.stack.split('\n').slice(0, 5).join('\n') : undefined
+        // Surface a short reason to the UI (apiPost reads `data.error`), but
+        // never the raw stack trace — that is logged server-side only (above).
+        error: `Failed to seed demo client: ${error.message}`
       })
     };
   }

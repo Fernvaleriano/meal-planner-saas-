@@ -1,5 +1,6 @@
 // Netlify Function to delete a progress photo
 const { createClient } = require('@supabase/supabase-js');
+const { authenticateClientAccess } = require('./utils/auth');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -28,14 +29,14 @@ exports.handler = async (event, context) => {
   }
 
   try {
-    const { photoId, coachId } = event.queryStringParameters || {};
+    const { photoId } = event.queryStringParameters || {};
 
     // Validate required fields
-    if (!photoId || !coachId) {
+    if (!photoId) {
       return {
         statusCode: 400,
         headers: { 'Access-Control-Allow-Origin': '*' },
-        body: JSON.stringify({ error: 'Photo ID and Coach ID are required' })
+        body: JSON.stringify({ error: 'Photo ID is required' })
       };
     }
 
@@ -45,9 +46,8 @@ exports.handler = async (event, context) => {
     // First, get the photo to verify ownership and get storage path
     const { data: photo, error: fetchError } = await supabase
       .from('progress_photos')
-      .select('*')
+      .select('id, client_id, coach_id, storage_path')
       .eq('id', photoId)
-      .eq('coach_id', coachId)
       .single();
 
     if (fetchError || !photo) {
@@ -57,6 +57,12 @@ exports.handler = async (event, context) => {
         body: JSON.stringify({ error: 'Photo not found or access denied' })
       };
     }
+
+    // Authorize: only the photo's own client OR their coach may delete it.
+    // Verifies the caller's token and their relationship to the photo, instead
+    // of trusting a client-supplied coachId.
+    const { error: authError } = await authenticateClientAccess(event, photo.client_id);
+    if (authError) return authError;
 
     // Delete from storage
     if (photo.storage_path) {
@@ -74,8 +80,7 @@ exports.handler = async (event, context) => {
     const { error: deleteError } = await supabase
       .from('progress_photos')
       .delete()
-      .eq('id', photoId)
-      .eq('coach_id', coachId);
+      .eq('id', photoId);
 
     if (deleteError) {
       console.error('Delete error:', deleteError);

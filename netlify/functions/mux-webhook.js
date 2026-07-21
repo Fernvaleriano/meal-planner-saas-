@@ -34,10 +34,14 @@ exports.handler = async (event) => {
   if (event.httpMethod !== 'POST') return { statusCode: 405, body: 'Method not allowed' };
   const raw = event.body || '';
 
-  if (MUX_WEBHOOK_SECRET) {
-    const sig = event.headers['mux-signature'] || event.headers['Mux-Signature'] || '';
-    if (!verifySignature(raw, sig)) return { statusCode: 403, body: 'bad signature' };
+  // Fail closed: never accept an unverifiable webhook. The signing secret is
+  // set in prod, so this only guards against it being missing/misconfigured.
+  if (!MUX_WEBHOOK_SECRET) {
+    console.error('MUX_WEBHOOK_SECRET not configured — rejecting webhook');
+    return { statusCode: 500, body: 'webhook secret not configured' };
   }
+  const sig = event.headers['mux-signature'] || event.headers['Mux-Signature'] || '';
+  if (!verifySignature(raw, sig)) return { statusCode: 403, body: 'bad signature' };
 
   let payload;
   try { payload = JSON.parse(raw); } catch { return { statusCode: 400, body: 'bad json' }; }

@@ -1,6 +1,7 @@
 // Netlify Function for AI-powered coach assistant
 // Supports GET for client data and POST for asking questions about clients
 const { createClient } = require('@supabase/supabase-js');
+const { authenticateCoach } = require('./utils/auth');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -42,6 +43,10 @@ exports.handler = async (event, context) => {
         body: JSON.stringify({ error: 'Coach ID is required' })
       };
     }
+
+    // Only the coach themselves may read their client activity.
+    const { error: authError } = await authenticateCoach(event, coachId);
+    if (authError) return authError;
 
     if (!SUPABASE_SERVICE_KEY) {
       return {
@@ -529,6 +534,10 @@ async function handleQuestion(event) {
         body: JSON.stringify({ error: 'Coach ID and question are required' })
       };
     }
+
+    // Only the coach themselves may ask about their clients.
+    const { error: authError } = await authenticateCoach(event, coachId);
+    if (authError) return authError;
 
     if (!SUPABASE_SERVICE_KEY) {
       return {
