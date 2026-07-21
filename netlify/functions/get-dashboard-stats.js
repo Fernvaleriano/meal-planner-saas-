@@ -1,4 +1,5 @@
 const { createClient } = require('@supabase/supabase-js');
+const { authenticateCoach } = require('./utils/auth');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -34,6 +35,10 @@ exports.handler = async (event, context) => {
             body: JSON.stringify({ error: 'Coach ID is required' })
         };
     }
+
+    // Only the coach themselves may read their whole-roster dashboard stats.
+    const coachAuth = await authenticateCoach(event, coachId);
+    if (coachAuth.error) return coachAuth.error;
 
     try {
         const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);

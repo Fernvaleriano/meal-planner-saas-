@@ -13619,7 +13619,7 @@
             if (cpAssignInflight) return cpAssignInflight;
             cpAssignInflight = (async () => {
                 try {
-                    const res = await fetch(`/.netlify/functions/workout-assignments?clientId=${clientId}&activeOnly=true`);
+                    const res = await authenticatedFetch(`/.netlify/functions/workout-assignments?clientId=${clientId}&activeOnly=true`);
                     const data = await res.json();
                     cpAssignmentsCache = { ts: Date.now(), assignments: data.assignments || [] };
                     return cpAssignmentsCache.assignments;
@@ -14189,8 +14189,8 @@
                 // preserving the original per-fetch try/catch behaviour.
                 const acDayAuth = await acAuthHeader();
                 const [acLogResP, acAsgResP, acAdhocResP] = await Promise.all([
-                    fetch(`/.netlify/functions/workout-logs?clientId=${clientId}&date=${dateStr}`).catch(() => null),
-                    fetch(`/.netlify/functions/workout-assignments?clientId=${clientId}&date=${dateStr}`).catch(() => null),
+                    authenticatedFetch(`/.netlify/functions/workout-logs?clientId=${clientId}&date=${dateStr}`).catch(() => null),
+                    authenticatedFetch(`/.netlify/functions/workout-assignments?clientId=${clientId}&date=${dateStr}`).catch(() => null),
                     fetch(`/.netlify/functions/adhoc-workouts?clientId=${clientId}&date=${dateStr}`, { headers: acDayAuth }).catch(() => null)
                 ]);
 
@@ -14792,7 +14792,7 @@
 
         async function acAddExercisesToDate(targetDate, exercisesToAdd) {
             try {
-                const res = await fetch(`/.netlify/functions/workout-assignments?clientId=${clientId}&date=${targetDate}`);
+                const res = await authenticatedFetch(`/.netlify/functions/workout-assignments?clientId=${clientId}&date=${targetDate}`);
                 const data = await res.json();
                 const assignment = (data.assignments || [])[0];
 
@@ -14965,7 +14965,7 @@
                 } else {
                     console.log('[acSave] → POST /workout-logs (create/get log)');
                     // First, create or get the workout log for this date
-                    const workoutLogRes = await fetch('/.netlify/functions/workout-logs', {
+                    const workoutLogRes = await authenticatedFetch('/.netlify/functions/workout-logs', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
@@ -15017,7 +15017,7 @@
                             notes: ex.notes
                         }));
 
-                        const putRes = await fetch('/.netlify/functions/workout-logs', {
+                        const putRes = await authenticatedFetch('/.netlify/functions/workout-logs', {
                             method: 'PUT',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({
@@ -15960,7 +15960,7 @@
                 if (acHistoryCache && Date.now() - acHistoryCache.ts < AC_HISTORY_TTL) {
                     logs = acHistoryCache.logs;
                 } else {
-                    const res = await fetch(`/.netlify/functions/workout-logs?clientId=${encodeURIComponent(clientId)}&limit=30`);
+                    const res = await authenticatedFetch(`/.netlify/functions/workout-logs?clientId=${encodeURIComponent(clientId)}&limit=30`);
                     if (!res.ok) {
                         throw new Error(`workout-logs request failed: ${res.status}`);
                     }
@@ -16122,7 +16122,7 @@
                         headers: await acAuthHeader()
                     });
                 } else {
-                    delRes = await fetch('/.netlify/functions/client-workout-log', {
+                    delRes = await authenticatedFetch('/.netlify/functions/client-workout-log', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
@@ -16190,7 +16190,7 @@
                             headers: await acAuthHeader()
                         });
                     } else {
-                        const res = await fetch('/.netlify/functions/client-workout-log', {
+                        const res = await authenticatedFetch('/.netlify/functions/client-workout-log', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({
@@ -16707,7 +16707,7 @@
         // ---- Missed Workout Alerts ----
         async function renderMissedWorkouts(clientId, startDate, endDate, workouts) {
             try {
-                const res = await fetch(`/.netlify/functions/workout-assignments?clientId=${clientId}&date=${startDate.toISOString().split('T')[0]}`);
+                const res = await authenticatedFetch(`/.netlify/functions/workout-assignments?clientId=${clientId}&date=${startDate.toISOString().split('T')[0]}`);
                 const data = await res.json();
                 const assignment = data?.assignments?.[0];
                 if (!assignment?.workout_data) return '';
@@ -16952,7 +16952,7 @@
                 const coachId = window.coachUserId || currentUser?.id;
                 const [logsRes, assignRes] = await Promise.all([
                     fetch(`/.netlify/functions/coach-workout-feed?coachId=${coachId}&clientId=${cId}&limit=100`),
-                    fetch(`/.netlify/functions/workout-assignments?clientId=${cId}&activeOnly=true`)
+                    authenticatedFetch(`/.netlify/functions/workout-assignments?clientId=${cId}&activeOnly=true`)
                 ]);
 
                 const logsData = await logsRes.json();
@@ -17563,7 +17563,7 @@
                 // Fetch programs and current assignment in parallel
                 const [progsRes, assignRes] = await Promise.all([
                     fetch(`/.netlify/functions/workout-programs?coachId=${coachId}`),
-                    fetch(`/.netlify/functions/workout-assignments?clientId=${cId}&activeOnly=true`)
+                    authenticatedFetch(`/.netlify/functions/workout-assignments?clientId=${cId}&activeOnly=true`)
                 ]);
 
                 const progsData = await progsRes.json();
@@ -17712,7 +17712,7 @@
 
                 // Deactivate current
                 try {
-                    await fetch('/.netlify/functions/workout-assignments', {
+                    await authenticatedFetch('/.netlify/functions/workout-assignments', {
                         method: 'PUT',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ assignmentId: clientActiveAssignment.id, isActive: false })
@@ -17854,7 +17854,7 @@
                 endDateObj.setDate(endDateObj.getDate() + (weeksAmount * 7) - 1);
                 const endDate = endDateObj.toISOString().split('T')[0];
 
-                const res = await fetch('/.netlify/functions/workout-assignments', {
+                const res = await authenticatedFetch('/.netlify/functions/workout-assignments', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -17890,7 +17890,7 @@
             if (!confirm(`Remove "${clientActiveAssignment.name}" from this client?`)) return;
 
             try {
-                const res = await fetch('/.netlify/functions/workout-assignments', {
+                const res = await authenticatedFetch('/.netlify/functions/workout-assignments', {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ assignmentId: clientActiveAssignment.id, isActive: false })
@@ -17957,7 +17957,7 @@
                 yesterday.setDate(yesterday.getDate() - 1);
                 const endDateStr = yesterday.toISOString().split('T')[0];
 
-                const res = await fetch('/.netlify/functions/workout-assignments', {
+                const res = await authenticatedFetch('/.netlify/functions/workout-assignments', {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -18108,7 +18108,7 @@
             }
 
             try {
-                const res = await fetch('/.netlify/functions/workout-assignments', {
+                const res = await authenticatedFetch('/.netlify/functions/workout-assignments', {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -18135,7 +18135,7 @@
             updatedData.days[dayIndex].exercises.splice(exerciseIndex, 1);
 
             try {
-                const res = await fetch('/.netlify/functions/workout-assignments', {
+                const res = await authenticatedFetch('/.netlify/functions/workout-assignments', {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -18257,7 +18257,7 @@
             });
 
             try {
-                const res = await fetch('/.netlify/functions/workout-assignments', {
+                const res = await authenticatedFetch('/.netlify/functions/workout-assignments', {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -18334,7 +18334,7 @@
             if (endDate) updatePayload.endDate = endDate;
 
             try {
-                const res = await fetch('/.netlify/functions/workout-assignments', {
+                const res = await authenticatedFetch('/.netlify/functions/workout-assignments', {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(updatePayload)

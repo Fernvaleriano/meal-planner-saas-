@@ -1,5 +1,6 @@
 const { createClient } = require('@supabase/supabase-js');
 const { withTimeout } = require('./utils/with-timeout');
+const { authenticateClientAccess, authenticateCoach, authenticateGymMember } = require('./utils/auth');
 const {
   estimateWorkoutMinutes,
   estimateWorkoutCalories
@@ -228,6 +229,10 @@ exports.handler = withTimeout(async (event) => {
 
         if (error) throw error;
 
+        // Authorize: only the owning client or their coach may read it.
+        const aAuth = await authenticateClientAccess(event, assignment?.client_id);
+        if (aAuth.error) return aAuth.error;
+
         return {
           statusCode: 200,
           headers,
@@ -237,6 +242,8 @@ exports.handler = withTimeout(async (event) => {
 
       // Get assignments for a client
       if (clientId) {
+        const cAuth = await authenticateClientAccess(event, clientId);
+        if (cAuth.error) return cAuth.error;
         // If date is provided, get workouts for that date from all assignments
         // whose date range covers it (active OR deactivated). We need inactive
         // assignments too so past workouts stay visible after a program ends
@@ -702,6 +709,11 @@ exports.handler = withTimeout(async (event) => {
 
       // Get all assignments for a coach
       if (coachId) {
+        // Owner OR a trainer of this gym. Gym clients' coach_id is the gym
+        // owner's id, so a trainer's own id won't match authenticateCoach —
+        // authenticateGymMember accepts the owner and the gym's active trainers.
+        const coachAuth = await authenticateGymMember(event, coachId);
+        if (coachAuth.error) return coachAuth.error;
         // Opt-in: pull lightweight metadata about each assignment's program
         // (goal/level/days/weeks) plus a session-length estimate, so callers
         // like Bulk AI can pre-fill defaults from a client's current program.
@@ -831,6 +843,15 @@ exports.handler = withTimeout(async (event) => {
         };
       }
 
+      // Authorize: the owning client (self-generated), their coach, OR a
+      // trainer of the client's gym. Clients pass the client check; owners and
+      // gym trainers pass the gym-member check.
+      const postAuth = await authenticateClientAccess(event, clientId);
+      if (postAuth.error) {
+        const gymAuth = await authenticateGymMember(event, coachId);
+        if (gymAuth.error) return postAuth.error;
+      }
+
       let finalWorkoutData = workoutData;
       let finalName = name;
 
@@ -942,6 +963,17 @@ exports.handler = withTimeout(async (event) => {
         };
       }
 
+      // Authorize via the assignment's owner.
+      const { data: putAssignment } = await supabase
+        .from('client_workout_assignments')
+        .select('client_id')
+        .eq('id', assignmentId)
+        .maybeSingle();
+      if (putAssignment?.client_id) {
+        const putAuth = await authenticateClientAccess(event, putAssignment.client_id);
+        if (putAuth.error) return putAuth.error;
+      }
+
       // Map camelCase to snake_case
       const updateFields = {};
       if (updateData.name !== undefined) updateFields.name = updateData.name;
@@ -1002,6 +1034,17 @@ exports.handler = withTimeout(async (event) => {
           headers,
           body: JSON.stringify({ error: 'assignmentId is required' })
         };
+      }
+
+      // Authorize via the assignment's owner before deleting.
+      const { data: delAssignment } = await supabase
+        .from('client_workout_assignments')
+        .select('client_id')
+        .eq('id', assignmentId)
+        .maybeSingle();
+      if (delAssignment?.client_id) {
+        const delAuth = await authenticateClientAccess(event, delAssignment.client_id);
+        if (delAuth.error) return delAuth.error;
       }
 
       const { error } = await supabase

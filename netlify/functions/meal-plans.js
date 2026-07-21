@@ -1,6 +1,7 @@
 // Netlify Function to get published meal plans for a client
 const { createClient } = require('@supabase/supabase-js');
 const { withTimeout } = require('./utils/with-timeout');
+const { authenticateClientAccess } = require('./utils/auth');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -34,6 +35,9 @@ exports.handler = withTimeout(async (event) => {
         body: JSON.stringify({ error: 'Client ID is required' })
       };
     }
+
+    const auth = await authenticateClientAccess(event, clientId);
+    if (auth.error) return auth.error;
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
