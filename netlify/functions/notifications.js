@@ -204,19 +204,39 @@ exports.handler = async (event) => {
       const body = JSON.parse(event.body);
       const { notificationIds, userId, clientId, markAllRead, coachId, type, title, message, metadata } = body;
 
-      // For read-state changes, ensure the caller owns the target inbox.
-      if (markAllRead || (notificationIds && notificationIds.length)) {
-        if (userId && authUser.id !== userId) {
-          return forbiddenResponse('Not authorized');
-        }
-        if (clientId && !userId) {
-          const ca = await authenticateClientAccess(event, clientId);
-          if (ca.error) return ca.error;
-        }
-      }
+      // Resolve the caller's OWN inbox scope: a coach owns notifications whose
+      // user_id === their auth id; a client owns notifications whose client_id
+      // === their clients.id. Every mutation below is scoped to this so a caller
+      // can never read/modify another tenant's notifications.
+      const { data: callerClient } = await supabase
+        .from('clients')
+        .select('id')
+        .eq('user_id', authUser.id)
+        .maybeSingle();
+      const ownsFilter = callerClient?.id != null
+        ? `user_id.eq.${authUser.id},client_id.eq.${callerClient.id}`
+        : `user_id.eq.${authUser.id}`;
 
       // Create a new notification (e.g. client note for coach)
       if (type && title) {
+        // Authorize the target: a client may only notify their own coach; a
+        // coach may only target their own clients. Blocks cross-tenant
+        // injection of fake "message from your coach" notifications.
+        if (coachId) {
+          if (authUser.id !== coachId) {
+            const { data: rel } = await supabase
+              .from('clients')
+              .select('id')
+              .eq('user_id', authUser.id)
+              .eq('coach_id', coachId)
+              .maybeSingle();
+            if (!rel) return forbiddenResponse('Not authorized');
+          }
+        } else if (clientId) {
+          const ca = await authenticateClientAccess(event, clientId);
+          if (ca.error) return ca.error;
+        }
+
         const insertObj = {
           type,
           title,
@@ -262,33 +282,29 @@ exports.handler = async (event) => {
       }
 
       if (markAllRead) {
-        // Mark all as read for this user
-        let updateQuery = supabase
-          .from('notifications')
-          .update({
-            is_read: true,
-            read_at: new Date().toISOString()
-          })
-          .eq('is_read', false);
-
-        if (userId) {
-          updateQuery = updateQuery.eq('user_id', userId);
-        } else if (clientId) {
-          updateQuery = updateQuery.eq('client_id', clientId);
-        }
-
-        const { error } = await updateQuery;
-        if (error) throw error;
-
-      } else if (notificationIds && notificationIds.length > 0) {
-        // Mark specific notifications as read
+        // Mark all of the CALLER'S OWN unread notifications read. Scoped to
+        // ownsFilter so a bare {markAllRead:true} can't clear the whole table.
         const { error } = await supabase
           .from('notifications')
           .update({
             is_read: true,
             read_at: new Date().toISOString()
           })
-          .in('id', notificationIds);
+          .eq('is_read', false)
+          .or(ownsFilter);
+        if (error) throw error;
+
+      } else if (notificationIds && notificationIds.length > 0) {
+        // Mark specific notifications read, but ONLY ones the caller owns —
+        // otherwise anyone could mark another user's notifications read by id.
+        const { error } = await supabase
+          .from('notifications')
+          .update({
+            is_read: true,
+            read_at: new Date().toISOString()
+          })
+          .in('id', notificationIds)
+          .or(ownsFilter);
 
         if (error) throw error;
       }

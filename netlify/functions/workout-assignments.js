@@ -1,6 +1,6 @@
 const { createClient } = require('@supabase/supabase-js');
 const { withTimeout } = require('./utils/with-timeout');
-const { authenticateClientAccess, authenticateCoach } = require('./utils/auth');
+const { authenticateClientAccess, authenticateCoach, authenticateGymMember } = require('./utils/auth');
 const {
   estimateWorkoutMinutes,
   estimateWorkoutCalories
@@ -709,7 +709,10 @@ exports.handler = withTimeout(async (event) => {
 
       // Get all assignments for a coach
       if (coachId) {
-        const coachAuth = await authenticateCoach(event, coachId);
+        // Owner OR a trainer of this gym. Gym clients' coach_id is the gym
+        // owner's id, so a trainer's own id won't match authenticateCoach —
+        // authenticateGymMember accepts the owner and the gym's active trainers.
+        const coachAuth = await authenticateGymMember(event, coachId);
         if (coachAuth.error) return coachAuth.error;
         // Opt-in: pull lightweight metadata about each assignment's program
         // (goal/level/days/weeks) plus a session-length estimate, so callers
@@ -840,9 +843,14 @@ exports.handler = withTimeout(async (event) => {
         };
       }
 
-      // Authorize: only the owning client (self-generated) or their coach.
+      // Authorize: the owning client (self-generated), their coach, OR a
+      // trainer of the client's gym. Clients pass the client check; owners and
+      // gym trainers pass the gym-member check.
       const postAuth = await authenticateClientAccess(event, clientId);
-      if (postAuth.error) return postAuth.error;
+      if (postAuth.error) {
+        const gymAuth = await authenticateGymMember(event, coachId);
+        if (gymAuth.error) return postAuth.error;
+      }
 
       let finalWorkoutData = workoutData;
       let finalName = name;
