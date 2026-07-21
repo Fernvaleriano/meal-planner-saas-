@@ -5628,6 +5628,14 @@
                         <span class="sidebar-nav-icon"><i data-lucide="trophy"></i></span>
                         Challenges
                     </a>
+                    <!-- Trainers (multi-trainer add-on) — hidden by default; revealed in JS
+                         only for accounts where multi-trainer is enabled. Lets an owner add
+                         personal trainers / coaches under their account, each with their own
+                         login and assigned clients. Links to the existing gym-trainers page. -->
+                    <a href="gym-trainers.html" class="sidebar-nav-item" id="trainersNavItem" data-tooltip="Trainers" style="display:none;">
+                        <span class="sidebar-nav-icon"><i data-lucide="user-plus"></i></span>
+                        Trainers
+                    </a>
                 </div>
             </div>
             <div class="sidebar-nav-section" data-section="settings">
@@ -9636,6 +9644,9 @@
                 // Gym Info card (gym version only) — safe no-op for non-gym coaches
                 initGymInfoCard(user, coachData);
 
+                // Trainers nav link (multi-trainer add-on) — hidden unless enabled
+                initTrainersNav(user, session);
+
                 // Show success message if just reactivated or subscribed
                 if (justReactivated) {
                     showSuccessToast('Subscription reactivated successfully!');
@@ -10862,6 +10873,24 @@
             const ampm = h >= 12 ? 'PM' : 'AM';
             h = h % 12; if (h === 0) h = 12;
             return `${h}:${String(m).padStart(2, '0')} ${ampm}`;
+        }
+
+        // Reveal the "Trainers" sidebar link only for accounts that actually have
+        // the multi-trainer add-on switched on. We ask the gym-trainers endpoint
+        // (the same gate the trainers page uses): 200 = enabled, 403 = disabled,
+        // so the link never points a regular coaching customer at a dead page.
+        // Purely additive — on any hiccup the link just stays hidden.
+        async function initTrainersNav(user, session) {
+            try {
+                const res = await fetch('/.netlify/functions/gym-trainers?coachId=' + encodeURIComponent(user.id), {
+                    headers: { 'Authorization': 'Bearer ' + session.access_token }
+                });
+                if (!res.ok) return; // 403 MULTI_TRAINER_DISABLED (or any error) -> leave hidden
+                const navItem = document.getElementById('trainersNavItem');
+                if (navItem) navItem.style.display = '';
+            } catch (e) {
+                console.warn('Trainers nav check skipped:', e);
+            }
         }
 
         async function initGymInfoCard(user, coachData) {
