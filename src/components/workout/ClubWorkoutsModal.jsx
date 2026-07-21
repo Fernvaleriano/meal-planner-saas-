@@ -76,6 +76,102 @@ const TYPE_OPTIONS = [
   { key: 'program', labelKey: 'clubWorkouts.typeProgram' }
 ];
 
+// Muscle-group filter — the buckets we offer, in display order. Raw
+// exercise muscle_group values outside this list (general / flexibility /
+// stretching — i.e. warm-ups & mobility) are intentionally ignored so the
+// filter only reflects the muscles a workout actually trains.
+const MUSCLE_ORDER = ['legs', 'chest', 'back', 'shoulders', 'arms', 'core', 'cardio', 'full_body'];
+const MUSCLE_LABEL_KEYS = {
+  legs: 'clubWorkouts.muscleLegs',
+  chest: 'clubWorkouts.muscleChest',
+  back: 'clubWorkouts.muscleBack',
+  shoulders: 'clubWorkouts.muscleShoulders',
+  arms: 'clubWorkouts.muscleArms',
+  core: 'clubWorkouts.muscleCore',
+  cardio: 'clubWorkouts.muscleCardio',
+  full_body: 'clubWorkouts.muscleFullBody'
+};
+
+// Equipment-type filter buckets, in display order. A workout matches a bucket
+// if any of its exercises use that kind of kit. ('other' — TRX, plate,
+// medicine ball — isn't offered as its own option.)
+const EQUIPMENT_ORDER = ['bodyweight', 'dumbbell', 'barbell', 'machine', 'band', 'kettlebell'];
+const EQUIPMENT_LABEL_KEYS = {
+  bodyweight: 'clubWorkouts.equipmentBodyweight',
+  dumbbell: 'clubWorkouts.equipmentDumbbell',
+  barbell: 'clubWorkouts.equipmentBarbell',
+  machine: 'clubWorkouts.equipmentMachine',
+  band: 'clubWorkouts.equipmentBand',
+  kettlebell: 'clubWorkouts.equipmentKettlebell'
+};
+
+// Sort options — '' keeps the API's default order (newest-updated first).
+const SORT_OPTIONS = [
+  { key: '', labelKey: 'clubWorkouts.sortNewest' },
+  { key: 'shortest', labelKey: 'clubWorkouts.sortShortest' },
+  { key: 'most', labelKey: 'clubWorkouts.sortMostExercises' }
+];
+
+// Map a raw exercise muscle_group to one of our filter buckets, or null if
+// it's not a bucket we filter on.
+function normalizeMuscle(raw) {
+  const s = String(raw || '').toLowerCase().trim();
+  return MUSCLE_ORDER.includes(s) ? s : null;
+}
+
+// Bucket a raw equipment string into an equipment type. The library's
+// equipment field is free-text and inconsistently cased, so we normalise it.
+function equipmentBucket(raw) {
+  const s = String(raw || '').toLowerCase().trim();
+  if (!s || s === 'none' || s === 'null') return 'bodyweight';
+  if (s.includes('bodyweight')) return 'bodyweight';
+  if (s.includes('kettlebell')) return 'kettlebell';
+  if (s.includes('dumbbell')) return 'dumbbell';
+  if (s.includes('barbell') || s.includes('ez bar')) return 'barbell';
+  if (s.includes('band')) return 'band';
+  if (/machine|cable|smith|pec deck|crossover|elliptical|ergomet|ski erg|pulley|lat pull|abductor|leg curl|hyperextension|assisted pull/.test(s)) return 'machine';
+  if (/chair|yoga mat|^mat$|pull up bar|dip pull up|dip station/.test(s)) return 'bodyweight';
+  return 'other'; // trx / suspension / plate / medicine ball — not a filter option
+}
+
+// Flatten every exercise in a workout, whether single-day or multi-day.
+function getWorkoutExercises(w) {
+  if (w.is_multi_day && Array.isArray(w.days)) {
+    return w.days.flatMap(d => (Array.isArray(d.exercises) ? d.exercises : []));
+  }
+  return w.workout_data?.exercises || [];
+}
+
+// The set of muscle buckets a workout trains.
+function getWorkoutMuscleSet(w) {
+  const set = new Set();
+  for (const ex of getWorkoutExercises(w)) {
+    const m = normalizeMuscle(ex.muscle_group);
+    if (m) set.add(m);
+  }
+  return set;
+}
+
+// The set of equipment-type buckets a workout uses.
+function getWorkoutEquipmentSet(w) {
+  const set = new Set();
+  for (const ex of getWorkoutExercises(w)) {
+    const b = equipmentBucket(ex.equipment);
+    if (EQUIPMENT_ORDER.includes(b)) set.add(b);
+  }
+  return set;
+}
+
+// Exercise count / estimated minutes — mirror the card's own math so sorting
+// matches what's shown on each card.
+function getWorkoutExerciseCount(w) {
+  return w.is_multi_day ? (w.total_exercises || 0) : (w.workout_data?.exercises?.length || 0);
+}
+function getWorkoutMinutes(w) {
+  if (w.is_multi_day) return w.total_estimated_minutes || 0;
+  return w.workout_data?.estimatedMinutes || Math.ceil(getWorkoutExerciseCount(w) * 4);
+}
+
 // Parse a duration value to seconds — handles numbers, "5 min", "30s", "45s hold", etc.
 function parseDurationToSeconds(value) {
   if (typeof value === 'number' && value > 0) return value;
@@ -134,6 +230,9 @@ function ClubWorkoutsModal({ onClose, onSelectWorkout, onScheduleProgram, coachI
   const [selectedDifficulty, setSelectedDifficulty] = useState('');
   const [selectedDuration, setSelectedDuration] = useState('');
   const [selectedType, setSelectedType] = useState('');
+  const [selectedMuscle, setSelectedMuscle] = useState('');
+  const [selectedEquipment, setSelectedEquipment] = useState(''); // '' | equipment bucket
+  const [sortBy, setSortBy] = useState(''); // '' (newest) | 'shortest' | 'most'
   const [openFilter, setOpenFilter] = useState(null); // which dropdown is open
   // Fixed-position coords for the open dropdown. The pills row uses overflow-x
   // for horizontal scrolling, which also clips vertical overflow — so an
@@ -267,6 +366,8 @@ function ClubWorkoutsModal({ onClose, onSelectWorkout, onScheduleProgram, coachI
         if (range.max !== undefined && estMinutes >= range.max) return false;
       }
     }
+    if (selectedMuscle && !getWorkoutMuscleSet(w).has(selectedMuscle)) return false;
+    if (selectedEquipment && !getWorkoutEquipmentSet(w).has(selectedEquipment)) return false;
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
       return (w.name || '').toLowerCase().includes(q) ||
@@ -280,13 +381,34 @@ function ClubWorkoutsModal({ onClose, onSelectWorkout, onScheduleProgram, coachI
   const availableCategories = [...new Set(workouts.map(w => w.category).filter(Boolean))];
   const availableDifficulties = [...new Set(workouts.map(w => w.difficulty).filter(Boolean))];
 
-  const hasActiveFilters = selectedCategory || selectedDifficulty || selectedDuration || selectedType;
+  // Muscle buckets / equipment types actually present in this library.
+  const availableMuscles = useMemo(() => {
+    const set = new Set();
+    for (const w of workouts) {
+      for (const m of getWorkoutMuscleSet(w)) set.add(m);
+    }
+    return MUSCLE_ORDER.filter(m => set.has(m));
+  }, [workouts]);
+
+  const availableEquipment = useMemo(() => {
+    const set = new Set();
+    for (const w of workouts) {
+      for (const e of getWorkoutEquipmentSet(w)) set.add(e);
+    }
+    return EQUIPMENT_ORDER.filter(e => set.has(e));
+  }, [workouts]);
+
+  // Sort excluded — it reorders, it doesn't reduce the result count.
+  const hasActiveFilters = selectedCategory || selectedDifficulty || selectedDuration ||
+    selectedType || selectedMuscle || selectedEquipment;
 
   const clearAllFilters = useCallback(() => {
     setSelectedCategory('');
     setSelectedDifficulty('');
     setSelectedDuration('');
     setSelectedType('');
+    setSelectedMuscle('');
+    setSelectedEquipment('');
     setOpenFilter(null);
   }, []);
 
@@ -795,8 +917,15 @@ function ClubWorkoutsModal({ onClose, onSelectWorkout, onScheduleProgram, coachI
     );
   }
 
-  // Main list view
-  const resultCount = filteredWorkouts.length;
+  // Main list view — apply the chosen sort (default keeps the API's
+  // newest-updated-first order untouched).
+  const displayWorkouts = [...filteredWorkouts];
+  if (sortBy === 'shortest') {
+    displayWorkouts.sort((a, b) => getWorkoutMinutes(a) - getWorkoutMinutes(b));
+  } else if (sortBy === 'most') {
+    displayWorkouts.sort((a, b) => getWorkoutExerciseCount(b) - getWorkoutExerciseCount(a));
+  }
+  const resultCount = displayWorkouts.length;
   const totalCount = workouts.length;
   return (
     <div className="club-workouts-overlay" onClick={onClose}>
@@ -885,6 +1014,43 @@ function ClubWorkoutsModal({ onClose, onSelectWorkout, onScheduleProgram, coachI
                   <ChevronDown size={14} />
                 </button>
               </div>
+
+              {/* Muscle Group Filter — only shown when the library has muscle data */}
+              {availableMuscles.length > 0 && (
+                <div className="club-filter-pill-wrapper">
+                  <button
+                    className={`club-filter-pill ${selectedMuscle ? 'active' : ''} ${openFilter === 'muscle' ? 'open' : ''}`}
+                    onClick={(e) => toggleFilterMenu('muscle', e.currentTarget)}
+                  >
+                    <span>{selectedMuscle ? t(MUSCLE_LABEL_KEYS[selectedMuscle]) : t('clubWorkouts.allMuscles')}</span>
+                    <ChevronDown size={14} />
+                  </button>
+                </div>
+              )}
+
+              {/* Equipment-type Filter — only shown when the library has equipment data */}
+              {availableEquipment.length > 0 && (
+                <div className="club-filter-pill-wrapper">
+                  <button
+                    className={`club-filter-pill ${selectedEquipment ? 'active' : ''} ${openFilter === 'equipment' ? 'open' : ''}`}
+                    onClick={(e) => toggleFilterMenu('equipment', e.currentTarget)}
+                  >
+                    <span>{selectedEquipment ? t(EQUIPMENT_LABEL_KEYS[selectedEquipment]) : t('clubWorkouts.anyEquipment')}</span>
+                    <ChevronDown size={14} />
+                  </button>
+                </div>
+              )}
+
+              {/* Sort */}
+              <div className="club-filter-pill-wrapper">
+                <button
+                  className={`club-filter-pill ${sortBy ? 'active' : ''} ${openFilter === 'sort' ? 'open' : ''}`}
+                  onClick={(e) => toggleFilterMenu('sort', e.currentTarget)}
+                >
+                  <span>{t((SORT_OPTIONS.find(o => o.key === sortBy) || SORT_OPTIONS[0]).labelKey)}</span>
+                  <ChevronDown size={14} />
+                </button>
+              </div>
             </div>
 
             </div>
@@ -957,6 +1123,53 @@ function ClubWorkoutsModal({ onClose, onSelectWorkout, onScheduleProgram, coachI
                       {t(opt.labelKey)}
                     </button>
                   ))}
+                  {openFilter === 'muscle' && (
+                    <>
+                      <button
+                        className={`club-filter-option ${!selectedMuscle ? 'selected' : ''}`}
+                        onClick={() => { setSelectedMuscle(''); setOpenFilter(null); }}
+                      >
+                        {t('clubWorkouts.allMuscles')}
+                      </button>
+                      {availableMuscles.map(m => (
+                        <button
+                          key={m}
+                          className={`club-filter-option ${selectedMuscle === m ? 'selected' : ''}`}
+                          onClick={() => { setSelectedMuscle(m); setOpenFilter(null); }}
+                        >
+                          {t(MUSCLE_LABEL_KEYS[m])}
+                        </button>
+                      ))}
+                    </>
+                  )}
+                  {openFilter === 'equipment' && (
+                    <>
+                      <button
+                        className={`club-filter-option ${!selectedEquipment ? 'selected' : ''}`}
+                        onClick={() => { setSelectedEquipment(''); setOpenFilter(null); }}
+                      >
+                        {t('clubWorkouts.anyEquipment')}
+                      </button>
+                      {availableEquipment.map(e => (
+                        <button
+                          key={e}
+                          className={`club-filter-option ${selectedEquipment === e ? 'selected' : ''}`}
+                          onClick={() => { setSelectedEquipment(e); setOpenFilter(null); }}
+                        >
+                          {t(EQUIPMENT_LABEL_KEYS[e])}
+                        </button>
+                      ))}
+                    </>
+                  )}
+                  {openFilter === 'sort' && SORT_OPTIONS.map(opt => (
+                    <button
+                      key={opt.key || 'default'}
+                      className={`club-filter-option ${sortBy === opt.key ? 'selected' : ''}`}
+                      onClick={() => { setSortBy(opt.key); setOpenFilter(null); }}
+                    >
+                      {t(opt.labelKey)}
+                    </button>
+                  ))}
                 </div>
               </>,
               document.body
@@ -976,7 +1189,7 @@ function ClubWorkoutsModal({ onClose, onSelectWorkout, onScheduleProgram, coachI
               <Loader2 size={32} className="spinning" />
               <p>{t('clubWorkouts.loading')}</p>
             </div>
-          ) : filteredWorkouts.length === 0 ? (
+          ) : displayWorkouts.length === 0 ? (
             <div className="club-empty">
               <Users size={48} strokeWidth={1} />
               {workouts.length === 0 ? (
@@ -993,7 +1206,7 @@ function ClubWorkoutsModal({ onClose, onSelectWorkout, onScheduleProgram, coachI
             </div>
           ) : (
             <div className="club-workout-list">
-              {filteredWorkouts.map(workout => {
+              {displayWorkouts.map(workout => {
                 const isMultiDay = workout.is_multi_day;
                 const exerciseCount = isMultiDay
                   ? workout.total_exercises

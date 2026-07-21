@@ -27,7 +27,7 @@ async function enrichExercisesWithVideos(exercises, supabase) {
 
   const { data: exerciseData, error } = await supabase
     .from('exercises')
-    .select('id, video_url, animation_url, thumbnail_url')
+    .select('id, video_url, animation_url, thumbnail_url, equipment, muscle_group')
     .in('id', exerciseIds);
 
   if (error || !exerciseData) return exercises;
@@ -42,6 +42,10 @@ async function enrichExercisesWithVideos(exercises, supabase) {
     if (fresh.thumbnail_url && fresh.thumbnail_url !== ex.thumbnail_url) updates.thumbnail_url = fresh.thumbnail_url;
     if (fresh.video_url && !ex.video_url) updates.video_url = fresh.video_url;
     if (fresh.animation_url && !ex.animation_url) updates.animation_url = fresh.animation_url;
+    // Fill equipment / muscle_group so client-side filters have complete data
+    // even on older snapshots that were saved before these were set.
+    if (fresh.equipment && !ex.equipment) updates.equipment = fresh.equipment;
+    if (fresh.muscle_group && !ex.muscle_group) updates.muscle_group = fresh.muscle_group;
     if (Object.keys(updates).length === 0) return ex;
     return { ...ex, ...updates };
   });
@@ -59,6 +63,10 @@ function enrichExercisesFromMap(exercises, videoMap) {
     if (fresh.thumbnail_url && fresh.thumbnail_url !== ex.thumbnail_url) updates.thumbnail_url = fresh.thumbnail_url;
     if (fresh.video_url && !ex.video_url) updates.video_url = fresh.video_url;
     if (fresh.animation_url && !ex.animation_url) updates.animation_url = fresh.animation_url;
+    // Fill equipment / muscle_group so client-side filters have complete data
+    // even on older snapshots that were saved before these were set.
+    if (fresh.equipment && !ex.equipment) updates.equipment = fresh.equipment;
+    if (fresh.muscle_group && !ex.muscle_group) updates.muscle_group = fresh.muscle_group;
     if (Object.keys(updates).length === 0) return ex;
     return { ...ex, ...updates };
   });
@@ -152,7 +160,7 @@ exports.handler = async (event) => {
       if (allExerciseIds.size > 0) {
         const { data: exerciseData } = await supabase
           .from('exercises')
-          .select('id, video_url, animation_url, thumbnail_url')
+          .select('id, video_url, animation_url, thumbnail_url, equipment, muscle_group')
           .in('id', [...allExerciseIds]);
         if (exerciseData) {
           videoMap = new Map(exerciseData.map(ex => [ex.id, ex]));
