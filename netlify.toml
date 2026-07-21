@@ -26,6 +26,22 @@
   status = 200
   force = true
 
+# Branded STAFF (coach + trainer) login: ziquecoach.com/staff/<slug>, or bare
+# /staff on a gym's own white-label domain. Mirrors /gym/* but resolves to the
+# staff login (login.html) skinned with the gym's brand instead of the member
+# login. Bare /staff (no slug) lets the function read the gym from the hostname.
+[[redirects]]
+  from = "/staff/*"
+  to = "/.netlify/functions/staff-login?slug=:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/staff"
+  to = "/.netlify/functions/staff-login"
+  status = 200
+  force = true
+
 # Clean signup link for white-label gym domains: <gymdomain>/join serves the
 # member signup page. On a gym's own domain the page fills the gym's join code
 # from its hostname, so the printed/QR link stays tidy (no ?code= tail).
