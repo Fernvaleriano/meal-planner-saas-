@@ -52,49 +52,49 @@ exports.handler = async (event) => {
 
     if (error) throw error;
 
-    // Create notification for client
-    if (checkin?.client_id) {
+    // Deliver the coach's response into the two-way chat thread so the client
+    // can reply to it (a plain notification is a dead-end — see IMG_4201).
+    if (checkin?.client_id && feedback) {
+      const clientIdInt = parseInt(checkin.client_id);
 
-      // Truncate feedback for notification message preview
-      const feedbackPreview = feedback
-        ? (feedback.length > 150 ? feedback.substring(0, 150) + '...' : feedback)
-        : '';
+      // 1. Post the response as a coach message in the chat thread
+      const { error: messageError } = await supabase
+        .from('chat_messages')
+        .insert({
+          coach_id: coachId,
+          client_id: clientIdInt,
+          sender_type: 'coach',
+          message: feedback,
+          is_read: false
+        });
 
-      const { data: notificationData, error: notificationError } = await supabase
+      if (messageError) {
+        console.error('Failed to post check-in response to chat thread:', messageError);
+      }
+
+      // 2. Notify the client with a chat_message notification so tapping it
+      //    opens Messages (where they can reply), not the "Got it" popup.
+      const notifPreview = feedback.length > 100 ? feedback.substring(0, 100) : feedback;
+
+      const { error: notificationError } = await supabase
         .from('notifications')
         .insert([{
-          client_id: checkin.client_id,
-          type: 'coach_responded',
-          title: 'Coach Response',
-          message: feedbackPreview
-            ? `Your coach responded to your check-in: "${feedbackPreview}"`
-            : 'Your coach responded to your check-in',
-          related_checkin_id: parseInt(checkinId),
-          related_client_id: checkin.client_id,
-          metadata: {
-            coach_feedback: feedback || '',
-            checkin_id: parseInt(checkinId)
-          }
-        }])
-        .select()
-        .single();
+          client_id: clientIdInt,
+          type: 'chat_message',
+          title: 'New message from your coach',
+          message: notifPreview,
+          related_client_id: clientIdInt
+        }]);
 
       if (notificationError) {
         console.error('Failed to create notification for client:', {
           error: notificationError,
           code: notificationError.code,
-          message: notificationError.message,
-          details: notificationError.details,
-          hint: notificationError.hint
+          message: notificationError.message
         });
-        // Don't fail the response if notification fails
-        if (notificationError.code === '42P01') {
-          console.error('Notifications table does not exist. Please run the notifications migration in Supabase.');
-        }
-      } else {
       }
-    } else {
-      console.error('No client_id found on checkin record, cannot create notification');
+    } else if (!checkin?.client_id) {
+      console.error('No client_id found on checkin record, cannot notify client');
     }
 
     return {
