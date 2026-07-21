@@ -39,7 +39,7 @@ exports.handler = async (event) => {
         .select('glasses, goal')
         .eq('client_id', clientId)
         .eq('date', targetDate)
-        .order('updated_at', { ascending: false })
+        .order('created_at', { ascending: false })
         .limit(1);
 
       if (error) {
@@ -97,7 +97,7 @@ exports.handler = async (event) => {
         .select('id, glasses')
         .eq('client_id', clientId)
         .eq('date', targetDate)
-        .order('updated_at', { ascending: false })
+        .order('created_at', { ascending: false })
         .limit(1);
 
       if (lookupErr) {
@@ -136,7 +136,7 @@ exports.handler = async (event) => {
         // UPDATE by primary key
         const { error: updateErr } = await supabase
           .from('water_intake')
-          .update({ glasses: newGlasses, updated_at: new Date().toISOString() })
+          .update({ glasses: newGlasses })
           .eq('id', existing.id);
 
         if (updateErr) {

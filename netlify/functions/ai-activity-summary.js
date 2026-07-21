@@ -620,7 +620,7 @@ async function handleQuestion(event) {
           .limit(5),
         supabase
           .from('coaches')
-          .select('name, business_name')
+          .select('name, brand_name')
           .eq('id', coachId)
           .maybeSingle()
       ]);
@@ -672,7 +672,7 @@ async function handleQuestion(event) {
       if (allCoachWeights.length > 0 || allCoachMeasurements.length > 0 || coachClient) {
         coachSelfData = {
           name: coachInfo?.name || coachClient?.client_name || 'Coach',
-          businessName: coachInfo?.business_name || null,
+          businessName: coachInfo?.brand_name || null,
           latestWeight: allCoachWeights[0] || null,
           weightHistory: allCoachWeights.slice(0, 5),
           latestMeasurement: allCoachMeasurements[0] || null

@@ -87,7 +87,7 @@ exports.handler = async (event, context) => {
                 .eq('user_id', body.coachId)
                 .single();
 
-            const coachName = coachData?.full_name || coachData?.business_name || 'Your Coach';
+            const coachName = coachData?.name || coachData?.brand_name || 'Your Coach';
             const coachEmail = coachData?.email || body.testEmail;
 
             if (!coachEmail) {
@@ -165,7 +165,7 @@ exports.handler = async (event, context) => {
                 .eq('user_id', settings.coach_id)
                 .single();
 
-            const coachName = coachData?.full_name || coachData?.business_name || 'Your Coach';
+            const coachName = coachData?.name || coachData?.brand_name || 'Your Coach';
 
             // Get all active clients for this coach
             const { data: clients, error: clientsError } = await supabase

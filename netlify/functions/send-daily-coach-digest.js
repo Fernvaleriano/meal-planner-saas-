@@ -79,7 +79,7 @@ exports.handler = async (event, context) => {
 
         let coachQuery = supabase
             .from('coaches')
-            .select('id, full_name, business_name, email, brand_primary_color, brand_name, brand_logo_url, brand_email_logo_url');
+            .select('id, name, email, brand_primary_color, brand_name, brand_logo_url, brand_email_logo_url');
         if (onlyCoachId) coachQuery = coachQuery.eq('id', onlyCoachId);
 
         const { data: coaches, error: coachError } = await coachQuery;
@@ -124,7 +124,7 @@ exports.handler = async (event, context) => {
                     continue;
                 }
 
-                const coachName = coach.full_name || coach.business_name || 'Coach';
+                const coachName = coach.name || coach.brand_name || 'Coach';
                 const subject = digestSubject(digest);
                 const { text, html } = renderDigestEmail({
                     coachName,
