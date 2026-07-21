@@ -393,6 +393,15 @@ function ExerciseDetailModal({
   const [videoKey, setVideoKey] = useState(0);
   const [videoBlobUrl, setVideoBlobUrl] = useState(null);
   const videoElRef = useRef(null);
+  // Auto-retry budget for the stall watchdog. The demo library is served as
+  // large raw 4K files straight from storage, so a cold CDN edge can leave the
+  // <video> stalled with no onCanPlay even on fast wifi. Rather than instantly
+  // showing "Video failed to load" (which is what made the modal feel flakier
+  // than play mode, which has no such watchdog), we silently remount the
+  // element once — a fresh element + fresh request, exactly what the manual
+  // Retry does — before ever surfacing the error. Reset on every fresh play
+  // intent (exercise switch, play tap, manual retry, pull-to-refresh).
+  const videoWatchdogRetryRef = useRef(0);
 
   // Pull-to-refresh: pulling down at the top of the card reloads it so a
   // stuck/blank video re-mounts and plays. Purely visual state here — the
@@ -630,6 +639,7 @@ function ExerciseDetailModal({
       setVideoBlobUrl(null);
     }
     playRequestedRef.current = false;
+    videoWatchdogRetryRef.current = 0;
     setShowSetEditor(false);
     setShowSwapModal(false);
     setProgressTip(null);
@@ -2233,6 +2243,7 @@ function ExerciseDetailModal({
   // Debug: Log video URL when playing (helps identify mismatched videos in database)
   const handlePlayVideo = useCallback(() => {
     playRequestedRef.current = true;
+    videoWatchdogRetryRef.current = 0;
     setVideoLoading(true);
     setVideoError(false);
     setVideoKey(0);
@@ -2252,6 +2263,7 @@ function ExerciseDetailModal({
   }, [videoBlobUrl]);
 
   const handleRetryVideo = useCallback(() => {
+    videoWatchdogRetryRef.current = 0;
     setVideoError(false);
     setVideoLoading(true);
     if (videoBlobUrl) {
@@ -2273,6 +2285,7 @@ function ExerciseDetailModal({
       try { URL.revokeObjectURL(videoBlobUrl); } catch { /* ignore */ }
       setVideoBlobUrl(null);
     }
+    videoWatchdogRetryRef.current = 0;
     setVideoError(false);
     setVideoLoading(true);
     setVideoKey(k => k + 1);
@@ -2372,10 +2385,32 @@ function ExerciseDetailModal({
       ((customVideoResolving && !playableVideoSrc) || (videoLoading && !!playableVideoSrc && !videoHasAudio));
     if (!waiting) return;
     const timer = setTimeout(() => {
-      if (isMountedRef.current) {
+      if (!isMountedRef.current) return;
+      // First, believe the element over our flag. iOS often has the video
+      // decoding fine (readyState/currentTime advanced) without firing the
+      // onCanPlay/onPlaying that clears videoLoading — a big-file quirk. If the
+      // element actually has a frame, just clear the spinner; never fail a
+      // video that is really playing.
+      const v = videoElRef.current;
+      if (v && (v.readyState >= 2 || v.currentTime > 0)) {
         setVideoLoading(false);
-        setVideoError(true);
+        setVideoError(false);
+        return;
       }
+      // Genuinely stalled with a real src on screen: silently remount once
+      // (fresh element + fresh request) instead of showing the error. This is
+      // what a manual Retry / exit-and-reopen does, and it's what actually
+      // recovers these large storage-hosted demos — so we do it automatically.
+      if (playableVideoSrc && videoWatchdogRetryRef.current < 1) {
+        videoWatchdogRetryRef.current += 1;
+        setVideoLoading(true);
+        setVideoError(false);
+        setVideoKey(k => k + 1);
+        return;
+      }
+      // Out of auto-retries (or nothing to retry) — surface the Retry UI.
+      setVideoLoading(false);
+      setVideoError(true);
     }, 15000);
     return () => clearTimeout(timer);
   }, [showVideo, videoLoading, videoError, playableVideoSrc, customVideoResolving, videoHasAudio, videoKey]);
