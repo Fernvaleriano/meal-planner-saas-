@@ -7733,6 +7733,7 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="/js/gym-context.js"></script>
     <script>
         // Mobile sidebar toggle — sidebar removed, redirect to plans page
         function toggleMobileSidebar() {
@@ -8039,6 +8040,25 @@
             }
         }
 
+        // A gym trainer reuses this builder, but only for Workouts. Hide the
+        // other owner nav links so there's no path into gym-wide pages (those
+        // pages also bounce trainers — belt and braces).
+        function applyTrainerView() {
+            try {
+                const keep = ['coach-workout-plans.html', 'coach-workouts.html'];
+                document.querySelectorAll('.sidebar-nav-item').forEach(a => {
+                    const href = a.getAttribute('href') || '';
+                    const isLogout = a.id === 'logoutLink';
+                    const isWorkouts = keep.some(h => href.indexOf(h) !== -1);
+                    if (!isLogout && !isWorkouts) a.style.display = 'none';
+                });
+                // Any "back to dashboard" link points to the trainer's own home.
+                document.querySelectorAll('a[href="dashboard.html"]').forEach(a => a.setAttribute('href', 'trainer-dashboard.html'));
+                const bulk = document.getElementById('bulkUploadBtn');
+                if (bulk) bulk.style.display = 'none';
+            } catch (e) { /* non-fatal */ }
+        }
+
         // Auth check
         async function checkAuth() {
             const { data: { session } } = await supabaseClient.auth.getSession();
@@ -8046,13 +8066,21 @@
                 window.location.href = 'login.html';
                 return;
             }
-            currentCoachId = session.user.id;
             currentAccessToken = session.access_token;
+            // Owner acts as themselves; a gym trainer acts as their GYM, scoped
+            // to their assigned clients. currentCoachId is the effective coach id.
+            const __ctx = (window.ZQCoach && window.ZQCoach.resolveCoachContext)
+                ? await window.ZQCoach.resolveCoachContext(supabaseClient)
+                : { role: 'owner', coachId: session.user.id, trainerId: null };
+            window.__coachCtx = __ctx;
+            currentCoachId = __ctx.coachId || session.user.id;
+            const isTrainer = __ctx.role === 'trainer';
+            if (isTrainer) applyTrainerView();
 
             // White-label: fetch this coach's brand for client-facing PDF
             // exports (js/workout-pdf.js reads window.ZQ_PDF_BRAND_NAME).
             // Best-effort — the PDF falls back to 'Ziquecoach' without it.
-            fetch('/.netlify/functions/get-coach-branding?coachId=' + encodeURIComponent(session.user.id))
+            fetch('/.netlify/functions/get-coach-branding?coachId=' + encodeURIComponent(currentCoachId))
                 .then(function (r) { return r.json(); })
                 .then(function (b) {
                     if (b && b.has_branding_access && (b.brand_app_name || b.brand_name)) {
@@ -8080,10 +8108,13 @@
                 await initGymFeatures({ email: session.user.email });
             }
 
-            // Seed default workout templates (only inserts if coach has none yet)
-            try {
-                await apiCall('/.netlify/functions/seed-default-workouts', { method: 'POST', body: JSON.stringify({ coachId: currentCoachId }) });
-            } catch (e) { console.warn('Default workout seeding skipped:', e.message); }
+            // Seed default workout templates (only inserts if coach has none yet).
+            // Owners only — a trainer shouldn't spawn the gym's default templates.
+            if (!isTrainer) {
+                try {
+                    await apiCall('/.netlify/functions/seed-default-workouts', { method: 'POST', body: JSON.stringify({ coachId: currentCoachId }) });
+                } catch (e) { console.warn('Default workout seeding skipped:', e.message); }
+            }
 
             // Load unread message count for sidebar badge
             loadUnreadMessageCount(currentCoachId);
