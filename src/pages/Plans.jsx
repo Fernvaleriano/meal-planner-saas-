@@ -638,6 +638,75 @@ function Plans() {
     return [];
   };
 
+  // Pick a cover photo for a plan card from the plan's own meal pictures.
+  // Prefers a picture already baked into the plan, then the name-keyed
+  // image cache, and skips any link that failed to load this session.
+  // Returns null when the plan has no usable picture yet (card shows a
+  // food-icon placeholder instead).
+  const getPlanCoverImage = (plan) => {
+    const days = getPlanDays(plan);
+    for (const day of days) {
+      for (const meal of (day.plan || [])) {
+        const baked = meal.image_url;
+        if (baked && !deadImageUrls.has(baked)) return baked;
+        const cached = meal.name && mealImages[meal.name];
+        if (cached && !deadImageUrls.has(cached)) return cached;
+      }
+    }
+    return null;
+  };
+
+  // A cover picture that fails to load is marked dead so the card falls
+  // back to the placeholder. (Detail view handles regenerating a fresh one
+  // when the plan is opened; the list just needs to not show a broken img.)
+  const handleCoverImageError = (url) => {
+    if (!url || deadImageUrls.has(url)) return;
+    setDeadImageUrls(prev => new Set(prev).add(url));
+  };
+
+  // Warm the cover-photo cache for the plans list: look up (never generate)
+  // a picture for the first meal of each plan that doesn't already have one,
+  // so cards can show real food photos without the client opening each plan.
+  useEffect(() => {
+    if (!plans || plans.length === 0) return;
+    let cancelled = false;
+
+    const namesToLookup = new Set();
+    plans.forEach(plan => {
+      const days = getPlanDays(plan);
+      const firstMeal = (days[0]?.plan || []).find(m => m.name);
+      if (!firstMeal) return;
+      const baked = firstMeal.image_url;
+      if (baked && !deadImageUrls.has(baked)) return; // already has a cover
+      if (mealImages[firstMeal.name]) return;         // already cached
+      namesToLookup.add(firstMeal.name);
+    });
+
+    const names = [...namesToLookup];
+    if (names.length === 0) return;
+
+    (async () => {
+      try {
+        for (let i = 0; i < names.length; i += 50) {
+          if (cancelled) return;
+          const chunk = names.slice(i, i + 50);
+          const response = await apiPost('/.netlify/functions/meal-image-batch', { mealNames: chunk });
+          const found = {};
+          chunk.forEach(name => {
+            const url = response?.images?.[name];
+            if (url) found[name] = url;
+          });
+          if (!cancelled && Object.keys(found).length) mergeImagesIntoCache(found);
+        }
+      } catch (err) {
+        // Covers are optional — a failed lookup just leaves placeholders
+        console.error('Error loading plan cover images:', err);
+      }
+    })();
+
+    return () => { cancelled = true; };
+  }, [plans]);
+
   // Get meal icon
   const getMealIcon = (mealType) => {
     const type = mealType?.toLowerCase() || '';
@@ -3427,6 +3496,7 @@ Respond with ONLY valid JSON — no markdown, no code fences, no text before or 
                 const isLatest = sortBy === 'recent' && idx === 0 && !searchQuery;
                 const showCalories = typeof calories === 'number' && calories > 0;
                 const showGoal = goal && goal !== '-';
+                const coverImage = getPlanCoverImage(plan);
 
                 return (
                   <div
@@ -3442,14 +3512,30 @@ Respond with ONLY valid JSON — no markdown, no code fences, no text before or 
                       }
                     }}
                   >
+                    <div className="plan-card-cover">
+                      {coverImage ? (
+                        <img
+                          src={coverImage}
+                          alt=""
+                          className="plan-card-cover-img"
+                          loading="lazy"
+                          onError={() => handleCoverImageError(coverImage)}
+                        />
+                      ) : (
+                        <div className="plan-card-cover-placeholder">
+                          <Utensils size={30} strokeWidth={1.5} />
+                        </div>
+                      )}
+                      {isLatest && (
+                        <span className="plan-card-badge plan-card-badge-latest plan-card-badge-onCover">{t('plansPage.planCardBadgeLatest')}</span>
+                      )}
+                    </div>
+
                     <div className="plan-card-header">
                       <div className="plan-card-title-row">
                         <div className="plan-card-title">
                           {planName || t('plansPage.defaultPlanTitle', { numDays })}
                         </div>
-                        {isLatest && (
-                          <span className="plan-card-badge plan-card-badge-latest">{t('plansPage.planCardBadgeLatest')}</span>
-                        )}
                       </div>
                       <div className="plan-card-date">
                         {getRelativeTime(plan.created_at)}
