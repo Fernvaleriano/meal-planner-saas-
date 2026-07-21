@@ -79,6 +79,13 @@ const getLocalDateString = () => {
   return `${year}-${month}-${day}`;
 };
 
+// Master switch for the client-facing "edit this meal" actions (Change/swap,
+// Revise, Custom). Set to false to HIDE them so clients simply follow the
+// coach's assigned plan (they can still Log it to the diary and view the
+// Recipe). The handlers below are left intact — flip this back to true to
+// re-enable all three buttons instantly, no code rebuild of the feature needed.
+const SHOW_MEAL_EDIT_ACTIONS = false;
+
 function Plans() {
   const { clientData } = useAuth();
   const { branding, isModuleVisible } = useBranding();
@@ -3029,6 +3036,11 @@ Respond with ONLY valid JSON — no markdown, no code fences, no text before or 
                   <span>{t('plansPage.actionLog')}</span>
                 </button>
 
+                {/* Change (swap) / Revise / Custom hidden behind the
+                    SHOW_MEAL_EDIT_ACTIONS switch — clients follow the coach's
+                    plan for now. Flip the switch back on to restore them. */}
+                {SHOW_MEAL_EDIT_ACTIONS && (
+                  <>
                 <button
                   className="meal-action-btn change"
                   onClick={() => handleChangeMeal(selectedMeal)}
@@ -3052,6 +3064,8 @@ Respond with ONLY valid JSON — no markdown, no code fences, no text before or 
                   <Crosshair size={18} />
                   <span>{t('plansPage.actionCustom')}</span>
                 </button>
+                  </>
+                )}
                   </>
                 )}
 
