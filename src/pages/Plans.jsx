@@ -951,7 +951,7 @@ Return ONLY valid JSON:
         targets: { calories: targetCalories, protein: targetProtein, carbs: targetCarbs, fat: targetFat },
         mealsPerDay: 1,
         language
-      });
+      }, { timeoutMs: 45000 }); // AI meal + macro recalc can exceed the 15s default — match the full-plan generator so we don't abort before the server (26s) finishes
 
       let newMeal = data.success && data.data ? data.data : null;
 
@@ -1072,7 +1072,7 @@ Return ONLY valid JSON:
         },
         mealsPerDay: 1,
         language
-      });
+      }, { timeoutMs: 45000 }); // AI meal + macro recalc can exceed the 15s default — match the full-plan generator so we don't abort before the server (26s) finishes
 
       let revisedMeal = data.success && data.data ? data.data : null;
 
