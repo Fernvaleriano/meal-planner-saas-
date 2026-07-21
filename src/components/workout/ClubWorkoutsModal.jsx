@@ -134,6 +134,11 @@ function ClubWorkoutsModal({ onClose, onSelectWorkout, onScheduleProgram, coachI
   const [selectedDuration, setSelectedDuration] = useState('');
   const [selectedType, setSelectedType] = useState('');
   const [openFilter, setOpenFilter] = useState(null); // which dropdown is open
+  // Fixed-position coords for the open dropdown. The pills row uses overflow-x
+  // for horizontal scrolling, which also clips vertical overflow — so an
+  // absolutely-positioned dropdown gets hidden. We anchor it with position:fixed
+  // to the tapped pill instead so it escapes that clipping.
+  const [dropdownStyle, setDropdownStyle] = useState(undefined);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedWorkout, setSelectedWorkout] = useState(null);
   const [selectedProgram, setSelectedProgram] = useState(null);
@@ -283,6 +288,31 @@ function ClubWorkoutsModal({ onClose, onSelectWorkout, onScheduleProgram, coachI
     setSelectedType('');
     setOpenFilter(null);
   }, []);
+
+  // Toggle a filter dropdown open/closed. When opening, measure the tapped pill
+  // and pin the dropdown just below it with fixed positioning so it isn't
+  // clipped by the horizontally-scrolling pills row.
+  const toggleFilterMenu = useCallback((key, btn) => {
+    if (openFilter === key) {
+      setOpenFilter(null);
+      return;
+    }
+    if (btn) {
+      const r = btn.getBoundingClientRect();
+      const width = 200;
+      let left = r.left;
+      if (left + width > window.innerWidth - 8) {
+        left = Math.max(8, window.innerWidth - 8 - width);
+      }
+      setDropdownStyle({
+        position: 'fixed',
+        top: Math.round(r.bottom + 6),
+        left: Math.round(left),
+        right: 'auto'
+      });
+    }
+    setOpenFilter(key);
+  }, [openFilter]);
 
   // Schedule calculation for multi-day programs
   const scheduleInfo = useMemo(() => {
@@ -813,13 +843,13 @@ function ClubWorkoutsModal({ onClose, onSelectWorkout, onScheduleProgram, coachI
               <div className="club-filter-pill-wrapper">
                 <button
                   className={`club-filter-pill ${selectedCategory ? 'active' : ''} ${openFilter === 'category' ? 'open' : ''}`}
-                  onClick={() => setOpenFilter(openFilter === 'category' ? null : 'category')}
+                  onClick={(e) => toggleFilterMenu('category', e.currentTarget)}
                 >
                   <span>{selectedCategory ? (t(CATEGORY_LABEL_KEYS[selectedCategory]) || selectedCategory) : t('clubWorkouts.allGoals')}</span>
                   <ChevronDown size={14} />
                 </button>
                 {openFilter === 'category' && (
-                  <div className="club-filter-dropdown">
+                  <div className="club-filter-dropdown" style={dropdownStyle}>
                     <button
                       className={`club-filter-option ${!selectedCategory ? 'selected' : ''}`}
                       onClick={() => { setSelectedCategory(''); setOpenFilter(null); }}
@@ -843,13 +873,13 @@ function ClubWorkoutsModal({ onClose, onSelectWorkout, onScheduleProgram, coachI
               <div className="club-filter-pill-wrapper">
                 <button
                   className={`club-filter-pill ${selectedDifficulty ? 'active' : ''} ${openFilter === 'difficulty' ? 'open' : ''}`}
-                  onClick={() => setOpenFilter(openFilter === 'difficulty' ? null : 'difficulty')}
+                  onClick={(e) => toggleFilterMenu('difficulty', e.currentTarget)}
                 >
                   <span>{selectedDifficulty ? (t(DIFFICULTY_LABEL_KEYS[selectedDifficulty]) || selectedDifficulty) : t('clubWorkouts.allLevels')}</span>
                   <ChevronDown size={14} />
                 </button>
                 {openFilter === 'difficulty' && (
-                  <div className="club-filter-dropdown">
+                  <div className="club-filter-dropdown" style={dropdownStyle}>
                     <button
                       className={`club-filter-option ${!selectedDifficulty ? 'selected' : ''}`}
                       onClick={() => { setSelectedDifficulty(''); setOpenFilter(null); }}
@@ -874,13 +904,13 @@ function ClubWorkoutsModal({ onClose, onSelectWorkout, onScheduleProgram, coachI
               <div className="club-filter-pill-wrapper">
                 <button
                   className={`club-filter-pill ${selectedDuration ? 'active' : ''} ${openFilter === 'duration' ? 'open' : ''}`}
-                  onClick={() => setOpenFilter(openFilter === 'duration' ? null : 'duration')}
+                  onClick={(e) => toggleFilterMenu('duration', e.currentTarget)}
                 >
                   <span>{selectedDuration ? t(DURATION_RANGES.find(r => r.key === selectedDuration)?.labelKey) : t('clubWorkouts.anyDuration')}</span>
                   <ChevronDown size={14} />
                 </button>
                 {openFilter === 'duration' && (
-                  <div className="club-filter-dropdown">
+                  <div className="club-filter-dropdown" style={dropdownStyle}>
                     {DURATION_RANGES.map(range => (
                       <button
                         key={range.key || 'all'}
@@ -898,13 +928,13 @@ function ClubWorkoutsModal({ onClose, onSelectWorkout, onScheduleProgram, coachI
               <div className="club-filter-pill-wrapper">
                 <button
                   className={`club-filter-pill ${selectedType ? 'active' : ''} ${openFilter === 'type' ? 'open' : ''}`}
-                  onClick={() => setOpenFilter(openFilter === 'type' ? null : 'type')}
+                  onClick={(e) => toggleFilterMenu('type', e.currentTarget)}
                 >
                   <span>{selectedType ? t(TYPE_OPTIONS.find(o => o.key === selectedType)?.labelKey) : t('clubWorkouts.allWorkouts')}</span>
                   <ChevronDown size={14} />
                 </button>
                 {openFilter === 'type' && (
-                  <div className="club-filter-dropdown">
+                  <div className="club-filter-dropdown" style={dropdownStyle}>
                     {TYPE_OPTIONS.map(opt => (
                       <button
                         key={opt.key || 'all'}
