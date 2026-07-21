@@ -9433,6 +9433,23 @@
 
                     // Check if coach record exists
                     if (!coachData) {
+                        // Not a coach — but they might be a GYM TRAINER (a login that
+                        // works under a gym, with no coaches row of its own). Trainers
+                        // get their own scoped dashboard instead of this owner one.
+                        try {
+                            const { data: trainerRow } = await supabaseClient
+                                .from('gym_trainers')
+                                .select('id')
+                                .eq('trainer_user_id', user.id)
+                                .eq('status', 'active')
+                                .maybeSingle();
+                            if (trainerRow) {
+                                window.location.replace('trainer-dashboard.html');
+                                return;
+                            }
+                        } catch (e) {
+                            console.warn('Trainer routing check skipped:', e);
+                        }
                         console.error('No coach record found for user ID:', user.id);
                         throw new Error('Coach account not found. Please contact support.');
                     }
