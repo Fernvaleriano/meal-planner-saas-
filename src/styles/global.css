@@ -1481,12 +1481,25 @@ textarea,
 }
 
 /* Messages page - keep input bar visible above bottom nav */
+/* Lock the app frame to the viewport while Messages is open. Without a hard
+   height bound, .app-layout (min-height only) grows to fit the whole thread,
+   the chat area never overflows/scrolls internally, and the window becomes
+   the scroller — opening the chat at the OLDEST loaded message with the
+   input bar pushed off-screen. */
+.app-layout.messages-viewport {
+    height: 100vh;
+    height: 100dvh;
+}
+
 .main-content.messages-page {
     padding: 0;
     padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
     overflow: hidden;
     display: flex;
     flex-direction: column;
+    /* Allow this flex child to shrink below its content height so the
+       inner chat container gets a bounded height and scrolls */
+    min-height: 0;
 }
 
 .main-content.messages-page .container {
