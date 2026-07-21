@@ -6816,7 +6816,7 @@
             }
 
             // Mark notification as read via API
-            fetch('/.netlify/functions/notifications', {
+            authenticatedFetch('/.netlify/functions/notifications', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ notificationIds: [notifDbId] }),
@@ -6874,7 +6874,7 @@
 
                     // Mark as read via notifications API
                     try {
-                        await fetch('/.netlify/functions/notifications', {
+                        await authenticatedFetch('/.netlify/functions/notifications', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({ notificationIds: [alert.notificationId] })
@@ -9768,7 +9768,7 @@
         async function loadNotifications(userId) {
             currentUserId = userId;
             try {
-                const response = await fetch(`/.netlify/functions/notifications?userId=${userId}`);
+                const response = await authenticatedFetch(`/.netlify/functions/notifications?userId=${userId}`);
                 if (!response.ok) throw new Error('Failed to load notifications: ' + response.status);
                 const data = await response.json();
                 if (!data || !Array.isArray(data.notifications)) {
@@ -9888,7 +9888,7 @@
                         }
 
                         // Mark as read on server
-                        fetch('/.netlify/functions/notifications', {
+                        authenticatedFetch('/.netlify/functions/notifications', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({ notificationIds: [parseInt(notifId)] }),
@@ -10038,7 +10038,7 @@
 
         async function markAllOverviewRead() {
             if (!currentUserId) return;
-            await fetch('/.netlify/functions/notifications', {
+            await authenticatedFetch('/.netlify/functions/notifications', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ userId: currentUserId, markAllRead: true })
@@ -10092,7 +10092,7 @@
         // Mark all as read
         markAllRead.addEventListener('click', async () => {
             if (!currentUserId) return;
-            await fetch('/.netlify/functions/notifications', {
+            await authenticatedFetch('/.netlify/functions/notifications', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ userId: currentUserId, markAllRead: true })

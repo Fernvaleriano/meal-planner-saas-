@@ -1,4 +1,5 @@
 const { createClient } = require('@supabase/supabase-js');
+const { authenticateRequest, authenticateClientAccess, forbiddenResponse } = require('./utils/auth');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -16,6 +17,12 @@ exports.handler = async (event) => {
 
   try {
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+
+    // Every notification operation requires a logged-in user. This closes the
+    // previously unauthenticated read/delete/create holes; per-branch checks
+    // below further confine each caller to their own inbox.
+    const { user: authUser, error: authErr } = await authenticateRequest(event);
+    if (authErr) return authErr;
 
     // DELETE - Remove unread notifications matching a filter. Used when a client
     // undoes a just-sent note/voice note: we only purge notifications the coach
@@ -36,6 +43,19 @@ exports.handler = async (event) => {
           headers,
           body: JSON.stringify({ error: 'coachId and type are required' })
         };
+      }
+
+      // Authorize: the coach themselves, OR one of that coach's own clients
+      // (the client-undo flow that created these notifications). A random
+      // authenticated user may not wipe an unrelated coach's notifications.
+      if (authUser.id !== coachId) {
+        const { data: rel } = await supabase
+          .from('clients')
+          .select('id')
+          .eq('user_id', authUser.id)
+          .eq('coach_id', coachId)
+          .maybeSingle();
+        if (!rel) return forbiddenResponse('Not authorized');
       }
 
       const { data: coach } = await supabase
@@ -86,6 +106,23 @@ exports.handler = async (event) => {
     // GET - Fetch notifications
     if (event.httpMethod === 'GET') {
       const { userId, clientId, unreadOnly } = event.queryStringParameters || {};
+
+      // Authorize: a coach may only read their own inbox (user_id === their id);
+      // a client's inbox may be read by that client or their coach.
+      if (!userId && !clientId) {
+        return {
+          statusCode: 400,
+          headers,
+          body: JSON.stringify({ error: 'userId or clientId required' })
+        };
+      }
+      if (userId && authUser.id !== userId) {
+        return forbiddenResponse('Not authorized');
+      }
+      if (clientId && !userId) {
+        const ca = await authenticateClientAccess(event, clientId);
+        if (ca.error) return ca.error;
+      }
 
       let query = supabase
         .from('notifications')
@@ -166,6 +203,17 @@ exports.handler = async (event) => {
     if (event.httpMethod === 'POST') {
       const body = JSON.parse(event.body);
       const { notificationIds, userId, clientId, markAllRead, coachId, type, title, message, metadata } = body;
+
+      // For read-state changes, ensure the caller owns the target inbox.
+      if (markAllRead || (notificationIds && notificationIds.length)) {
+        if (userId && authUser.id !== userId) {
+          return forbiddenResponse('Not authorized');
+        }
+        if (clientId && !userId) {
+          const ca = await authenticateClientAccess(event, clientId);
+          if (ca.error) return ca.error;
+        }
+      }
 
       // Create a new notification (e.g. client note for coach)
       if (type && title) {
