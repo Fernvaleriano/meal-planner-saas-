@@ -8244,9 +8244,13 @@ async function sendAiBrainstorm(dayIndex, mealIndex, quickAction = null) {
         if (dislikesEl?.value) clientPreferences.dislikes = dislikesEl.value;
         if (dietTypeEl?.value) clientPreferences.dietType = dietTypeEl.value;
 
+        const { data: { session: brainstormSession } } = await supabaseClient.auth.getSession();
         const response = await fetch('/.netlify/functions/meal-brainstorm', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+                'Content-Type': 'application/json',
+                ...(brainstormSession?.access_token && { 'Authorization': `Bearer ${brainstormSession.access_token}` })
+            },
             body: JSON.stringify({
                 meal: {
                     type: meal.type,
