@@ -52,7 +52,7 @@ exports.handler = async (event) => {
     if (event.httpMethod === 'GET') {
       let query = supabase
         .from('clients')
-        .select('id, client_name, email, phone, trainer_id, archived, created_at, user_id')
+        .select('id, client_name, email, phone, trainer_id, is_archived, created_at, user_id')
         .eq('coach_id', gymCoachId)
         .order('client_name', { ascending: true });
 
@@ -60,7 +60,7 @@ exports.handler = async (event) => {
 
       const { data, error } = await query;
       if (error) throw error;
-      const clients = (data || []).filter(c => !c.archived);
+      const clients = (data || []).filter(c => !c.is_archived);
 
       // The trainer can't read the gym's coach row (RLS), so surface the gym's
       // display name + this trainer's own name/permissions here.

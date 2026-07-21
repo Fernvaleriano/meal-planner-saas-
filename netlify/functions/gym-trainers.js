@@ -101,11 +101,11 @@ exports.handler = async (event) => {
       if (qs.resource === 'clients') {
         const { data: clients, error } = await supabase
           .from('clients')
-          .select('id, client_name, email, trainer_id, archived')
+          .select('id, client_name, email, trainer_id, is_archived')
           .eq('coach_id', coachId)
           .order('client_name', { ascending: true });
         if (error) throw error;
-        return json(200, { clients: (clients || []).filter(c => !c.archived) });
+        return json(200, { clients: (clients || []).filter(c => !c.is_archived) });
       }
 
       // default → list trainers, with a client count each
