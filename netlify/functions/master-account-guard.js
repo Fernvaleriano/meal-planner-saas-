@@ -75,6 +75,13 @@ exports.handler = async (event) => {
 
   try {
     if (intent === 'check') {
+      // Require a valid logged-in user so this can't be probed / used to spam
+      // the audit log anonymously.
+      const token = extractToken(event);
+      const { user, error: vErr } = token ? await verifyToken(token) : { user: null, error: 'no token' };
+      if (vErr || !user) {
+        return { statusCode: 401, headers: corsHeaders, body: JSON.stringify({ error: 'Authentication required' }) };
+      }
       const result = await checkAction(supabase, actor, target);
       await audit(supabase, { actor, target, action: target.action || 'check', blocked: result.blocked, reason: result.reason, payload });
       return { statusCode: 200, headers: corsHeaders, body: JSON.stringify(result) };

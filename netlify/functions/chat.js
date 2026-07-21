@@ -37,6 +37,19 @@ exports.handler = async (event) => {
       return forbiddenResponse('Not authorized for this conversation');
     };
 
+    // Confirm clientId is actually one of coachId's clients. Used on write
+    // paths so a caller can't insert messages/reactions (and their bell
+    // notifications) into an unrelated coach<->client pairing.
+    const assertRelationship = async (coachId, clientId) => {
+      const { data: rel } = await supabase
+        .from('clients')
+        .select('id')
+        .eq('id', clientId)
+        .eq('coach_id', coachId)
+        .maybeSingle();
+      return rel ? null : forbiddenResponse('Not authorized for this conversation');
+    };
+
     // GET - Fetch conversations or messages
     if (event.httpMethod === 'GET') {
       const params = event.queryStringParameters || {};
@@ -247,6 +260,10 @@ exports.handler = async (event) => {
           const ca = await authenticateClientAccess(event, clientId);
           if (ca.error) return ca.error;
         }
+
+        // ...and the coach<->client pairing must be real.
+        const sendRelErr = await assertRelationship(coachId, clientId);
+        if (sendRelErr) return sendRelErr;
 
         const insertData = {
           coach_id: coachId,
@@ -473,6 +490,10 @@ exports.handler = async (event) => {
           const ca = await authenticateClientAccess(event, clientId);
           if (ca.error) return ca.error;
         }
+
+        // ...and the coach<->client pairing must be real.
+        const reactRelErr = await assertRelationship(coachId, clientId);
+        if (reactRelErr) return reactRelErr;
 
         const reactionMsg = `__REACTION__:${messageId}:${emoji}`;
 

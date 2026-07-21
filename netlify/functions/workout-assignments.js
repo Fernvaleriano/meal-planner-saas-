@@ -963,16 +963,17 @@ exports.handler = withTimeout(async (event) => {
         };
       }
 
-      // Authorize via the assignment's owner.
+      // Authorize via the assignment's owner. Fail closed if not found.
       const { data: putAssignment } = await supabase
         .from('client_workout_assignments')
         .select('client_id')
         .eq('id', assignmentId)
         .maybeSingle();
-      if (putAssignment?.client_id) {
-        const putAuth = await authenticateClientAccess(event, putAssignment.client_id);
-        if (putAuth.error) return putAuth.error;
+      if (!putAssignment?.client_id) {
+        return { statusCode: 404, headers, body: JSON.stringify({ error: 'Assignment not found' }) };
       }
+      const putAuth = await authenticateClientAccess(event, putAssignment.client_id);
+      if (putAuth.error) return putAuth.error;
 
       // Map camelCase to snake_case
       const updateFields = {};
@@ -1036,16 +1037,18 @@ exports.handler = withTimeout(async (event) => {
         };
       }
 
-      // Authorize via the assignment's owner before deleting.
+      // Authorize via the assignment's owner before deleting. Fail closed if
+      // the assignment can't be resolved.
       const { data: delAssignment } = await supabase
         .from('client_workout_assignments')
         .select('client_id')
         .eq('id', assignmentId)
         .maybeSingle();
-      if (delAssignment?.client_id) {
-        const delAuth = await authenticateClientAccess(event, delAssignment.client_id);
-        if (delAuth.error) return delAuth.error;
+      if (!delAssignment?.client_id) {
+        return { statusCode: 404, headers, body: JSON.stringify({ error: 'Assignment not found' }) };
       }
+      const delAuth = await authenticateClientAccess(event, delAssignment.client_id);
+      if (delAuth.error) return delAuth.error;
 
       const { error } = await supabase
         .from('client_workout_assignments')

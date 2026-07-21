@@ -167,9 +167,26 @@ exports.handler = async (event) => {
     // must come from that coach; a client reply from that client.
     if (authorType === 'coach') {
       if (authUser.id !== coachId) return forbiddenResponse('Not authorized');
+      // ...and the target client must belong to this coach.
+      const { data: rel } = await supabase
+        .from('clients')
+        .select('id')
+        .eq('id', clientId)
+        .eq('coach_id', coachId)
+        .maybeSingle();
+      if (!rel) return forbiddenResponse('Not authorized for this client');
     } else {
       const ca = await authenticateClientAccess(event, clientId);
       if (ca.error) return ca.error;
+      // ...and the entry being replied to must belong to this client.
+      const { data: entryRow } = await supabase
+        .from('food_diary_entries')
+        .select('client_id')
+        .eq('id', entryId)
+        .maybeSingle();
+      if (!entryRow || String(entryRow.client_id) !== String(clientId)) {
+        return forbiddenResponse('Not authorized for this entry');
+      }
     }
 
     // Get the coach_id from the entry if not provided (for client replies)

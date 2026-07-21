@@ -58,24 +58,13 @@ exports.handler = async (event) => {
         if (!rel) return forbiddenResponse('Not authorized');
       }
 
-      const { data: coach } = await supabase
-        .from('coaches')
-        .select('user_id')
-        .eq('id', coachId)
-        .maybeSingle();
-
-      if (!coach?.user_id) {
-        return {
-          statusCode: 200,
-          headers,
-          body: JSON.stringify({ success: true, deleted: 0 })
-        };
-      }
-
+      // notifications.user_id for a coach IS the coach's id (coaches.id is the
+      // auth user id — there is no coaches.user_id column). The old lookup
+      // always returned null, so this delete branch never deleted anything.
       let delQuery = supabase
         .from('notifications')
         .delete()
-        .eq('user_id', coach.user_id)
+        .eq('user_id', coachId)
         .eq('type', type);
 
       if (unreadOnly) delQuery = delQuery.eq('is_read', false);
@@ -242,17 +231,13 @@ exports.handler = async (event) => {
           title,
           message: message || null
         };
-        // Route to coach (user_id) or client (client_id)
+        // Route to coach (user_id) or client (client_id). A coach's
+        // notifications.user_id IS coaches.id (the auth uid) — the old
+        // coaches.user_id lookup returned null, so coach-targeted notifications
+        // (e.g. a client's voice-note note) were inserted with no recipient and
+        // never reached the coach.
         if (coachId) {
-          // Look up the coach's user_id from coaches table
-          const { data: coach } = await supabase
-            .from('coaches')
-            .select('user_id')
-            .eq('id', coachId)
-            .maybeSingle();
-          if (coach?.user_id) {
-            insertObj.user_id = coach.user_id;
-          }
+          insertObj.user_id = coachId;
           if (clientId) {
             insertObj.related_client_id = typeof clientId === 'string' ? parseInt(clientId) : clientId;
           }

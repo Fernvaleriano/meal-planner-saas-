@@ -403,10 +403,12 @@ exports.handler = async (event) => {
         .single();
 
       // Authorize: only the owning client or their coach may modify this log.
-      if (workoutLogData?.client_id) {
-        const putAuth = await authenticateClientAccess(event, workoutLogData.client_id);
-        if (putAuth.error) return putAuth.error;
+      // Fail closed if the log can't be resolved.
+      if (!workoutLogData?.client_id) {
+        return { statusCode: 404, headers, body: JSON.stringify({ error: 'Workout not found' }) };
       }
+      const putAuth = await authenticateClientAccess(event, workoutLogData.client_id);
+      if (putAuth.error) return putAuth.error;
 
       // Backfill coach_id if missing
       if (workoutLogData && !workoutLogData.coach_id && workoutLogData.client_id) {
@@ -790,10 +792,11 @@ exports.handler = async (event) => {
         .select('client_id')
         .eq('id', workoutId)
         .maybeSingle();
-      if (delWorkout?.client_id) {
-        const delAuth = await authenticateClientAccess(event, delWorkout.client_id);
-        if (delAuth.error) return delAuth.error;
+      if (!delWorkout?.client_id) {
+        return { statusCode: 404, headers, body: JSON.stringify({ error: 'Workout not found' }) };
       }
+      const delAuth = await authenticateClientAccess(event, delWorkout.client_id);
+      if (delAuth.error) return delAuth.error;
 
       // Exercise logs will cascade delete
       const { error } = await supabase
