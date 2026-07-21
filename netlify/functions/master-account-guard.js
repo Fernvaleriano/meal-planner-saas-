@@ -20,11 +20,26 @@
  * function still works.
  */
 const { createClient } = require('@supabase/supabase-js');
+const { extractToken, verifyToken } = require('./utils/auth');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
 
 const MASTER_EMAIL = 'contact@ziquefitness.com';
+
+/**
+ * Verify the caller is the master account via a real, signed JWT (NOT a
+ * client-supplied `actor.email`, which is trivially spoofable). Returns the
+ * verified user on success, or null if the token is missing/invalid/not master.
+ */
+async function verifyMasterCaller(event) {
+  const token = extractToken(event);
+  if (!token) return null;
+  const { user, error } = await verifyToken(token);
+  if (error || !user) return null;
+  if ((user.email || '').toLowerCase() !== MASTER_EMAIL) return null;
+  return user;
+}
 
 // Actions that are NEVER allowed against the master account through the app.
 // These are enforced server-side regardless of what the front-end does.
@@ -66,15 +81,29 @@ exports.handler = async (event) => {
     }
 
     if (intent === 'snapshot') {
-      const result = await runSnapshot(supabase, actor);
-      await audit(supabase, { actor, action: 'snapshot', blocked: false, reason: 'manual snapshot', payload: { rowCounts: result.rowCounts } });
-      return { statusCode: 200, headers: corsHeaders, body: JSON.stringify(result) };
+      // Snapshot reads the master account's most sensitive data. Require a
+      // real signed-in master session, and NEVER return the archive itself in
+      // the HTTP response — the snapshot is recorded server-side; the browser
+      // only needs to know it succeeded (rowCounts). Previously this endpoint
+      // returned the full archive to any unauthenticated caller.
+      const masterUser = await verifyMasterCaller(event);
+      if (!masterUser) {
+        return { statusCode: 401, headers: corsHeaders, body: JSON.stringify({ error: 'Master authentication required' }) };
+      }
+      const verifiedActor = { userId: masterUser.id, email: masterUser.email };
+      const result = await runSnapshot(supabase, verifiedActor);
+      await audit(supabase, { actor: verifiedActor, action: 'snapshot', blocked: false, reason: 'manual snapshot', payload: { rowCounts: result.rowCounts } });
+      // Strip the archive from the response — only return metadata.
+      const { archive, ...safeResult } = result;
+      return { statusCode: 200, headers: corsHeaders, body: JSON.stringify(safeResult) };
     }
 
     if (intent === 'audit') {
-      // Only allow the master account to view audit
-      if ((actor.email || '').toLowerCase() !== MASTER_EMAIL) {
-        return { statusCode: 403, headers: corsHeaders, body: JSON.stringify({ error: 'Forbidden' }) };
+      // Only allow the master account to view audit — verified via a signed
+      // JWT, not a spoofable `actor.email` in the request body.
+      const masterUser = await verifyMasterCaller(event);
+      if (!masterUser) {
+        return { statusCode: 401, headers: corsHeaders, body: JSON.stringify({ error: 'Master authentication required' }) };
       }
       const { data } = await supabase
         .from('master_account_audit')

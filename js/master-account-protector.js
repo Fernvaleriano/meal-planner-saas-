@@ -46,7 +46,7 @@
 
             mountBadge();
             installInterceptors();
-            maybeRunDailySnapshot(user);
+            maybeRunDailySnapshot(sb, user);
         } catch (e) {
             // Don't break the page if anything fails.
             console.warn('Master account protector skipped:', e.message);
@@ -129,13 +129,22 @@
         setTimeout(() => toast.remove(), 5000);
     }
 
-    async function maybeRunDailySnapshot(user) {
+    async function maybeRunDailySnapshot(sb, user) {
         const today = new Date().toISOString().split('T')[0];
         if (localStorage.getItem(SNAPSHOT_KEY) === today) return;
         try {
+            // The snapshot endpoint now requires a real signed-in master
+            // session (it reads the account's most sensitive data). Send the
+            // JWT so the server can verify us — without it the server 401s.
+            const { data: { session } } = await sb.auth.getSession();
+            const token = session?.access_token;
+            if (!token) return;
             await fetch('/.netlify/functions/master-account-guard', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
                 body: JSON.stringify({
                     intent: 'snapshot',
                     actor: { userId: user.id, email: user.email }
