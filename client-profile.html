@@ -10584,7 +10584,7 @@
         // Load client's calorie/macro goals
         async function loadClientGoals(clientId) {
             try {
-                const response = await fetch(`/.netlify/functions/calorie-goals?clientId=${clientId}`);
+                const response = await authenticatedFetch(`/.netlify/functions/calorie-goals?clientId=${clientId}`);
                 const data = await response.json();
 
                 if (data.goals) {
@@ -10659,7 +10659,7 @@
                 const vitaminCVal = document.getElementById('goalVitaminC').value;
                 const cholesterolVal = document.getElementById('goalCholesterol').value;
 
-                const response = await fetch('/.netlify/functions/calorie-goals', {
+                const response = await authenticatedFetch('/.netlify/functions/calorie-goals', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -11347,7 +11347,7 @@
 
         async function loadPhotos(clientId) {
             try {
-                const response = await fetch(`${GET_PHOTOS_ENDPOINT}?clientId=${clientId}&coachId=${currentUser.id}`);
+                const response = await authenticatedFetch(`${GET_PHOTOS_ENDPOINT}?clientId=${clientId}&coachId=${currentUser.id}`);
 
                 if (!response.ok) throw new Error('Failed to load photos');
 
@@ -11578,7 +11578,7 @@
             }
 
             try {
-                const res = await fetch('/.netlify/functions/chat', {
+                const res = await authenticatedFetch('/.netlify/functions/chat', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -11800,7 +11800,7 @@
 
         async function loadMeasurements(clientId) {
             try {
-                const response = await fetch(`${GET_MEASUREMENTS_ENDPOINT}?clientId=${clientId}`);
+                const response = await authenticatedFetch(`${GET_MEASUREMENTS_ENDPOINT}?clientId=${clientId}`);
 
                 if (!response.ok) throw new Error('Failed to load measurements');
 
@@ -12190,7 +12190,7 @@
             btn.disabled = true;
 
             try {
-                const response = await fetch(SAVE_MEASUREMENT_ENDPOINT, {
+                const response = await authenticatedFetch(SAVE_MEASUREMENT_ENDPOINT, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -12540,7 +12540,7 @@
 
         async function loadCheckins(clientId) {
             try {
-                const response = await fetch(`${CHECKIN_ENDPOINT}?clientId=${clientId}&limit=10`);
+                const response = await authenticatedFetch(`${CHECKIN_ENDPOINT}?clientId=${clientId}&limit=10`);
 
                 if (!response.ok) throw new Error('Failed to load check-ins');
 
@@ -12710,7 +12710,7 @@
             btn.disabled = true;
 
             try {
-                const response = await fetch(RESPOND_CHECKIN_ENDPOINT, {
+                const response = await authenticatedFetch(RESPOND_CHECKIN_ENDPOINT, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -13282,7 +13282,7 @@
                 container.innerHTML = '<div class="loading">Loading food diary...</div>';
 
                 const tz = encodeURIComponent(Intl.DateTimeFormat().resolvedOptions().timeZone);
-                const response = await fetch(`/.netlify/functions/food-diary?clientId=${clientId}&date=${currentDiaryDate}&timezone=${tz}`);
+                const response = await authenticatedFetch(`/.netlify/functions/food-diary?clientId=${clientId}&date=${currentDiaryDate}&timezone=${tz}`);
 
                 if (!response.ok) throw new Error('Failed to load diary');
 
@@ -16435,7 +16435,7 @@
             msg += ' — ' + input.value.trim();
 
             try {
-                const res = await fetch('/.netlify/functions/chat', {
+                const res = await authenticatedFetch('/.netlify/functions/chat', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({

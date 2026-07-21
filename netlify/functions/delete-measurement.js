@@ -1,5 +1,6 @@
 // Netlify Function to delete a client measurement
 const { createClient } = require('@supabase/supabase-js');
+const { authenticateClientAccess } = require('./utils/auth');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -45,6 +46,12 @@ exports.handler = async (event, context) => {
         headers: { 'Access-Control-Allow-Origin': '*' },
         body: JSON.stringify({ error: 'Measurement ID and Client ID are required' })
       };
+    }
+
+    // Authorize: only the client themselves or their coach may delete this data.
+    const auth = await authenticateClientAccess(event, clientId);
+    if (auth.error) {
+      return auth.error;
     }
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);

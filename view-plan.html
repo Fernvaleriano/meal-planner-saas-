@@ -6875,9 +6875,13 @@ Be specific, practical, and actionable. Keep it concise but comprehensive.`;
 
             try {
                 const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+                const { data: { session: diarySession } } = await supabaseClient.auth.getSession();
                 const response = await fetch('/.netlify/functions/food-diary', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...(diarySession?.access_token ? { 'Authorization': `Bearer ${diarySession.access_token}` } : {})
+                    },
                     body: JSON.stringify({
                         clientId: currentClientId,
                         coachId: currentCoachId,
@@ -7006,9 +7010,13 @@ Be specific, practical, and actionable. Keep it concise but comprehensive.`;
                 }
 
                 try {
+                    const { data: { session: diarySession2 } } = await supabaseClient.auth.getSession();
                     const response = await fetch('/.netlify/functions/food-diary', {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: {
+                            'Content-Type': 'application/json',
+                            ...(diarySession2?.access_token ? { 'Authorization': `Bearer ${diarySession2.access_token}` } : {})
+                        },
                         body: JSON.stringify({
                             clientId: currentClientId,
                             coachId: currentCoachId,

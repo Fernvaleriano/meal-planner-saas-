@@ -1,5 +1,6 @@
 // Netlify Function to save a reaction to a diary entry and notify the client
 const { createClient } = require('@supabase/supabase-js');
+const { authenticateCoach } = require('./utils/auth');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -23,6 +24,10 @@ exports.handler = async (event) => {
       if (!entryId || !coachId) {
         return { statusCode: 400, headers: corsHeaders, body: JSON.stringify({ error: 'entryId and coachId required' }) };
       }
+
+      // Only the coach themselves may remove their reaction.
+      const delAuth = await authenticateCoach(event, coachId);
+      if (delAuth.error) return delAuth.error;
 
       const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
@@ -58,6 +63,10 @@ exports.handler = async (event) => {
     if (!entryId || !coachId || !clientId || !reaction) {
       return { statusCode: 400, headers: corsHeaders, body: JSON.stringify({ error: 'entryId, coachId, clientId and reaction required' }) };
     }
+
+    // Only the coach themselves may react to a client's entry.
+    const postAuth = await authenticateCoach(event, coachId);
+    if (postAuth.error) return postAuth.error;
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 

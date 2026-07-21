@@ -8022,7 +8022,7 @@
 
         async function loadUnreadMessageCount(coachId) {
             try {
-                const res = await fetch(`/.netlify/functions/chat?action=conversations&coachId=${coachId}`);
+                const res = await authenticatedFetch(`/.netlify/functions/chat?action=conversations&coachId=${coachId}`);
                 const data = await res.json();
                 const totalUnread = (data.conversations || []).reduce((sum, c) => sum + (c.unreadCount || 0), 0);
                 const sidebarBadge = document.getElementById('sidebarMsgBadge');

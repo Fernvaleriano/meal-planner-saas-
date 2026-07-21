@@ -1,4 +1,5 @@
 const { createClient } = require('@supabase/supabase-js');
+const { authenticateClientAccess } = require('./utils/auth');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -29,6 +30,10 @@ exports.handler = async (event) => {
           body: JSON.stringify({ error: 'clientId is required' })
         };
       }
+
+      // Authorize: only the client themselves or their coach may read goals.
+      const getAuth = await authenticateClientAccess(event, clientId);
+      if (getAuth.error) return getAuth.error;
 
       const { data: goals, error } = await supabase
         .from('calorie_goals')
@@ -104,8 +109,15 @@ exports.handler = async (event) => {
         };
       }
 
-      // If no coachId, this is a client request - check permission
-      if (!coachId) {
+      // Authorize: only the client themselves or their coach may write goals.
+      // Use the VERIFIED role (not the presence of a client-supplied coachId,
+      // which was previously spoofable to skip the permission gate entirely).
+      const writeAuth = await authenticateClientAccess(event, clientId);
+      if (writeAuth.error) return writeAuth.error;
+
+      // A client editing their own goals must have the coach-granted permission.
+      // A verified coach may always edit.
+      if (writeAuth.role === 'client') {
         const { data: client, error: clientError } = await supabase
           .from('clients')
           .select('can_edit_goals, can_edit_micronutrient_goals')

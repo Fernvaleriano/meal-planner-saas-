@@ -1,4 +1,5 @@
 const { createClient } = require('@supabase/supabase-js');
+const { authenticateCoach } = require('./utils/auth');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -30,6 +31,10 @@ exports.handler = async (event) => {
         body: JSON.stringify({ error: 'Check-in ID and Coach ID are required' })
       };
     }
+
+    // Only the coach themselves may respond to their client's check-in.
+    const auth = await authenticateCoach(event, coachId);
+    if (auth.error) return auth.error;
 
     // Get the check-in to find the client_id
     const { data: checkin, error: fetchError } = await supabase

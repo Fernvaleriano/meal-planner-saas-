@@ -6816,7 +6816,7 @@
             }
 
             // Mark notification as read via API
-            fetch('/.netlify/functions/notifications', {
+            authenticatedFetch('/.netlify/functions/notifications', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ notificationIds: [notifDbId] }),
@@ -6874,7 +6874,7 @@
 
                     // Mark as read via notifications API
                     try {
-                        await fetch('/.netlify/functions/notifications', {
+                        await authenticatedFetch('/.netlify/functions/notifications', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({ notificationIds: [alert.notificationId] })
@@ -7088,7 +7088,7 @@
             msg += ' — ' + input.value.trim();
 
             try {
-                const res = await fetch('/.netlify/functions/chat', {
+                const res = await authenticatedFetch('/.netlify/functions/chat', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -7136,7 +7136,7 @@
             msg += ' — ' + input.value.trim();
 
             try {
-                const res = await fetch('/.netlify/functions/chat', {
+                const res = await authenticatedFetch('/.netlify/functions/chat', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -7183,7 +7183,7 @@
             msg += ' — ' + input.value.trim();
 
             try {
-                const res = await fetch('/.netlify/functions/chat', {
+                const res = await authenticatedFetch('/.netlify/functions/chat', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -7264,7 +7264,7 @@
                 // what the voice note is about.
                 let msg = 'Re: ' + subject;
                 if (quote) msg += ' — "' + quote + '"';
-                const res = await fetch('/.netlify/functions/chat', {
+                const res = await authenticatedFetch('/.netlify/functions/chat', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -7825,7 +7825,7 @@
                 : `Re: ${subject} — ${replyText}`;
 
             try {
-                const res = await fetch('/.netlify/functions/chat', {
+                const res = await authenticatedFetch('/.netlify/functions/chat', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ action: 'send', coachId: _currentCoachId, clientId, senderType: 'coach', message })
@@ -8406,7 +8406,7 @@
 
             try {
                 if (currentReaction === reaction) {
-                    await fetch('/.netlify/functions/react-to-diary-entry', {
+                    await authenticatedFetch('/.netlify/functions/react-to-diary-entry', {
                         method: 'DELETE',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ entryId, coachId: _currentCoachId })
@@ -8415,7 +8415,7 @@
                     reactionBtn.querySelector('.meal-reaction-emoji').textContent = '+';
                     reactionBtn.querySelector('span:last-of-type').textContent = 'React';
                 } else {
-                    await fetch('/.netlify/functions/react-to-diary-entry', {
+                    await authenticatedFetch('/.netlify/functions/react-to-diary-entry', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ entryId, coachId: _currentCoachId, clientId, reaction })
@@ -8444,7 +8444,7 @@
             btn.disabled = true;
 
             try {
-                const response = await fetch('/.netlify/functions/comment-on-diary-entry', {
+                const response = await authenticatedFetch('/.netlify/functions/comment-on-diary-entry', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -9768,7 +9768,7 @@
         async function loadNotifications(userId) {
             currentUserId = userId;
             try {
-                const response = await fetch(`/.netlify/functions/notifications?userId=${userId}`);
+                const response = await authenticatedFetch(`/.netlify/functions/notifications?userId=${userId}`);
                 if (!response.ok) throw new Error('Failed to load notifications: ' + response.status);
                 const data = await response.json();
                 if (!data || !Array.isArray(data.notifications)) {
@@ -9814,7 +9814,7 @@
 
         async function loadUnreadMessageCount(coachId) {
             try {
-                const res = await fetch(`/.netlify/functions/chat?action=conversations&coachId=${coachId}`);
+                const res = await authenticatedFetch(`/.netlify/functions/chat?action=conversations&coachId=${coachId}`);
                 const data = await res.json();
                 const totalUnread = (data.conversations || []).reduce((sum, c) => sum + (c.unreadCount || 0), 0);
                 const sidebarBadge = document.getElementById('sidebarMsgBadge');
@@ -9888,7 +9888,7 @@
                         }
 
                         // Mark as read on server
-                        fetch('/.netlify/functions/notifications', {
+                        authenticatedFetch('/.netlify/functions/notifications', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({ notificationIds: [parseInt(notifId)] }),
@@ -10038,7 +10038,7 @@
 
         async function markAllOverviewRead() {
             if (!currentUserId) return;
-            await fetch('/.netlify/functions/notifications', {
+            await authenticatedFetch('/.netlify/functions/notifications', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ userId: currentUserId, markAllRead: true })
@@ -10092,7 +10092,7 @@
         // Mark all as read
         markAllRead.addEventListener('click', async () => {
             if (!currentUserId) return;
-            await fetch('/.netlify/functions/notifications', {
+            await authenticatedFetch('/.netlify/functions/notifications', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ userId: currentUserId, markAllRead: true })

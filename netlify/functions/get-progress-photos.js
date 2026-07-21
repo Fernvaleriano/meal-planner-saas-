@@ -1,5 +1,6 @@
 // Netlify Function to get progress photos for a client
 const { createClient } = require('@supabase/supabase-js');
+const { authenticateClientAccess } = require('./utils/auth');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -37,6 +38,12 @@ exports.handler = async (event, context) => {
         headers: { 'Access-Control-Allow-Origin': '*' },
         body: JSON.stringify({ error: 'Client ID is required' })
       };
+    }
+
+    // Authorize: only the client themselves or their coach may read these photos.
+    const auth = await authenticateClientAccess(event, clientId);
+    if (auth.error) {
+      return auth.error;
     }
 
     // Initialize Supabase client with service key

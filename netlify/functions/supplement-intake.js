@@ -2,6 +2,7 @@
 // Allows clients to check off supplements they've taken each day
 const { createClient } = require('@supabase/supabase-js');
 const { getDefaultDate } = require('./utils/timezone');
+const { authenticateClientAccess } = require('./utils/auth');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -39,6 +40,9 @@ exports.handler = async (event, context) => {
                 body: JSON.stringify({ error: 'Client ID is required' })
             };
         }
+
+        const getAuth = await authenticateClientAccess(event, clientId);
+        if (getAuth.error) return getAuth.error;
 
         // Use provided date or default to today in user's timezone
         const targetDate = getDefaultDate(date, timezone);
@@ -83,6 +87,9 @@ exports.handler = async (event, context) => {
                     body: JSON.stringify({ error: 'Client ID and Protocol ID are required' })
                 };
             }
+
+            const postAuth = await authenticateClientAccess(event, clientId);
+            if (postAuth.error) return postAuth.error;
 
             // Use provided date or default to today in user's timezone
             const targetDate = getDefaultDate(date, timezone);
@@ -167,6 +174,9 @@ exports.handler = async (event, context) => {
                 };
             }
 
+            const putAuth = await authenticateClientAccess(event, clientId);
+            if (putAuth.error) return putAuth.error;
+
             if (action === 'restart') {
                 const today = getDefaultDate(null, timezone);
 
@@ -216,6 +226,9 @@ exports.handler = async (event, context) => {
                 body: JSON.stringify({ error: 'Client ID and Protocol ID are required' })
             };
         }
+
+        const delAuth = await authenticateClientAccess(event, clientId);
+        if (delAuth.error) return delAuth.error;
 
         // Use provided date or default to today in user's timezone
         const targetDate = getDefaultDate(date, timezone);

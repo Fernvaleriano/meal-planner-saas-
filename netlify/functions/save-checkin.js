@@ -1,5 +1,6 @@
 const { createClient } = require('@supabase/supabase-js');
 const { getDefaultDate } = require('./utils/timezone');
+const { authenticateClientAccess } = require('./utils/auth');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -22,6 +23,9 @@ exports.handler = async (event) => {
       const clientId = event.queryStringParameters?.clientId;
       const limit = parseInt(event.queryStringParameters?.limit) || 10;
       const offset = parseInt(event.queryStringParameters?.offset) || 0;
+
+      const getAuth = await authenticateClientAccess(event, clientId);
+      if (getAuth.error) return getAuth.error;
 
       // Get check-ins with pagination
       const { data, error } = await supabase
@@ -58,6 +62,9 @@ exports.handler = async (event) => {
 
     if (event.httpMethod === 'POST') {
       const body = JSON.parse(event.body);
+
+      const postAuth = await authenticateClientAccess(event, body.clientId);
+      if (postAuth.error) return postAuth.error;
 
       // Build check-in data object
       const checkinRecord = {

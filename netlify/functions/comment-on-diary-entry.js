@@ -1,5 +1,6 @@
 // Netlify Function to add/manage comments on diary entries
 const { createClient } = require('@supabase/supabase-js');
+const { authenticateRequest, authenticateClientAccess, forbiddenResponse } = require('./utils/auth');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -17,13 +18,20 @@ exports.handler = async (event) => {
 
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
+  // Every comment operation requires a logged-in user. Identity comes from the
+  // verified token, NOT a client-supplied userId (previously spoofable to
+  // impersonate the comment's owner or post as a coach).
+  const { user: authUser, error: authErr } = await authenticateRequest(event);
+  if (authErr) return authErr;
+
   // DELETE a comment
   if (event.httpMethod === 'DELETE') {
     try {
-      const { commentId, userId } = JSON.parse(event.body);
+      const { commentId } = JSON.parse(event.body);
+      const userId = authUser.id;
 
-      if (!commentId || !userId) {
-        return { statusCode: 400, headers: corsHeaders, body: JSON.stringify({ error: 'commentId and userId required' }) };
+      if (!commentId) {
+        return { statusCode: 400, headers: corsHeaders, body: JSON.stringify({ error: 'commentId required' }) };
       }
 
       // Verify the user owns this comment (either as coach or client who wrote it)
@@ -79,10 +87,11 @@ exports.handler = async (event) => {
   // PUT to update a comment
   if (event.httpMethod === 'PUT') {
     try {
-      const { commentId, userId, comment } = JSON.parse(event.body);
+      const { commentId, comment } = JSON.parse(event.body);
+      const userId = authUser.id;
 
-      if (!commentId || !userId || !comment) {
-        return { statusCode: 400, headers: corsHeaders, body: JSON.stringify({ error: 'commentId, userId and comment required' }) };
+      if (!commentId || !comment) {
+        return { statusCode: 400, headers: corsHeaders, body: JSON.stringify({ error: 'commentId and comment required' }) };
       }
 
       // Verify the user owns this comment
@@ -152,6 +161,15 @@ exports.handler = async (event) => {
     // For coach comments, coachId is required
     if (authorType === 'coach' && !coachId) {
       return { statusCode: 400, headers: corsHeaders, body: JSON.stringify({ error: 'coachId required for coach comments' }) };
+    }
+
+    // Verify the claimed author identity against the token: a coach comment
+    // must come from that coach; a client reply from that client.
+    if (authorType === 'coach') {
+      if (authUser.id !== coachId) return forbiddenResponse('Not authorized');
+    } else {
+      const ca = await authenticateClientAccess(event, clientId);
+      if (ca.error) return ca.error;
     }
 
     // Get the coach_id from the entry if not provided (for client replies)

@@ -1,6 +1,7 @@
 // Netlify Function to calculate daily wins, badges, and AI encouragement for clients
 const { createClient } = require('@supabase/supabase-js');
 const { getDefaultDate } = require('./utils/timezone');
+const { authenticateClientAccess } = require('./utils/auth');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -29,6 +30,9 @@ exports.handler = async (event, context) => {
     if (!clientId) {
       return { statusCode: 400, headers: corsHeaders, body: JSON.stringify({ error: 'Client ID required' }) };
     }
+
+    const auth = await authenticateClientAccess(event, clientId);
+    if (auth.error) return auth.error;
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
     const today = getDefaultDate(null, timezone);
