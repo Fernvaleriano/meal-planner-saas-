@@ -5976,12 +5976,9 @@ exports.handler = async (event, context) => {
       statusCode: 500,
       headers: corsHeaders,
       body: JSON.stringify({
-        error: error.message || 'Internal server error',
-        details: error.stack,
-        apiKeys: {
-          anthropic: ANTHROPIC_API_KEY ? 'configured' : 'missing',
-          gemini: GEMINI_API_KEY ? 'configured' : 'missing'
-        }
+        // Stack trace and API-key status are logged server-side only (above),
+        // never returned to the client, to avoid leaking internals.
+        error: 'Internal server error'
       })
     };
   }

@@ -1,7 +1,13 @@
 const { createClient } = require('@supabase/supabase-js');
+const { extractToken, verifyToken } = require('./utils/auth');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
+
+// This endpoint deletes legacy template workouts across ALL coaches, so it is
+// an admin-only maintenance tool. Lock it to the master account (verified via a
+// real signed JWT, never a client-supplied value).
+const MASTER_EMAIL = 'contact@ziquefitness.com';
 
 const headers = {
   'Access-Control-Allow-Origin': '*',
@@ -42,6 +48,13 @@ exports.handler = async (event) => {
 
   if (!SUPABASE_SERVICE_KEY) {
     return { statusCode: 500, headers, body: JSON.stringify({ error: 'Server configuration error' }) };
+  }
+
+  // Admin-only: require the master account's signed token.
+  const token = extractToken(event);
+  const { user } = token ? await verifyToken(token) : { user: null };
+  if (!user || (user.email || '').toLowerCase() !== MASTER_EMAIL) {
+    return { statusCode: 403, headers, body: JSON.stringify({ error: 'Forbidden' }) };
   }
 
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);

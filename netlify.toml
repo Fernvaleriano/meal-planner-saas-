@@ -262,6 +262,17 @@
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
 
+# Baseline security headers on every response. These are additive and do not
+# change app behaviour: SAMEORIGIN (not DENY) still allows our own pages to
+# frame each other; nosniff/Referrer-Policy/HSTS are standard hardening.
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "SAMEORIGIN"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Strict-Transport-Security = "max-age=31536000; includeSubDomains"
+
 # HTML must revalidate on every load (cheap ETag 304s). With max-age=3600,
 # browsers kept serving hour-old page HTML that referenced old versioned
 # script URLs, so deployed fixes reached some pages but not others.
