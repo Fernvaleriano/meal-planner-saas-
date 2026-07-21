@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Dumbbell, Clock, Flame, ChevronRight, ChevronDown, Search, Filter, Users, Loader2, CalendarPlus, Layers, Calendar, Check } from 'lucide-react';
 import { apiGet } from '../../utils/api';
 import SmartThumbnail from './SmartThumbnail';
@@ -308,7 +309,8 @@ function ClubWorkoutsModal({ onClose, onSelectWorkout, onScheduleProgram, coachI
         position: 'fixed',
         top: Math.round(r.bottom + 6),
         left: Math.round(left),
-        right: 'auto'
+        right: 'auto',
+        zIndex: 10001
       });
     }
     setOpenFilter(key);
@@ -836,7 +838,8 @@ function ClubWorkoutsModal({ onClose, onSelectWorkout, onScheduleProgram, coachI
               />
             </div>
 
-            {/* Filter Pills Row */}
+            {/* Filter Pills Row — the pills only toggle the menu; the menu
+                itself is portaled below so this scrolling row can't clip it. */}
             <div className="club-filter-pills-scroll">
             <div className="club-filter-pills">
               {/* Category/Goal Filter */}
@@ -848,25 +851,6 @@ function ClubWorkoutsModal({ onClose, onSelectWorkout, onScheduleProgram, coachI
                   <span>{selectedCategory ? (t(CATEGORY_LABEL_KEYS[selectedCategory]) || selectedCategory) : t('clubWorkouts.allGoals')}</span>
                   <ChevronDown size={14} />
                 </button>
-                {openFilter === 'category' && (
-                  <div className="club-filter-dropdown" style={dropdownStyle}>
-                    <button
-                      className={`club-filter-option ${!selectedCategory ? 'selected' : ''}`}
-                      onClick={() => { setSelectedCategory(''); setOpenFilter(null); }}
-                    >
-                      {t('clubWorkouts.allGoals')}
-                    </button>
-                    {availableCategories.map(cat => (
-                      <button
-                        key={cat}
-                        className={`club-filter-option ${selectedCategory === cat ? 'selected' : ''}`}
-                        onClick={() => { setSelectedCategory(cat); setOpenFilter(null); }}
-                      >
-                        {CATEGORY_ICONS[cat] || '⚡'} {t(CATEGORY_LABEL_KEYS[cat]) || cat}
-                      </button>
-                    ))}
-                  </div>
-                )}
               </div>
 
               {/* Difficulty/Level Filter */}
@@ -878,26 +862,6 @@ function ClubWorkoutsModal({ onClose, onSelectWorkout, onScheduleProgram, coachI
                   <span>{selectedDifficulty ? (t(DIFFICULTY_LABEL_KEYS[selectedDifficulty]) || selectedDifficulty) : t('clubWorkouts.allLevels')}</span>
                   <ChevronDown size={14} />
                 </button>
-                {openFilter === 'difficulty' && (
-                  <div className="club-filter-dropdown" style={dropdownStyle}>
-                    <button
-                      className={`club-filter-option ${!selectedDifficulty ? 'selected' : ''}`}
-                      onClick={() => { setSelectedDifficulty(''); setOpenFilter(null); }}
-                    >
-                      {t('clubWorkouts.allLevels')}
-                    </button>
-                    {availableDifficulties.map(diff => (
-                      <button
-                        key={diff}
-                        className={`club-filter-option ${selectedDifficulty === diff ? 'selected' : ''}`}
-                        onClick={() => { setSelectedDifficulty(diff); setOpenFilter(null); }}
-                      >
-                        <span className="club-filter-dot" style={{ background: DIFFICULTY_COLORS[diff] }} />
-                        {t(DIFFICULTY_LABEL_KEYS[diff]) || diff}
-                      </button>
-                    ))}
-                  </div>
-                )}
               </div>
 
               {/* Duration Filter */}
@@ -909,19 +873,6 @@ function ClubWorkoutsModal({ onClose, onSelectWorkout, onScheduleProgram, coachI
                   <span>{selectedDuration ? t(DURATION_RANGES.find(r => r.key === selectedDuration)?.labelKey) : t('clubWorkouts.anyDuration')}</span>
                   <ChevronDown size={14} />
                 </button>
-                {openFilter === 'duration' && (
-                  <div className="club-filter-dropdown" style={dropdownStyle}>
-                    {DURATION_RANGES.map(range => (
-                      <button
-                        key={range.key || 'all'}
-                        className={`club-filter-option ${selectedDuration === range.key ? 'selected' : ''}`}
-                        onClick={() => { setSelectedDuration(range.key); setOpenFilter(null); }}
-                      >
-                        {t(range.labelKey)}
-                      </button>
-                    ))}
-                  </div>
-                )}
               </div>
 
               {/* Type Filter */}
@@ -933,23 +884,83 @@ function ClubWorkoutsModal({ onClose, onSelectWorkout, onScheduleProgram, coachI
                   <span>{selectedType ? t(TYPE_OPTIONS.find(o => o.key === selectedType)?.labelKey) : t('clubWorkouts.allWorkouts')}</span>
                   <ChevronDown size={14} />
                 </button>
-                {openFilter === 'type' && (
-                  <div className="club-filter-dropdown" style={dropdownStyle}>
-                    {TYPE_OPTIONS.map(opt => (
-                      <button
-                        key={opt.key || 'all'}
-                        className={`club-filter-option ${selectedType === opt.key ? 'selected' : ''}`}
-                        onClick={() => { setSelectedType(opt.key); setOpenFilter(null); }}
-                      >
-                        {t(opt.labelKey)}
-                      </button>
-                    ))}
-                  </div>
-                )}
               </div>
             </div>
 
             </div>
+
+            {/* Filter dropdown menu — portaled to <body> so it renders above the
+                modal (z 9999) and escapes the pills row's overflow clipping and
+                the modal's transform-based stacking context. Backdrop closes it. */}
+            {openFilter && createPortal(
+              <>
+                <div
+                  className="club-filter-backdrop"
+                  style={{ zIndex: 10000 }}
+                  onClick={() => setOpenFilter(null)}
+                />
+                <div className="club-filter-dropdown" style={dropdownStyle}>
+                  {openFilter === 'category' && (
+                    <>
+                      <button
+                        className={`club-filter-option ${!selectedCategory ? 'selected' : ''}`}
+                        onClick={() => { setSelectedCategory(''); setOpenFilter(null); }}
+                      >
+                        {t('clubWorkouts.allGoals')}
+                      </button>
+                      {availableCategories.map(cat => (
+                        <button
+                          key={cat}
+                          className={`club-filter-option ${selectedCategory === cat ? 'selected' : ''}`}
+                          onClick={() => { setSelectedCategory(cat); setOpenFilter(null); }}
+                        >
+                          {CATEGORY_ICONS[cat] || '⚡'} {t(CATEGORY_LABEL_KEYS[cat]) || cat}
+                        </button>
+                      ))}
+                    </>
+                  )}
+                  {openFilter === 'difficulty' && (
+                    <>
+                      <button
+                        className={`club-filter-option ${!selectedDifficulty ? 'selected' : ''}`}
+                        onClick={() => { setSelectedDifficulty(''); setOpenFilter(null); }}
+                      >
+                        {t('clubWorkouts.allLevels')}
+                      </button>
+                      {availableDifficulties.map(diff => (
+                        <button
+                          key={diff}
+                          className={`club-filter-option ${selectedDifficulty === diff ? 'selected' : ''}`}
+                          onClick={() => { setSelectedDifficulty(diff); setOpenFilter(null); }}
+                        >
+                          <span className="club-filter-dot" style={{ background: DIFFICULTY_COLORS[diff] }} />
+                          {t(DIFFICULTY_LABEL_KEYS[diff]) || diff}
+                        </button>
+                      ))}
+                    </>
+                  )}
+                  {openFilter === 'duration' && DURATION_RANGES.map(range => (
+                    <button
+                      key={range.key || 'all'}
+                      className={`club-filter-option ${selectedDuration === range.key ? 'selected' : ''}`}
+                      onClick={() => { setSelectedDuration(range.key); setOpenFilter(null); }}
+                    >
+                      {t(range.labelKey)}
+                    </button>
+                  ))}
+                  {openFilter === 'type' && TYPE_OPTIONS.map(opt => (
+                    <button
+                      key={opt.key || 'all'}
+                      className={`club-filter-option ${selectedType === opt.key ? 'selected' : ''}`}
+                      onClick={() => { setSelectedType(opt.key); setOpenFilter(null); }}
+                    >
+                      {t(opt.labelKey)}
+                    </button>
+                  ))}
+                </div>
+              </>,
+              document.body
+            )}
 
             {/* Clear Filters */}
             {hasActiveFilters && (
@@ -958,11 +969,6 @@ function ClubWorkoutsModal({ onClose, onSelectWorkout, onScheduleProgram, coachI
               </button>
             )}
           </div>
-
-          {/* Backdrop to close dropdowns */}
-          {openFilter && (
-            <div className="club-filter-backdrop" onClick={() => setOpenFilter(null)} />
-          )}
 
           {/* Workout List */}
           {loading ? (
