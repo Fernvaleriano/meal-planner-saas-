@@ -3677,6 +3677,12 @@ function Workouts() {
         // Prefer in-memory state; fall back to localStorage cache from a
         // prior session (survives app-kill before workoutLog state hydrated).
         let logId = workoutLogRef.current?.id || null;
+        // 'pending' is the optimistic placeholder set before the server has
+        // returned a real log id — it must never be treated as an id here, or
+        // it gets written into LOG_ID_KEY and fired as workoutId:'pending' on
+        // the keepalive PUT (a guaranteed bad request). Fall through to the
+        // cached id, then to the create (POST) path instead.
+        if (logId === 'pending') logId = null;
         if (!logId) {
           try { logId = localStorage.getItem(LOG_ID_KEY) || null; } catch { /* ignore */ }
         }
