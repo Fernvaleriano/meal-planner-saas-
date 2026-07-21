@@ -8406,7 +8406,7 @@
 
             try {
                 if (currentReaction === reaction) {
-                    await fetch('/.netlify/functions/react-to-diary-entry', {
+                    await authenticatedFetch('/.netlify/functions/react-to-diary-entry', {
                         method: 'DELETE',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ entryId, coachId: _currentCoachId })
@@ -8415,7 +8415,7 @@
                     reactionBtn.querySelector('.meal-reaction-emoji').textContent = '+';
                     reactionBtn.querySelector('span:last-of-type').textContent = 'React';
                 } else {
-                    await fetch('/.netlify/functions/react-to-diary-entry', {
+                    await authenticatedFetch('/.netlify/functions/react-to-diary-entry', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ entryId, coachId: _currentCoachId, clientId, reaction })
@@ -8444,7 +8444,7 @@
             btn.disabled = true;
 
             try {
-                const response = await fetch('/.netlify/functions/comment-on-diary-entry', {
+                const response = await authenticatedFetch('/.netlify/functions/comment-on-diary-entry', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({

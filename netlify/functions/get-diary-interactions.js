@@ -1,6 +1,7 @@
 // Netlify Function to fetch reactions and comments for diary entries
 const { createClient } = require('@supabase/supabase-js');
 const { withTimeout } = require('./utils/with-timeout');
+const { authenticateClientAccess } = require('./utils/auth');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -26,6 +27,9 @@ exports.handler = withTimeout(async (event) => {
     if (!clientId) {
       return { statusCode: 400, headers: corsHeaders, body: JSON.stringify({ error: 'clientId required' }) };
     }
+
+    const auth = await authenticateClientAccess(event, clientId);
+    if (auth.error) return auth.error;
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 

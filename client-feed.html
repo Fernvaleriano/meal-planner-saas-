@@ -1507,7 +1507,7 @@
             try {
                 if (currentReaction === reaction) {
                     // Remove reaction
-                    await fetch('/.netlify/functions/react-to-diary-entry', {
+                    await authenticatedFetch('/.netlify/functions/react-to-diary-entry', {
                         method: 'DELETE',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ entryId, coachId: currentUser.id })
@@ -1517,7 +1517,7 @@
                     reactionBtn.querySelector('span:last-of-type').textContent = 'React';
                 } else {
                     // Add reaction
-                    await fetch('/.netlify/functions/react-to-diary-entry', {
+                    await authenticatedFetch('/.netlify/functions/react-to-diary-entry', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ entryId, coachId: currentUser.id, clientId, reaction })
@@ -1549,7 +1549,7 @@
             btn.disabled = true;
 
             try {
-                const response = await fetch('/.netlify/functions/comment-on-diary-entry', {
+                const response = await authenticatedFetch('/.netlify/functions/comment-on-diary-entry', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
