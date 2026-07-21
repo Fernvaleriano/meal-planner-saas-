@@ -141,11 +141,11 @@ exports.handler = async (event) => {
         // Get the coach's name/business
         const { data: coachProfile } = await supabase
           .from('coaches')
-          .select('business_name')
+          .select('brand_name, name')
           .eq('id', coachId)
           .single();
 
-        const coachName = coachProfile?.business_name || 'Your coach';
+        const coachName = coachProfile?.brand_name || coachProfile?.name || 'Your coach';
 
         // Create notification for the client with entry reference
         await supabase

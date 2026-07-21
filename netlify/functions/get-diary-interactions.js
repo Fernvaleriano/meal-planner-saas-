@@ -88,11 +88,11 @@ exports.handler = withTimeout(async (event) => {
     if (coachIds.size > 0) {
       const { data: coaches } = await supabase
         .from('coaches')
-        .select('id, business_name')
+        .select('id, brand_name, name')
         .in('id', Array.from(coachIds));
 
       (coaches || []).forEach(c => {
-        coachMap[c.id] = c.business_name || 'Coach';
+        coachMap[c.id] = c.brand_name || c.name || 'Coach';
       });
     }
 

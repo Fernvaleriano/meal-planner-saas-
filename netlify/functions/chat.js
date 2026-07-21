@@ -159,7 +159,7 @@ exports.handler = async (event) => {
         // Get coach info
         const { data: coach } = await supabase
           .from('coaches')
-          .select('id, business_name, logo_url, profile_photo_url')
+          .select('id, brand_name, name, logo_url, profile_photo_url')
           .eq('id', client.coach_id)
           .single();
 
@@ -189,7 +189,7 @@ exports.handler = async (event) => {
           body: JSON.stringify({
             conversations: [{
               coachId: client.coach_id,
-              coachName: coach?.business_name || 'Your Coach',
+              coachName: coach?.brand_name || coach?.name || 'Your Coach',
               coachPhoto: coach?.profile_photo_url || coach?.logo_url || null,
               clientId: parseInt(clientId),
               lastMessage: lastMsg?.message || null,

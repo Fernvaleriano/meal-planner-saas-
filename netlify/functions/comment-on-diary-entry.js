@@ -236,11 +236,11 @@ exports.handler = async (event) => {
         // Notify the client about coach comment
         const { data: coachProfile } = await supabase
           .from('coaches')
-          .select('business_name')
+          .select('brand_name, name')
           .eq('id', effectiveCoachId)
           .single();
 
-        const coachName = coachProfile?.business_name || 'Your coach';
+        const coachName = coachProfile?.brand_name || coachProfile?.name || 'Your coach';
 
         await supabase
           .from('notifications')
