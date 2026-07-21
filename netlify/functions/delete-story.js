@@ -1,5 +1,6 @@
 // Netlify Function to delete a coach story
 const { createClient } = require('@supabase/supabase-js');
+const { authenticateCoach } = require('./utils/auth');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -25,6 +26,11 @@ exports.handler = async (event) => {
     if (!storyId || !coachId) {
       return { statusCode: 400, headers: corsHeaders, body: JSON.stringify({ error: 'storyId and coachId required' }) };
     }
+
+    // Verify the caller's token actually owns this coach account. Without this,
+    // coachId is attacker-supplied and the story.coach_id check below is a no-op.
+    const { error: authError } = await authenticateCoach(event, coachId);
+    if (authError) return authError;
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 

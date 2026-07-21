@@ -1,4 +1,5 @@
 const { createClient } = require('@supabase/supabase-js');
+const { authenticateCoach } = require('./utils/auth');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -31,6 +32,11 @@ exports.handler = async (event) => {
     if (!coachId || !filePath) {
       return { statusCode: 400, headers, body: JSON.stringify({ error: 'coachId and filePath are required' }) };
     }
+
+    // Verify the caller's token owns this coach account before trusting coachId
+    // (which the path check below relies on). Caller sends the Bearer token.
+    const { error: authError } = await authenticateCoach(event, coachId);
+    if (authError) return { ...authError, headers: { ...headers, ...authError.headers } };
 
     // Security: ensure the file belongs to this coach
     if (!filePath.startsWith(`exercise-videos/${coachId}/`)) {

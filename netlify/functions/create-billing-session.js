@@ -1,5 +1,6 @@
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const { createClient } = require('@supabase/supabase-js');
+const { authenticateRequest } = require('./utils/auth');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -28,16 +29,14 @@ exports.handler = async (event) => {
         };
     }
 
-    try {
-        const { coachId } = JSON.parse(event.body);
+    // Authenticate: the billing portal must only ever open for the caller's
+    // OWN account. Derive the coach id from the verified token, never from the
+    // request body (which a client could set to any coach's id).
+    const { user, error: authError } = await authenticateRequest(event);
+    if (authError) return { ...authError, headers: { ...headers, ...authError.headers } };
 
-        if (!coachId) {
-            return {
-                statusCode: 400,
-                headers,
-                body: JSON.stringify({ error: 'Coach ID is required' })
-            };
-        }
+    try {
+        const coachId = user.id;
 
         // Get coach's Stripe customer ID
         const { data: coach, error: coachError } = await supabase
@@ -83,7 +82,7 @@ exports.handler = async (event) => {
         return {
             statusCode: 500,
             headers,
-            body: JSON.stringify({ error: error.message })
+            body: JSON.stringify({ error: 'Failed to open billing portal' })
         };
     }
 };
