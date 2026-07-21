@@ -201,6 +201,7 @@ exports.handler = async (event) => {
         .from('clients')
         .select('id')
         .eq('user_id', authUser.id)
+        .limit(1)
         .maybeSingle();
       const ownsFilter = callerClient?.id != null
         ? `user_id.eq.${authUser.id},client_id.eq.${callerClient.id}`
