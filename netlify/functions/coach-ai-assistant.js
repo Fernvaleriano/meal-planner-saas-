@@ -1,4 +1,5 @@
 const { createClient } = require('@supabase/supabase-js');
+const { authenticateClientAccess } = require('./utils/auth');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -64,6 +65,10 @@ exports.handler = async (event) => {
                 body: JSON.stringify({ error: 'clientId and question are required' })
             };
         }
+
+        // Only the client's own coach (or the client) may query their data.
+        const { error: authError } = await authenticateClientAccess(event, clientId);
+        if (authError) return { ...authError, headers: { ...headers, ...authError.headers } };
 
         // Support configurable time periods: 7, 14, 30, 90, 365 days
         const validPeriods = [7, 14, 30, 90, 365];

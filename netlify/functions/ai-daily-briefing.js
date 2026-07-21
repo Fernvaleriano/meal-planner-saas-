@@ -27,6 +27,7 @@
  */
 const { createClient } = require('@supabase/supabase-js');
 const Anthropic = require('@anthropic-ai/sdk').default;
+const { authenticateCoach } = require('./utils/auth');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -58,6 +59,10 @@ exports.handler = async (event) => {
     } catch {}
   }
   if (!coachId) return { statusCode: 400, headers: corsHeaders, body: JSON.stringify({ error: 'coachId required' }) };
+
+  // Only the coach themselves may read their client briefing.
+  const { error: authError } = await authenticateCoach(event, coachId);
+  if (authError) return authError;
 
   const today = new Date().toISOString().split('T')[0];
 

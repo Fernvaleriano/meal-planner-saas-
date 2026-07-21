@@ -22,6 +22,17 @@
     let currentTab = 'all';
     let allPriorities = [];
 
+    // Build request headers including the coach's Bearer token so the backend
+    // can verify who is asking (these endpoints read client data).
+    async function authHeaders(extra) {
+        const h = extra ? { ...extra } : {};
+        try {
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            if (session?.access_token) h['Authorization'] = `Bearer ${session.access_token}`;
+        } catch (_) { /* no session → request will be rejected server-side */ }
+        return h;
+    }
+
     function init() {
         const { createClient } = supabase;
         supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -70,11 +81,11 @@
         if (force) {
             resp = await fetch('/.netlify/functions/ai-daily-briefing', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: await authHeaders({ 'Content-Type': 'application/json' }),
                 body: JSON.stringify({ coachId, force: true })
             });
         } else {
-            resp = await fetch(url);
+            resp = await fetch(url, { headers: await authHeaders() });
         }
         if (!resp.ok) {
             document.getElementById('cccHeadline').textContent = 'Briefing unavailable';
@@ -155,7 +166,7 @@
         const list = document.getElementById('plateauList');
         list.innerHTML = '<div class="ccc-loading">Scanning…</div>';
         try {
-            const resp = await fetch(`/.netlify/functions/ai-plateau-detector?coachId=${encodeURIComponent(coachId)}`);
+            const resp = await fetch(`/.netlify/functions/ai-plateau-detector?coachId=${encodeURIComponent(coachId)}`, { headers: await authHeaders() });
             if (!resp.ok) { list.innerHTML = '<div class="ccc-empty">Plateau check unavailable</div>'; return; }
             const data = await resp.json();
             const plateaus = data.plateaus || [];
@@ -221,7 +232,7 @@
         try {
             const resp = await fetch('/.netlify/functions/ai-message-drafter', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: await authHeaders({ 'Content-Type': 'application/json' }),
                 body: JSON.stringify({ coachId, clientId, kind: 'all', tone: 'friendly' })
             });
             if (!resp.ok) {

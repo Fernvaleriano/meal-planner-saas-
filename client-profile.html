@@ -13497,9 +13497,13 @@
             askBtn.textContent = 'Analyzing...';
 
             try {
+                const { data: { session } } = await supabaseClient.auth.getSession();
                 const response = await fetch('/.netlify/functions/coach-ai-assistant', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...(session?.access_token && { 'Authorization': `Bearer ${session.access_token}` })
+                    },
                     body: JSON.stringify({
                         clientId: clientId,
                         question: question,
@@ -16897,9 +16901,13 @@
             askBtn.textContent = 'Analyzing...';
 
             try {
+                const { data: { session } } = await supabaseClient.auth.getSession();
                 const response = await fetch('/.netlify/functions/coach-workout-ai', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...(session?.access_token && { 'Authorization': `Bearer ${session.access_token}` })
+                    },
                     body: JSON.stringify({
                         clientId: clientId,
                         question: question,
