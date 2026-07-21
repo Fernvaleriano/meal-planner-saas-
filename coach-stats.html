@@ -660,7 +660,7 @@
 
         async function loadDashboardStats() {
             try {
-                const response = await fetch(`${DASHBOARD_STATS_ENDPOINT}?coachId=${currentCoach.id}`);
+                const response = await authenticatedFetch(`${DASHBOARD_STATS_ENDPOINT}?coachId=${currentCoach.id}`);
 
                 if (!response.ok) throw new Error('Failed to load stats');
 
