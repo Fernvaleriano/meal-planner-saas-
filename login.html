@@ -13,6 +13,24 @@
     <link rel="manifest" href="/manifest.json">
     <link rel="apple-touch-icon" href="https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/assets/icons/logo.png">
     <title>Coach Login - Ziquecoach</title>
+    <script>
+        // Hold the default logo back when this login belongs to a gym, so a
+        // coach/trainer never sees the Ziquecoach logo flash before their gym's
+        // logo swaps in. Mirrors set-password.html / the app. Revealed by the
+        // branding script below once the gym logo has actually painted (or after
+        // a safety timeout / on any failure). No gym known => default, as before.
+        (function () {
+            try {
+                var cid = new URLSearchParams(window.location.search).get('coachId');
+                if (!cid) {
+                    var p = JSON.parse(localStorage.getItem('zique_branding_preload') || 'null');
+                    cid = p && p.coachId;
+                }
+                if (cid) document.documentElement.setAttribute('data-brand-pending', '');
+            } catch (e) { /* show default */ }
+        })();
+    </script>
+    <style>html[data-brand-pending] .brand-logo-img, html[data-brand-pending] .mobile-logo-img { visibility: hidden; }</style>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -523,13 +541,26 @@
         // no coachId it stays the default Ziquecoach login. Purely additive; any
         // hiccup just leaves the default look.
         (async function applyStaffBranding() {
+            // Reveal the (possibly swapped) logo — pairs with the <head> script
+            // that hides it while the gym's branding loads. Idempotent.
+            function revealLogo() { document.documentElement.removeAttribute('data-brand-pending'); }
+            // Safety: never hold the logo hostage on a slow/failed fetch.
+            const revealTimer = setTimeout(revealLogo, 4000);
+
             try {
-                const coachId = new URLSearchParams(window.location.search).get('coachId');
-                if (!coachId) return;
+                let coachId = new URLSearchParams(window.location.search).get('coachId');
+                if (!coachId) {
+                    try {
+                        const p = JSON.parse(localStorage.getItem('zique_branding_preload') || 'null');
+                        coachId = p && p.coachId;
+                    } catch (e) { /* ignore */ }
+                }
+                if (!coachId) { revealLogo(); return; }
+
                 const res = await fetch('/.netlify/functions/get-coach-branding?coachId=' + encodeURIComponent(coachId));
-                if (!res.ok) return;
+                if (!res.ok) { revealLogo(); return; }
                 const b = await res.json();
-                if (!b || b.error) return;
+                if (!b || b.error) { revealLogo(); return; }
 
                 const root = document.documentElement;
                 if (b.brand_primary_color) root.style.setProperty('--brand-primary', b.brand_primary_color);
@@ -538,11 +569,19 @@
                     root.style.setProperty('--brand-gradient',
                         'linear-gradient(135deg, ' + b.brand_primary_color + ' 0%, ' + b.brand_secondary_color + ' 100%)');
                 }
-                const name = b.brand_name || 'Ziquecoach';
-                if (b.brand_logo_url) {
-                    document.querySelectorAll('.brand-logo-img, .mobile-logo-img').forEach(img => {
+                const name = b.brand_app_name || b.brand_name || 'Ziquecoach';
+                const logos = document.querySelectorAll('.brand-logo-img, .mobile-logo-img');
+                if (b.brand_logo_url && logos.length) {
+                    let pending = logos.length;
+                    // Reveal only once the gym's logo has actually painted, so
+                    // there's no platform-logo flash.
+                    const onDone = () => { if (--pending <= 0) { clearTimeout(revealTimer); revealLogo(); } };
+                    logos.forEach(img => {
+                        img.onload = onDone; img.onerror = onDone;
                         img.src = b.brand_logo_url; img.alt = name;
                     });
+                } else {
+                    revealLogo();
                 }
                 const tagline = document.querySelector('.brand-tagline');
                 if (tagline) tagline.textContent = name;
@@ -550,7 +589,7 @@
                 if (b.brand_favicon_url) {
                     document.querySelectorAll('link[rel="icon"], link[rel="apple-touch-icon"]').forEach(l => { l.href = b.brand_favicon_url; });
                 }
-            } catch (e) { /* leave default branding on any hiccup */ }
+            } catch (e) { revealLogo(); /* leave default branding on any hiccup */ }
         })();
 
         const loginForm = document.getElementById('loginForm');
