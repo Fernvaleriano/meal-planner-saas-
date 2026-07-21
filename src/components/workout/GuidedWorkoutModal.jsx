@@ -238,12 +238,24 @@ const buildSetLogForExercise = (ex, weightUnit) => {
   });
 };
 
+// A "real" server log id — not the optimistic 'pending' sentinel and not
+// an absent id. workoutLogId legitimately churns null → 'pending' → real id
+// during a session, and the soft-reset reload can catch it mid-transition,
+// so it must NOT be a hard identity term.
+const isRealLogId = (v) => v != null && v !== 'pending';
+
 const matchesResumeIdentity = (saved, identity) => (
   !!saved &&
   saved.clientId === identity.clientId &&
   saved.dateStr === identity.dateStr &&
-  saved.workoutLogId === identity.workoutLogId &&
-  saved.exFingerprint === identity.exFingerprint
+  saved.exFingerprint === identity.exFingerprint &&
+  // Soft log-id match: only reject when BOTH sides hold real, DIFFERENT ids.
+  // clientId + dateStr + exercise fingerprint already pin the workout, and
+  // the storage key is namespaced per assignment — so a churning/absent log
+  // id can no longer discard a valid resume (the "sent me back to the squats
+  // + logged 1 minute" bug on a degraded connection).
+  (!isRealLogId(saved.workoutLogId) || !isRealLogId(identity.workoutLogId) ||
+    saved.workoutLogId === identity.workoutLogId)
 );
 
 // EFFORT_OPTIONS, EFFORT_TO_RIR, estimate1RM, COMPOUND_PATTERNS now imported from workoutProgression.js
@@ -730,6 +742,7 @@ function GuidedWorkoutModal({
   const pendingNextExIdxRef = useRef(pendingNextExIdx);
   const isPlayingDeferredRef = useRef(isPlayingDeferred);
   const persistExerciseDataRef = useRef(null); // Ref for persistExerciseData (declared later) to avoid TDZ in handleCloseWithSave
+  const buildResumeSnapshotRef = useRef(null); // Ref for buildResumeSnapshot (declared later). handleSoftReset / the unmount flush are frozen at first render (stable useCallback deps), so calling buildResumeSnapshot directly would snapshot the FIRST-render props (stale workoutLogId etc.). Calling through this ref grabs the latest.
   const supersetStateRef = useRef(supersetState);
 
   // Auto-save debounce timers — keep a typed value safe even if user force-closes
@@ -937,11 +950,26 @@ function GuidedWorkoutModal({
         setShowResumePrompt(true);
         setIsPaused(true); // Pause until user decides
       }
-    } else if (autoResumeOnMount && onSoftResetConsumed) {
-      // Soft-reset fired but the snapshot didn't match (rare — happens
-      // if storage was wiped between flush and remount). Clear the flag
-      // so we don't leave the parent in a bad state.
-      onSoftResetConsumed();
+    } else if (autoResumeOnMount) {
+      // Soft-reset fired but strict identity didn't match. Do NOT silently
+      // restart at exercise 0 with a zeroed clock — that's exactly what
+      // reads to a client as "it sent me back to the first exercise and
+      // logged 1 minute." If the saved snapshot is plausibly this same
+      // session (same client + same day), surface the user-facing Resume
+      // prompt so one tap restores their place and elapsed time. Only a
+      // snapshot for a genuinely different client/day falls through to a
+      // fresh start. (handleResumeAccept clamps the saved index to the
+      // current exercise list, so a stale index can't overrun.)
+      const sameSession = !!saved &&
+        saved.clientId === identity.clientId &&
+        saved.dateStr === identity.dateStr;
+      if (sameSession) {
+        setResumeData(saved);
+        setShowResumePrompt(true);
+        setIsPaused(true);
+      }
+      // Clear the flag so we don't leave the parent in a bad state.
+      if (onSoftResetConsumed) onSoftResetConsumed();
     }
     // Surface any captured crash info from the prior session. If there's
     // no resume to show, we still load this so a standalone notice can
@@ -1280,7 +1308,8 @@ function GuidedWorkoutModal({
         resumeSaveTimerRef.current = null;
       }
       if (phaseRef.current !== 'complete') {
-        saveResumeState(buildResumeSnapshot(), assignmentIdRef.current);
+        const build = buildResumeSnapshotRef.current || buildResumeSnapshot;
+        saveResumeState(build(), assignmentIdRef.current);
       }
     } catch { /* ignore */ }
     if (onSoftResetRequest) onSoftResetRequest();
@@ -2348,7 +2377,10 @@ function GuidedWorkoutModal({
       if (resumeSaveTimerRef.current) {
         clearTimeout(resumeSaveTimerRef.current);
         if (phaseRef.current !== 'complete') {
-          try { saveResumeState(buildResumeSnapshot(), assignmentIdRef.current); } catch { /* ignore */ }
+          try {
+            const build = buildResumeSnapshotRef.current || buildResumeSnapshot;
+            saveResumeState(build(), assignmentIdRef.current);
+          } catch { /* ignore */ }
         }
       }
       if (persistSaveTimerRef.current) {
@@ -3631,6 +3663,11 @@ function GuidedWorkoutModal({
       remainingTimer
     };
   };
+  // Keep the ref pointing at the latest closure every render so frozen
+  // callers (handleSoftReset, the unmount flush) snapshot current props —
+  // critically the current workoutLogId, which can churn (null → 'pending'
+  // → real id) across the soft-reset reload on a degraded connection.
+  buildResumeSnapshotRef.current = buildResumeSnapshot;
 
   // Fast localStorage backup — fires on every typed value with a short
   // debounce. Cheap (sync write) and protects against app kill / crash.
