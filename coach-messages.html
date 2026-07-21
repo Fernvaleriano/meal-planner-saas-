@@ -1235,7 +1235,7 @@
         async function loadConversations() {
             try {
                 const { data: { session } } = await supabaseClient.auth.getSession();
-                const res = await fetch(`/.netlify/functions/chat?action=conversations&coachId=${currentUser.id}`, {
+                const res = await authenticatedFetch(`/.netlify/functions/chat?action=conversations&coachId=${currentUser.id}`, {
                     headers: { 'Authorization': `Bearer ${session.access_token}` }
                 });
                 if (!res.ok) throw new Error('Failed to load conversations: ' + res.status);
@@ -1349,7 +1349,7 @@
             // Load messages
             const { data: { session } } = await supabaseClient.auth.getSession();
             try {
-                const res = await fetch(`/.netlify/functions/chat?action=messages&coachId=${currentUser.id}&clientId=${clientId}&limit=100`, {
+                const res = await authenticatedFetch(`/.netlify/functions/chat?action=messages&coachId=${currentUser.id}&clientId=${clientId}&limit=100`, {
                     headers: { 'Authorization': `Bearer ${session.access_token}` }
                 });
                 if (!res.ok) throw new Error('Failed to load messages: ' + res.status);
@@ -1374,7 +1374,7 @@
             }
 
             // Mark as read
-            await fetch('/.netlify/functions/chat', {
+            await authenticatedFetch('/.netlify/functions/chat', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
                 body: JSON.stringify({ action: 'mark-read', coachId: currentUser.id, clientId, readerType: 'coach' })
@@ -1732,7 +1732,7 @@
             if (!confirm('Delete this message?')) return;
 
             const { data: { session } } = await supabaseClient.auth.getSession();
-            const res = await fetch('/.netlify/functions/chat', {
+            const res = await authenticatedFetch('/.netlify/functions/chat', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
                 body: JSON.stringify({ action: 'delete', messageId: msgId, coachId: currentUser.id })
@@ -1803,7 +1803,7 @@
 
             const { data: { session } } = await supabaseClient.auth.getSession();
             try {
-                const res = await fetch('/.netlify/functions/chat', {
+                const res = await authenticatedFetch('/.netlify/functions/chat', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
                     body: JSON.stringify({
@@ -1920,7 +1920,7 @@
             }
 
             // Send message via API
-            await fetch('/.netlify/functions/chat', {
+            await authenticatedFetch('/.netlify/functions/chat', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
                 body: JSON.stringify({
@@ -2010,7 +2010,7 @@
 
             try {
                 const { data: { session } } = await supabaseClient.auth.getSession();
-                const res = await fetch('/.netlify/functions/chat', {
+                const res = await authenticatedFetch('/.netlify/functions/chat', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
                     body: JSON.stringify({ action: 'bulk-send', coachId: currentUser.id, clientIds, message })
@@ -2127,7 +2127,7 @@
 
                         // Mark as read
                         const { data: { session } } = await supabaseClient.auth.getSession();
-                        await fetch('/.netlify/functions/chat', {
+                        await authenticatedFetch('/.netlify/functions/chat', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
                             body: JSON.stringify({ action: 'mark-read', coachId: currentUser.id, clientId, readerType: 'coach' })
@@ -2165,7 +2165,7 @@
         // Load unread message count for sidebar badge
         async function loadUnreadMessageCount(coachId) {
             try {
-                const res = await fetch(`/.netlify/functions/chat?action=conversations&coachId=${coachId}`);
+                const res = await authenticatedFetch(`/.netlify/functions/chat?action=conversations&coachId=${coachId}`);
                 const data = await res.json();
                 const totalUnread = (data.conversations || []).reduce((sum, c) => sum + (c.unreadCount || 0), 0);
                 const sidebarBadge = document.getElementById('sidebarMsgBadge');

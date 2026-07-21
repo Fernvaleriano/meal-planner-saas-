@@ -11578,7 +11578,7 @@
             }
 
             try {
-                const res = await fetch('/.netlify/functions/chat', {
+                const res = await authenticatedFetch('/.netlify/functions/chat', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -16435,7 +16435,7 @@
             msg += ' — ' + input.value.trim();
 
             try {
-                const res = await fetch('/.netlify/functions/chat', {
+                const res = await authenticatedFetch('/.netlify/functions/chat', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({

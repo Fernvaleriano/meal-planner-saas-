@@ -1,5 +1,6 @@
 // Netlify Function for coach-client direct messaging
 const { createClient } = require('@supabase/supabase-js');
+const { authenticateRequest, authenticateClientAccess, forbiddenResponse } = require('./utils/auth');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -18,6 +19,24 @@ exports.handler = async (event) => {
   try {
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
+    // All messaging operations require a logged-in user. These messages are
+    // private coach<->client DMs; previously any unauthenticated caller could
+    // read or send them by supplying ids.
+    const { user: authUser, error: authErr } = await authenticateRequest(event);
+    if (authErr) return authErr;
+
+    // Authorize the caller for a specific conversation: either the coach who
+    // owns it (their id === coachId), or the client in it (verified via their
+    // own token). Returns null when authorized, or a forbidden response.
+    const authorizeConversation = async (coachId, clientId) => {
+      if (coachId && authUser.id === coachId) return null;
+      if (clientId) {
+        const ca = await authenticateClientAccess(event, clientId);
+        if (!ca.error) return null;
+      }
+      return forbiddenResponse('Not authorized for this conversation');
+    };
+
     // GET - Fetch conversations or messages
     if (event.httpMethod === 'GET') {
       const params = event.queryStringParameters || {};
@@ -25,6 +44,8 @@ exports.handler = async (event) => {
 
       // Get conversation list for a coach (all clients with last message + unread count)
       if (action === 'conversations' && coachId) {
+        // Only the coach themselves may list their conversations.
+        if (authUser.id !== coachId) return forbiddenResponse('Not authorized');
         // Get all clients for this coach
         const { data: clients, error: clientsError } = await supabase
           .from('clients')
@@ -109,6 +130,8 @@ exports.handler = async (event) => {
 
       // Get conversation list for a client (just their coach)
       if (action === 'client-conversations' && clientId) {
+        const convAuth = await authorizeConversation(null, clientId);
+        if (convAuth) return convAuth;
         // Get the client's coach
         const { data: client, error: clientError } = await supabase
           .from('clients')
@@ -167,6 +190,8 @@ exports.handler = async (event) => {
 
       // Get messages for a specific conversation
       if (action === 'messages' && coachId && clientId) {
+        const convAuth = await authorizeConversation(coachId, clientId);
+        if (convAuth) return convAuth;
         let query = supabase
           .from('chat_messages')
           .select('id, sender_type, message, media_url, media_type, is_read, created_at')
@@ -213,6 +238,14 @@ exports.handler = async (event) => {
 
         if (!['coach', 'client'].includes(senderType)) {
           return { statusCode: 400, headers: corsHeaders, body: JSON.stringify({ error: 'senderType must be coach or client' }) };
+        }
+
+        // The sender must actually be who they claim to be.
+        if (senderType === 'coach') {
+          if (authUser.id !== coachId) return forbiddenResponse('Not authorized');
+        } else {
+          const ca = await authenticateClientAccess(event, clientId);
+          if (ca.error) return ca.error;
         }
 
         const insertData = {
@@ -282,6 +315,9 @@ exports.handler = async (event) => {
           return { statusCode: 400, headers: corsHeaders, body: JSON.stringify({ error: 'coachId, clientIds[], and message are required' }) };
         }
 
+        // Bulk send is coach-only.
+        if (authUser.id !== coachId) return forbiddenResponse('Not authorized');
+
         const normalizedClientIds = [...new Set(clientIds.map(id => parseInt(id)).filter(id => Number.isInteger(id)))];
 
         if (normalizedClientIds.length === 0) {
@@ -341,6 +377,14 @@ exports.handler = async (event) => {
           return { statusCode: 400, headers: corsHeaders, body: JSON.stringify({ error: 'coachId, clientId, and readerType required' }) };
         }
 
+        // The reader must be a party to this conversation.
+        if (readerType === 'coach') {
+          if (authUser.id !== coachId) return forbiddenResponse('Not authorized');
+        } else {
+          const ca = await authenticateClientAccess(event, clientId);
+          if (ca.error) return ca.error;
+        }
+
         // Mark messages from the OTHER party as read
         const senderToMark = readerType === 'coach' ? 'client' : 'coach';
 
@@ -375,6 +419,14 @@ exports.handler = async (event) => {
 
         if (!['coach', 'client'].includes(senderType)) {
           return { statusCode: 400, headers: corsHeaders, body: JSON.stringify({ error: 'senderType must be coach or client' }) };
+        }
+
+        // Only the message's own sender may delete it.
+        if (senderType === 'coach') {
+          if (authUser.id !== coachId) return forbiddenResponse('Not authorized');
+        } else {
+          const ca = await authenticateClientAccess(event, clientId);
+          if (ca.error) return ca.error;
         }
 
         let query = supabase
@@ -412,6 +464,14 @@ exports.handler = async (event) => {
 
         if (!messageId || !emoji || !reactorType || !coachId || !clientId) {
           return { statusCode: 400, headers: corsHeaders, body: JSON.stringify({ error: 'messageId, emoji, reactorType, coachId, and clientId required' }) };
+        }
+
+        // The reactor must be a party to this conversation.
+        if (reactorType === 'coach') {
+          if (authUser.id !== coachId) return forbiddenResponse('Not authorized');
+        } else {
+          const ca = await authenticateClientAccess(event, clientId);
+          if (ca.error) return ca.error;
         }
 
         const reactionMsg = `__REACTION__:${messageId}:${emoji}`;
