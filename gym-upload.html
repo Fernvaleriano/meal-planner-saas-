@@ -35,6 +35,7 @@
     .bar { height:6px; background:var(--line); border-radius:4px; overflow:hidden; margin:6px 0 16px; display:none; }
     .bar > div { height:100%; background:var(--accent); width:0%; transition:width .2s; }
     .done-msg { display:none; background:rgba(51,194,127,.12); border:1.5px solid var(--ok); color:#dff7ea; border-radius:12px; padding:16px 18px; margin-bottom:16px; font-size:15px; line-height:1.5; }
+    .batch-warn { display:none; background:rgba(247,185,85,.12); border:1.5px solid var(--warn); color:#ffe9c4; border-radius:12px; padding:12px 16px; margin-bottom:12px; font-size:14px; line-height:1.5; }
     .fatal { text-align:center; padding:60px 20px; }
     .fatal h2 { font-size:20px; margin-bottom:10px; }
     .fatal p { color:var(--muted); max-width:440px; margin:0 auto; line-height:1.6; }
@@ -73,10 +74,13 @@
           <li>Use normal <b>1080p / Full HD</b>. Turn <b>off</b> 4K if your phone has it on.</li>
           <li>Steady phone, the whole movement in frame, good light, tidy background.</li>
           <li><b>One exercise per clip</b>, and name the file after the exercise if you can.</li>
+          <li>Upload in batches of about <b>40 clips at a time</b> — add more once a batch finishes.</li>
+          <li>Keep this page <b>open</b> until it says all done — closing it stops the upload.</li>
         </ul>
       </div>
 
       <div class="done-msg" id="doneMsg"></div>
+      <div class="batch-warn" id="batchWarn"></div>
 
       <div class="toolbar">
         <label class="btn primary" for="fileInput">＋ Add videos</label>
@@ -211,6 +215,9 @@
     function handleFiles(fileList) {
       const files = Array.from(fileList).filter(f => (f.type||'').startsWith('video/') || /\.(mp4|mov|webm|m4v)$/i.test(f.name));
       files.forEach(file => {
+        // Skip a clip that's already in the list (same name + size) — stops
+        // accidental double-adds from uploading twice.
+        if (rows.some(r => r.file && r.file.name === file.name && r.file.size === file.size)) return;
         const { contentType } = typeFor(file);
         const row = { id:++uid, file, contentType, name:file.name, thumb:null, vw:0, vh:0, dur:0, qc:'checking', issues:[], warnings:[], status:'ready', error:'' };
         rows.push(row);
@@ -234,7 +241,36 @@
       const done = rows.filter(r => r.status==='done').length;
       document.getElementById('count').textContent = rows.length ? `${done}/${rows.length} uploaded` : '';
       document.getElementById('uploadBtn').disabled = uploading || rows.length===0 || rows.every(r => r.status==='done');
+      updateBatchWarn();
     }
+
+    // Gentle nudge when someone piles in far more than a batch at once.
+    const BATCH_LIMIT = 40;
+    function updateBatchWarn() {
+      const el = document.getElementById('batchWarn');
+      const pending = rows.filter(r => r.status !== 'done').length;
+      if (pending > BATCH_LIMIT) {
+        el.style.display = 'block';
+        el.textContent = `⚠ That's ${pending} clips at once — uploads go smoother in batches of about ${BATCH_LIMIT}. You can still upload them all, just keep this page open (and your phone awake) until it says all done.`;
+      } else {
+        el.style.display = 'none';
+      }
+    }
+
+    // Keep the phone's screen awake while uploading — a locked screen is the
+    // #1 reason big mobile uploads die halfway.
+    let wakeLock = null;
+    async function keepAwake(on) {
+      try {
+        if (on && 'wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen');
+        else if (!on && wakeLock) { await wakeLock.release(); wakeLock = null; }
+      } catch (e) { /* not supported — uploads still work, screen just may sleep */ }
+    }
+
+    // Warn before closing/leaving the page while uploads are still running.
+    window.addEventListener('beforeunload', (e) => {
+      if (uploading) { e.preventDefault(); e.returnValue = ''; }
+    });
 
     async function uploadRow(row) {
       row.status='uploading'; render();
@@ -251,11 +287,13 @@
       const queue = rows.filter(r => r.status !== 'done');
       if (!queue.length) return;
       uploading = true; document.getElementById('uploadBtn').disabled = true;
+      keepAwake(true);
       const bar = document.getElementById('bar'); bar.style.display='block'; const fill = bar.firstElementChild;
       let done=0; const total=queue.length; let i=0;
       const worker = async () => { while (i < queue.length) { await uploadRow(queue[i++]); done++; fill.style.width = Math.round(done/total*100)+'%'; render(); } };
       await Promise.all([worker(), worker(), worker()]);
       uploading = false;
+      keepAwake(false);
       bar.style.display='none'; fill.style.width='0%';
       const failed = rows.filter(r => r.status==='error').length;
       const msg = document.getElementById('doneMsg');
