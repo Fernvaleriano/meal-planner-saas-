@@ -139,11 +139,20 @@ exports.handler = async (event) => {
         authUserId = authData.user.id;
       }
 
+      // A trainer's client is always assigned to them. An owner may assign to a
+      // specific trainer, but only one that belongs to this gym.
+      let assignTrainerId = role === 'trainer' ? trainerId : null;
+      if (role !== 'trainer' && body.trainerId != null) {
+        const { data: vt } = await supabase.from('gym_trainers')
+          .select('id').eq('id', body.trainerId).eq('gym_coach_id', gymCoachId).maybeSingle();
+        assignTrainerId = vt ? body.trainerId : null;
+      }
+
       const { data: created, error: insErr } = await supabase
         .from('clients')
         .insert([{
           coach_id: gymCoachId,                                   // gym owns it
-          trainer_id: role === 'trainer' ? trainerId : (body.trainerId || null), // trainer borrows it
+          trainer_id: assignTrainerId,                            // trainer borrows it
           client_name: clientName,
           email,
           phone,

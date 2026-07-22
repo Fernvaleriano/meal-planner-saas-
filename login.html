@@ -26,7 +26,20 @@
                     var p = JSON.parse(localStorage.getItem('zique_branding_preload') || 'null');
                     cid = p && p.coachId;
                 }
-                if (cid) document.documentElement.setAttribute('data-brand-pending', '');
+                if (cid) {
+                    document.documentElement.setAttribute('data-brand-pending', '');
+                    // Paint the gym's cached colours immediately so the default
+                    // teal doesn't flash before branding loads (repeat visits).
+                    try {
+                        var col = JSON.parse(localStorage.getItem('zq-staff-colors-' + cid) || 'null');
+                        if (col && col.p) {
+                            var rs = document.documentElement.style;
+                            rs.setProperty('--brand-primary', col.p);
+                            rs.setProperty('--brand-secondary', col.s || col.p);
+                            rs.setProperty('--brand-gradient', 'linear-gradient(135deg, ' + col.p + ' 0%, ' + (col.s || col.p) + ' 100%)');
+                        }
+                    } catch (e) { /* ignore */ }
+                }
             } catch (e) { /* show default */ }
         })();
     </script>
@@ -569,6 +582,8 @@
                     root.style.setProperty('--brand-gradient',
                         'linear-gradient(135deg, ' + b.brand_primary_color + ' 0%, ' + b.brand_secondary_color + ' 100%)');
                 }
+                // Cache colours so the next visit paints them before first paint.
+                try { localStorage.setItem('zq-staff-colors-' + coachId, JSON.stringify({ p: b.brand_primary_color, s: b.brand_secondary_color })); } catch (e) { /* ignore */ }
                 const name = b.brand_app_name || b.brand_name || 'Ziquecoach';
                 const logos = document.querySelectorAll('.brand-logo-img, .mobile-logo-img');
                 if (b.brand_logo_url && logos.length) {

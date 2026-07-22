@@ -142,6 +142,36 @@
 
     const LOGO_CACHE_PREFIX = 'zq-brand-logo-';
     const GYM_CACHE_PREFIX = 'zq-brand-gym-';
+    // uid -> effective branding coach id. A gym TRAINER (a login with no
+    // coaches row but an active gym_trainers row) must brand as their GYM, not
+    // as their own id (which has no branding and 404s get-coach-branding,
+    // causing the default Ziquecoach logo to flash). Cached per uid so repeat
+    // loads apply the gym logo instantly with no flash. Owners map to self.
+    const EFF_CACHE_PREFIX = 'zq-eff-coach-';
+    // A trainer borrows the gym's brand but must NOT get gym-owner-only nav
+    // (e.g. Ranks). Tracked here so applyBrandingAndRanks can skip it.
+    let __isTrainerAccount = false;
+
+    async function effectiveBrandCoachId(uid) {
+        if (!uid) return uid;
+        try { const c = localStorage.getItem(EFF_CACHE_PREFIX + uid); if (c) { __isTrainerAccount = (c !== uid); return c; } } catch (e) {}
+        try {
+            let client = window.supabaseClient;
+            if ((!client || !client.from) && window.supabase && window.supabase.createClient) {
+                client = window.supabase.createClient('https://' + SB_REF + '.supabase.co', SB_ANON);
+            }
+            if (client && client.from) {
+                // Owner? (own coaches row, readable under RLS) -> self.
+                const { data: coachRow } = await client.from('coaches').select('id').eq('id', uid).maybeSingle();
+                if (coachRow) { __isTrainerAccount = false; try { localStorage.setItem(EFF_CACHE_PREFIX + uid, uid); } catch (e) {} return uid; }
+                // Active trainer? (own gym_trainers row, readable under RLS) -> their gym.
+                const { data: t } = await client.from('gym_trainers')
+                    .select('gym_coach_id').eq('trainer_user_id', uid).eq('status', 'active').maybeSingle();
+                if (t && t.gym_coach_id) { __isTrainerAccount = true; try { localStorage.setItem(EFF_CACHE_PREFIX + uid, t.gym_coach_id); } catch (e) {} return t.gym_coach_id; }
+            }
+        } catch (e) { /* fall back to self */ }
+        return uid;
+    }
 
     function revealSidebarLogo() {
         const hold = document.getElementById('zique-logo-hold');
@@ -187,7 +217,11 @@
     function preapplyBrandLogo() {
         const { email, coachId } = accountFromStorage();
         if (!email || email === MASTER_EMAIL) return;   // master keeps the default logo
-        const cached = coachId ? localStorage.getItem(LOGO_CACHE_PREFIX + coachId) : null;
+        // For a trainer we cached their gym id last visit; use it so the gym
+        // logo applies instantly and the default never flashes on repeat loads.
+        let effId = coachId;
+        try { const c = coachId && localStorage.getItem(EFF_CACHE_PREFIX + coachId); if (c) effId = c; } catch (e) {}
+        const cached = effId ? localStorage.getItem(LOGO_CACHE_PREFIX + effId) : null;
         if (cached === 'default') return;               // known: no custom logo → keep default, no hide
         const s = document.createElement('style');
         s.id = 'zique-logo-hold';
@@ -210,7 +244,7 @@
         // Waiting made the nav item pop in after paint on every page load —
         // the sidebar looked different from page to page while loading.
         try {
-            if (localStorage.getItem(GYM_CACHE_PREFIX + coachId) === '1') injectRanksNavItem();
+            if (!__isTrainerAccount && localStorage.getItem(GYM_CACHE_PREFIX + coachId) === '1') injectRanksNavItem();
         } catch (e) { /* ignore */ }
         fetch('/.netlify/functions/get-coach-branding?coachId=' + encodeURIComponent(coachId))
             .then(r => (r.ok ? r.json() : null))
@@ -222,7 +256,7 @@
                         localStorage.setItem(LOGO_CACHE_PREFIX + coachId, isCustom ? url : 'default');
                         localStorage.setItem(GYM_CACHE_PREFIX + coachId, b.is_gym ? '1' : '0');
                     } catch (e) { /* ignore */ }
-                    if (b.is_gym) injectRanksNavItem();
+                    if (b.is_gym && !__isTrainerAccount) injectRanksNavItem();
                     if (isCustom) {
                         setBrandLogoAndReveal(url, b.brand_name || b.brand_app_name || 'Gym');
                         return;
@@ -269,8 +303,9 @@
             'a[href$="reminder-settings.html"], a[href$="coach-billing.html"], ' +
             '#subscriptionCard { display:none !important; }'
         );
-        // ...show their own brand in the corner, and (for gyms) add Ranks.
-        applyBrandingAndRanks(coachId);
+        // ...show their own brand (a TRAINER shows their GYM's brand) in the
+        // corner, and (for gyms) add Ranks.
+        applyBrandingAndRanks(await effectiveBrandCoachId(coachId));
     }
 
     function init() {

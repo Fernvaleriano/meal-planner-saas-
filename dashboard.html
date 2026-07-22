@@ -9380,7 +9380,13 @@
                 if (b && !b.error) {
                     gymName = b.brand_app_name || b.brand_name || gymName;
                     logo = b.brand_logo_url || null;
-                    if (b.brand_primary_color) document.documentElement.style.setProperty('--brand-primary', b.brand_primary_color);
+                    if (b.brand_primary_color) {
+                        const p = b.brand_primary_color, s = b.brand_secondary_color || p, rs = document.documentElement.style;
+                        rs.setProperty('--brand-primary', p);
+                        rs.setProperty('--brand-secondary', s);
+                        rs.setProperty('--brand-primary-dark', s);
+                        rs.setProperty('--brand-gradient', 'linear-gradient(135deg, ' + p + ' 0%, ' + s + ' 100%)');
+                    }
                 }
             } catch (e) {}
             document.title = gymName + ' — Trainer';
@@ -9388,8 +9394,9 @@
             const nameEl = document.getElementById('userName'); if (nameEl) nameEl.textContent = gymName;
             const av = document.getElementById('userAvatar'); if (av) av.textContent = (gymName || 'G').charAt(0).toUpperCase();
 
-            // Trim the sidebar to what a trainer can use today (Dashboard + Workouts).
-            document.querySelectorAll('.sidebar-nav-item').forEach(a => {
+            // Trim the sidebar AND the mobile bottom nav to what a trainer can
+            // use today (Dashboard + Workouts), so no owner-only tabs show.
+            document.querySelectorAll('.sidebar-nav-item, .coach-nav-item').forEach(a => {
                 const href = a.getAttribute('href') || '';
                 const keep = href.indexOf('dashboard.html') !== -1 || href.indexOf('coach-workout-plans.html') !== -1
                     || a.id === 'logoutBtn' || a.id === 'logoutLink';
@@ -9418,8 +9425,15 @@
             // Scoped clients via the trainer-clients endpoint (already trainer-scoped).
             try {
                 const res = await fetch('/.netlify/functions/trainer-clients', { headers: { 'Authorization': 'Bearer ' + token } });
-                const data = await res.json();
-                const clients = (res.ok && data.clients) ? data.clients : [];
+                const data = await res.json().catch(() => ({}));
+                // Distinguish a real failure from "genuinely zero clients" so a
+                // transient auth/network hiccup isn't shown as "no clients".
+                if (!res.ok) {
+                    const cEl = document.getElementById('trClients');
+                    if (cEl) cEl.textContent = 'Couldn’t load your clients — please refresh.';
+                    return;
+                }
+                const clients = data.clients || [];
                 if (data && data.me && data.me.name) {
                     const h = document.getElementById('trHello');
                     if (h) h.textContent = 'Hi ' + esc(data.me.name.split(' ')[0]) + ' — your clients';
