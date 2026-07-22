@@ -273,7 +273,7 @@
     // sidebar, so it's consistent on every page (not racing per-page scripts).
     // Add a page to TRAINER_NAV_ALLOW as it becomes trainer-aware.
     var TRAINER_NAV_ALLOW = ['dashboard.html', 'coach-workout-plans.html', 'coach-workouts.html',
-        'manage-clients.html', 'coach-challenges.html',
+        'manage-clients.html', 'coach-messages.html', 'coach-challenges.html',
         'supplement-protocols.html', 'coach-stats.html'];
     function trimNavForTrainer() {
         try {

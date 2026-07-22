@@ -25,11 +25,22 @@ exports.handler = async (event) => {
     const { user: authUser, error: authErr } = await authenticateRequest(event);
     if (authErr) return authErr;
 
-    // Authorize the caller for a specific conversation: either the coach who
-    // owns it (their id === coachId), or the client in it (verified via their
-    // own token). Returns null when authorized, or a forbidden response.
+    // True if the caller is the COACH side of this conversation: the gym owner
+    // (authUser.id === coachId) OR a trainer of that gym whose assigned clients
+    // include clientId. Owners are unaffected (first check is the old one).
+    const coachSideAuthorized = async (coachId, clientId) => {
+      if (coachId && authUser.id === coachId) return true;
+      if (coachId && clientId != null) {
+        const scope = await trainerClientIdScope(event, supabase, coachId);
+        if (scope && scope.map(String).includes(String(clientId))) return true;
+      }
+      return false;
+    };
+
+    // Authorize the caller for a specific conversation: the coach side (owner or
+    // assigned trainer), or the client in it (verified via their own token).
     const authorizeConversation = async (coachId, clientId) => {
-      if (coachId && authUser.id === coachId) return null;
+      if (await coachSideAuthorized(coachId, clientId)) return null;
       if (clientId) {
         const ca = await authenticateClientAccess(event, clientId);
         if (!ca.error) return null;
@@ -261,7 +272,7 @@ exports.handler = async (event) => {
 
         // The sender must actually be who they claim to be.
         if (senderType === 'coach') {
-          if (authUser.id !== coachId) return forbiddenResponse('Not authorized');
+          if (!(await coachSideAuthorized(coachId, clientId))) return forbiddenResponse('Not authorized');
         } else {
           const ca = await authenticateClientAccess(event, clientId);
           if (ca.error) return ca.error;
@@ -338,8 +349,13 @@ exports.handler = async (event) => {
           return { statusCode: 400, headers: corsHeaders, body: JSON.stringify({ error: 'coachId, clientIds[], and message are required' }) };
         }
 
-        // Bulk send is coach-only.
-        if (authUser.id !== coachId) return forbiddenResponse('Not authorized');
+        // Coach side only. A trainer may bulk-send, but only to clients assigned
+        // to them (every id must be in their scope).
+        if (authUser.id !== coachId) {
+          const scope = await trainerClientIdScope(event, supabase, coachId);
+          const ok = scope && clientIds.every(id => scope.map(String).includes(String(id)));
+          if (!ok) return forbiddenResponse('Not authorized');
+        }
 
         const normalizedClientIds = [...new Set(clientIds.map(id => parseInt(id)).filter(id => Number.isInteger(id)))];
 
@@ -402,7 +418,7 @@ exports.handler = async (event) => {
 
         // The reader must be a party to this conversation.
         if (readerType === 'coach') {
-          if (authUser.id !== coachId) return forbiddenResponse('Not authorized');
+          if (!(await coachSideAuthorized(coachId, clientId))) return forbiddenResponse('Not authorized');
         } else {
           const ca = await authenticateClientAccess(event, clientId);
           if (ca.error) return ca.error;
@@ -446,7 +462,7 @@ exports.handler = async (event) => {
 
         // Only the message's own sender may delete it.
         if (senderType === 'coach') {
-          if (authUser.id !== coachId) return forbiddenResponse('Not authorized');
+          if (!(await coachSideAuthorized(coachId, clientId))) return forbiddenResponse('Not authorized');
         } else {
           const ca = await authenticateClientAccess(event, clientId);
           if (ca.error) return ca.error;
@@ -491,7 +507,7 @@ exports.handler = async (event) => {
 
         // The reactor must be a party to this conversation.
         if (reactorType === 'coach') {
-          if (authUser.id !== coachId) return forbiddenResponse('Not authorized');
+          if (!(await coachSideAuthorized(coachId, clientId))) return forbiddenResponse('Not authorized');
         } else {
           const ca = await authenticateClientAccess(event, clientId);
           if (ca.error) return ca.error;
