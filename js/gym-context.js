@@ -51,8 +51,13 @@
     }
 
     function isFunctionCall(url) {
-      // Only our own Netlify functions; ignore Supabase / third-party hosts.
-      return typeof url === 'string' && url.indexOf('/.netlify/functions/') !== -1;
+      // Only our OWN Netlify functions, same-origin. Resolve to an absolute
+      // URL and compare origin so a third-party host that merely contains
+      // "/.netlify/functions/" in its path can never receive the bearer token.
+      try {
+        const u = new URL(url, location.href);
+        return u.origin === location.origin && u.pathname.indexOf('/.netlify/functions/') === 0;
+      } catch (e) { return false; }
     }
 
     function hasAuth(init, input) {
@@ -76,11 +81,18 @@
       } catch (e) { /* no session → send as-is */ }
       if (!token) return nativeFetch(input, init);
 
-      const nextInit = Object.assign({}, init);
-      const headers = new Headers((init && init.headers) || (typeof input !== 'string' && input && input.headers) || {});
-      headers.set('Authorization', 'Bearer ' + token);
-      nextInit.headers = headers;
-      return nativeFetch(input, nextInit);
+      // Build the auth header defensively: if anything about the caller's
+      // headers is malformed, fall back to the native fetch untouched rather
+      // than throwing where the native call wouldn't.
+      try {
+        const nextInit = Object.assign({}, init);
+        const headers = new Headers((init && init.headers) || (typeof input !== 'string' && input && input.headers) || {});
+        headers.set('Authorization', 'Bearer ' + token);
+        nextInit.headers = headers;
+        return nativeFetch(input, nextInit);
+      } catch (e) {
+        return nativeFetch(input, init);
+      }
     };
   }
 
