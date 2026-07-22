@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useBranding, DEFAULT_TUTORIAL_VIDEO_URL } from '../context/BrandingContext';
 import { useLanguage } from '../context/LanguageContext';
-import { Moon, Camera, Lock, LogOut, ChevronRight, Loader, Users, Scale, User, Utensils, Edit3, X, Palette, Droplets, CreditCard, PlayCircle, Download, Trash2, Globe } from 'lucide-react';
+import { Moon, Camera, Lock, LogOut, ChevronRight, Loader, Users, Scale, User, Utensils, Edit3, X, Palette, Droplets, CreditCard, PlayCircle, Download, Trash2, Globe, Mail } from 'lucide-react';
 import { apiGet, apiPost, apiPut } from '../utils/api';
 import { supabase } from '../utils/supabase';
 import { usePullToRefreshEvent } from '../hooks/usePullToRefreshEvent';
@@ -365,6 +365,23 @@ function Settings() {
       });
     } finally {
       setPasswordLoading(false);
+    }
+  };
+
+  // Resend the account-confirmation email. Same endpoint the top-of-app
+  // VerifyEmailBanner uses — this is the fallback path once that banner is
+  // dismissed. Only shown while the client is still unverified.
+  const [resendingVerify, setResendingVerify] = useState(false);
+  const handleResendVerification = async () => {
+    if (resendingVerify) return;
+    setResendingVerify(true);
+    try {
+      await apiPost('/.netlify/functions/resend-client-verification-email', {});
+      showSuccess(`We sent a new confirmation link to ${clientData?.email || 'your email'}.`);
+    } catch (err) {
+      showError('Could not send the confirmation email. Please try again.');
+    } finally {
+      setResendingVerify(false);
     }
   };
 
@@ -974,6 +991,33 @@ function Settings() {
       {/* Account Section */}
       <div className="settings-card">
         <div className="settings-card-title">{t('settings.account')}</div>
+
+        {!isCoach && clientData && !clientData.email_verified_at && (
+          <>
+            <div
+              className="settings-item clickable"
+              onClick={handleResendVerification}
+              style={resendingVerify ? { opacity: 0.6, pointerEvents: 'none' } : undefined}
+            >
+              <div className="settings-item-left">
+                <div className="settings-icon-box neutral">
+                  <Mail size={18} />
+                </div>
+                <div className="settings-item-text">
+                  <div className="settings-item-title">Confirm your email</div>
+                  <div className="settings-item-subtitle">
+                    Resend the confirmation link to {clientData.email || 'your email'}
+                  </div>
+                </div>
+              </div>
+              {resendingVerify
+                ? <Loader size={20} className="settings-chevron spin" />
+                : <ChevronRight size={20} className="settings-chevron" />}
+            </div>
+            <div className="settings-divider"></div>
+          </>
+        )}
+
         <div className="settings-item clickable" onClick={() => setShowPasswordModal(true)}>
           <div className="settings-item-left">
             <div className="settings-icon-box neutral">
