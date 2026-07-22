@@ -9368,10 +9368,8 @@
         // Trainer home: reuse this dashboard's chrome + styling, but scoped to the
         // trainer's assigned clients and branded as their gym. Self-contained — it
         // never touches the owner load path (owners return before calling this).
-        async function loadTrainerHome(ctx, user) {
+        async function loadTrainerHome(ctx, user, token) {
             const gymId = ctx.coachId;
-            let token = null;
-            try { const { data: { session } } = await supabaseClient.auth.getSession(); token = session && session.access_token; } catch (e) {}
 
             // Gym branding: logo, name, accent colour.
             let gymName = 'Your gym', logo = null;
@@ -9501,7 +9499,7 @@
                     const __tctx = (window.ZQCoach && window.ZQCoach.resolveCoachContext)
                         ? await window.ZQCoach.resolveCoachContext(supabaseClient) : null;
                     if (__tctx && __tctx.role === 'trainer') {
-                        await loadTrainerHome(__tctx, user);
+                        await loadTrainerHome(__tctx, user, session.access_token);
                         isLoading = false;
                         return;
                     }

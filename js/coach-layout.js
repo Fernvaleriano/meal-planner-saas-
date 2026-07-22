@@ -268,6 +268,26 @@
     }
 
     // Ziquecoach: put a "Ranks" nav item where Challenges used to be.
+    // A gym TRAINER only gets the coach pages that are trainer-ready. Hide the
+    // rest of the nav (and mobile bottom nav) here, in the layout that owns the
+    // sidebar, so it's consistent on every page (not racing per-page scripts).
+    // Add a page to TRAINER_NAV_ALLOW as it becomes trainer-aware.
+    var TRAINER_NAV_ALLOW = ['dashboard.html', 'coach-workout-plans.html', 'coach-workouts.html'];
+    function trimNavForTrainer() {
+        try {
+            document.querySelectorAll('.sidebar-nav-item, .coach-nav-item').forEach(function (a) {
+                var href = a.getAttribute('href') || '';
+                var isLogout = a.classList.contains('sidebar-nav-logout') || /logout/i.test(a.id || '');
+                var keep = isLogout || TRAINER_NAV_ALLOW.some(function (h) { return href.indexOf(h) !== -1; });
+                if (!keep) a.style.setProperty('display', 'none', 'important');
+            });
+            // Hide a now-empty "Settings" section header.
+            document.querySelectorAll('.sidebar-nav-label').forEach(function (l) {
+                if (/setting/i.test(l.textContent || '')) l.style.setProperty('display', 'none', 'important');
+            });
+        } catch (e) { /* non-fatal */ }
+    }
+
     function injectRanksNavItem() {
         if (document.querySelector('a.sidebar-nav-item[data-zique-ranks]')) return;
         // Anchor after the (now-hidden) Challenges item, else after Workouts.
@@ -306,6 +326,13 @@
         // ...show their own brand (a TRAINER shows their GYM's brand) in the
         // corner, and (for gyms) add Ranks.
         applyBrandingAndRanks(await effectiveBrandCoachId(coachId));
+        // Trainers: keep the sidebar to trainer-ready pages, consistently on
+        // every page. Re-run a couple of times to catch late-rendered nav.
+        if (__isTrainerAccount) {
+            trimNavForTrainer();
+            setTimeout(trimNavForTrainer, 300);
+            setTimeout(trimNavForTrainer, 1200);
+        }
     }
 
     function init() {
