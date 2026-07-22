@@ -1,6 +1,6 @@
 // Netlify Function to rename a meal plan
 const { createClient } = require('@supabase/supabase-js');
-const { handleCors, authenticateCoach, corsHeaders } = require('./utils/auth');
+const { handleCors, authenticateGymMember, trainerClientIdScope, corsHeaders } = require('./utils/auth');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -32,14 +32,36 @@ exports.handler = async (event, context) => {
 
     const trimmedName = newName.trim().substring(0, 255);
 
-    // Verify the authenticated user owns this coach account
-    const { user, error: authError } = await authenticateCoach(event, coachId);
+    // Verify the authenticated user is the gym owner OR one of that gym's
+    // active trainers. Owners are unchanged; a trainer is gated below.
+    const _ctx = await authenticateGymMember(event, coachId);
+    const { user, error: authError } = _ctx;
     if (authError) return authError;
 
     // Initialize Supabase client with service key
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, {
       auth: { persistSession: false }
     });
+
+    // Trainer scope (null for owners/legacy → no gating): look up this plan's
+    // client_id and confirm it's one of the trainer's assigned clients; fail
+    // closed if the plan can't be resolved to an in-scope client.
+    const _s = await trainerClientIdScope(event, supabase, coachId, _ctx);
+    if (_s) {
+      const { data: _planRow } = await supabase
+        .from('coach_meal_plans')
+        .select('client_id')
+        .eq('id', planId)
+        .eq('coach_id', coachId)
+        .single();
+      if (!_planRow || !_s.map(String).includes(String(_planRow.client_id))) {
+        return {
+          statusCode: 403,
+          headers: corsHeaders,
+          body: JSON.stringify({ error: 'Not authorized for this client' })
+        };
+      }
+    }
 
     // First, get the current plan to update planName inside plan_data
     const { data: currentPlan, error: fetchError } = await supabase

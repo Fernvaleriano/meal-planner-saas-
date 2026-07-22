@@ -2,6 +2,7 @@
 // `weight_proofs` (photo + timestamp) and `client_measurements` (weight value).
 const { createClient } = require('@supabase/supabase-js');
 const { getDefaultDate } = require('./utils/timezone');
+const { trainerClientIdScope } = require('./utils/auth');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -66,6 +67,18 @@ exports.handler = async (event) => {
       const limit = parseInt(limitStr) || 20;
       const offset = parseInt(offsetStr) || 0;
 
+      // Trainer scope (null for owners/legacy/no-token → no gating): a trainer
+      // may only view proofs for a client assigned to them. Out-of-scope
+      // returns the same empty shape.
+      const _s = await trainerClientIdScope(event, supabase, coachId);
+      if (_s && clientId != null && !_s.map(String).includes(String(clientId))) {
+        return {
+          statusCode: 200,
+          headers,
+          body: JSON.stringify({ proofs: [], pagination: { total: 0, offset, limit, hasMore: false } })
+        };
+      }
+
       let query = supabase
         .from('weight_proofs')
         .select('*, clients!inner(client_name, profile_photo_url)', { count: 'exact' })
@@ -112,6 +125,17 @@ exports.handler = async (event) => {
           statusCode: 400,
           headers,
           body: JSON.stringify({ error: 'clientId, coachId, and photoData are required' })
+        };
+      }
+
+      // Trainer scope (null for owners/legacy/no-token → no gating): a trainer
+      // may only save a proof for a client assigned to them.
+      const _s = await trainerClientIdScope(event, supabase, coachId);
+      if (_s && clientId != null && !_s.map(String).includes(String(clientId))) {
+        return {
+          statusCode: 403,
+          headers,
+          body: JSON.stringify({ error: 'Not authorized for this client' })
         };
       }
 

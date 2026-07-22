@@ -1,5 +1,6 @@
 // Netlify Function to save/remove a reaction on a priority activity item (PR or workout note)
 const { createClient } = require('@supabase/supabase-js');
+const { trainerClientIdScope } = require('./utils/auth');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -25,6 +26,23 @@ exports.handler = async (event) => {
       }
 
       const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+
+      // Trainer scope (null for owners/legacy/no-token → no gating): the
+      // reaction being removed must belong to a client assigned to the trainer.
+      // (DELETE carries no clientId, so resolve it from the row; fail closed.)
+      const _s = await trainerClientIdScope(event, supabase, coachId);
+      if (_s) {
+        const { data: _r } = await supabase
+          .from('activity_reactions')
+          .select('client_id')
+          .eq('coach_id', coachId)
+          .eq('item_type', itemType)
+          .eq('item_id', String(itemId))
+          .maybeSingle();
+        if (!_r || !_s.map(String).includes(String(_r.client_id))) {
+          return { statusCode: 403, headers: corsHeaders, body: JSON.stringify({ error: 'Not authorized for this client' }) };
+        }
+      }
 
       const { error } = await supabase
         .from('activity_reactions')
@@ -61,6 +79,13 @@ exports.handler = async (event) => {
     }
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+
+    // Trainer scope (null for owners/legacy/no-token → no gating): a trainer
+    // may only react to activity of a client assigned to them.
+    const _s = await trainerClientIdScope(event, supabase, coachId);
+    if (_s && clientId != null && !_s.map(String).includes(String(clientId))) {
+      return { statusCode: 403, headers: corsHeaders, body: JSON.stringify({ error: 'Not authorized for this client' }) };
+    }
 
     // Check if this is a new reaction
     const { data: existing } = await supabase

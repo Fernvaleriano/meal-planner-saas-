@@ -9644,7 +9644,7 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="/js/trainer-bounce.js"></script>
+    <script src="/js/gym-context.js"></script>
     <script src="/js/api-helper.js"></script>
     <script src="/js/badge-share-card.js"></script>
     <script>
@@ -10025,7 +10025,17 @@
                 }
 
                 currentUser = session.user;
-                document.getElementById('sidebarEmail').textContent = currentUser.email;
+                // A gym trainer acts as their GYM for all coach-id uses on this
+                // page (the backend scopes every per-client call to the clients
+                // assigned to them; a client not assigned to them won't load).
+                // Owners are unchanged. Reassigning .id here feeds the gym owner
+                // id into every currentUser.id / window.coachUserId site below.
+                try {
+                    const __ctx = (window.ZQCoach && window.ZQCoach.resolveCoachContext)
+                        ? await window.ZQCoach.resolveCoachContext(supabaseClient) : null;
+                    if (__ctx && __ctx.role === 'trainer') { currentUser = { ...session.user, id: __ctx.coachId }; window.__isTrainer = true; }
+                } catch (e) { /* owner path */ }
+                document.getElementById('sidebarEmail').textContent = session.user.email;
                 console.log('User authenticated:', currentUser.id);
 
                 // Load client data and plans

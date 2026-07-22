@@ -1,5 +1,5 @@
 const { createClient } = require('@supabase/supabase-js');
-const { authenticateCoach } = require('./utils/auth');
+const { authenticateGymMember, trainerClientIdScope } = require('./utils/auth');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -32,8 +32,9 @@ exports.handler = async (event) => {
       };
     }
 
-    // Only the coach themselves may respond to their client's check-in.
-    const auth = await authenticateCoach(event, coachId);
+    // The gym owner OR one of that gym's active trainers may respond. Owners
+    // are unchanged; a trainer is gated below to their assigned clients.
+    const auth = await authenticateGymMember(event, coachId);
     if (auth.error) return auth.error;
 
     // Get the check-in to find the client_id
@@ -45,6 +46,17 @@ exports.handler = async (event) => {
       .single();
 
     if (fetchError) throw fetchError;
+
+    // Trainer scope (null for owners/legacy → no gating): this check-in's
+    // client must be one assigned to the trainer.
+    const _s = await trainerClientIdScope(event, supabase, coachId, auth);
+    if (_s && (!checkin || !_s.map(String).includes(String(checkin.client_id)))) {
+      return {
+        statusCode: 403,
+        headers,
+        body: JSON.stringify({ error: 'Not authorized for this client' })
+      };
+    }
 
     const { data, error } = await supabase
       .from('client_checkins')

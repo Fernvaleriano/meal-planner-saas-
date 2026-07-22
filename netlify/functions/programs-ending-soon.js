@@ -7,6 +7,7 @@
  */
 
 const { createClient } = require('@supabase/supabase-js');
+const { trainerClientIdScope } = require('./utils/auth');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -34,6 +35,22 @@ exports.handler = async (event) => {
 
     try {
         const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+
+        // Trainer scoping: a gym trainer only sees their assigned clients'
+        // programs. Owner/no-token callers get _scope === null (unchanged).
+        const _scope = await trainerClientIdScope(event, supabase, coachId);
+        if (_scope && _scope.length === 0) {
+            return {
+                statusCode: 200,
+                headers,
+                body: JSON.stringify({
+                    programs: [], count: 0,
+                    clientsWithoutPrograms: [], clientsWithExpiredOnly: [],
+                    totalClientsWithoutProgram: 0
+                })
+            };
+        }
+
         const now = new Date();
         const todayStr = now.toISOString().split('T')[0];
 
@@ -48,30 +65,39 @@ exports.handler = async (event) => {
         const lookBackStr = lookBackDate.toISOString().split('T')[0];
 
         // Fetch all coach's clients AND all assignments in parallel
+        // Ending assignments within the window
+        let endingQuery = supabase
+            .from('client_workout_assignments')
+            .select('id, client_id, name, start_date, end_date, workout_data, is_active')
+            .eq('coach_id', coachId)
+            .eq('is_active', true)
+            .not('end_date', 'is', null)
+            .gte('end_date', lookBackStr)
+            .lte('end_date', lookAheadStr)
+            .order('end_date', { ascending: true });
+        // Active (non-archived) clients who have set up their account
+        let clientsQuery = supabase
+            .from('clients')
+            .select('id, client_name, created_at, user_id, last_activity_at')
+            .eq('coach_id', coachId)
+            .not('user_id', 'is', null)
+            .or('is_archived.eq.false,is_archived.is.null');
+        // ALL active assignments (to find clients without programs)
+        let allAssignmentsQuery = supabase
+            .from('client_workout_assignments')
+            .select('id, client_id, name, start_date, end_date, is_active')
+            .eq('coach_id', coachId)
+            .eq('is_active', true);
+
+        if (_scope) {
+            endingQuery = endingQuery.in('client_id', _scope);
+            clientsQuery = clientsQuery.in('id', _scope);
+            allAssignmentsQuery = allAssignmentsQuery.in('client_id', _scope);
+        }
+
+        // Fetch all coach's clients AND all assignments in parallel
         const [endingResult, allClientsResult, allAssignmentsResult] = await Promise.all([
-            // Get active assignments ending within the window
-            supabase
-                .from('client_workout_assignments')
-                .select('id, client_id, name, start_date, end_date, workout_data, is_active')
-                .eq('coach_id', coachId)
-                .eq('is_active', true)
-                .not('end_date', 'is', null)
-                .gte('end_date', lookBackStr)
-                .lte('end_date', lookAheadStr)
-                .order('end_date', { ascending: true }),
-            // Get all active (non-archived) clients who have actually set up their account
-            supabase
-                .from('clients')
-                .select('id, client_name, created_at, user_id, last_activity_at')
-                .eq('coach_id', coachId)
-                .not('user_id', 'is', null)
-                .or('is_archived.eq.false,is_archived.is.null'),
-            // Get ALL active assignments for this coach (to find clients without programs)
-            supabase
-                .from('client_workout_assignments')
-                .select('id, client_id, name, start_date, end_date, is_active')
-                .eq('coach_id', coachId)
-                .eq('is_active', true)
+            endingQuery, clientsQuery, allAssignmentsQuery
         ]);
 
         const endingAssignments = endingResult.data || [];

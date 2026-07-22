@@ -22,21 +22,54 @@ Who-is-who is resolved server-side by `resolveGymContext()` in
 - else active `gym_trainers` row → **trainer** (`gymCoachId` = their gym,
   `trainerId` = theirs)
 
-## What's built so far (slice 1 of 4)
+## What's built so far (trainers now use the REAL coach app)
 
-- **`trainer-dashboard.html`** — isolated trainer page: sign in → see only
-  assigned clients → add clients (gym-owned, auto-assigned to self).
-- **`netlify/functions/trainer-clients.js`** — GET (list scoped clients) +
-  POST (create gym-owned client). Service key; scoping enforced in code;
-  respects the gym's plan client-limit and `can_create_clients`.
-- **`dashboard.html`** — a login that is an active trainer (no coach row) is
-  redirected to `trainer-dashboard.html` instead of the "coach not found"
-  error. Owner flow untouched.
-- DB foundation already present: `gym_trainers` table, `current_trainer_id()`
-  SQL fn, RLS `"Trainers can view assigned clients"` on `clients` (SELECT).
+The model shifted from "isolated trainer pages" to **"a trainer logs into the
+same coach app the gym owner sees, branded as the gym, scoped to their
+assigned clients."** `trainer-dashboard.html` is legacy; trainers now land on
+`dashboard.html` itself.
 
-**Still to build:** slice 2 = workouts, slice 3 = meal plans + messages,
-slice 4 = fuller add/edit-client. Plus a **permissions layer**.
+- **`js/gym-context.js`** — `resolveCoachContext()` tells owner vs trainer.
+  For trainers ONLY it installs a `fetch` shim that attaches the trainer's
+  bearer token to same-origin `/.netlify/functions/*` calls that lack one, so
+  the server-side scoping below actually engages. Owners never install it.
+- **`netlify/functions/utils/auth.js`** — `resolveGymContext`,
+  `authenticateGymMember(event, gymCoachId)` (owner OR that gym's trainer),
+  and `trainerClientIdScope(event, supabase, coachId, knownCtx)` → null for
+  owners/no-token (unchanged), else the trainer's assigned client-id array
+  (fail-closed; gym derived from the TOKEN, never the request).
+- **`dashboard.html`** — a trainer gets the full dashboard (AI ask bar, the
+  three overview cards, stat chips, activity feed) via `loadTrainerHome`,
+  which drives the normal loaders with the GYM's coach id and hides
+  owner-only widgets (Stories/Pep Talks, onboarding, subscription/tier,
+  gym-info editor). Owners return before this path — flow untouched.
+- **Converted coach pages** (trainer shim + in `coach-layout.js`
+  `TRAINER_NAV_ALLOW`): manage-clients, coach-messages, coach-challenges,
+  supplement-protocols, coach-stats, coach-meal-plans, planner,
+  coach-workouts, coach-workout-plans, client-profile.
+- **Server functions scoped** via `trainerClientIdScope` (owner-safe/dormant):
+  trainer-clients, create-client, chat, get-dashboard-stats,
+  coach-activity-feed, coach-workout-feed, get-clients, the client CRUD set,
+  the coach-meal-plan set, the client-profile write set (publish-plan,
+  rename-plan, replace-demo-photo, respond-checkin,
+  send-client-password-reset, save-gym-proof, save-weight-proof,
+  upload-progress-photo, toggle-favorite, react-to-activity,
+  reminder-settings), ai-activity-summary (both paths), programs-ending-soon.
+- **Trainer READ RLS policies** (`"Trainers can view assigned clients ..."`,
+  SELECT, scoped `coach_id = current_trainer_gym()` + `client_id IN (their
+  assigned clients)`; `current_trainer_id()`/`current_trainer_gym()` are NULL
+  for non-trainers so owners are unaffected) now cover: `clients`,
+  `coach_meal_plans`, `client_checkins`, `client_measurements`,
+  `client_workout_assignments`, `gym_proofs`, `progress_photos`,
+  `workout_logs`, `exercise_logs`, `activity_comments`, `activity_reactions`,
+  `chat_messages`. Tables WITHOUT a trainer policy (notifications,
+  dismissed_activity_items, food_diary_entries, weight_logs, diary reactions/
+  comments) return EMPTY for a trainer — safe (fail-closed), just not shown.
+
+**Still to build:** trainer's own profile page (coach-profile hard-fails with
+no coaches row), recipes (manage-recipes, coach-level RLS), client-feed,
+form-responses. Plus a **per-trainer permissions layer**. Writes still need a
+trainer UPDATE/DELETE path where editing is wanted (RLS is READ-only today).
 
 ## Design rules for every future slice
 
