@@ -1,6 +1,7 @@
 // Netlify Function to get client activity feed for coaches
 // Shows recent food diary entries grouped by meal for the coach to engage with
 const { createClient } = require('@supabase/supabase-js');
+const { trainerClientIdScope } = require('./utils/auth');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -71,6 +72,11 @@ exports.handler = async (event) => {
       .eq('coach_id', coachId)
       .order('created_at', { ascending: false })
       .range(dbOffset, dbOffset + fetchLimit - 1);
+
+    // Trainer scoping: restrict the feed to the trainer's assigned clients
+    // (owner/no-token callers are unaffected — _scope is null).
+    const _scope = await trainerClientIdScope(event, supabase, coachId);
+    if (_scope) query = query.in('client_id', _scope);
 
     // Apply filters
     if (clientId) {
