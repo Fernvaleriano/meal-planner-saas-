@@ -39,7 +39,7 @@
           sb.from('gym_trainers').select('id')
             .eq('trainer_user_id', uid).eq('status', 'active').maybeSingle()
             .then(function (t) {
-              if (t && t.data) window.location.replace('trainer-dashboard.html');
+              if (t && t.data) window.location.replace('dashboard.html');
             });
         });
       });

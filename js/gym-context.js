@@ -60,7 +60,7 @@
   async function guardTrainer(supabaseClient) {
     const ctx = await resolveCoachContext(supabaseClient);
     if (ctx.role === 'trainer') {
-      window.location.replace('trainer-dashboard.html');
+      window.location.replace('dashboard.html');
     }
     return ctx;
   }

@@ -6302,6 +6302,7 @@
     </nav>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="/js/gym-context.js"></script>
     <script>
         // Sidebar section collapse functionality
 
@@ -9364,6 +9365,82 @@
             }
         });
 
+        // Trainer home: reuse this dashboard's chrome + styling, but scoped to the
+        // trainer's assigned clients and branded as their gym. Self-contained — it
+        // never touches the owner load path (owners return before calling this).
+        async function loadTrainerHome(ctx, user) {
+            const gymId = ctx.coachId;
+            let token = null;
+            try { const { data: { session } } = await supabaseClient.auth.getSession(); token = session && session.access_token; } catch (e) {}
+
+            // Gym branding: logo, name, accent colour.
+            let gymName = 'Your gym', logo = null;
+            try {
+                const b = await (await fetch('/.netlify/functions/get-coach-branding?coachId=' + encodeURIComponent(gymId))).json();
+                if (b && !b.error) {
+                    gymName = b.brand_app_name || b.brand_name || gymName;
+                    logo = b.brand_logo_url || null;
+                    if (b.brand_primary_color) document.documentElement.style.setProperty('--brand-primary', b.brand_primary_color);
+                }
+            } catch (e) {}
+            document.title = gymName + ' — Trainer';
+            document.querySelectorAll('.sidebar-logo-img').forEach(i => { if (logo) i.src = logo; });
+            const nameEl = document.getElementById('userName'); if (nameEl) nameEl.textContent = gymName;
+            const av = document.getElementById('userAvatar'); if (av) av.textContent = (gymName || 'G').charAt(0).toUpperCase();
+
+            // Trim the sidebar to what a trainer can use today (Dashboard + Workouts).
+            document.querySelectorAll('.sidebar-nav-item').forEach(a => {
+                const href = a.getAttribute('href') || '';
+                const keep = href.indexOf('dashboard.html') !== -1 || href.indexOf('coach-workout-plans.html') !== -1
+                    || a.id === 'logoutBtn' || a.id === 'logoutLink';
+                if (!keep) a.style.display = 'none';
+            });
+
+            const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[c]));
+
+            if (dashboardContent) {
+                dashboardContent.innerHTML =
+                    '<div style="max-width:1080px;margin:0 auto;padding:8px 4px;">' +
+                      '<h1 id="trHello" style="font-size:24px;margin:0 0 4px;">Your clients</h1>' +
+                      '<p style="opacity:.7;margin:0 0 20px;font-size:14px;">Clients your gym assigned to you. Every client belongs to the gym — you coach the ones here.</p>' +
+                      '<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:22px;">' +
+                        '<a href="coach-workout-plans.html" style="background:var(--brand-primary,#2cb5a5);color:#fff;text-decoration:none;padding:10px 18px;border-radius:10px;font-weight:600;font-size:14px;">Open Workouts &rarr;</a>' +
+                      '</div>' +
+                      '<div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.10);border-radius:14px;padding:18px;">' +
+                        '<h2 style="font-size:16px;margin:0 0 6px;">My clients <span id="trCount" style="opacity:.6;font-weight:600;"></span></h2>' +
+                        '<div id="trClients" style="opacity:.7;font-size:14px;">Loading&hellip;</div>' +
+                      '</div>' +
+                    '</div>';
+            }
+            if (loadingDiv) loadingDiv.style.display = 'none';
+            if (dashboardContent) dashboardContent.style.display = 'block';
+
+            // Scoped clients via the trainer-clients endpoint (already trainer-scoped).
+            try {
+                const res = await fetch('/.netlify/functions/trainer-clients', { headers: { 'Authorization': 'Bearer ' + token } });
+                const data = await res.json();
+                const clients = (res.ok && data.clients) ? data.clients : [];
+                if (data && data.me && data.me.name) {
+                    const h = document.getElementById('trHello');
+                    if (h) h.textContent = 'Hi ' + esc(data.me.name.split(' ')[0]) + ' — your clients';
+                    if (nameEl) nameEl.textContent = data.me.name;
+                }
+                const cnt = document.getElementById('trCount'); if (cnt) cnt.textContent = clients.length ? '(' + clients.length + ')' : '';
+                const cEl = document.getElementById('trClients');
+                if (!cEl) return;
+                if (!clients.length) { cEl.textContent = 'No clients assigned to you yet.'; return; }
+                cEl.innerHTML = clients.map(function (c) {
+                    const nm = esc(c.client_name || '—');
+                    return '<div style="display:flex;align-items:center;gap:12px;padding:10px 2px;border-top:1px solid rgba(255,255,255,0.07);">' +
+                        '<div style="width:34px;height:34px;border-radius:50%;background:var(--brand-primary,#2cb5a5);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0;">' + nm.charAt(0).toUpperCase() + '</div>' +
+                        '<div><div style="font-weight:600;font-size:14px;">' + nm + '</div><div style="opacity:.6;font-size:12px;">' + esc(c.email || '') + '</div></div>' +
+                    '</div>';
+                }).join('');
+            } catch (e) {
+                const cEl = document.getElementById('trClients'); if (cEl) cEl.textContent = 'Could not load your clients.';
+            }
+        }
+
         async function loadDashboard() {
             // Prevent multiple simultaneous loads
             if (isLoading) {
@@ -9400,6 +9477,21 @@
                     window.location.href = '/app';
                     return;
                 }
+
+                // Multi-trainer: a login with NO coaches row but an active
+                // gym_trainers row is a TRAINER. They stay on this real dashboard,
+                // branded as their gym and scoped to their assigned clients — the
+                // client reads below are auto-scoped by RLS via the gym id. Owners
+                // never enter this branch, so their flow is completely unchanged.
+                try {
+                    const __tctx = (window.ZQCoach && window.ZQCoach.resolveCoachContext)
+                        ? await window.ZQCoach.resolveCoachContext(supabaseClient) : null;
+                    if (__tctx && __tctx.role === 'trainer') {
+                        await loadTrainerHome(__tctx, user);
+                        isLoading = false;
+                        return;
+                    }
+                } catch (e) { console.warn('Trainer dashboard check skipped:', e); }
 
                 // Get coach data from database with retry logic for transient failures
                 let coachData = null;
