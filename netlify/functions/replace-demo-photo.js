@@ -55,14 +55,15 @@ exports.handler = async (event) => {
       return { statusCode: 400, headers: corsHeaders, body: JSON.stringify({ error: 'proofId is required for proof replacements' }) };
     }
 
-    const { error: authError } = await authenticateGymMember(event, coachId);
+    const _ctx = await authenticateGymMember(event, coachId);
+    const { error: authError } = _ctx;
     if (authError) return authError;
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, { auth: { persistSession: false } });
 
     // Trainer scope (null for owners/legacy → no gating): a trainer may only
     // replace photos for a client assigned to them.
-    const _s = await trainerClientIdScope(event, supabase, coachId);
+    const _s = await trainerClientIdScope(event, supabase, coachId, _ctx);
     if (_s && !_s.map(String).includes(String(clientId))) {
       return {
         statusCode: 403,

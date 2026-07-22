@@ -32,7 +32,8 @@ exports.handler = async (event, context) => {
 
     // ✅ SECURITY: allow the gym owner OR one of that gym's active trainers.
     // Owners are unchanged; a trainer is gated below to their assigned clients.
-    const { user, error: authError } = await authenticateGymMember(event, coachId);
+    const _ctx = await authenticateGymMember(event, coachId);
+    const { user, error: authError } = _ctx;
     if (authError) return authError;
 
     // Initialize Supabase client with service key
@@ -41,7 +42,7 @@ exports.handler = async (event, context) => {
     // Trainer scope (null for owners/legacy → no gating): look up this plan's
     // client_id and confirm it's one of the trainer's assigned clients; fail
     // closed if the plan can't be resolved to an in-scope client.
-    const _s = await trainerClientIdScope(event, supabase, coachId);
+    const _s = await trainerClientIdScope(event, supabase, coachId, _ctx);
     if (_s) {
       const { data: _planRow } = await supabase
         .from('coach_meal_plans')

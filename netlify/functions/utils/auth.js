@@ -292,22 +292,27 @@ async function authenticateGymMember(event, gymCoachId) {
  * @param {string} coachId - the gym coach id the request targets
  * @returns {Promise<Array<number>|null>}
  */
-async function trainerClientIdScope(event, supabase, coachId) {
-  if (!extractToken(event)) return null; // no token → owner/legacy behavior
-  let ctx;
-  try { ctx = await resolveGymContext(event); }
-  catch (e) { return null; } // couldn't resolve the caller → unchanged legacy
-  if (ctx && ctx.role === 'trainer' && ctx.gymCoachId === coachId) {
-    // Known trainer → fail CLOSED on any error, never widen to the whole gym.
+async function trainerClientIdScope(event, supabase, coachId, knownCtx) {
+  // No token and no already-resolved context → legacy/owner (no scoping).
+  if (!knownCtx && !extractToken(event)) return null;
+  let ctx = knownCtx;
+  if (!ctx) {
+    try { ctx = await resolveGymContext(event); } catch (e) { return null; }
+  }
+  if (ctx && ctx.role === 'trainer') {
+    // A trainer's gym comes from their TOKEN, never the request. A call that
+    // targets a different gym's coachId is denied (fail closed). An absent
+    // coachId still scopes to the token's gym (no bypass by omitting it).
+    if (coachId != null && ctx.gymCoachId !== coachId) return [];
     try {
       const { data, error } = await supabase
         .from('clients').select('id')
-        .eq('coach_id', coachId).eq('trainer_id', ctx.trainerId);
+        .eq('coach_id', ctx.gymCoachId).eq('trainer_id', ctx.trainerId);
       if (error) return [];
       return (data || []).map(c => c.id);
     } catch (e) { return []; }
   }
-  return null; // owner or a different gym → no scoping
+  return null; // owner or not a trainer → no scoping
 }
 
 /**

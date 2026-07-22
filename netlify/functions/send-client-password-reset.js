@@ -41,7 +41,8 @@ exports.handler = async (event, context) => {
 
     // ✅ SECURITY: allow the gym owner OR one of that gym's active trainers.
     // Owners are unchanged; a trainer is gated below to their assigned clients.
-    const { user, error: authError } = await authenticateGymMember(event, coachId);
+    const _ctx = await authenticateGymMember(event, coachId);
+    const { user, error: authError } = _ctx;
     if (authError) return authError;
 
     // Initialize Supabase client with service key for admin operations
@@ -49,7 +50,7 @@ exports.handler = async (event, context) => {
 
     // Trainer scope (null for owners/legacy → no gating): a trainer may only
     // reset passwords for a client assigned to them.
-    const _s = await trainerClientIdScope(event, supabase, coachId);
+    const _s = await trainerClientIdScope(event, supabase, coachId, _ctx);
     if (_s && !_s.map(String).includes(String(clientId))) {
       return {
         statusCode: 403,

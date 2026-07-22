@@ -49,7 +49,7 @@ exports.handler = async (event) => {
 
     // Trainer scope (null for owners/legacy → no gating): this check-in's
     // client must be one assigned to the trainer.
-    const _s = await trainerClientIdScope(event, supabase, coachId);
+    const _s = await trainerClientIdScope(event, supabase, coachId, auth);
     if (_s && (!checkin || !_s.map(String).includes(String(checkin.client_id)))) {
       return {
         statusCode: 403,
