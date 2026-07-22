@@ -2780,7 +2780,7 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" onerror="loadSupabaseFallback()"></script>
-    <script src="/js/trainer-bounce.js"></script>
+    <script src="/js/gym-context.js"></script>
     <script>
         // Fallback loader if primary CDN fails
         function loadSupabaseFallback() {
@@ -2955,6 +2955,13 @@
                 }
 
                 currentCoachId = session.user.id;
+                // A gym trainer acts as their GYM here; the backend scopes every
+                // read/write to the clients assigned to them. Owners unchanged.
+                try {
+                    const __ctx = (window.ZQCoach && window.ZQCoach.resolveCoachContext)
+                        ? await window.ZQCoach.resolveCoachContext(supabaseClient) : null;
+                    if (__ctx && __ctx.role === 'trainer') { currentCoachId = __ctx.coachId; window.__isTrainer = true; }
+                } catch (e) { /* owner path */ }
                 userEmailSpan.textContent = session.user.email;
                 console.log('User authenticated:', currentCoachId);
 

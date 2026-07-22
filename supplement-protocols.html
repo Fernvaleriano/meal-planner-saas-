@@ -1661,7 +1661,7 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="/js/trainer-bounce.js"></script>
+    <script src="/js/gym-context.js"></script>
     <script>
         // Sidebar section collapse functionality
 
@@ -1732,18 +1732,27 @@
                 const user = refreshData.session.user;
                 userEmailSpan.textContent = user.email;
 
-                // Get coach data
-                const { data: coachData, error: coachError } = await supabaseClient
-                    .from('coaches')
-                    .select('*')
-                    .eq('id', user.id)
-                    .single();
+                // A gym trainer has no coaches row — they act as their GYM (the
+                // backend scopes protocols/clients to their assigned clients).
+                let __ctx = null;
+                try { __ctx = (window.ZQCoach && window.ZQCoach.resolveCoachContext) ? await window.ZQCoach.resolveCoachContext(supabaseClient) : null; } catch (e) {}
+                if (__ctx && __ctx.role === 'trainer') {
+                    currentCoach = { id: __ctx.coachId };
+                    window.__isTrainer = true;
+                } else {
+                    // Get coach data (owner)
+                    const { data: coachData, error: coachError } = await supabaseClient
+                        .from('coaches')
+                        .select('*')
+                        .eq('id', user.id)
+                        .single();
 
-                if (coachError || !coachData) {
-                    throw new Error('Coach account not found');
+                    if (coachError || !coachData) {
+                        throw new Error('Coach account not found');
+                    }
+
+                    currentCoach = coachData;
                 }
-
-                currentCoach = coachData;
 
                 // Load clients and supplement library
                 await Promise.all([loadClients(), loadSupplementLibrary()]);

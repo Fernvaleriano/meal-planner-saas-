@@ -1009,7 +1009,7 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.0"></script>
-    <script src="/js/trainer-bounce.js"></script>
+    <script src="/js/gym-context.js"></script>
     <script src="/js/api-helper.js"></script>
     <script>
         const SUPABASE_URL = 'https://qewqcjzlfqamqwbccapr.supabase.co';
@@ -1230,8 +1230,15 @@
                 }
 
                 currentUser = session.user;
-                document.getElementById('userEmail').textContent = currentUser.email;
-                document.getElementById('userAvatar').textContent = currentUser.email.charAt(0).toUpperCase();
+                // A gym trainer acts as their GYM; challenge data is scoped to
+                // the clients assigned to them by the backend. Owners unchanged.
+                try {
+                    const __ctx = (window.ZQCoach && window.ZQCoach.resolveCoachContext)
+                        ? await window.ZQCoach.resolveCoachContext(supabase) : null;
+                    if (__ctx && __ctx.role === 'trainer') { currentUser = { ...session.user, id: __ctx.coachId }; window.__isTrainer = true; }
+                } catch (e) { /* owner path */ }
+                document.getElementById('userEmail').textContent = session.user.email;
+                document.getElementById('userAvatar').textContent = session.user.email.charAt(0).toUpperCase();
 
                 // Set default dates
                 const today = new Date();

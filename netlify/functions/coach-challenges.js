@@ -1,5 +1,6 @@
 // Coach Challenges API - CRUD for challenges, manage participants, view progress
 const { createClient } = require('@supabase/supabase-js');
+const { trainerClientIdScope } = require('./utils/auth');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -33,6 +34,10 @@ exports.handler = async (event) => {
         return { statusCode: 400, headers, body: JSON.stringify({ error: 'coachId required' }) };
       }
 
+      // Trainer scope: a trainer only sees their assigned clients in the
+      // per-client rows below. Owners / no-token → null → unchanged.
+      const _scope = await trainerClientIdScope(event, supabase, coachId);
+
       // Single challenge detail with full participants + progress
       if (challengeId) {
         const { data: challenge, error } = await supabase
@@ -45,17 +50,21 @@ exports.handler = async (event) => {
         if (error) throw error;
 
         // Get participants with client info
-        const { data: participants } = await supabase
+        let participantsQuery = supabase
           .from('challenge_participants')
           .select('*, clients(id, client_name, profile_photo_url)')
-          .eq('challenge_id', challengeId)
+          .eq('challenge_id', challengeId);
+        if (_scope) participantsQuery = participantsQuery.in('client_id', _scope);
+        const { data: participants } = await participantsQuery
           .order('joined_at', { ascending: true });
 
         // Get all progress for this challenge
-        const { data: progress } = await supabase
+        let progressQuery = supabase
           .from('challenge_progress')
           .select('*')
-          .eq('challenge_id', challengeId)
+          .eq('challenge_id', challengeId);
+        if (_scope) progressQuery = progressQuery.in('client_id', _scope);
+        const { data: progress } = await progressQuery
           .order('log_date', { ascending: false });
 
         // Build leaderboard
@@ -86,10 +95,12 @@ exports.handler = async (event) => {
       const challengeIds = (challenges || []).map(c => c.id);
       let participantCounts = {};
       if (challengeIds.length > 0) {
-        const { data: counts } = await supabase
+        let countsQuery = supabase
           .from('challenge_participants')
           .select('challenge_id')
           .in('challenge_id', challengeIds);
+        if (_scope) countsQuery = countsQuery.in('client_id', _scope);
+        const { data: counts } = await countsQuery;
 
         (counts || []).forEach(p => {
           participantCounts[p.challenge_id] = (participantCounts[p.challenge_id] || 0) + 1;
@@ -117,6 +128,17 @@ exports.handler = async (event) => {
         const { challengeId, clientIds } = body;
         if (!challengeId || !clientIds?.length) {
           return { statusCode: 400, headers, body: JSON.stringify({ error: 'challengeId and clientIds required' }) };
+        }
+
+        // Trainer scope: derive the gym from the challenge, then only allow
+        // adding clients assigned to this trainer. Owners: _apScope is null.
+        const { data: _ch } = await supabase.from('coach_challenges').select('coach_id').eq('id', challengeId).maybeSingle();
+        const _apScope = _ch ? await trainerClientIdScope(event, supabase, _ch.coach_id) : null;
+        if (_apScope) {
+          const _allowed = new Set(_apScope.map(String));
+          if (clientIds.some(id => !_allowed.has(String(id)))) {
+            return { statusCode: 403, headers, body: JSON.stringify({ error: 'Not authorized for one or more clients' }) };
+          }
         }
 
         const rows = clientIds.map(clientId => ({
@@ -169,6 +191,17 @@ exports.handler = async (event) => {
         return { statusCode: 400, headers, body: JSON.stringify({ error: `Invalid challenge type. Must be one of: ${CHALLENGE_TYPES.join(', ')}` }) };
       }
 
+      // Trainer scope: a trainer may only assign a challenge to their assigned
+      // clients. Owners / no-token → null → unchanged.
+      const _createScope = await trainerClientIdScope(event, supabase, coachId);
+      if (_createScope && clientIds?.length) {
+        const allowed = new Set(_createScope.map(String));
+        const notMine = clientIds.filter(id => !allowed.has(String(id)));
+        if (notMine.length > 0) {
+          return { statusCode: 403, headers, body: JSON.stringify({ error: `Not authorized for client(s): ${notMine.join(', ')}` }) };
+        }
+      }
+
       const { data: challenge, error } = await supabase
         .from('coach_challenges')
         .insert({
@@ -191,11 +224,13 @@ exports.handler = async (event) => {
 
       // If assigning to all clients, fetch them and add as participants
       if (assignTo === 'all' || !clientIds?.length) {
-        const { data: clients } = await supabase
+        let clientsQuery = supabase
           .from('clients')
           .select('id')
           .eq('coach_id', coachId)
           .is('archived_at', null);
+        if (_createScope) clientsQuery = clientsQuery.in('id', _createScope);
+        const { data: clients } = await clientsQuery;
 
         if (clients?.length) {
           const rows = clients.map(c => ({

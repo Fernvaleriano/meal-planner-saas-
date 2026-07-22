@@ -1,6 +1,7 @@
 // Netlify Function for managing client supplement/protocol items
 const { createClient } = require('@supabase/supabase-js');
 const { withTimeout } = require('./utils/with-timeout');
+const { trainerClientIdScope } = require('./utils/auth');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -36,6 +37,18 @@ exports.handler = withTimeout(async (event, context) => {
                 statusCode: 400,
                 headers: corsHeaders,
                 body: JSON.stringify({ error: 'Client ID and Coach ID are required' })
+            };
+        }
+
+        // Trainer scope: a trainer may only view protocols for their assigned
+        // clients. Owners / no-token → null → unchanged. Out-of-scope client
+        // returns an empty list (same shape), not a leak.
+        const _scope = await trainerClientIdScope(event, supabase, coachId);
+        if (_scope && !_scope.map(String).includes(String(clientId))) {
+            return {
+                statusCode: 200,
+                headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ protocols: [] })
             };
         }
 
@@ -82,6 +95,17 @@ exports.handler = withTimeout(async (event, context) => {
                     statusCode: 400,
                     headers: corsHeaders,
                     body: JSON.stringify({ error: 'Coach ID, Client ID, and name are required' })
+                };
+            }
+
+            // Trainer scope: a trainer may only create protocols for their
+            // assigned clients. Owners / no-token → null → unchanged.
+            const _postScope = await trainerClientIdScope(event, supabase, coachId);
+            if (_postScope && !_postScope.map(String).includes(String(clientId))) {
+                return {
+                    statusCode: 403,
+                    headers: corsHeaders,
+                    body: JSON.stringify({ error: 'Not authorized for this client' })
                 };
             }
 
@@ -176,6 +200,16 @@ exports.handler = withTimeout(async (event, context) => {
             // Image field
             if (imageUrl !== undefined) updateData.image_url = imageUrl || null;
 
+            // Trainer scope: this protocol must belong to one of their clients.
+            const _putScope = await trainerClientIdScope(event, supabase, coachId);
+            if (_putScope) {
+                const { data: _p } = await supabase.from('client_protocols')
+                    .select('client_id').eq('id', protocolId).eq('coach_id', coachId).maybeSingle();
+                if (!_p || !_putScope.map(String).includes(String(_p.client_id))) {
+                    return { statusCode: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' }, body: JSON.stringify({ error: 'Not authorized for this client' }) };
+                }
+            }
+
             const { data: protocol, error } = await supabase
                 .from('client_protocols')
                 .update(updateData)
@@ -214,6 +248,16 @@ exports.handler = withTimeout(async (event, context) => {
         }
 
         try {
+            // Trainer scope: this protocol must belong to one of their clients.
+            const _delScope = await trainerClientIdScope(event, supabase, coachId);
+            if (_delScope) {
+                const { data: _p } = await supabase.from('client_protocols')
+                    .select('client_id').eq('id', protocolId).eq('coach_id', coachId).maybeSingle();
+                if (!_p || !_delScope.map(String).includes(String(_p.client_id))) {
+                    return { statusCode: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' }, body: JSON.stringify({ error: 'Not authorized for this client' }) };
+                }
+            }
+
             const { error } = await supabase
                 .from('client_protocols')
                 .delete()

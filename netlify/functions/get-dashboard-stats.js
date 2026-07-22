@@ -1,5 +1,5 @@
 const { createClient } = require('@supabase/supabase-js');
-const { authenticateCoach } = require('./utils/auth');
+const { authenticateGymMember, trainerClientIdScope } = require('./utils/auth');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -36,18 +36,24 @@ exports.handler = async (event, context) => {
         };
     }
 
-    // Only the coach themselves may read their whole-roster dashboard stats.
-    const coachAuth = await authenticateCoach(event, coachId);
+    // Allow the gym owner OR one of that gym's active trainers. Owner behavior
+    // is identical; a trainer is scoped to their assigned clients below.
+    const coachAuth = await authenticateGymMember(event, coachId);
     if (coachAuth.error) return coachAuth.error;
 
     try {
         const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
+        // Trainer scope (null for owners → no extra filtering)
+        const _scope = await trainerClientIdScope(event, supabase, coachId);
+
         // Get all clients for this coach
-        const { data: clients, error: clientsError } = await supabase
+        let clientsQuery = supabase
             .from('clients')
             .select('*')
-            .eq('coach_id', coachId)
+            .eq('coach_id', coachId);
+        if (_scope) clientsQuery = clientsQuery.in('id', _scope);
+        const { data: clients, error: clientsError } = await clientsQuery
             .order('created_at', { ascending: false });
 
         if (clientsError) throw clientsError;
@@ -89,11 +95,13 @@ exports.handler = async (event, context) => {
 
         // Get recent meal plans (last 30 days)
         let plans = [];
-        const { data: plansData, error: plansError } = await supabase
+        let plansQuery = supabase
             .from('coach_meal_plans')
             .select('id, client_id, created_at, client_name')
             .eq('coach_id', coachId)
-            .gte('created_at', thirtyDaysAgo.toISOString())
+            .gte('created_at', thirtyDaysAgo.toISOString());
+        if (_scope) plansQuery = plansQuery.in('client_id', _scope);
+        const { data: plansData, error: plansError } = await plansQuery
             .order('created_at', { ascending: false });
 
         if (!plansError) {

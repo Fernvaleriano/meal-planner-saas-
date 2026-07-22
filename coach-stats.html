@@ -632,7 +632,7 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="/js/trainer-bounce.js"></script>
+    <script src="/js/gym-context.js"></script>
     <script>
         const SUPABASE_URL = 'https://qewqcjzlfqamqwbccapr.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFld3FjanpsZnFhbXF3YmNjYXByIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM2OTg0NzAsImV4cCI6MjA3OTI3NDQ3MH0.mQnMC33O88oLkLLGWD2oG-oaSHGI-NfHmtQCZxnxSLs';
@@ -655,6 +655,13 @@
             }
 
             currentCoach = session.user;
+            // A gym trainer acts as their GYM; get-dashboard-stats scopes the
+            // numbers to the clients assigned to them. Owners unchanged.
+            try {
+                const __ctx = (window.ZQCoach && window.ZQCoach.resolveCoachContext)
+                    ? await window.ZQCoach.resolveCoachContext(supabaseClient) : null;
+                if (__ctx && __ctx.role === 'trainer') { currentCoach = { ...session.user, id: __ctx.coachId }; window.__isTrainer = true; }
+            } catch (e) { /* owner path */ }
             await loadDashboardStats();
         }
 

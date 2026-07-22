@@ -1,5 +1,6 @@
 // Netlify Function to get all meal plans for a specific client
 const { createClient } = require('@supabase/supabase-js');
+const { trainerClientIdScope } = require('./utils/auth');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -26,6 +27,22 @@ exports.handler = async (event, context) => {
 
     // Initialize Supabase client with service key
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+
+    // Trainer scope: a trainer may only view plans for clients assigned to them.
+    // Owners / no-token → null → unchanged. If a trainer asks for a client that
+    // isn't theirs, return an empty list (same shape) rather than leaking data.
+    const _scope = await trainerClientIdScope(event, supabase, coachId);
+    if (_scope && !_scope.map(String).includes(String(clientId))) {
+      return {
+        statusCode: 200,
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+        },
+        body: JSON.stringify({ plans: [] })
+      };
+    }
 
     // For coaches: Show ALL plans (drafts + published) so they can manage them
     // The frontend (client-profile.html) is used by coaches to view/manage client plans

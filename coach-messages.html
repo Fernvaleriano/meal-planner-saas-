@@ -1116,7 +1116,7 @@
     </nav>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="/js/trainer-bounce.js"></script>
+    <script src="/js/gym-context.js"></script>
     <script>
         // Sidebar collapse
 
@@ -1193,6 +1193,15 @@
                 .eq('user_id', currentUser.id)
                 .maybeSingle();
             if (clientData) { window.location.href = '/app'; return; }
+
+            // A gym trainer acts as their GYM here; the chat backend scopes
+            // conversations to the clients assigned to them. Owners unchanged.
+            // (Set after the is-client check above, which needs the real uid.)
+            try {
+                const __ctx = (window.ZQCoach && window.ZQCoach.resolveCoachContext)
+                    ? await window.ZQCoach.resolveCoachContext(supabaseClient) : null;
+                if (__ctx && __ctx.role === 'trainer') { currentUser = { ...session.user, id: __ctx.coachId }; window.__isTrainer = true; }
+            } catch (e) { /* owner path */ }
 
             // Logout handler
             document.getElementById('logoutLink')?.addEventListener('click', async (e) => {
