@@ -58,7 +58,8 @@ exports.handler = async (event, context) => {
       };
     }
 
-    // ✅ SECURITY: Verify the authenticated user owns this coach account
+    // ✅ SECURITY: allow the gym owner OR one of that gym's active trainers.
+    // A meal plan is coach-level (belongs to the gym), so no per-client scoping.
     const { user, error: authError } = await authenticateCoach(event, coachId);
     if (authError) return authError;
 

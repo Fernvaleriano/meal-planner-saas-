@@ -272,7 +272,9 @@
     // rest of the nav (and mobile bottom nav) here, in the layout that owns the
     // sidebar, so it's consistent on every page (not racing per-page scripts).
     // Add a page to TRAINER_NAV_ALLOW as it becomes trainer-aware.
-    var TRAINER_NAV_ALLOW = ['dashboard.html', 'coach-workout-plans.html', 'coach-workouts.html'];
+    var TRAINER_NAV_ALLOW = ['dashboard.html', 'coach-workout-plans.html', 'coach-workouts.html',
+        'manage-clients.html', 'coach-challenges.html',
+        'supplement-protocols.html', 'coach-stats.html'];
     function trimNavForTrainer() {
         try {
             document.querySelectorAll('.sidebar-nav-item, .coach-nav-item').forEach(function (a) {

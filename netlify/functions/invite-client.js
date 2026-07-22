@@ -2,7 +2,7 @@
 // Sends an intake form link where clients fill out their profile and set password
 const { createClient } = require('@supabase/supabase-js');
 const { sendIntakeInvitationEmail } = require('./utils/email-service');
-const { handleCors, authenticateCoach, corsHeaders } = require('./utils/auth');
+const { handleCors, authenticateGymMember, trainerClientIdScope, corsHeaders } = require('./utils/auth');
 const crypto = require('crypto');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
@@ -50,12 +50,23 @@ exports.handler = async (event, context) => {
       };
     }
 
-    // ✅ SECURITY: Verify the authenticated user owns this coach account
-    const { user, error: authError } = await authenticateCoach(event, coachId);
+    // ✅ SECURITY: allow the gym owner OR one of that gym's active trainers.
+    const { user, error: authError } = await authenticateGymMember(event, coachId);
     if (authError) return authError;
 
     // Initialize Supabase client with service key for admin operations
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+
+    // Trainer scope: a trainer may only invite clients assigned to them.
+    // Owners / no-token → null → unchanged.
+    const _scope = await trainerClientIdScope(event, supabase, coachId);
+    if (_scope && !_scope.map(String).includes(String(clientId))) {
+      return {
+        statusCode: 403,
+        headers,
+        body: JSON.stringify({ error: 'Not authorized for this client' })
+      };
+    }
 
     // Get client data and coach data in parallel
     const [clientResult, coachResult] = await Promise.all([

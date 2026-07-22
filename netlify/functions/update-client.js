@@ -1,6 +1,6 @@
 // Netlify Function to update an existing client
 const { createClient } = require('@supabase/supabase-js');
-const { handleCors, authenticateCoach, corsHeaders } = require('./utils/auth');
+const { handleCors, authenticateGymMember, trainerClientIdScope, corsHeaders } = require('./utils/auth');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -46,12 +46,23 @@ exports.handler = async (event, context) => {
       };
     }
 
-    // ✅ SECURITY: Verify the authenticated user owns this coach account
-    const { user, error: authError } = await authenticateCoach(event, coachId);
+    // ✅ SECURITY: allow the gym owner OR one of that gym's active trainers.
+    const { user, error: authError } = await authenticateGymMember(event, coachId);
     if (authError) return authError;
 
     // Initialize Supabase client with service key
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+
+    // Trainer scope: a trainer may only update clients assigned to them.
+    // Owners / no-token → null → unchanged.
+    const _scope = await trainerClientIdScope(event, supabase, coachId);
+    if (_scope && !_scope.map(String).includes(String(clientId))) {
+      return {
+        statusCode: 403,
+        headers: corsHeaders,
+        body: JSON.stringify({ error: 'Not authorized for this client' })
+      };
+    }
 
     // Build update object with all provided fields
     const updateData = {};

@@ -1,7 +1,7 @@
 // Netlify Function to bulk-post a meal plan to multiple clients at once
 // Creates a separate copy of the plan for each selected client and publishes them
 const { createClient } = require('@supabase/supabase-js');
-const { handleCors, authenticateCoach, corsHeaders } = require('./utils/auth');
+const { handleCors, authenticateGymMember, trainerClientIdScope, corsHeaders } = require('./utils/auth');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -66,13 +66,28 @@ exports.handler = async (event, context) => {
       };
     }
 
-    // Authenticate coach
-    const { user, error: authError } = await authenticateCoach(event, coachId);
+    // Authenticate the gym owner OR one of that gym's active trainers
+    const { user, error: authError } = await authenticateGymMember(event, coachId);
     if (authError) return authError;
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, {
       auth: { persistSession: false }
     });
+
+    // Trainer scope: a trainer may only post to the clients assigned to them.
+    // Owners get null → no restriction (behavior unchanged).
+    const _scope = await trainerClientIdScope(event, supabase, coachId);
+    if (_scope) {
+      const allowed = new Set(_scope.map(String));
+      const notMine = clientIds.filter(id => !allowed.has(String(id)));
+      if (notMine.length > 0) {
+        return {
+          statusCode: 403,
+          headers: corsHeaders,
+          body: JSON.stringify({ error: `Not authorized for client(s): ${notMine.join(', ')}` })
+        };
+      }
+    }
 
     // Verify all clients belong to this coach
     const { data: clients, error: clientsError } = await supabase

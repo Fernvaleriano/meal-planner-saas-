@@ -1194,6 +1194,15 @@
                 .maybeSingle();
             if (clientData) { window.location.href = '/app'; return; }
 
+            // A gym trainer acts as their GYM here; the chat backend scopes
+            // conversations to the clients assigned to them. Owners unchanged.
+            // (Set after the is-client check above, which needs the real uid.)
+            try {
+                const __ctx = (window.ZQCoach && window.ZQCoach.resolveCoachContext)
+                    ? await window.ZQCoach.resolveCoachContext(supabaseClient) : null;
+                if (__ctx && __ctx.role === 'trainer') { currentUser = { ...session.user, id: __ctx.coachId }; window.__isTrainer = true; }
+            } catch (e) { /* owner path */ }
+
             // Logout handler
             document.getElementById('logoutLink')?.addEventListener('click', async (e) => {
                 e.preventDefault();

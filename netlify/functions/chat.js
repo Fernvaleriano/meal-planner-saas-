@@ -1,6 +1,6 @@
 // Netlify Function for coach-client direct messaging
 const { createClient } = require('@supabase/supabase-js');
-const { authenticateRequest, authenticateClientAccess, forbiddenResponse } = require('./utils/auth');
+const { authenticateRequest, authenticateClientAccess, forbiddenResponse, authenticateGymMember, trainerClientIdScope } = require('./utils/auth');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -57,14 +57,20 @@ exports.handler = async (event) => {
 
       // Get conversation list for a coach (all clients with last message + unread count)
       if (action === 'conversations' && coachId) {
-        // Only the coach themselves may list their conversations.
-        if (authUser.id !== coachId) return forbiddenResponse('Not authorized');
-        // Get all clients for this coach
-        const { data: clients, error: clientsError } = await supabase
+        // Allow EITHER the gym owner OR one of that gym's active trainers to
+        // list conversations. Owner path is identical to the old id===coachId
+        // guard; a trainer is scoped below to only their assigned clients.
+        const gymAuth = await authenticateGymMember(event, coachId);
+        if (gymAuth.error) return gymAuth.error;
+        // Get all clients for this coach (a trainer only sees their assigned ones)
+        const _scope = await trainerClientIdScope(event, supabase, coachId);
+        let clientsQuery = supabase
           .from('clients')
           .select('id, client_name, last_activity_at, profile_photo_url')
           .eq('coach_id', coachId)
-          .or('is_archived.eq.false,is_archived.is.null')
+          .or('is_archived.eq.false,is_archived.is.null');
+        if (_scope) clientsQuery = clientsQuery.in('id', _scope);
+        const { data: clients, error: clientsError } = await clientsQuery
           .order('client_name');
 
         if (clientsError) {

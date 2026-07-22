@@ -277,17 +277,21 @@ async function authenticateGymMember(event, gymCoachId) {
  * @returns {Promise<Array<number>|null>}
  */
 async function trainerClientIdScope(event, supabase, coachId) {
-  try {
-    if (!extractToken(event)) return null; // no token → owner/legacy behavior
-    const ctx = await resolveGymContext(event);
-    if (ctx && ctx.role === 'trainer' && ctx.gymCoachId === coachId) {
-      const { data } = await supabase
+  if (!extractToken(event)) return null; // no token → owner/legacy behavior
+  let ctx;
+  try { ctx = await resolveGymContext(event); }
+  catch (e) { return null; } // couldn't resolve the caller → unchanged legacy
+  if (ctx && ctx.role === 'trainer' && ctx.gymCoachId === coachId) {
+    // Known trainer → fail CLOSED on any error, never widen to the whole gym.
+    try {
+      const { data, error } = await supabase
         .from('clients').select('id')
         .eq('coach_id', coachId).eq('trainer_id', ctx.trainerId);
+      if (error) return [];
       return (data || []).map(c => c.id);
-    }
-  } catch (e) { /* fall through to owner behavior */ }
-  return null;
+    } catch (e) { return []; }
+  }
+  return null; // owner or a different gym → no scoping
 }
 
 /**
