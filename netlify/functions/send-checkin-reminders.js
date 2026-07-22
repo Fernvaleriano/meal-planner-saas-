@@ -100,7 +100,7 @@ exports.handler = async (event, context) => {
 
             const result = await sendCheckinReminder({
                 client: { id: 'test', client_name: 'Test Client', email: coachEmail },
-                coach: { full_name: coachName, email: coachEmail },
+                coach: { full_name: coachName, email: coachEmail, is_gym: coachData?.is_gym, brand_slug: coachData?.brand_slug },
                 settings: settings || {},
                 isFollowup: false
             });
@@ -222,7 +222,7 @@ exports.handler = async (event, context) => {
 
                 const result = await sendCheckinReminder({
                     client,
-                    coach: { full_name: coachName, email: coachData?.email },
+                    coach: { full_name: coachName, email: coachData?.email, is_gym: coachData?.is_gym, brand_slug: coachData?.brand_slug },
                     settings,
                     isFollowup: false
                 });

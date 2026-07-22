@@ -368,7 +368,7 @@ function generateProgramEndEmail({
     // Button opens the workout plans page on this coach/gym's own branded
     // web address (white-label gyms → their own domain).
     const { coachUrl } = require('./utils/coach-links');
-    const workoutPlansUrl = coachUrl(coach, 'workout-plans');
+    const workoutPlansUrl = coachUrl(coach, 'coach-workout-plans.html');
     const logoHtml = logoUrl
         ? `<img src="${logoUrl}" alt="${brandName}" style="max-width: 150px; height: auto; margin-bottom: 12px;">`
         : '';
