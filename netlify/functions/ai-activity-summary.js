@@ -1,7 +1,7 @@
 // Netlify Function for AI-powered coach assistant
 // Supports GET for client data and POST for asking questions about clients
 const { createClient } = require('@supabase/supabase-js');
-const { authenticateCoach } = require('./utils/auth');
+const { authenticateGymMember, trainerClientIdScope } = require('./utils/auth');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -44,9 +44,9 @@ exports.handler = async (event, context) => {
       };
     }
 
-    // Only the coach themselves may read their client activity.
-    const { error: authError } = await authenticateCoach(event, coachId);
-    if (authError) return authError;
+    // Only the coach themselves, or one of their gym's trainers, may read client activity.
+    const _ctx = await authenticateGymMember(event, coachId);
+    if (_ctx.error) return _ctx.error;
 
     if (!SUPABASE_SERVICE_KEY) {
       return {
@@ -57,17 +57,20 @@ exports.handler = async (event, context) => {
     }
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+    const _scope = await trainerClientIdScope(event, supabase, coachId, _ctx);
     const now = new Date();
     const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
     const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
 
     // Fetch all active clients for this coach
-    const { data: clients, error: clientsError } = await supabase
+    let clientsQuery = supabase
       .from('clients')
       .select('id, client_name, last_activity_at, user_id, created_at')
       .eq('coach_id', coachId)
       .or('is_archived.eq.false,is_archived.is.null')
       .order('client_name', { ascending: true });
+    if (_scope) clientsQuery = clientsQuery.in('id', _scope);
+    const { data: clients, error: clientsError } = await clientsQuery;
 
     if (clientsError) {
       console.error('Error fetching clients:', clientsError);
@@ -95,12 +98,14 @@ exports.handler = async (event, context) => {
     }
 
     // Fetch recent check-ins (last 7 days)
-    const { data: recentCheckins, error: checkinsError } = await supabase
+    let recentCheckinsQuery = supabase
       .from('client_checkins')
       .select('id, client_id, checkin_date, energy_level, stress_level, sleep_quality, hunger_level, meal_plan_adherence, wins, challenges, questions, request_new_diet, diet_request_reason, created_at')
       .eq('coach_id', coachId)
       .gte('created_at', sevenDaysAgo.toISOString())
       .order('created_at', { ascending: false });
+    if (_scope) recentCheckinsQuery = recentCheckinsQuery.in('client_id', _scope);
+    const { data: recentCheckins, error: checkinsError } = await recentCheckinsQuery;
 
     if (checkinsError && checkinsError.code !== '42P01') {
       console.error('Error fetching check-ins:', checkinsError);
@@ -118,18 +123,22 @@ exports.handler = async (event, context) => {
     }
 
     // Fetch pending diet requests (check-ins with request_new_diet = true that haven't been addressed)
-    const { data: dietRequests, error: dietRequestsError } = await supabase
+    let dietRequestsQuery = supabase
       .from('client_checkins')
       .select('id, client_id, diet_request_reason, created_at')
       .eq('coach_id', coachId)
       .eq('request_new_diet', true)
       .order('created_at', { ascending: false });
+    if (_scope) dietRequestsQuery = dietRequestsQuery.in('client_id', _scope);
+    const { data: dietRequests, error: dietRequestsError } = await dietRequestsQuery;
 
     // Fetch activity items (both dismissed/seen and pinned)
-    const { data: activityItems, error: activityError } = await supabase
+    let activityItemsQuery = supabase
       .from('dismissed_activity_items')
       .select('client_id, reason, related_checkin_id, is_pinned, pinned_at')
       .eq('coach_id', coachId);
+    if (_scope) activityItemsQuery = activityItemsQuery.in('client_id', _scope);
+    const { data: activityItems, error: activityError } = await activityItemsQuery;
 
     if (activityError && activityError.code !== '42P01') {
       console.error('Error fetching activity items:', activityError);
@@ -535,9 +544,9 @@ async function handleQuestion(event) {
       };
     }
 
-    // Only the coach themselves may ask about their clients.
-    const { error: authError } = await authenticateCoach(event, coachId);
-    if (authError) return authError;
+    // Only the coach themselves, or one of their gym's trainers, may ask about clients.
+    const _ctx = await authenticateGymMember(event, coachId);
+    if (_ctx.error) return _ctx.error;
 
     if (!SUPABASE_SERVICE_KEY) {
       return {
@@ -556,6 +565,7 @@ async function handleQuestion(event) {
     }
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+    const _scope = await trainerClientIdScope(event, supabase, coachId, _ctx);
     const now = new Date();
     const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
     const fourteenDaysAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
@@ -580,12 +590,14 @@ async function handleQuestion(event) {
     const lastWeekdayName = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'][daysSinceMonday];
 
     // Fetch all client data for this coach
-    const { data: clients, error: clientsError } = await supabase
+    let clientsQuery = supabase
       .from('clients')
       .select('id, client_name, last_activity_at, user_id, created_at, unit_preference, diet_type, allergies, disliked_foods, preferred_foods')
       .eq('coach_id', coachId)
       .or('is_archived.eq.false,is_archived.is.null')
       .order('client_name', { ascending: true });
+    if (_scope) clientsQuery = clientsQuery.in('id', _scope);
+    const { data: clients, error: clientsError } = await clientsQuery;
 
     if (clientsError) {
       console.error('Error fetching clients:', clientsError);
@@ -604,10 +616,13 @@ async function handleQuestion(event) {
 
     const clientIds = clients.map(c => c.id);
 
-    // Fetch coach's own data (coach may also track their own fitness)
-    // coachId is the user's auth ID from the coaches table
+    // Fetch coach's own data (coach may also track their own fitness).
+    // coachId is the user's auth ID from the coaches table. For a gym TRAINER
+    // coachId is the GYM OWNER's id, so this block would surface the owner's
+    // personal fitness data — skip it entirely for trainers (_scope non-null).
     let coachSelfData = null;
     try {
+      if (_scope) throw { __skipSelf: true };
       // Check if coach has a client record (self-tracking) or weight logs
       const [coachClientResult, coachWeightResult, coachMeasurementsResult, coachNameResult] = await Promise.all([
         supabase
@@ -688,10 +703,27 @@ async function handleQuestion(event) {
         };
       }
     } catch (e) {
-      console.warn('Could not fetch coach self data:', e);
+      // __skipSelf is our intentional trainer bail-out, not a real failure.
+      if (!e || !e.__skipSelf) console.warn('Could not fetch coach self data:', e);
     }
 
     // Fetch all data sources in parallel for comprehensive context
+    let checkinsQuery = supabase
+      .from('client_checkins')
+      .select('id, client_id, checkin_date, energy_level, stress_level, sleep_quality, hunger_level, meal_plan_adherence, wins, challenges, questions, request_new_diet, diet_request_reason, created_at')
+      .eq('coach_id', coachId)
+      .gte('created_at', fourteenDaysAgo.toISOString())
+      .order('created_at', { ascending: false });
+    if (_scope) checkinsQuery = checkinsQuery.in('client_id', _scope);
+
+    let mealPlansQuery = supabase
+      .from('coach_meal_plans')
+      .select('id, client_id, plan_name, status, daily_calories, start_date, end_date, created_at')
+      .eq('coach_id', coachId)
+      .order('created_at', { ascending: false })
+      .limit(200);
+    if (_scope) mealPlansQuery = mealPlansQuery.in('client_id', _scope);
+
     const [
       checkinsResult,
       diaryResult,
@@ -707,12 +739,7 @@ async function handleQuestion(event) {
       goalsResult
     ] = await Promise.all([
       // Check-ins (14 days)
-      supabase
-        .from('client_checkins')
-        .select('id, client_id, checkin_date, energy_level, stress_level, sleep_quality, hunger_level, meal_plan_adherence, wins, challenges, questions, request_new_diet, diet_request_reason, created_at')
-        .eq('coach_id', coachId)
-        .gte('created_at', fourteenDaysAgo.toISOString())
-        .order('created_at', { ascending: false }),
+      checkinsQuery,
       // Food diary entry counts (7 days)
       supabase
         .from('food_diary_entries')
@@ -750,12 +777,7 @@ async function handleQuestion(event) {
         .in('client_id', clientIds)
         .order('created_at', { ascending: false }),
       // Meal plans (active/recent)
-      supabase
-        .from('coach_meal_plans')
-        .select('id, client_id, plan_name, status, daily_calories, start_date, end_date, created_at')
-        .eq('coach_id', coachId)
-        .order('created_at', { ascending: false })
-        .limit(200),
+      mealPlansQuery,
       // Body measurements - most recent per client (no time limit) + 30-day history for trends
       supabase
         .from('client_measurements')
