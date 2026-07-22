@@ -4235,7 +4235,7 @@
 </style>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="/js/trainer-bounce.js"></script>
+<script src="/js/gym-context.js"></script>
 <script src="/js/api-helper.js"></script>
 <script>
 // Sidebar section collapse functionality
@@ -4977,6 +4977,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         if (session) {
             currentCoach = session.user;
+            // A gym trainer acts as their GYM; the backend scopes plans/clients
+            // to their assigned clients. Owners unchanged.
+            try {
+                const __ctx = (window.ZQCoach && window.ZQCoach.resolveCoachContext)
+                    ? await window.ZQCoach.resolveCoachContext(supabaseClient) : null;
+                if (__ctx && __ctx.role === 'trainer') { currentCoach = { ...session.user, id: __ctx.coachId }; window.__isTrainer = true; }
+            } catch (e) { /* owner path */ }
             console.log("Coach logged in:", currentCoach.email);
 
             // Check subscription status
