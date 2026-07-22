@@ -256,6 +256,41 @@ async function authenticateGymMember(event, gymCoachId) {
 }
 
 /**
+ * Client-id scope for a trainer, for use on any coach endpoint that returns
+ * per-client data. Returns:
+ *   - an array of client ids the caller is allowed to see (a TRAINER's assigned
+ *     clients under `coachId`), OR
+ *   - null → NO extra scoping (the caller is the gym owner, or there's no valid
+ *     trainer token). This keeps every owner call byte-for-byte unchanged.
+ *
+ * Usage in a function that queries a table with a `client_id` column:
+ *   const scope = await trainerClientIdScope(event, supabase, coachId);
+ *   if (scope) query = query.in('client_id', scope);   // scope=[] → returns nothing
+ *
+ * Owner-safe and dormant: with no Authorization header this resolves to null.
+ * IMPORTANT: for the scoping to actually engage, the PAGE must send the
+ * trainer's Bearer token to the endpoint and pass the GYM's id as coachId.
+ *
+ * @param {object} event
+ * @param {object} supabase - a service-key client
+ * @param {string} coachId - the gym coach id the request targets
+ * @returns {Promise<Array<number>|null>}
+ */
+async function trainerClientIdScope(event, supabase, coachId) {
+  try {
+    if (!extractToken(event)) return null; // no token → owner/legacy behavior
+    const ctx = await resolveGymContext(event);
+    if (ctx && ctx.role === 'trainer' && ctx.gymCoachId === coachId) {
+      const { data } = await supabase
+        .from('clients').select('id')
+        .eq('coach_id', coachId).eq('trainer_id', ctx.trainerId);
+      return (data || []).map(c => c.id);
+    }
+  } catch (e) { /* fall through to owner behavior */ }
+  return null;
+}
+
+/**
  * Simple authentication - just verify the token is valid
  * @param {object} event - Netlify event object
  * @returns {Promise<{user: object|null, error: object|null}>}
@@ -376,6 +411,7 @@ module.exports = {
   authenticateMaster,
   resolveGymContext,
   authenticateGymMember,
+  trainerClientIdScope,
   checkRateLimit,
   rateLimitResponse
 };
