@@ -1103,7 +1103,7 @@
     </nav>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="/js/trainer-bounce.js"></script>
+    <script src="/js/gym-context.js"></script>
     <script>
         let currentCoachId = null;
         let currentAccessToken = null;
@@ -1144,6 +1144,13 @@
             }
             currentCoachId = session.user.id;
             currentAccessToken = session.access_token;
+            // A gym trainer acts as their GYM; the backend scopes plans and the
+            // client picker to their assigned clients. Owners unchanged.
+            try {
+                const __ctx = (window.ZQCoach && window.ZQCoach.resolveCoachContext)
+                    ? await window.ZQCoach.resolveCoachContext(supabase) : null;
+                if (__ctx && __ctx.role === 'trainer') { currentCoachId = __ctx.coachId; window.__isTrainer = true; }
+            } catch (e) { /* owner path */ }
             await loadPlans();
 
             // Load unread message count for sidebar badge

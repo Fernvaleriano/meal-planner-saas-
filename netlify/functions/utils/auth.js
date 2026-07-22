@@ -141,7 +141,7 @@ async function authenticateClientAccess(event, clientId) {
   // Check if user is the client
   const { data: client, error: clientError } = await supabase
     .from('clients')
-    .select('id, coach_id, user_id')
+    .select('id, coach_id, user_id, trainer_id')
     .eq('id', clientId)
     .single();
 
@@ -157,6 +157,22 @@ async function authenticateClientAccess(event, clientId) {
   // Check if user is the coach
   if (client.coach_id === user.id) {
     return { user, role: 'coach', error: null };
+  }
+
+  // A gym TRAINER may access a client assigned to them (the gym owns the client;
+  // the trainer coaches it). Treated as 'coach' for per-client endpoints, but only
+  // for their own assigned clients. Owners/clients never reach this branch.
+  if (client.trainer_id != null) {
+    const { data: trainerRow } = await supabase
+      .from('gym_trainers')
+      .select('id, gym_coach_id')
+      .eq('trainer_user_id', user.id)
+      .eq('status', 'active')
+      .maybeSingle();
+    if (trainerRow && trainerRow.gym_coach_id === client.coach_id
+        && String(trainerRow.id) === String(client.trainer_id)) {
+      return { user, role: 'coach', error: null };
+    }
   }
 
   console.warn(`Authorization denied: User ${user.id} tried to access client ${clientId}`);

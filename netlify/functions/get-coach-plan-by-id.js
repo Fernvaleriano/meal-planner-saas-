@@ -1,5 +1,6 @@
 // Netlify Function to retrieve a specific meal plan by ID
 const { createClient } = require('@supabase/supabase-js');
+const { trainerClientIdScope } = require('./utils/auth');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -43,6 +44,22 @@ exports.handler = async (event, context) => {
           error: 'Meal plan not found',
           details: error.message
         })
+      };
+    }
+
+    // Trainer scope (null for owners/legacy/no-token → no gating). If a trainer
+    // requests a plan for a client not assigned to them, treat it as "not found"
+    // (same shape, empty plan) rather than exposing another client's plan.
+    const _scope = await trainerClientIdScope(event, supabase, coachId);
+    if (_scope && data && !_scope.map(String).includes(String(data.client_id))) {
+      return {
+        statusCode: 200,
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+        },
+        body: JSON.stringify({ plan: null })
       };
     }
 
