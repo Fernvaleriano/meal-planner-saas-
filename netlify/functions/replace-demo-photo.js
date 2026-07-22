@@ -14,7 +14,7 @@
 //   }
 
 const { createClient } = require('@supabase/supabase-js');
-const { handleCors, authenticateCoach, corsHeaders } = require('./utils/auth');
+const { handleCors, authenticateGymMember, trainerClientIdScope, corsHeaders } = require('./utils/auth');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -55,10 +55,21 @@ exports.handler = async (event) => {
       return { statusCode: 400, headers: corsHeaders, body: JSON.stringify({ error: 'proofId is required for proof replacements' }) };
     }
 
-    const { error: authError } = await authenticateCoach(event, coachId);
+    const { error: authError } = await authenticateGymMember(event, coachId);
     if (authError) return authError;
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, { auth: { persistSession: false } });
+
+    // Trainer scope (null for owners/legacy → no gating): a trainer may only
+    // replace photos for a client assigned to them.
+    const _s = await trainerClientIdScope(event, supabase, coachId);
+    if (_s && !_s.map(String).includes(String(clientId))) {
+      return {
+        statusCode: 403,
+        headers: corsHeaders,
+        body: JSON.stringify({ error: 'Not authorized for this client' })
+      };
+    }
 
     // Hard guardrail: confirm the client belongs to this coach AND is a demo
     // client. This is the only path that allows mutating client photos

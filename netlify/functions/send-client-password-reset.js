@@ -1,7 +1,7 @@
 // Netlify Function to send password reset email to a client
 // Allows coaches to help clients who need to reset their password
 const { createClient } = require('@supabase/supabase-js');
-const { handleCors, authenticateCoach, corsHeaders } = require('./utils/auth');
+const { handleCors, authenticateGymMember, trainerClientIdScope, corsHeaders } = require('./utils/auth');
 const { sendEmail } = require('./utils/email-service');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
@@ -39,12 +39,24 @@ exports.handler = async (event, context) => {
       };
     }
 
-    // ✅ SECURITY: Verify the authenticated user owns this coach account
-    const { user, error: authError } = await authenticateCoach(event, coachId);
+    // ✅ SECURITY: allow the gym owner OR one of that gym's active trainers.
+    // Owners are unchanged; a trainer is gated below to their assigned clients.
+    const { user, error: authError } = await authenticateGymMember(event, coachId);
     if (authError) return authError;
 
     // Initialize Supabase client with service key for admin operations
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+
+    // Trainer scope (null for owners/legacy → no gating): a trainer may only
+    // reset passwords for a client assigned to them.
+    const _s = await trainerClientIdScope(event, supabase, coachId);
+    if (_s && !_s.map(String).includes(String(clientId))) {
+      return {
+        statusCode: 403,
+        headers,
+        body: JSON.stringify({ error: 'Not authorized for this client' })
+      };
+    }
 
     // Get client data
     const { data: client, error: clientError } = await supabase
