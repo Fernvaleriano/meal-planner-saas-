@@ -8052,8 +8052,6 @@
                     const isWorkouts = keep.some(h => href.indexOf(h) !== -1);
                     if (!isLogout && !isWorkouts) a.style.display = 'none';
                 });
-                // Any "back to dashboard" link points to the trainer's own home.
-                document.querySelectorAll('a[href="dashboard.html"]').forEach(a => a.setAttribute('href', 'trainer-dashboard.html'));
                 const bulk = document.getElementById('bulkUploadBtn');
                 if (bulk) bulk.style.display = 'none';
             } catch (e) { /* non-fatal */ }

@@ -1222,7 +1222,6 @@
                     const isWorkouts = keep.some(h => href.indexOf(h) !== -1);
                     if (!isLogout && !isWorkouts) a.style.display = 'none';
                 });
-                document.querySelectorAll('a[href="dashboard.html"]').forEach(a => a.setAttribute('href', 'trainer-dashboard.html'));
             } catch (e) { /* non-fatal */ }
         }
 
