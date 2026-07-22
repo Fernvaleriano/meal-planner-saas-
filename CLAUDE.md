@@ -452,6 +452,16 @@ A partial React rebuild exists in `src/` but is **not the primary codebase**. So
 - New Ziquecoach logo needs uploading to Supabase storage (current logo file has "zique fitness" in name)
 - Existing clients will be logged out during the 301 redirect (cookies don't cross domains) — heads-up message should include "Forgot Password?" reminder
 
+## Client Equipment Notes (per-client gym limitations)
+
+Keep track of gear a specific client does NOT have so their programs use
+swaps they can actually do. When building/revising a client's workout,
+honor these:
+
+- **Caro Dressler** — does NOT have a **seated row machine** at her gym.
+  Use a **Seated Cable Row V Bar Machine** (or another cable/band row)
+  instead. (Her Phase 2 Upper/Lower program was swapped July 2026.)
+
 ## Default Workout Template Format
 
 ### File Location
