@@ -1,6 +1,6 @@
 // Netlify Function to save a coach's meal plan
 const { createClient } = require('@supabase/supabase-js');
-const { handleCors, authenticateCoach, corsHeaders } = require('./utils/auth');
+const { handleCors, authenticateGymMember, trainerClientIdScope, corsHeaders } = require('./utils/auth');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -59,14 +59,26 @@ exports.handler = async (event, context) => {
     }
 
     // ✅ SECURITY: allow the gym owner OR one of that gym's active trainers.
-    // A meal plan is coach-level (belongs to the gym), so no per-client scoping.
-    const { user, error: authError } = await authenticateCoach(event, coachId);
+    // Owners are unchanged. A meal plan is bound to a client (clientId), so a
+    // trainer may only write plans for a client assigned to them.
+    const { user, error: authError } = await authenticateGymMember(event, coachId);
     if (authError) return authError;
 
     // Initialize Supabase client with service key (bypasses RLS)
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, {
       auth: { persistSession: false }
     });
+
+    // Trainer scope (null for owners/legacy → no gating). When this plan targets
+    // a client, a trainer must own that client.
+    const _scope = await trainerClientIdScope(event, supabase, coachId);
+    if (_scope && clientId && !_scope.map(String).includes(String(clientId))) {
+      return {
+        statusCode: 403,
+        headers: corsHeaders,
+        body: JSON.stringify({ error: 'Not authorized to access this client' })
+      };
+    }
 
     let data, error;
 

@@ -1,6 +1,6 @@
 // Netlify Function to retrieve all meal plans for a coach
 const { createClient } = require('@supabase/supabase-js');
-const { handleCors, authenticateCoach, corsHeaders } = require('./utils/auth');
+const { handleCors, authenticateGymMember, trainerClientIdScope, corsHeaders } = require('./utils/auth');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -31,18 +31,24 @@ exports.handler = async (event, context) => {
     }
 
     // ✅ SECURITY: allow the gym owner OR one of that gym's active trainers.
-    // Meal plans are a coach-level library, so no per-client scoping here.
-    const { user, error: authError } = await authenticateCoach(event, coachId);
+    // Owners are unchanged; a trainer is scoped below to their assigned clients'
+    // plans (coach_meal_plans rows carry a client_id).
+    const { user, error: authError } = await authenticateGymMember(event, coachId);
     if (authError) return authError;
 
     // Initialize Supabase client with service key
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
+    // Trainer scope (null for owners/legacy → no extra filtering)
+    const _scope = await trainerClientIdScope(event, supabase, coachId);
+
     // Retrieve all meal plans for this coach, ordered by creation date (newest first)
-    const { data, error } = await supabase
+    let query = supabase
       .from('coach_meal_plans')
       .select('id, plan_name, client_name, client_id, status, created_at, updated_at')
-      .eq('coach_id', coachId)
+      .eq('coach_id', coachId);
+    if (_scope) query = query.in('client_id', _scope);
+    const { data, error } = await query
       .order('created_at', { ascending: false });
 
     if (error) {

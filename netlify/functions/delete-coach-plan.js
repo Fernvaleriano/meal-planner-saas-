@@ -1,6 +1,6 @@
 // Netlify Function to delete a coach's meal plan
 const { createClient } = require('@supabase/supabase-js');
-const { handleCors, authenticateCoach, corsHeaders } = require('./utils/auth');
+const { handleCors, authenticateGymMember, trainerClientIdScope, corsHeaders } = require('./utils/auth');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -32,12 +32,33 @@ exports.handler = async (event, context) => {
     }
 
     // ✅ SECURITY: allow the gym owner OR one of that gym's active trainers.
-    // Meal plans are a coach-level library, so no per-client scoping here.
-    const { user, error: authError } = await authenticateCoach(event, coachId);
+    // Owners are unchanged. This plan is bound to a client, so a trainer may
+    // only delete a plan belonging to a client assigned to them.
+    const { user, error: authError } = await authenticateGymMember(event, coachId);
     if (authError) return authError;
 
     // Initialize Supabase client with service key
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+
+    // Trainer scope (null for owners/legacy → no gating). Look up this plan's
+    // client_id and confirm it's one of the trainer's assigned clients; fail
+    // closed if the plan can't be resolved to an in-scope client.
+    const _scope = await trainerClientIdScope(event, supabase, coachId);
+    if (_scope) {
+      const { data: planRow } = await supabase
+        .from('coach_meal_plans')
+        .select('client_id')
+        .eq('id', planId)
+        .eq('coach_id', coachId)
+        .single();
+      if (!planRow || !_scope.map(String).includes(String(planRow.client_id))) {
+        return {
+          statusCode: 403,
+          headers: corsHeaders,
+          body: JSON.stringify({ error: 'Not authorized to access this client' })
+        };
+      }
+    }
 
     // First, delete any associated shared plans
     // This ensures clients lose access to the shared link
