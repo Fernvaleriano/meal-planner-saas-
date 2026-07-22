@@ -1,6 +1,6 @@
 // Netlify Function to create a new client
 const { createClient } = require('@supabase/supabase-js');
-const { handleCors, authenticateCoach, corsHeaders } = require('./utils/auth');
+const { handleCors, authenticateGymMember, corsHeaders } = require('./utils/auth');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -45,8 +45,9 @@ exports.handler = async (event, context) => {
       };
     }
 
-    // ✅ SECURITY: Verify the authenticated user owns this coach account
-    const { user, error: authError } = await authenticateCoach(event, coachId);
+    // ✅ SECURITY: allow the gym owner OR one of their trainers. A trainer's
+    // new client is owned by the gym (coach_id) and auto-assigned to them.
+    const { role, trainerId, error: authError } = await authenticateGymMember(event, coachId);
     if (authError) return authError;
 
     // Initialize Supabase client with service key
@@ -204,6 +205,7 @@ exports.handler = async (event, context) => {
       .insert([
         {
           coach_id: coachId,
+          trainer_id: role === 'trainer' ? trainerId : null,
           client_name: clientName,
           email: email || null,
           phone: phone || null,
