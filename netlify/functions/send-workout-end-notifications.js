@@ -99,7 +99,7 @@ exports.handler = async (event, context) => {
         // Get all coaches with workout end notifications enabled (or no settings row = default enabled)
         const { data: allCoaches, error: coachError } = await supabase
             .from('coaches')
-            .select('id, name, email, brand_primary_color, brand_name, brand_logo_url, brand_email_logo_url');
+            .select('id, name, email, is_gym, brand_slug, brand_primary_color, brand_name, brand_logo_url, brand_email_logo_url');
 
         if (coachError) {
             console.error('Error fetching coaches:', coachError);
@@ -272,6 +272,7 @@ exports.handler = async (event, context) => {
                 if (settings.email_notifications && coachEmail) {
                     try {
                         const emailHtml = generateProgramEndEmail({
+                            coach,
                             coachName,
                             clientName,
                             programName,
@@ -351,6 +352,7 @@ exports.handler = async (event, context) => {
  * Generate HTML email for program ending notification
  */
 function generateProgramEndEmail({
+    coach,
     coachName,
     clientName,
     programName,
@@ -363,7 +365,10 @@ function generateProgramEndEmail({
     brandName = 'Ziquecoach',
     logoUrl
 }) {
-    const APP_URL = process.env.URL || 'https://ziquecoach.com';
+    // Button opens the workout plans page on this coach/gym's own branded
+    // web address (white-label gyms → their own domain).
+    const { coachUrl } = require('./utils/coach-links');
+    const workoutPlansUrl = coachUrl(coach, 'workout-plans');
     const logoHtml = logoUrl
         ? `<img src="${logoUrl}" alt="${brandName}" style="max-width: 150px; height: auto; margin-bottom: 12px;">`
         : '';
@@ -423,7 +428,7 @@ function generateProgramEndEmail({
         }
 
         <div style="text-align: center; margin: 30px 0;">
-            <a href="${APP_URL}/workout-plans" style="display: inline-block; background-color: ${primaryColor}; color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 600; font-size: 16px;">View Workout Plans</a>
+            <a href="${workoutPlansUrl}" style="display: inline-block; background-color: ${primaryColor}; color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 600; font-size: 16px;">View Workout Plans</a>
         </div>
 
         <p style="margin-top: 30px; color: #94a3b8; font-size: 13px;">
