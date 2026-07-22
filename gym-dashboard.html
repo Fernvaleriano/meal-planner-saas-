@@ -61,6 +61,21 @@
         @media (max-width: 1024px) {
             .gym-grid { grid-template-columns: 1fr; }
         }
+        /* Coach View button: desktop already has it in the sidebar, so only
+           show this header shortcut on mobile where the sidebar is hidden. */
+        .gym-coachview-btn { display: none; }
+        .gym-coachview-btn {
+            background: transparent;
+            border: 1px solid var(--brand-primary, #0d9488);
+            color: var(--brand-primary, #0d9488);
+        }
+        @media (max-width: 1024px) {
+            .gym-coachview-btn { display: inline-flex; align-items: center; gap: 6px; }
+        }
+        /* On the smallest screens, keep it compact so the header doesn't wrap. */
+        @media (max-width: 480px) {
+            .gym-coachview-btn { padding-left: 10px; padding-right: 10px; }
+        }
         .gym-col { display: flex; flex-direction: column; gap: 24px; }
 
         /* Member list rows */
@@ -299,6 +314,13 @@
             </button>
             <h1 class="main-header-title">Gym Dashboard</h1>
             <div class="main-header-actions">
+                <!-- Coach View: the coaching side (custom videos, meal plans, full
+                     client tools). On desktop it lives in the sidebar; on mobile the
+                     sidebar is hidden, so surface a one-tap button here. -->
+                <a href="dashboard.html?coach=1" class="btn btn-sm gym-coachview-btn" title="Coach View">
+                    <i data-lucide="briefcase" style="width:16px;height:16px;"></i>
+                    Coach View
+                </a>
                 <a href="manage-clients.html" class="btn btn-primary btn-sm">
                     <i data-lucide="user-plus" style="width:16px;height:16px;"></i>
                     Add member
