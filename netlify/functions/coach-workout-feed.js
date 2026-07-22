@@ -1,4 +1,5 @@
 const { createClient } = require('@supabase/supabase-js');
+const { trainerClientIdScope } = require('./utils/auth');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -42,6 +43,18 @@ exports.handler = async (event) => {
         statusCode: 400,
         headers,
         body: JSON.stringify({ error: 'coachId is required' })
+      };
+    }
+
+    // Trainer scope (null for owners/legacy/no-token → no gating): a trainer
+    // may only pull the feed for a client assigned to them. Out-of-scope
+    // clientId returns the same empty feed shape, not a leak.
+    const _s = await trainerClientIdScope(event, supabase, coachId);
+    if (_s && clientId != null && !_s.map(String).includes(String(clientId))) {
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify({ feed: [], hasMore: false, clients: {} })
       };
     }
 

@@ -1,4 +1,5 @@
 const { createClient } = require('@supabase/supabase-js');
+const { trainerClientIdScope } = require('./utils/auth');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -28,6 +29,19 @@ exports.handler = async (event, context) => {
                 statusCode: 400,
                 headers: { 'Access-Control-Allow-Origin': '*' },
                 body: JSON.stringify({ error: 'Client ID is required' })
+            };
+        }
+
+        // Trainer scope (null for owners/legacy/no-token or when no gym coachId
+        // is supplied → no gating): a trainer may only list favorites for a
+        // client assigned to them. Out-of-scope returns the same empty shape.
+        const _gCoachId = event.queryStringParameters?.coachId;
+        const _s = await trainerClientIdScope(event, supabase, _gCoachId);
+        if (_s && clientId != null && !_s.map(String).includes(String(clientId))) {
+            return {
+                statusCode: 200,
+                headers: { 'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json' },
+                body: JSON.stringify({ favorites: [] })
             };
         }
 
@@ -77,6 +91,18 @@ exports.handler = async (event, context) => {
                     statusCode: 400,
                     headers: { 'Access-Control-Allow-Origin': '*' },
                     body: JSON.stringify({ error: 'Client ID and meal name are required' })
+                };
+            }
+
+            // Trainer scope (null for owners/legacy/no-token or when no gym
+            // coachId is supplied → no gating): a trainer may only add/toggle a
+            // favorite for a client assigned to them.
+            const _s = await trainerClientIdScope(event, supabase, coachId);
+            if (_s && clientId != null && !_s.map(String).includes(String(clientId))) {
+                return {
+                    statusCode: 403,
+                    headers: { 'Access-Control-Allow-Origin': '*' },
+                    body: JSON.stringify({ error: 'Not authorized for this client' })
                 };
             }
 

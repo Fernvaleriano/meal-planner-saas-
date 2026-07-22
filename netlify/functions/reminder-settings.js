@@ -12,6 +12,7 @@
  */
 
 const { createClient } = require('@supabase/supabase-js');
+const { trainerClientIdScope } = require('./utils/auth');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -46,6 +47,30 @@ exports.handler = async (event) => {
 
             // Get client preferences
             if (params.clientId) {
+                // Trainer scope (null for owners/legacy/no-token or when no gym
+                // coachId is supplied → no gating): a trainer may only read
+                // preferences for a client assigned to them. Out-of-scope
+                // returns the same default (empty) shape.
+                const _s = await trainerClientIdScope(event, supabase, params.coachId);
+                if (_s && params.clientId != null && !_s.map(String).includes(String(params.clientId))) {
+                    return {
+                        statusCode: 200,
+                        headers,
+                        body: JSON.stringify({
+                            preferences: {
+                                client_id: parseInt(params.clientId),
+                                reminders_enabled: true,
+                                email_reminders: true,
+                                inapp_reminders: true,
+                                custom_reminder_day: null,
+                                preferred_hour: null,
+                                timezone: 'America/New_York',
+                                is_default: true
+                            },
+                            dayNames: DAY_NAMES
+                        })
+                    };
+                }
                 return await getClientPreferences(supabase, params.clientId);
             }
 
@@ -67,6 +92,17 @@ exports.handler = async (event) => {
 
             // Update client preferences
             if (path === '/client') {
+                // Trainer scope (null for owners/legacy/no-token or when no gym
+                // coachId is supplied → no gating): a trainer may only update
+                // preferences for a client assigned to them.
+                const _s = await trainerClientIdScope(event, supabase, body.coachId);
+                if (_s && body.clientId != null && !_s.map(String).includes(String(body.clientId))) {
+                    return {
+                        statusCode: 403,
+                        headers,
+                        body: JSON.stringify({ error: 'Not authorized for this client' })
+                    };
+                }
                 return await updateClientPreferences(supabase, body);
             }
 

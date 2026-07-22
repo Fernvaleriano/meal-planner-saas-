@@ -1,6 +1,7 @@
 // Netlify Function to upload progress photos
 const { createClient } = require('@supabase/supabase-js');
 const { getDefaultDate } = require('./utils/timezone');
+const { trainerClientIdScope } = require('./utils/auth');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -106,6 +107,17 @@ exports.handler = async (event, context) => {
 
     // Initialize Supabase client with service key
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+
+    // Trainer scope (null for owners/legacy/no-token → no gating): a trainer
+    // may only upload a photo for a client assigned to them.
+    const _s = await trainerClientIdScope(event, supabase, coachId);
+    if (_s && clientId != null && !_s.map(String).includes(String(clientId))) {
+      return {
+        statusCode: 403,
+        headers: { 'Access-Control-Allow-Origin': '*' },
+        body: JSON.stringify({ error: 'Not authorized for this client' })
+      };
+    }
 
     // Ensure bucket exists (create if not)
     const bucketResult = await ensureBucketExists(supabase);
