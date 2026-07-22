@@ -5722,6 +5722,13 @@
             </button>
             <h1 class="main-header-title">Dashboard</h1>
             <div class="main-header-actions">
+                <!-- Back to Gym View: only shown for gym-owner accounts (revealed in
+                     JS once we know coachData.is_gym). Lets a gym owner who jumped
+                     into the coaching side return to their gym dashboard. -->
+                <a href="gym-dashboard.html" class="btn btn-sm" id="gymViewLink" title="Gym View" style="display:none;align-items:center;gap:6px;background:transparent;border:1px solid var(--brand-primary,#0d9488);color:var(--brand-primary,#0d9488);">
+                    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-6h6v6"/></svg>
+                    Gym View
+                </a>
                 <a href="coach-profile.html" class="header-profile-avatar" id="headerProfileAvatar" title="Profile">
                     <span id="headerProfileInitials">C</span>
                 </a>
@@ -9365,6 +9372,19 @@
             }
         });
 
+        // Meal Logs on the coaching dashboard follow the account's `diary`
+        // module. Gyms (and any account not offering meal logging) have
+        // client_modules.diary === false, so hide the "Logs" card there. Turn
+        // it back on by enabling the diary module for that account. Full
+        // coaching accounts (client_modules null, or diary not false) keep it.
+        function applyCoachingModuleVisibility(clientModules) {
+            try {
+                const diaryOff = !!(clientModules && clientModules.diary === false);
+                const mealsCard = document.getElementById('overviewCardMeals');
+                if (mealsCard) mealsCard.style.display = diaryOff ? 'none' : '';
+            } catch (e) { /* non-fatal */ }
+        }
+
         // Trainer home: render the SAME full dashboard the gym owner sees, but
         // scoped to the trainer's assigned clients and branded as their gym.
         // The three data columns + stat chips populate through the normal loader
@@ -9408,9 +9428,11 @@
             // Stories & Pep Talks broadcasts, the get-started onboarding, the
             // subscription/tier chrome, and the gym-info editor. The AI ask bar,
             // the three overview cards, and the activity feed stay.
+            // 'overviewCardMeals' = the Meal Logs card. Trainers are always in a
+            // gym context, which doesn't offer meal logging, so hide it.
             ['coachStoriesCreator', 'pepTalksCreator', 'onboardingSection',
              'subscriptionWarning', 'gymInfoSection', 'tierBadge',
-             'brandingCard', 'brandingTile'].forEach(function (id) {
+             'brandingCard', 'brandingTile', 'overviewCardMeals'].forEach(function (id) {
                 const el = document.getElementById(id);
                 if (el) el.style.setProperty('display', 'none', 'important');
             });
@@ -9711,6 +9733,17 @@
                 // top numbers when the coach comes back to it later.
                 _coachUserId = user.id;
                 _lastStatsRefresh = Date.now();
+
+                // Gym owners land on the coaching side via "Coach View" — give
+                // them a one-tap way back to their gym dashboard.
+                if (coachData.is_gym) {
+                    const gymViewLink = document.getElementById('gymViewLink');
+                    if (gymViewLink) gymViewLink.style.display = 'inline-flex';
+                }
+
+                // Hide the Meal Logs card when this account doesn't offer meal
+                // logging (gyms have diary off; full coaches keep it).
+                applyCoachingModuleVisibility(coachData.client_modules);
 
                 // Fetch and display quick stats
                 await loadQuickStats(user.id);
