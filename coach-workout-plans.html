@@ -1216,7 +1216,7 @@
         function applyTrainerViewPlans() {
             try {
                 const keep = ['coach-workout-plans.html', 'coach-workouts.html'];
-                document.querySelectorAll('.sidebar-nav-item').forEach(a => {
+                document.querySelectorAll('.sidebar-nav-item, .coach-nav-item').forEach(a => {
                     const href = a.getAttribute('href') || '';
                     const isLogout = a.id === 'logoutLink';
                     const isWorkouts = keep.some(h => href.indexOf(h) !== -1);
@@ -1251,6 +1251,13 @@
                 .then(function (b) {
                     if (b && b.has_branding_access && (b.brand_app_name || b.brand_name)) {
                         window.ZQ_PDF_BRAND_NAME = b.brand_app_name || b.brand_name;
+                    }
+                    // Trainers get the gym's colours (owners are untouched here).
+                    if (isTrainer && b && b.brand_primary_color) {
+                        const p = b.brand_primary_color, s = b.brand_secondary_color || p, rs = document.documentElement.style;
+                        rs.setProperty('--brand-primary', p); rs.setProperty('--brand-secondary', s);
+                        rs.setProperty('--brand-primary-dark', s);
+                        rs.setProperty('--brand-gradient', 'linear-gradient(135deg, ' + p + ' 0%, ' + s + ' 100%)');
                     }
                 })
                 .catch(function () { /* keep default */ });
