@@ -79,7 +79,7 @@ exports.handler = async (event, context) => {
 
         let coachQuery = supabase
             .from('coaches')
-            .select('id, name, email, brand_primary_color, brand_name, brand_logo_url, brand_email_logo_url');
+            .select('id, name, email, is_gym, brand_slug, brand_primary_color, brand_name, brand_logo_url, brand_email_logo_url');
         if (onlyCoachId) coachQuery = coachQuery.eq('id', onlyCoachId);
 
         const { data: coaches, error: coachError } = await coachQuery;
@@ -127,6 +127,7 @@ exports.handler = async (event, context) => {
                 const coachName = coach.name || coach.brand_name || 'Coach';
                 const subject = digestSubject(digest);
                 const { text, html } = renderDigestEmail({
+                    coach,
                     coachName,
                     digest,
                     primaryColor: coach.brand_primary_color || '#2cb5a5',
@@ -290,9 +291,13 @@ function digestSubject(digest) {
     return `Morning check: ${w} client${w === 1 ? '' : 's'} worth a shout-out`;
 }
 
-function renderDigestEmail({ coachName, digest, primaryColor, brandName, logoUrl }) {
-    const APP_URL = process.env.URL || 'https://ziquecoach.com';
-    const messageLink = (clientId) => `${APP_URL}/coach-messages.html?clientId=${encodeURIComponent(clientId)}`;
+function renderDigestEmail({ coach, coachName, digest, primaryColor, brandName, logoUrl }) {
+    const { coachUrl, coachHomeUrl } = require('./utils/coach-links');
+    // Message + "full picture" buttons resolve to this coach/gym's own branded
+    // web address, and the home button to their own dashboard (gym owners →
+    // gym-dashboard, coaches → command center).
+    const messageLink = (clientId) => coachUrl(coach, `coach-messages.html?clientId=${encodeURIComponent(clientId)}`);
+    const homeLink = coachHomeUrl(coach);
 
     // Plain-text version
     const textLines = [`Hi ${coachName},`, '', 'Your morning check:'];
@@ -305,7 +310,7 @@ function renderDigestEmail({ coachName, digest, primaryColor, brandName, logoUrl
         textLines.push('', 'WINNING (send some praise):');
         for (const w of digest.winning) textLines.push(`- ${w.clientName}: ${w.fact} → ${messageLink(w.clientId)}`);
     }
-    textLines.push('', `Full picture: ${APP_URL}/coach-command-center.html`, '', brandName);
+    textLines.push('', `Full picture: ${homeLink}`, '', brandName);
     const text = textLines.join('\n');
 
     const logoHtml = logoUrl
@@ -350,7 +355,7 @@ function renderDigestEmail({ coachName, digest, primaryColor, brandName, logoUrl
         ${slippingSection}
         ${winningSection}
         <div style="text-align: center; margin: 28px 0 8px;">
-            <a href="${APP_URL}/coach-command-center.html" style="display: inline-block; color: ${primaryColor}; text-decoration: none; font-weight: 600; font-size: 14px;">See the full picture →</a>
+            <a href="${homeLink}" style="display: inline-block; color: ${primaryColor}; text-decoration: none; font-weight: 600; font-size: 14px;">See the full picture →</a>
         </div>
         <p style="margin-top: 24px; color: #94a3b8; font-size: 12px; text-align: center;">
             You get this each morning only when a client needs attention or deserves a shout-out.

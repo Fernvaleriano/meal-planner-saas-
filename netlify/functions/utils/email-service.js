@@ -193,9 +193,13 @@ function generateReminderEmail({
     customMessage,
     isFollowup = false,
     whiteLabel = false,
-    branding = {}
+    branding = {},
+    baseUrl
 }) {
-    const checkinLink = `${APP_URL}/client-dashboard.html`;
+    // White-label gym clients get their gym's own web address; everyone else
+    // the shared app. Falls back to APP_URL when no origin was resolved.
+    const origin = baseUrl || APP_URL;
+    const checkinLink = `${origin}/client-dashboard.html`;
 
     // Default subject
     let subject = isFollowup
@@ -224,7 +228,7 @@ function generateReminderEmail({
     // footer under a coach-branded header for every branded coach without
     // a verified sending domain.)
     const footerText = branding.brand_email_footer || brandName;
-    const footerHtml = `<p>${footerText}</p><p><a href="${APP_URL}" style="color: ${primaryColor};">Visit Dashboard</a></p>`;
+    const footerHtml = `<p>${footerText}</p><p><a href="${origin}" style="color: ${primaryColor};">Visit Dashboard</a></p>`;
 
     // Default message
     let textBody = `Hi ${clientName},
@@ -344,6 +348,10 @@ async function sendCheckinReminder({
     // Check if coach has branding enabled (Professional tier)
     const hasBranding = ['professional', 'branded'].includes(coach?.subscription_tier);
 
+    // A white-label gym's clients should land on the gym's own web address.
+    const { coachOrigin } = require('./coach-links');
+    const baseUrl = coachOrigin(coach);
+
     const emailContent = generateReminderEmail({
         clientName: client.client_name || 'there',
         clientEmail: client.email,
@@ -359,7 +367,8 @@ async function sendCheckinReminder({
             brand_logo_url: coach?.brand_logo_url,
             brand_email_logo_url: coach?.brand_email_logo_url,
             brand_email_footer: coach?.brand_email_footer
-        } : {}
+        } : {},
+        baseUrl
     });
 
     return sendEmail({
