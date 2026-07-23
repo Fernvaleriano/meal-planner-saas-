@@ -19927,11 +19927,19 @@ textarea,
     color: #64748b;
 }
 
-/* Modal */
+/* Modal — the base .workout-history-modal is an edge-to-edge bottom sheet
+   with NO internal padding (inner sections normally bring their own). This
+   sheet floats above the tab bar (the overlay reserves that space), so give
+   it side margins, full rounded corners, and its own padding — without
+   these the header/buttons render flush to the screen edges and the square
+   bottom corners read as "cut off" against the nav bar. */
 .rearrange-week-modal {
     display: flex;
     flex-direction: column;
-    max-height: 82vh;
+    max-height: 78vh;
+    margin: 0 14px;
+    border-radius: 24px;
+    padding: 18px 18px 16px;
 }
 
 .rearrange-week-header {
