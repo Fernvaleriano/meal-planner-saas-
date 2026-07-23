@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Video Cartoonizer</title>
+  <meta name="robots" content="noindex" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    :root { --bg:#0A1F2E; --card:#12293a; --accent:#2EC4B6; --line:#24404f; --muted:#9fb3c0; --err:#ff6b6b; --ok:#33c27f; }
+    * { box-sizing:border-box; margin:0; padding:0; }
+    body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; background:var(--bg); color:#fff; padding:20px; }
+    .wrap { max-width:640px; margin:0 auto; }
+    h1 { font-size:24px; font-weight:800; }
+    .sub { color:var(--muted); font-size:14px; margin:6px 0 20px; }
+    .card { background:var(--card); border-radius:14px; padding:18px; margin-bottom:14px; }
+    label.lbl { display:block; font-size:13px; font-weight:700; color:var(--muted); margin:14px 0 6px; }
+    select { width:100%; background:#0c1e2b; border:1.5px solid var(--line); border-radius:8px; padding:10px; color:#fff; font-size:14px; outline:none; }
+    select:focus { border-color:var(--accent); }
+    .drop { border:1.5px dashed var(--line); border-radius:12px; padding:28px 16px; text-align:center; color:var(--muted); cursor:pointer; }
+    .drop.has { border-color:var(--accent); color:#fff; }
+    .btn { border:none; border-radius:10px; padding:13px 18px; font-size:15px; font-weight:700; cursor:pointer; width:100%; margin-top:16px; }
+    .btn.primary { background:var(--accent); color:#06121a; }
+    .btn:disabled { opacity:.5; cursor:default; }
+    .status { margin-top:14px; font-size:14px; min-height:20px; }
+    .status.err { color:var(--err); }
+    .status.ok { color:var(--ok); }
+    .bar { height:6px; background:var(--line); border-radius:4px; overflow:hidden; margin-top:10px; display:none; }
+    .bar > div { height:100%; background:var(--accent); width:0%; transition:width .4s; }
+    video { width:100%; border-radius:12px; margin-top:14px; background:#000; display:none; }
+    a.dl { display:none; margin-top:12px; text-align:center; color:var(--accent); font-weight:700; text-decoration:none; }
+    .note { font-size:12px; color:var(--muted); margin-top:10px; }
+    #gate { display:none; text-align:center; padding:60px 0; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div id="gate">
+      <h2>Admin only</h2>
+      <p class="sub">This tool is part of the admin account.</p>
+    </div>
+
+    <div id="app" style="display:none">
+      <h1>🎬 Video Cartoonizer</h1>
+      <p class="sub">Drop in a clip (up to 30 seconds), pick a look, and get back an animated version. Each run costs a little on the Replicate account, so preview short clips first.</p>
+
+      <div class="card">
+        <div class="drop" id="drop">Tap to choose a video<br><span style="font-size:12px">MP4 / MOV, up to 30s and 100MB</span></div>
+        <input type="file" id="file" accept="video/*" style="display:none" />
+
+        <label class="lbl">Look</label>
+        <select id="style">
+          <option value="gray_figure" selected>Gray 3D figure (like the exercise animations, no muscle highlights)</option>
+          <option value="pixar">3D animated movie (Pixar-style)</option>
+          <option value="anime">Anime</option>
+        </select>
+
+        <label class="lbl">How much it may change your video</label>
+        <select id="mode">
+          <option value="" selected>Recommended for this look</option>
+          <option value="adhere_2">Subtle — stays very close to my footage</option>
+          <option value="flex_2">Balanced</option>
+          <option value="reimagine_1">Strong — fully repainted</option>
+          <option value="reimagine_3">Maximum — loosest, most cartoon</option>
+        </select>
+
+        <button class="btn primary" id="go" disabled>✨ Cartoonize</button>
+        <div class="bar" id="bar"><div></div></div>
+        <div class="status" id="status"></div>
+
+        <video id="result" controls playsinline></video>
+        <a class="dl" id="dl" download="cartoonized.mp4" target="_blank" rel="noopener">⬇ Download the video</a>
+        <p class="note" id="dlNote" style="display:none">Download it now — the finished link is temporary and expires after a while.</p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const SUPABASE_URL = 'https://qewqcjzlfqamqwbccapr.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFld3FjanpsZnFhbXF3YmNjYXByIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM2OTg0NzAsImV4cCI6MjA3OTI3NDQ3MH0.mQnMC33O88oLkLLGWD2oG-oaSHGI-NfHmtQCZxnxSLs';
+    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const MASTER_EMAIL = 'contact@ziquefitness.com';
+    const FN = '/.netlify/functions/cartoonize-video';
+
+    let accessToken = null, chosenFile = null, busy = false;
+
+    const $ = (id) => document.getElementById(id);
+    const setStatus = (msg, cls) => { const s = $('status'); s.textContent = msg || ''; s.className = 'status' + (cls ? ' ' + cls : ''); };
+    const setBar = (pct) => { const b = $('bar'); b.style.display = pct == null ? 'none' : 'block'; if (pct != null) b.firstElementChild.style.width = pct + '%'; };
+
+    async function api(payload) {
+      const res = await fetch(FN, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${accessToken}` },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Request failed');
+      return data;
+    }
+
+    async function checkAuth() {
+      const { data: { session } } = await supabaseClient.auth.getSession();
+      if (!session) { window.location.href = 'login.html'; return; }
+      if ((session.user.email || '').toLowerCase() !== MASTER_EMAIL) { $('gate').style.display = 'block'; return; }
+      accessToken = session.access_token;
+      $('app').style.display = 'block';
+    }
+
+    $('drop').addEventListener('click', () => $('file').click());
+    $('file').addEventListener('change', () => {
+      const f = $('file').files[0];
+      if (!f) return;
+      if (!/^video\//i.test(f.type || '')) { setStatus('That doesn’t look like a video file.', 'err'); return; }
+      if (f.size > 100 * 1024 * 1024) { setStatus('That file is over 100MB — trim or compress it first.', 'err'); return; }
+      chosenFile = f;
+      $('drop').classList.add('has');
+      $('drop').innerHTML = '🎥 ' + f.name + '<br><span style="font-size:12px">' + (f.size / 1024 / 1024).toFixed(1) + ' MB — tap to change</span>';
+      $('go').disabled = false;
+      setStatus('');
+    });
+
+    const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+    $('go').addEventListener('click', async () => {
+      if (!chosenFile || busy) return;
+      busy = true; $('go').disabled = true;
+      $('result').style.display = 'none'; $('dl').style.display = 'none'; $('dlNote').style.display = 'none';
+      try {
+        setStatus('Uploading your video…'); setBar(10);
+        const up = await api({ action: 'get-upload-url', fileName: chosenFile.name, contentType: chosenFile.type || 'video/mp4' });
+        const put = await fetch(up.uploadUrl, { method: 'PUT', headers: { 'Content-Type': chosenFile.type || 'video/mp4' }, body: chosenFile });
+        if (!put.ok) throw new Error('Upload failed — try again.');
+
+        setStatus('Sending it to the animation engine…'); setBar(25);
+        const start = await api({ action: 'start', filePath: up.filePath, style: $('style').value, mode: $('mode').value || undefined });
+
+        setStatus('Animating… this usually takes a few minutes. Keep this page open.');
+        let pct = 30;
+        for (let i = 0; i < 180; i++) {          // up to ~15 minutes
+          await sleep(5000);
+          const st = await api({ action: 'status', id: start.id });
+          if (st.status === 'succeeded' && st.outputUrl) {
+            setBar(100); setStatus('Done! 🎉', 'ok');
+            const v = $('result'); v.src = st.outputUrl; v.style.display = 'block';
+            const dl = $('dl'); dl.href = st.outputUrl; dl.style.display = 'block';
+            $('dlNote').style.display = 'block';
+            return;
+          }
+          if (st.status === 'failed' || st.status === 'canceled') {
+            throw new Error(st.error || 'The engine couldn’t process this clip. Try a shorter or steadier video.');
+          }
+          pct = Math.min(90, pct + 2); setBar(pct);
+        }
+        throw new Error('This is taking unusually long — give it a minute and try again.');
+      } catch (err) {
+        setBar(null); setStatus(err.message, 'err');
+      } finally {
+        busy = false; $('go').disabled = false;
+      }
+    });
+
+    checkAuth();
+  </script>
+</body>
+</html>
