@@ -48,6 +48,17 @@ exports.handler = async (event, context) => {
             };
         }
 
+        // Scheduled runs come from Netlify's scheduler. Any other (manual HTTP)
+        // trigger must be the master/admin account — otherwise this is an open
+        // endpoint anyone could POST to and blast coach emails (send abuse/cost).
+        const isScheduled = context?.clientContext?.custom?.scheduled === true ||
+                           event.headers?.['x-netlify-scheduled'] === 'true';
+        if (!isScheduled) {
+            const { authenticateMaster } = require('./utils/auth');
+            const { error: authError } = await authenticateMaster(event);
+            if (authError) return authError;
+        }
+
         const { createClient } = require('@supabase/supabase-js');
         const { sendEmail } = require('./utils/email-service');
 

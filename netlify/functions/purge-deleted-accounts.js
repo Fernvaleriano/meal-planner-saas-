@@ -33,9 +33,19 @@ const GRACE_DAYS = 30;
 const MAX_PER_RUN = 25;
 const LIVE = process.env.PURGE_LIVE === 'true';
 
-exports.handler = async () => {
+exports.handler = async (event, context) => {
   if (!SUPABASE_SERVICE_KEY) {
     return { statusCode: 500, body: JSON.stringify({ error: 'Server configuration error' }) };
+  }
+
+  // Scheduled runs come from Netlify's scheduler. Any other (manual HTTP)
+  // trigger of this destructive job must be the master/admin account.
+  const isScheduled = context?.clientContext?.custom?.scheduled === true ||
+                     event?.headers?.['x-netlify-scheduled'] === 'true';
+  if (!isScheduled) {
+    const { authenticateMaster } = require('./utils/auth');
+    const { error: authError } = await authenticateMaster(event || { headers: {} });
+    if (authError) return authError;
   }
 
   const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, {

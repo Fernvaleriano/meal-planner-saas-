@@ -12,6 +12,14 @@ const headers = {
   'Content-Type': 'application/json'
 };
 
+// coach_id is a UUID. It gets interpolated into a PostgREST .or() filter, so a
+// non-UUID value could inject extra filter clauses and leak every coach's custom
+// exercises. Validate the shape before it's ever used in a query.
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+function isUuid(v) {
+  return typeof v === 'string' && UUID_RE.test(v);
+}
+
 // Auto-convert a coach's custom exercise video to Mux the moment it's saved, so
 // every new upload streams fast (and adapts on weak signal) with no manual step.
 // Only fires for videos in the private workout-assets bucket (coach uploads);
@@ -140,8 +148,10 @@ exports.handler = async (event) => {
         .from('exercises')
         .select('*', { count: 'exact' });
 
-      // Show global exercises + coach's custom exercises
-      if (coachId) {
+      // Show global exercises + coach's custom exercises. Only a well-formed
+      // UUID may enter the .or() filter; a malformed value falls back to
+      // globals-only rather than injecting filter clauses.
+      if (coachId && isUuid(coachId)) {
         query = query.or(`coach_id.is.null,coach_id.eq.${coachId}`);
       } else {
         query = query.is('coach_id', null);

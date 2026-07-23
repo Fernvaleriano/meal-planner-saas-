@@ -759,6 +759,22 @@
             }
         }
 
+        // Escape HTML before interpolating into innerHTML. Form data is written
+        // by the PUBLIC, unauthenticated submit-apply-form endpoint, so every
+        // field is attacker-controlled. Escape at RENDER time only (never on the
+        // way into the DB, which would double-encode stored data).
+        function esc(s) {
+            return String(s == null ? '' : s)
+                .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+        }
+        // Only allow an https URL (e.g. a Supabase storage link) into an
+        // <img src>/<a href>; anything else (javascript:, data:, etc.) is dropped.
+        function safeHttpsUrl(u) {
+            const s = String(u == null ? '' : u).trim();
+            return /^https:\/\//i.test(s) ? s : '';
+        }
+
         // Update stats
         function updateStats() {
             const today = new Date().toDateString();
@@ -815,31 +831,31 @@
                 let previewHtml = '';
                 if (isFirstResponder) {
                     const agency = data.agency_name || 'Not specified';
-                    previewHtml = `<span class="preview-item"><span class="preview-label">Agency:</span> ${agency}</span>`;
+                    previewHtml = `<span class="preview-item"><span class="preview-label">Agency:</span> ${esc(agency)}</span>`;
                 } else {
                     const goal = data.goal || 'Not specified';
                     const commitment = data.commitment || '';
                     previewHtml = `
-                        <span class="preview-item"><span class="preview-label">Goal:</span> ${goal}</span>
-                        ${commitment ? `<span class="preview-item"><span class="preview-label">Commitment:</span> ${commitment.substring(0, 40)}...</span>` : ''}
+                        <span class="preview-item"><span class="preview-label">Goal:</span> ${esc(goal)}</span>
+                        ${commitment ? `<span class="preview-item"><span class="preview-label">Commitment:</span> ${esc(commitment.substring(0, 40))}...</span>` : ''}
                     `;
                 }
 
                 return `
-                    <li class="response-item ${r.is_read ? '' : 'unread'}" onclick="openDetail('${r.id}')">
+                    <li class="response-item ${r.is_read ? '' : 'unread'}" onclick="openDetail('${esc(r.id)}')">
                         <div class="response-header">
                             <div>
                                 <div class="response-name">
-                                    ${name}
+                                    ${esc(name)}
                                     ${!r.is_read ? '<span class="badge badge-new">New</span>' : ''}
                                     ${isFirstResponder ? '<span class="badge badge-first-responder">First Responder</span>' : ''}
                                 </div>
-                                <div class="response-email">${email}</div>
+                                <div class="response-email">${esc(email)}</div>
                             </div>
                             <div class="response-date">
                                 ${date}
                                 <br>
-                                <span class="badge badge-source">${source}</span>
+                                <span class="badge badge-source">${esc(source)}</span>
                             </div>
                         </div>
                         <div class="response-preview">
@@ -898,35 +914,37 @@
                         <div class="detail-section-title">Contact Info</div>
                         <div class="detail-row">
                             <div class="detail-label">First Name</div>
-                            <div class="detail-value">${data.first_name || '-'}</div>
+                            <div class="detail-value">${esc(data.first_name || '-')}</div>
                         </div>
                         <div class="detail-row">
                             <div class="detail-label">Last Name</div>
-                            <div class="detail-value">${data.last_name || '-'}</div>
+                            <div class="detail-value">${esc(data.last_name || '-')}</div>
                         </div>
                         <div class="detail-row">
                             <div class="detail-label">Email</div>
-                            <div class="detail-value">${data.email || '-'}</div>
+                            <div class="detail-value">${esc(data.email || '-')}</div>
                         </div>
                     </div>
                     <div class="detail-section">
                         <div class="detail-section-title">Verification</div>
                         <div class="detail-row">
                             <div class="detail-label">Agency/Department</div>
-                            <div class="detail-value">${data.agency_name || '-'}</div>
+                            <div class="detail-value">${esc(data.agency_name || '-')}</div>
                         </div>
                     </div>
                 `;
 
-                // Show ID photo if available
-                if (data.id_photo_url) {
-                    const isImage = data.id_photo_url.match(/\.(jpg|jpeg|png|gif|webp)$/i);
+                // Show ID photo if available. Only trust an https storage URL in
+                // src/href — a submitted javascript:/data: value must never render.
+                const idPhotoUrl = safeHttpsUrl(data.id_photo_url);
+                if (idPhotoUrl) {
+                    const isImage = idPhotoUrl.match(/\.(jpg|jpeg|png|gif|webp)$/i);
                     bodyHtml += `
                         <div class="detail-section">
                             <div class="detail-section-title">ID Badge Photo</div>
                             <div class="id-photo-preview">
-                                ${isImage ? `<img src="${data.id_photo_url}" alt="ID Badge" />` : '<p>PDF Document</p>'}
-                                <a href="${data.id_photo_url}" target="_blank">Open in new tab</a>
+                                ${isImage ? `<img src="${esc(idPhotoUrl)}" alt="ID Badge" />` : '<p>PDF Document</p>'}
+                                <a href="${esc(idPhotoUrl)}" target="_blank">Open in new tab</a>
                             </div>
                         </div>
                     `;
@@ -950,8 +968,8 @@
                             const label = field.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
                             const value = Array.isArray(data[field]) ? data[field].join(', ') : data[field];
                             return `<div class="detail-row">
-                                <div class="detail-label">${label}</div>
-                                <div class="detail-value">${value}</div>
+                                <div class="detail-label">${esc(label)}</div>
+                                <div class="detail-value">${esc(value)}</div>
                             </div>`;
                         })
                         .join('');
@@ -975,15 +993,15 @@
                         <div class="detail-section-title">Source</div>
                         <div class="detail-row">
                             <div class="detail-label">UTM Source</div>
-                            <div class="detail-value">${meta.utm_source || 'Direct'}</div>
+                            <div class="detail-value">${esc(meta.utm_source || 'Direct')}</div>
                         </div>
                         ${meta.utm_medium ? `<div class="detail-row">
                             <div class="detail-label">UTM Medium</div>
-                            <div class="detail-value">${meta.utm_medium}</div>
+                            <div class="detail-value">${esc(meta.utm_medium)}</div>
                         </div>` : ''}
                         ${meta.referrer ? `<div class="detail-row">
                             <div class="detail-label">Referrer</div>
-                            <div class="detail-value">${meta.referrer}</div>
+                            <div class="detail-value">${esc(meta.referrer)}</div>
                         </div>` : ''}
                     </div>
                 `;
