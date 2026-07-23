@@ -1,7 +1,7 @@
 // Netlify Function to get client activity feed for coaches
 // Shows recent food diary entries grouped by meal for the coach to engage with
 const { createClient } = require('@supabase/supabase-js');
-const { authenticateGymMember, trainerClientIdScope } = require('./utils/auth');
+const { authenticateGymMember, trainerClientIdScope, trainerCan } = require('./utils/auth');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -125,11 +125,13 @@ exports.handler = async (event) => {
       .select('id, client_name, email, profile_photo_url, avatar_url')
       .in('id', clientIds);
 
+    // A trainer without see_contact_info never receives client emails here.
+    const hideContact = feedAuth.role === 'trainer' && !trainerCan(feedAuth, 'see_contact_info');
     const clientMap = {};
     (clients || []).forEach(c => {
       clientMap[c.id] = {
         name: c.client_name || 'Client',
-        email: c.email,
+        email: hideContact ? undefined : c.email,
         photo: c.profile_photo_url || c.avatar_url
       };
     });

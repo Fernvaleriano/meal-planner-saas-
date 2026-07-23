@@ -87,6 +87,13 @@ assigned clients."** `trainer-dashboard.html` is legacy; trainers now land on
 - **Ghost-login cleanup** (risk #2): removing a trainer deletes their auth
   login when it's a pure trainer account (no coaches/clients/other-gym rows).
 
+**Known limitation of `see_contact_info` (accepted July 2026):** the toggle is
+enforced at the API layer (get-clients, trainer-clients, coach-activity-feed).
+The trainer READ RLS policy on `clients` is full-row, so a technically savvy
+blocked trainer could still read email/phone via a direct table query.
+Column-level hiding needs a view or column grants — revisit if this toggle
+ever needs to be watertight rather than UI-level.
+
 **form-responses stays owner-only ON PURPOSE:** rows are lead-gen submissions
 (UTM/referrer metadata, no client linkage), so they cannot be scoped to a
 trainer's clients. Revisit only if form_responses ever gains a client_id.

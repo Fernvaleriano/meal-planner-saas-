@@ -356,12 +356,16 @@ exports.handler = async (event) => {
       if (trainer.trainer_user_id) {
         try {
           const uid = trainer.trainer_user_id;
-          const [{ data: coachRow }, { data: clientRow }, { data: otherTrainerRow }] = await Promise.all([
+          const [coachRes, clientRes, otherTrainerRes] = await Promise.all([
             supabase.from('coaches').select('id').eq('id', uid).maybeSingle(),
             supabase.from('clients').select('id').eq('user_id', uid).limit(1).maybeSingle(),
             supabase.from('gym_trainers').select('id').eq('trainer_user_id', uid).limit(1).maybeSingle()
           ]);
-          if (!coachRow && !clientRow && !otherTrainerRow) {
+          // Fail CLOSED: a lookup error must never read as "no other role" —
+          // only delete the login when all three checks succeeded and came
+          // back empty.
+          const lookupsOk = !coachRes.error && !clientRes.error && !otherTrainerRes.error;
+          if (lookupsOk && !coachRes.data && !clientRes.data && !otherTrainerRes.data) {
             const { error: delUserError } = await supabase.auth.admin.deleteUser(uid);
             loginCleaned = !delUserError;
             if (delUserError) console.error('Trainer login cleanup failed (removal still succeeded):', delUserError.message);

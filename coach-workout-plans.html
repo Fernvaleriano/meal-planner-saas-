@@ -1277,6 +1277,12 @@
         }
 
         async function apiCall(url, options = {}) {
+            // Always send a FRESH token — the page-load token expires after
+            // ~1h, and a save from a long-open tab would otherwise 401.
+            try {
+                const { data: { session } } = await supabaseClient.auth.getSession();
+                if (session?.access_token) currentAccessToken = session.access_token;
+            } catch (e) { /* fall back to the page-load token */ }
             const headers = {
                 'Content-Type': 'application/json',
                 ...(currentAccessToken && { 'Authorization': `Bearer ${currentAccessToken}` }),

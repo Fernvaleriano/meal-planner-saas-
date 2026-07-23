@@ -1,5 +1,5 @@
 const { createClient } = require('@supabase/supabase-js');
-const { authenticateGymMember, trainerClientIdScope } = require('./utils/auth');
+const { authenticateGymMember, trainerClientIdScope, trainerCan, trainerPermissionResponse } = require('./utils/auth');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -56,6 +56,13 @@ exports.handler = async (event) => {
         headers,
         body: JSON.stringify({ error: 'Not authorized for this client' })
       };
+    }
+
+    // Written feedback is delivered into the client's chat thread below, so a
+    // trainer whose gym switched off client messaging can't use it as a
+    // side-channel. A rating-only response (no text) stays allowed.
+    if (feedback && !trainerCan(auth, 'message_clients')) {
+      return trainerPermissionResponse('messaging clients');
     }
 
     const updateFields = {
