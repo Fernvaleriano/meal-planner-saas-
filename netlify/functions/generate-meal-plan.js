@@ -5417,7 +5417,7 @@ ${prompt}`;
 }
 
 // Import auth utilities
-const { handleCors, authenticateRequest, checkRateLimit, rateLimitResponse, corsHeaders } = require('./utils/auth');
+const { handleCors, authenticateRequest, checkRateLimitDurable, rateLimitResponse, corsHeaders } = require('./utils/auth');
 
 exports.handler = async (event, context) => {
   // Handle CORS preflight
@@ -5438,7 +5438,7 @@ exports.handler = async (event, context) => {
   if (authError) return authError;
 
   // ✅ SECURITY: Rate limit - 10 meal plan generations per minute per user
-  const rateLimit = checkRateLimit(user.id, 'generate-meal-plan', 10, 60000);
+  const rateLimit = await checkRateLimitDurable(user.id, 'generate-meal-plan', 10, 60000);
   if (!rateLimit.allowed) {
     console.warn(`🚫 Rate limit exceeded for user ${user.id} on generate-meal-plan`);
     return rateLimitResponse(rateLimit.resetIn);

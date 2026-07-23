@@ -1,6 +1,6 @@
 // Smart food photo analysis using Claude Sonnet (higher accuracy with weight-based estimation)
 const Anthropic = require('@anthropic-ai/sdk');
-const { handleCors, authenticateRequest, checkRateLimit, rateLimitResponse, corsHeaders } = require('./utils/auth');
+const { handleCors, authenticateRequest, checkRateLimitDurable, rateLimitResponse, corsHeaders } = require('./utils/auth');
 
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 
@@ -47,7 +47,7 @@ exports.handler = async (event, context) => {
         if (authError) return authError;
 
         // Rate limit - 10 smart analyses per minute per user
-        const rateLimit = checkRateLimit(user.id, 'analyze-food-photo-smart', 10, 60000);
+        const rateLimit = await checkRateLimitDurable(user.id, 'analyze-food-photo-smart', 10, 60000);
         if (!rateLimit.allowed) {
             console.warn(`🚫 Rate limit exceeded for user ${user.id} on analyze-food-photo-smart`);
             return rateLimitResponse(rateLimit.resetIn);

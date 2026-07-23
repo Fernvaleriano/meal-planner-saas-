@@ -1,6 +1,6 @@
 // Food photo analysis using Claude Haiku (better accuracy than Gemini for food analysis)
 const Anthropic = require('@anthropic-ai/sdk');
-const { handleCors, authenticateRequest, checkRateLimit, rateLimitResponse, corsHeaders } = require('./utils/auth');
+const { handleCors, authenticateRequest, checkRateLimitDurable, rateLimitResponse, corsHeaders } = require('./utils/auth');
 
 const languageInstruction = (lang) => lang === 'es'
     ? '\n\nIMPORTANT: Respond entirely in Spanish (Latin-American neutral). Write all meal names, food names, titles, descriptions, and cooking instructions in natural Spanish. Do NOT translate JSON field names/keys — keep the JSON structure and its keys exactly in English as specified.'
@@ -51,7 +51,7 @@ exports.handler = async (event, context) => {
         if (authError) return authError;
 
         // Rate limit - 20 photo analyses per minute per user
-        const rateLimit = checkRateLimit(user.id, 'analyze-food-photo', 20, 60000);
+        const rateLimit = await checkRateLimitDurable(user.id, 'analyze-food-photo', 20, 60000);
         if (!rateLimit.allowed) {
             console.warn(`🚫 Rate limit exceeded for user ${user.id}`);
             return rateLimitResponse(rateLimit.resetIn);

@@ -8,7 +8,7 @@
 // base64 JPEGs. That is enough to judge depth, bar path, back rounding, knees
 // caving, etc. while keeping the request fast and cheap.
 const Anthropic = require('@anthropic-ai/sdk');
-const { handleCors, authenticateRequest, checkRateLimit, rateLimitResponse, corsHeaders } = require('./utils/auth');
+const { handleCors, authenticateRequest, checkRateLimitDurable, rateLimitResponse, corsHeaders } = require('./utils/auth');
 
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 
@@ -47,7 +47,7 @@ exports.handler = async (event, context) => {
         if (authError) return authError;
 
         // Heavier call than a single photo — keep it to 5 checks/min/user.
-        const rateLimit = checkRateLimit(user.id, 'analyze-form-video', 5, 60000);
+        const rateLimit = await checkRateLimitDurable(user.id, 'analyze-form-video', 5, 60000);
         if (!rateLimit.allowed) {
             console.warn(`🚫 Rate limit exceeded for user ${user.id} on analyze-form-video`);
             return rateLimitResponse(rateLimit.resetIn);

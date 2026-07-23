@@ -1,6 +1,6 @@
 const { createClient } = require("@supabase/supabase-js");
 const Anthropic = require("@anthropic-ai/sdk");
-const { authenticateRequest } = require("./utils/auth");
+const { authenticateRequest, checkRateLimitDurable, rateLimitResponse } = require("./utils/auth");
 
 const languageInstruction = (lang) => lang === 'es'
   ? '\n\nIMPORTANT: Respond entirely in Spanish (Latin-American neutral). Write all names, titles, descriptions, instructions, reasons, and any prose text in natural Spanish. Do NOT translate JSON field names/keys — keep the JSON structure and its keys exactly in English as specified.'
@@ -609,8 +609,11 @@ exports.handler = async (event) => {
 
   // Require a valid signed-in user before the paid LLM call (blocks anonymous
   // cost-abuse). Both live callers already send the Bearer token.
-  const { error: authError } = await authenticateRequest(event);
+  const { user, error: authError } = await authenticateRequest(event);
   if (authError) return { ...authError, headers: { ...headers, ...authError.headers } };
+
+  const rateLimit = await checkRateLimitDurable(user.id, 'ai-swap-exercise', 30, 10 * 60 * 1000);
+  if (!rateLimit.allowed) return rateLimitResponse(rateLimit.resetIn);
 
   try {
     const parsedBody = JSON.parse(event.body);

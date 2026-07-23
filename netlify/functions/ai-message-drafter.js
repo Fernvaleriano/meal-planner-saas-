@@ -13,7 +13,7 @@
  */
 const { createClient } = require('@supabase/supabase-js');
 const Anthropic = require('@anthropic-ai/sdk').default;
-const { authenticateCoach } = require('./utils/auth');
+const { authenticateCoach, checkRateLimitDurable, rateLimitResponse } = require('./utils/auth');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -40,8 +40,11 @@ exports.handler = async (event) => {
   }
 
   // Only the coach themselves may draft messages about their client.
-  const { error: authError } = await authenticateCoach(event, coachId);
+  const { user, error: authError } = await authenticateCoach(event, coachId);
   if (authError) return authError;
+
+  const rateLimit = await checkRateLimitDurable(user.id, 'ai-message-drafter', 30, 10 * 60 * 1000);
+  if (!rateLimit.allowed) return rateLimitResponse(rateLimit.resetIn);
   if (!SUPABASE_SERVICE_KEY) {
     return { statusCode: 500, headers: corsHeaders, body: JSON.stringify({ error: 'Database not configured' }) };
   }

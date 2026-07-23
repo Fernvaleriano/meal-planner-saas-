@@ -1,7 +1,7 @@
 // Meal Brainstorm — uses Claude (Anthropic SDK) for reliable structured output.
 // Migrated from Gemini after JSON-parse failures became the dominant failure mode.
 const AnthropicModule = require('@anthropic-ai/sdk');
-const { authenticateRequest } = require('./utils/auth');
+const { authenticateRequest, checkRateLimitDurable, rateLimitResponse } = require('./utils/auth');
 const Anthropic = AnthropicModule.default || AnthropicModule;
 
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
@@ -133,8 +133,11 @@ exports.handler = async (event) => {
     }
 
     // Require a valid signed-in user before the paid LLM call.
-    const { error: authError } = await authenticateRequest(event);
+    const { user, error: authError } = await authenticateRequest(event);
     if (authError) return { ...authError, headers: { ...headers, ...authError.headers } };
+
+    const rateLimit = await checkRateLimitDurable(user.id, 'meal-brainstorm', 30, 10 * 60 * 1000);
+    if (!rateLimit.allowed) return rateLimitResponse(rateLimit.resetIn);
 
     try {
         const body = JSON.parse(event.body || '{}');

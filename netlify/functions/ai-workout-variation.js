@@ -20,7 +20,7 @@
  */
 const Anthropic = require('@anthropic-ai/sdk').default;
 const { createClient } = require('@supabase/supabase-js');
-const { authenticateRequest, authenticateClientAccess } = require('./utils/auth');
+const { authenticateRequest, authenticateClientAccess, checkRateLimitDurable, rateLimitResponse } = require('./utils/auth');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -49,13 +49,19 @@ exports.handler = async (event) => {
 
   // Auth: no anonymous access (paid Anthropic call + client row read). When a
   // clientId is supplied, the caller must be that client or their coach.
+  let authedUser;
   if (clientId) {
-    const { error: authError } = await authenticateClientAccess(event, clientId);
+    const { user, error: authError } = await authenticateClientAccess(event, clientId);
     if (authError) return authError;
+    authedUser = user;
   } else {
-    const { error: authError } = await authenticateRequest(event);
+    const { user, error: authError } = await authenticateRequest(event);
     if (authError) return authError;
+    authedUser = user;
   }
+
+  const rateLimit = await checkRateLimitDurable(authedUser.id, 'ai-workout-variation', 30, 10 * 60 * 1000);
+  if (!rateLimit.allowed) return rateLimitResponse(rateLimit.resetIn);
 
   let clientContext = '';
   if (clientId && SUPABASE_SERVICE_KEY) {

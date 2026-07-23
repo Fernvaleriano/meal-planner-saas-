@@ -2,7 +2,7 @@
 const AnthropicModule = require('@anthropic-ai/sdk');
 // Handle both CommonJS and ES module exports
 const Anthropic = AnthropicModule.default || AnthropicModule;
-const { authenticateRequest } = require('./utils/auth');
+const { authenticateRequest, checkRateLimitDurable, rateLimitResponse } = require('./utils/auth');
 
 const languageInstruction = (lang) => lang === 'es'
   ? '\n\nIMPORTANT: Respond entirely in Spanish (Latin-American neutral). Write all meal names, food names, titles, descriptions, and cooking instructions in natural Spanish. Do NOT translate JSON field names/keys — keep the JSON structure and its keys exactly in English as specified.'
@@ -74,8 +74,11 @@ exports.handler = async (event, context) => {
 
   // Require a valid signed-in user before the paid LLM call (blocks anonymous
   // cost-abuse).
-  const { error: authError } = await authenticateRequest(event);
+  const { user, error: authError } = await authenticateRequest(event);
   if (authError) return authError;
+
+  const rateLimit = await checkRateLimitDurable(user.id, 'generate-meal-plan-claude', 30, 10 * 60 * 1000);
+  if (!rateLimit.allowed) return rateLimitResponse(rateLimit.resetIn);
 
   try {
     const { prompt, targets, previousAttempt, language } = JSON.parse(event.body);

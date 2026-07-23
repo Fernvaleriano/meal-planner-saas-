@@ -1,5 +1,5 @@
 // Nutrition label analysis using Gemini 2.5 Flash
-const { handleCors, authenticateRequest, checkRateLimit, rateLimitResponse, corsHeaders } = require('./utils/auth');
+const { handleCors, authenticateRequest, checkRateLimitDurable, rateLimitResponse, corsHeaders } = require('./utils/auth');
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
@@ -32,7 +32,7 @@ exports.handler = async (event, context) => {
         if (authError) return authError;
 
         // Rate limit - 20 label scans per minute per user
-        const rateLimit = checkRateLimit(user.id, 'analyze-nutrition-label', 20, 60000);
+        const rateLimit = await checkRateLimitDurable(user.id, 'analyze-nutrition-label', 20, 60000);
         if (!rateLimit.allowed) {
             console.warn(`🚫 Rate limit exceeded for user ${user.id} on analyze-nutrition-label`);
             return rateLimitResponse(rateLimit.resetIn);

@@ -27,7 +27,7 @@
  */
 const { createClient } = require('@supabase/supabase-js');
 const Anthropic = require('@anthropic-ai/sdk').default;
-const { authenticateCoach } = require('./utils/auth');
+const { authenticateCoach, checkRateLimitDurable, rateLimitResponse } = require('./utils/auth');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -61,7 +61,7 @@ exports.handler = async (event) => {
   if (!coachId) return { statusCode: 400, headers: corsHeaders, body: JSON.stringify({ error: 'coachId required' }) };
 
   // Only the coach themselves may read their client briefing.
-  const { error: authError } = await authenticateCoach(event, coachId);
+  const { user, error: authError } = await authenticateCoach(event, coachId);
   if (authError) return authError;
 
   const today = new Date().toISOString().split('T')[0];
@@ -83,6 +83,10 @@ exports.handler = async (event) => {
       console.warn('coach_daily_briefings cache miss:', e.message);
     }
   }
+
+  // Rate-limit only the generation path (cache hits above are a plain read).
+  const rateLimit = await checkRateLimitDurable(user.id, 'ai-daily-briefing', 30, 10 * 60 * 1000);
+  if (!rateLimit.allowed) return rateLimitResponse(rateLimit.resetIn);
 
   try {
     const briefing = await buildBriefing(supabase, coachId);
