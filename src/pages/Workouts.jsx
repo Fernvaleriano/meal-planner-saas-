@@ -975,6 +975,26 @@ function RearrangeWeekModal({ clientId, weekDates, saving, onCancel, onSave, t }
   // Remove document listeners if the modal unmounts mid-drag
   useEffect(() => cleanupDrag, []);
 
+  // Lock the page scroll behind the sheet — position:fixed technique, same
+  // as ClubWorkoutsModal. Without it, scrolling the day list (or dragging a
+  // chip) also scrolls the Workouts page underneath.
+  useEffect(() => {
+    const scrollY = window.scrollY;
+    const body = document.body;
+    const html = document.documentElement;
+    const orig = { bo: body.style.overflow, ho: html.style.overflow, bp: body.style.position, bt: body.style.top, bw: body.style.width };
+    body.style.overflow = 'hidden';
+    html.style.overflow = 'hidden';
+    body.style.position = 'fixed';
+    body.style.top = `-${scrollY}px`;
+    body.style.width = '100%';
+    return () => {
+      body.style.overflow = orig.bo; html.style.overflow = orig.ho;
+      body.style.position = orig.bp; body.style.top = orig.bt; body.style.width = orig.bw;
+      window.scrollTo(0, scrollY);
+    };
+  }, []);
+
   const beginDrag = (item) => {
     dragItemRef.current = item;
     overDateRef.current = null;
