@@ -27,11 +27,14 @@ const headers = {
 const STYLES = {
   gray_figure: {
     prompt:
-      'Transform the person into a smooth matte light-gray 3D rendered human figure, ' +
-      'like a sculpted fitness anatomy mannequin with subtle sculpted muscle definition, ' +
-      'no skin texture, no face details, uniform gray body. Gym equipment becomes clean ' +
-      'dark charcoal metal 3D render. Plain bright white studio background, soft even ' +
-      'lighting, crisp minimal 3D animation render style.',
+      'Transform the person into a pale silver-gray 3D rendered human figure, like a ' +
+      'fitness anatomy mannequin with subtle sculpted muscle definition, no skin texture, ' +
+      'no face details, uniform light-gray body — NOT dark, NOT black. The entire scene is ' +
+      'bright and high-key: a pure white seamless studio background, white floor, soft even ' +
+      'daylight illumination everywhere, no shadows in the background, no dark or moody ' +
+      'lighting whatsoever. Gym equipment becomes clean matte black metal 3D render standing ' +
+      'out against the white room. Crisp minimal 3D exercise-demonstration animation style, ' +
+      'like an instructional video from a fitness app.',
     mode: 'reimagine_1'
   },
   pixar: {
