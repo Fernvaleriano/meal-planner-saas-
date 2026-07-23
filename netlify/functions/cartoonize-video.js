@@ -32,10 +32,14 @@ const STYLES = {
       'fiber striations visible across the whole body (chest, back, arms, legs), bald head ' +
       'with minimal facial features, wearing only plain black athletic shorts and gray ' +
       'sneakers. Body stays light gray everywhere — no red or colored muscle highlights, ' +
-      'NOT dark, NOT black skin tone. Pure white seamless studio background and white floor, ' +
-      'bright soft even lighting, no dark or moody shadows. Gym equipment becomes a clean ' +
-      'light-gray and white 3D render. Crisp minimal 3D exercise-demonstration animation ' +
-      'style, like an instructional clip from a fitness app exercise library.',
+      'NOT dark, NOT black skin tone. CRITICAL: keep every piece of gym equipment from the ' +
+      'original video — the entire machine with its full frame, uprights, handles, levers and ' +
+      'weight plates must remain fully visible, structurally identical, and in exactly the ' +
+      'same position, redrawn as a clean dark-gray metal 3D render. Do not remove, crop, ' +
+      'simplify or replace the machine. Only the room around the figure and machine becomes ' +
+      'a pure white seamless studio background with a white floor, bright soft even lighting, ' +
+      'no dark or moody shadows. Crisp minimal 3D exercise-demonstration animation style, ' +
+      'like an instructional clip from a fitness app exercise library.',
     mode: 'reimagine_1'
   },
   pixar: {
