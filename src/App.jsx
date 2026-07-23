@@ -22,6 +22,7 @@ import ClientBilling from './pages/ClientBilling';
 import Challenges from './pages/Challenges';
 import Leaderboard from './pages/Leaderboard';
 import Shop from './pages/Shop';
+import StrengthHub from './pages/StrengthHub';
 import Login from './pages/Login';
 import ForgotPassword from './pages/ForgotPassword';
 import LoadingScreen from './components/LoadingScreen';
@@ -201,6 +202,7 @@ function App() {
         <Route path="challenges" element={<Challenges />} />
         <Route path="leaderboard" element={<Leaderboard />} />
         <Route path="shop" element={<Shop />} />
+        <Route path="strength" element={<StrengthHub />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
