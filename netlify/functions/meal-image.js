@@ -1,5 +1,6 @@
 // Netlify Function to generate/retrieve meal images using Replicate Flux
 const { createClient } = require('@supabase/supabase-js');
+const { authenticateRequest, checkRateLimitDurable, rateLimitResponse } = require('./utils/auth');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -304,6 +305,15 @@ exports.handler = async (event, context) => {
 
     // POST - Generate new image for a meal
     if (event.httpMethod === 'POST') {
+      // Generation calls a paid API — require a logged-in user and cap usage.
+      // (GET above stays public: it only reads already-generated image URLs.)
+      const { user, error: authError } = await authenticateRequest(event);
+      if (authError) return authError;
+
+      // Generous window: a full 7-day plan generates ~35 images in one burst.
+      const rateLimit = await checkRateLimitDurable(user.id, 'meal-image', 60, 10 * 60 * 1000);
+      if (!rateLimit.allowed) return rateLimitResponse(rateLimit.resetIn);
+
       if (!REPLICATE_API_TOKEN) {
         return {
           statusCode: 500,

@@ -16453,7 +16453,10 @@
             try {
                 const response = await fetch('/.netlify/functions/import-workout-program', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${await getAuthToken()}`
+                    },
                     body: JSON.stringify({ fileContent: textContent })
                 });
 

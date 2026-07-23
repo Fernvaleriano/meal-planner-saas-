@@ -406,6 +406,45 @@ function checkRateLimit(userId, action, maxRequests = 10, windowMs = 60000) {
 }
 
 /**
+ * Durable rate limit check backed by Postgres (rate_limit_counters +
+ * bump_rate_limit()). Unlike checkRateLimit above, this survives cold starts
+ * and is shared across function instances. Fails OPEN: if the DB call errors,
+ * the request is allowed (rate limiting must never take a feature down), but
+ * the in-memory counter still applies as a same-instance backstop.
+ *
+ * @param {string} userId - User ID (or IP for unauthenticated callers)
+ * @param {string} action - Action identifier (e.g. 'meal-image')
+ * @param {number} maxRequests - Maximum requests allowed per window
+ * @param {number} windowMs - Time window in milliseconds
+ * @returns {Promise<{allowed: boolean, remaining: number, resetIn: number}>}
+ */
+async function checkRateLimitDurable(userId, action, maxRequests = 10, windowMs = 60000) {
+  const local = checkRateLimit(userId, action, maxRequests, windowMs);
+  if (!local.allowed) return local;
+
+  if (!SUPABASE_SERVICE_KEY) return local;
+  try {
+    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+    const { data: count, error } = await supabase.rpc('bump_rate_limit', {
+      p_key: `${action}:${userId}`,
+      p_window_seconds: Math.ceil(windowMs / 1000)
+    });
+    if (error || typeof count !== 'number') {
+      if (error) console.error('Durable rate limit check failed (allowing request):', error.message || error);
+      return local;
+    }
+    return {
+      allowed: count <= maxRequests,
+      remaining: Math.max(0, maxRequests - count),
+      resetIn: windowMs
+    };
+  } catch (err) {
+    console.error('Durable rate limit check failed (allowing request):', err.message);
+    return local;
+  }
+}
+
+/**
  * Create rate limit exceeded response
  */
 function rateLimitResponse(resetIn) {
@@ -438,5 +477,6 @@ module.exports = {
   authenticateGymMember,
   trainerClientIdScope,
   checkRateLimit,
+  checkRateLimitDurable,
   rateLimitResponse
 };

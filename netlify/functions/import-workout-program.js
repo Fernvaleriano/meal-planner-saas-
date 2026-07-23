@@ -902,6 +902,14 @@ exports.handler = async (event) => {
     };
   }
 
+  // Parsing runs through a paid AI API — require a logged-in user and cap usage.
+  const { authenticateRequest, checkRateLimitDurable, rateLimitResponse } = require('./utils/auth');
+  const { user, error: authError } = await authenticateRequest(event);
+  if (authError) return authError;
+
+  const rateLimit = await checkRateLimitDurable(user.id, 'import-workout-program', 10, 10 * 60 * 1000);
+  if (!rateLimit.allowed) return rateLimitResponse(rateLimit.resetIn);
+
   const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 
   if (!OPENAI_API_KEY && !ANTHROPIC_API_KEY) {
