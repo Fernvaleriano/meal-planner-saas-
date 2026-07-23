@@ -73,8 +73,14 @@ exports.handler = async (event, context) => {
         const currentHour = now.getUTCHours();
         const weekStart = getWeekStart(now);
 
-        // Test mode - send a test reminder to the coach
+        // Test mode - send a test reminder to the coach.
+        // Requires the caller's token to actually belong to that gym (owner or
+        // trainer) — this endpoint used to accept any coachId/testEmail with no
+        // auth, making it an open "email anyone" endpoint.
         if (body.test && body.coachId) {
+            const { authenticateGymMember } = require('./utils/auth');
+            const { error: authError } = await authenticateGymMember(event, body.coachId);
+            if (authError) return authError;
             const { data: settings } = await supabase
                 .from('checkin_reminder_settings')
                 .select('*')
@@ -115,7 +121,14 @@ exports.handler = async (event, context) => {
             };
         }
 
-        // Scheduled or manual run - process all reminders
+        // Scheduled or manual run - process all reminders.
+        // The full run over every coach is only for the hourly schedule; a
+        // manual trigger must come from the master/admin account.
+        if (!isScheduled) {
+            const { authenticateMaster } = require('./utils/auth');
+            const { error: authError } = await authenticateMaster(event);
+            if (authError) return authError;
+        }
 
         const stats = {
             coachesProcessed: 0,

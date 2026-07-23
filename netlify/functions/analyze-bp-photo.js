@@ -1,6 +1,6 @@
 // Blood-pressure monitor photo analysis using Gemini 2.5 Flash — reads the
 // systolic / diastolic / pulse values off a home BP monitor display.
-const { handleCors, authenticateRequest, checkRateLimit, rateLimitResponse, corsHeaders } = require('./utils/auth');
+const { handleCors, authenticateRequest, checkRateLimitDurable, rateLimitResponse, corsHeaders } = require('./utils/auth');
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
@@ -26,7 +26,7 @@ exports.handler = async (event) => {
         const { user, error: authError } = await authenticateRequest(event);
         if (authError) return authError;
 
-        const rateLimit = checkRateLimit(user.id, 'analyze-bp-photo', 20, 60000);
+        const rateLimit = await checkRateLimitDurable(user.id, 'analyze-bp-photo', 20, 60000);
         if (!rateLimit.allowed) {
             return rateLimitResponse(rateLimit.resetIn);
         }

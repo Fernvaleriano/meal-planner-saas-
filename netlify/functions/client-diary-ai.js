@@ -1,5 +1,5 @@
 const { createClient } = require('@supabase/supabase-js');
-const { handleCors, authenticateRequest, checkRateLimit, rateLimitResponse, corsHeaders } = require('./utils/auth');
+const { handleCors, authenticateRequest, checkRateLimitDurable, rateLimitResponse, corsHeaders } = require('./utils/auth');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -126,7 +126,7 @@ exports.handler = async (event) => {
     if (authError) return authError;
 
     // ✅ SECURITY: Rate limit - 30 AI messages per minute per user
-    const rateLimit = checkRateLimit(user.id, 'client-diary-ai', 30, 60000);
+    const rateLimit = await checkRateLimitDurable(user.id, 'client-diary-ai', 30, 60000);
     if (!rateLimit.allowed) {
         console.warn(`🚫 Rate limit exceeded for user ${user.id} on client-diary-ai`);
         return rateLimitResponse(rateLimit.resetIn);

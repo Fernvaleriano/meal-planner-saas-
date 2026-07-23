@@ -10,7 +10,7 @@
 //                 no AI clichés. This is enforced in the prompt AND post-processed.
 const Anthropic = require('@anthropic-ai/sdk');
 const { createClient } = require('@supabase/supabase-js');
-const { corsHeaders, handleCors, authenticateRequest } = require('./utils/auth');
+const { corsHeaders, handleCors, authenticateRequest, checkRateLimitDurable, rateLimitResponse } = require('./utils/auth');
 const { analyzeClientHistory } = require('./utils/client-analysis');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
@@ -120,7 +120,25 @@ exports.handler = async (event) => {
     ? model : 'claude-haiku-4-5-20251001';
 
   // Best-effort auth (matches the generators — accept unauthed for back-compat)
-  try { await authenticateRequest(event); } catch (e) { /* keep going */ }
+  let authedUser = null;
+  try {
+    const { user } = await authenticateRequest(event);
+    authedUser = user || null;
+  } catch (e) { /* keep going */ }
+
+  // Rate-limit every caller: authenticated ones by user id, back-compat
+  // unauthenticated ones by client IP (tighter cap, since an IP is the only
+  // stable key available and this path calls a paid API).
+  if (authedUser) {
+    const rateLimit = await checkRateLimitDurable(authedUser.id, 'generate-program-intro', 30, 10 * 60 * 1000);
+    if (!rateLimit.allowed) return rateLimitResponse(rateLimit.resetIn);
+  } else {
+    const callerIp = event.headers['x-nf-client-connection-ip']
+      || (event.headers['x-forwarded-for'] || '').split(',')[0].trim()
+      || 'unknown';
+    const rateLimit = await checkRateLimitDurable(`ip:${callerIp}`, 'generate-program-intro', 10, 10 * 60 * 1000);
+    if (!rateLimit.allowed) return rateLimitResponse(rateLimit.resetIn);
+  }
 
   // Pull the analysis (phase number + real specifics for the note)
   let analysis = null;

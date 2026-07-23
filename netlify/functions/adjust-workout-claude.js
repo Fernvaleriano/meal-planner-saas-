@@ -27,7 +27,7 @@
 
 const Anthropic = require('@anthropic-ai/sdk');
 const { createClient } = require('@supabase/supabase-js');
-const { corsHeaders, handleCors, authenticateClientAccess } = require('./utils/auth');
+const { corsHeaders, handleCors, authenticateClientAccess, checkRateLimitDurable, rateLimitResponse } = require('./utils/auth');
 const { exerciseMatchesEquipment, filterUnavailableEquipment } = require('./utils/equipment-filter');
 const { normalizeSupersetRest } = require('./utils/superset-rest');
 
@@ -220,6 +220,9 @@ exports.handler = async (event) => {
     // Auth: caller must be the client or their coach.
     const { user: authedUser, error: authError } = await authenticateClientAccess(event, clientId);
     if (authError) return authError;
+
+    const rateLimit = await checkRateLimitDurable(authedUser.id, 'adjust-workout-claude', 30, 10 * 60 * 1000);
+    if (!rateLimit.allowed) return rateLimitResponse(rateLimit.resetIn);
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 

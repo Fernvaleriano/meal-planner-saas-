@@ -7,7 +7,7 @@
 // Output: same program JSON shape with the requested edits applied.
 const Anthropic = require('@anthropic-ai/sdk');
 const { createClient } = require('@supabase/supabase-js');
-const { corsHeaders, handleCors, authenticateCoach, authenticateRequest } = require('./utils/auth');
+const { corsHeaders, handleCors, authenticateCoach, authenticateRequest, checkRateLimitDurable, rateLimitResponse } = require('./utils/auth');
 const { normalizeSupersetRest } = require('./utils/superset-rest');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
@@ -131,13 +131,19 @@ exports.handler = async (event) => {
     // Auth: mandatory (paid Anthropic call). A coachId scopes the coach's
     // custom exercise library into the prompt, so it must be the caller's own
     // coach account — not an attacker-supplied one.
+    let authedUser;
     if (coachId) {
-      const { error: authError } = await authenticateCoach(event, coachId);
+      const { user, error: authError } = await authenticateCoach(event, coachId);
       if (authError) return authError;
+      authedUser = user;
     } else {
-      const { error: authError } = await authenticateRequest(event);
+      const { user, error: authError } = await authenticateRequest(event);
       if (authError) return authError;
+      authedUser = user;
     }
+
+    const rateLimit = await checkRateLimitDurable(authedUser.id, 'refine-workout-claude', 30, 10 * 60 * 1000);
+    if (!rateLimit.allowed) return rateLimitResponse(rateLimit.resetIn);
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
     const allExercises = await loadExercises(supabase, coachId);

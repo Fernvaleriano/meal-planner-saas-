@@ -10,7 +10,7 @@
 //   • In-memory exercise DB cache (5 min TTL) to cut latency
 const Anthropic = require('@anthropic-ai/sdk');
 const { createClient } = require('@supabase/supabase-js');
-const { corsHeaders, handleCors, authenticateRequest } = require('./utils/auth');
+const { corsHeaders, handleCors, authenticateRequest, checkRateLimitDurable, rateLimitResponse } = require('./utils/auth');
 const { analyzeClientHistory, formatAnalysisForPrompt, applyMovementScreenExclusions } = require('./utils/client-analysis');
 const { exerciseMatchesEquipment, filterUnavailableEquipment } = require('./utils/equipment-filter');
 const { buildConditioningFinisher } = require('./utils/finisher');
@@ -622,6 +622,9 @@ exports.handler = async (event) => {
     // burns paid Anthropic tokens — anonymous access was an IDOR (July 2026).
     const { user: authedUser, error: authError } = await authenticateRequest(event);
     if (authError) return authError;
+
+    const rateLimit = await checkRateLimitDurable(authedUser.id, 'generate-workout-claude', 30, 10 * 60 * 1000);
+    if (!rateLimit.allowed) return rateLimitResponse(rateLimit.resetIn);
 
     const isSingleWorkout = mode === 'single';
     const anthropic = new Anthropic({ apiKey: ANTHROPIC_API_KEY });

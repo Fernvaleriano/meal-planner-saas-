@@ -1,7 +1,7 @@
 // Netlify Function for AI-powered coach assistant
 // Supports GET for client data and POST for asking questions about clients
 const { createClient } = require('@supabase/supabase-js');
-const { authenticateGymMember, trainerClientIdScope } = require('./utils/auth');
+const { authenticateGymMember, trainerClientIdScope, checkRateLimitDurable, rateLimitResponse } = require('./utils/auth');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -47,6 +47,9 @@ exports.handler = async (event, context) => {
     // Only the coach themselves, or one of their gym's trainers, may read client activity.
     const _ctx = await authenticateGymMember(event, coachId);
     if (_ctx.error) return _ctx.error;
+
+    const rateLimit = await checkRateLimitDurable(_ctx.user.id, 'ai-activity-summary', 30, 10 * 60 * 1000);
+    if (!rateLimit.allowed) return rateLimitResponse(rateLimit.resetIn);
 
     if (!SUPABASE_SERVICE_KEY) {
       return {
@@ -547,6 +550,9 @@ async function handleQuestion(event) {
     // Only the coach themselves, or one of their gym's trainers, may ask about clients.
     const _ctx = await authenticateGymMember(event, coachId);
     if (_ctx.error) return _ctx.error;
+
+    const rateLimit = await checkRateLimitDurable(_ctx.user.id, 'ai-activity-summary', 30, 10 * 60 * 1000);
+    if (!rateLimit.allowed) return rateLimitResponse(rateLimit.resetIn);
 
     if (!SUPABASE_SERVICE_KEY) {
       return {

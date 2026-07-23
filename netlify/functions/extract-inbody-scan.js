@@ -5,7 +5,7 @@
 // the normal save-measurement endpoint. That confirm step is deliberate: a
 // misread on a blurry/crooked phone photo must never silently log bad data.
 const Anthropic = require('@anthropic-ai/sdk');
-const { handleCors, authenticateRequest, checkRateLimit, rateLimitResponse, corsHeaders } = require('./utils/auth');
+const { handleCors, authenticateRequest, checkRateLimitDurable, rateLimitResponse, corsHeaders } = require('./utils/auth');
 
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 
@@ -42,7 +42,7 @@ exports.handler = async (event, context) => {
         if (authError) return authError;
 
         // Rate limit - 15 scans per minute per user
-        const rateLimit = checkRateLimit(user.id, 'extract-inbody-scan', 15, 60000);
+        const rateLimit = await checkRateLimitDurable(user.id, 'extract-inbody-scan', 15, 60000);
         if (!rateLimit.allowed) {
             console.warn(`🚫 Rate limit exceeded for user ${user.id} on extract-inbody-scan`);
             return rateLimitResponse(rateLimit.resetIn);

@@ -1,5 +1,5 @@
 const OpenAI = require('openai');
-const { authenticateRequest } = require('./utils/auth');
+const { authenticateRequest, checkRateLimitDurable, rateLimitResponse } = require('./utils/auth');
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
@@ -29,8 +29,11 @@ exports.handler = async (event) => {
 
   // Require a valid signed-in user before calling the paid LLM (blocks
   // anonymous cost-abuse). Live callers already send the Bearer token.
-  const { error: authError } = await authenticateRequest(event);
+  const { user, error: authError } = await authenticateRequest(event);
   if (authError) return { ...authError, headers: { ...headers, ...authError.headers } };
+
+  const rateLimit = await checkRateLimitDurable(user.id, 'ai-coach-chat', 30, 10 * 60 * 1000);
+  if (!rateLimit.allowed) return rateLimitResponse(rateLimit.resetIn);
 
   try {
     const body = JSON.parse(event.body || '{}');

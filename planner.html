@@ -11869,7 +11869,10 @@ async function startDietImport() {
     try {
         const response = await fetch('/.netlify/functions/import-diet-plan', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${await getAuthToken()}`
+            },
             body: JSON.stringify({ fileContent: textContent })
         });
 

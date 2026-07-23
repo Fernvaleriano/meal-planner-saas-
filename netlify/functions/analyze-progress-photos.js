@@ -1,5 +1,5 @@
 // Progress photo comparison analysis using Gemini 2.5 Flash Vision
-const { handleCors, authenticateRequest, checkRateLimit, rateLimitResponse, corsHeaders } = require('./utils/auth');
+const { handleCors, authenticateRequest, checkRateLimitDurable, rateLimitResponse, corsHeaders } = require('./utils/auth');
 
 const languageInstruction = (lang) => lang === 'es'
   ? '\n\nIMPORTANT: Respond entirely in Spanish (Latin-American neutral). Write all names, titles, descriptions, instructions, reasons, and any prose text in natural Spanish. Do NOT translate JSON field names/keys — keep the JSON structure and its keys exactly in English as specified.'
@@ -54,7 +54,7 @@ exports.handler = async (event, context) => {
         if (authError) return authError;
 
         // Rate limit - 5 analyses per minute per user
-        const rateLimit = checkRateLimit(user.id, 'analyze-progress-photos', 5, 60000);
+        const rateLimit = await checkRateLimitDurable(user.id, 'analyze-progress-photos', 5, 60000);
         if (!rateLimit.allowed) {
             return rateLimitResponse(rateLimit.resetIn);
         }

@@ -1,5 +1,5 @@
 const { createClient } = require('@supabase/supabase-js');
-const { authenticateClientAccess } = require('./utils/auth');
+const { authenticateClientAccess, checkRateLimitDurable, rateLimitResponse } = require('./utils/auth');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -36,8 +36,11 @@ exports.handler = async (event) => {
     }
 
     // Only the client's own coach (or the client) may query their data.
-    const { error: authError } = await authenticateClientAccess(event, clientId);
+    const { user, error: authError } = await authenticateClientAccess(event, clientId);
     if (authError) return { ...authError, headers: { ...headers, ...authError.headers } };
+
+    const rateLimit = await checkRateLimitDurable(user.id, 'coach-workout-ai', 30, 10 * 60 * 1000);
+    if (!rateLimit.allowed) return rateLimitResponse(rateLimit.resetIn);
 
     // Fetch last 30 days of workout logs
     const thirtyDaysAgo = new Date();

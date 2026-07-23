@@ -1,6 +1,6 @@
 // Audio transcription using Claude (matches other Anthropic-powered functions)
 const Anthropic = require('@anthropic-ai/sdk');
-const { handleCors, authenticateRequest, corsHeaders } = require('./utils/auth');
+const { handleCors, authenticateRequest, corsHeaders, checkRateLimitDurable, rateLimitResponse } = require('./utils/auth');
 
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 
@@ -25,6 +25,9 @@ exports.handler = async (event) => {
   // Verify authenticated user
   const { user, error: authError } = await authenticateRequest(event);
   if (authError) return authError;
+
+  const rateLimit = await checkRateLimitDurable(user.id, 'transcribe-audio', 60, 10 * 60 * 1000);
+  if (!rateLimit.allowed) return rateLimitResponse(rateLimit.resetIn);
 
   if (!ANTHROPIC_API_KEY) {
     return {
