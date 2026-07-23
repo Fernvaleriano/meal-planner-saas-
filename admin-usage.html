@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link rel="icon" href="https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/assets/icons/logo.png" type="image/png">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="robots" content="noindex, nofollow">
+    <title>Usage - Ziquecoach Admin</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --brand-primary: #2dd4bf;
+            --brand-secondary: #14b8a6;
+            --gray-50: #f8fafc;
+            --gray-100: #f1f5f9;
+            --gray-200: #e2e8f0;
+            --gray-400: #94a3b8;
+            --gray-500: #64748b;
+            --gray-700: #334155;
+            --gray-900: #0f172a;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--gray-50);
+            color: var(--gray-900);
+            padding: 24px;
+        }
+        .wrap { max-width: 960px; margin: 0 auto; }
+        h1 { font-size: 1.5rem; font-weight: 800; margin-bottom: 4px; }
+        .sub { color: var(--gray-500); font-size: 0.9rem; margin-bottom: 20px; }
+        .range { display: flex; gap: 8px; margin-bottom: 20px; }
+        .range button {
+            padding: 8px 16px; border-radius: 10px; border: 1px solid var(--gray-200);
+            background: white; font-weight: 600; font-size: 0.85rem; cursor: pointer;
+            font-family: inherit; color: var(--gray-700);
+        }
+        .range button.active { background: var(--brand-secondary); border-color: var(--brand-secondary); color: white; }
+        .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 24px; }
+        .card { background: white; border: 1px solid var(--gray-200); border-radius: 14px; padding: 16px; }
+        .card .num { font-size: 1.6rem; font-weight: 800; }
+        .card .label { color: var(--gray-500); font-size: 0.8rem; font-weight: 600; }
+        .panel { background: white; border: 1px solid var(--gray-200); border-radius: 14px; padding: 20px; margin-bottom: 20px; }
+        .panel h2 { font-size: 1rem; font-weight: 700; margin-bottom: 14px; }
+        .row { display: flex; align-items: center; gap: 10px; padding: 5px 0; font-size: 0.88rem; }
+        .row .name { flex: 0 0 300px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .row .bar { height: 12px; background: var(--brand-primary); border-radius: 6px; min-width: 2px; }
+        .row .count { color: var(--gray-500); font-size: 0.8rem; white-space: nowrap; }
+        .daily { display: flex; align-items: flex-end; gap: 3px; height: 120px; }
+        .daily .col { flex: 1; background: var(--brand-primary); border-radius: 3px 3px 0 0; min-height: 2px; position: relative; }
+        .daily .col:hover::after {
+            content: attr(data-tip); position: absolute; bottom: 100%; left: 50%;
+            transform: translateX(-50%); background: var(--gray-900); color: white;
+            font-size: 0.7rem; padding: 4px 8px; border-radius: 6px; white-space: nowrap; z-index: 5;
+        }
+        .msg { text-align: center; padding: 60px 20px; color: var(--gray-500); }
+        .roletag { font-size: 0.68rem; font-weight: 700; padding: 2px 8px; border-radius: 999px; background: var(--gray-100); color: var(--gray-500); }
+        @media (max-width: 640px) { .row .name { flex-basis: 150px; } }
+    </style>
+</head>
+<body>
+    <div class="wrap">
+        <h1>Usage</h1>
+        <div class="sub">Who's using what. Admin only — pageviews and key events, no personal details shown.</div>
+        <div class="range" id="range" style="display:none;">
+            <button data-days="7">7 days</button>
+            <button data-days="30" class="active">30 days</button>
+            <button data-days="90">90 days</button>
+        </div>
+        <div id="content"><div class="msg">Loading…</div></div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        const SUPABASE_URL = 'https://qewqcjzlfqamqwbccapr.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFld3FjanpsZnFhbXF3YmNjYXByIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM2OTg0NzAsImV4cCI6MjA3OTI3NDQ3MH0.mQnMC33O88oLkLLGWD2oG-oaSHGI-NfHmtQCZxnxSLs';
+        const { createClient } = supabase;
+        const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        const content = document.getElementById('content');
+        const rangeEl = document.getElementById('range');
+        let currentDays = 30;
+
+        function esc(s) {
+            return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+        }
+
+        function barRows(items, nameFn, valueFn, extraFn) {
+            const max = Math.max(1, ...items.map(valueFn));
+            return items.map(it => `
+                <div class="row">
+                    <div class="name">${nameFn(it)}</div>
+                    <div class="bar" style="width:${Math.round(valueFn(it) / max * 100) * 0.55}%"></div>
+                    <div class="count">${extraFn(it)}</div>
+                </div>`).join('');
+        }
+
+        function render(data) {
+            const byPage = data.byPage || [];
+            const daily = data.daily || [];
+            const events = data.events || [];
+
+            const totalViews = daily.reduce((n, d) => n + Number(d.views), 0);
+            const peakUsers = Math.max(0, ...daily.map(d => Number(d.users)));
+            const signups = events.find(e => e.event === 'signup_completed');
+
+            const maxDaily = Math.max(1, ...daily.map(d => Number(d.views)));
+
+            content.innerHTML = `
+                <div class="cards">
+                    <div class="card"><div class="num">${totalViews.toLocaleString()}</div><div class="label">Page opens</div></div>
+                    <div class="card"><div class="num">${peakUsers}</div><div class="label">Most users in a day</div></div>
+                    <div class="card"><div class="num">${signups ? signups.n : 0}</div><div class="label">Signups completed</div></div>
+                </div>
+                <div class="panel">
+                    <h2>Activity by day</h2>
+                    ${daily.length ? `<div class="daily">${daily.map(d =>
+                        `<div class="col" style="height:${Math.max(2, Math.round(Number(d.views) / maxDaily * 100))}%" data-tip="${esc(d.day)}: ${d.views} opens, ${d.users} users"></div>`
+                    ).join('')}</div>` : '<div class="msg">No activity recorded yet.</div>'}
+                </div>
+                <div class="panel">
+                    <h2>Most-used pages</h2>
+                    ${byPage.length ? barRows(byPage, p => `${esc(p.page)} <span class="roletag">${esc(p.role)}</span>`, p => Number(p.views), p => `${p.views} opens · ${p.users} users`) : '<div class="msg">Nothing yet — data appears once the tracker is live.</div>'}
+                </div>
+                <div class="panel">
+                    <h2>Key events</h2>
+                    ${events.length ? barRows(events, e => esc(e.event), e => Number(e.n), e => `${e.n} times · ${e.users} users`) : '<div class="msg">No events yet.</div>'}
+                </div>`;
+        }
+
+        async function load() {
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            if (!session) {
+                content.innerHTML = '<div class="msg">Please <a href="/login.html">log in</a> with the admin account first.</div>';
+                return;
+            }
+            const resp = await fetch(`/.netlify/functions/usage-stats?days=${currentDays}`, {
+                headers: { 'Authorization': `Bearer ${session.access_token}` }
+            });
+            if (resp.status === 403) {
+                content.innerHTML = '<div class="msg">This page is for the admin account only.</div>';
+                return;
+            }
+            if (!resp.ok) {
+                content.innerHTML = '<div class="msg">Could not load stats. Try refreshing.</div>';
+                return;
+            }
+            rangeEl.style.display = 'flex';
+            render(await resp.json());
+        }
+
+        rangeEl.addEventListener('click', (e) => {
+            const btn = e.target.closest('button[data-days]');
+            if (!btn) return;
+            rangeEl.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            currentDays = parseInt(btn.dataset.days, 10);
+            content.innerHTML = '<div class="msg">Loading…</div>';
+            load();
+        });
+
+        load();
+    </script>
+</body>
+</html>

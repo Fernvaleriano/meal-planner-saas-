@@ -26,6 +26,7 @@ import StrengthHub from './pages/StrengthHub';
 import Login from './pages/Login';
 import ForgotPassword from './pages/ForgotPassword';
 import LoadingScreen from './components/LoadingScreen';
+import { trackPageview } from './utils/usageTracker';
 
 function ProtectedRoute({ children }) {
   const { user, loading, clientData, refreshClientData, logout } = useAuth();
@@ -136,6 +137,11 @@ function App() {
   // Initialize app lifecycle handling (visibilitychange, session refresh on resume)
   useAppLifecycle();
   useNativeFeel();
+
+  const location = useLocation();
+  useEffect(() => {
+    trackPageview(location.pathname);
+  }, [location.pathname]);
 
   // iOS home-screen-installed PWAs treat window.location navigation as a
   // re-launch and route the user to the manifest start_url (/app, the
