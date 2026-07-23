@@ -136,7 +136,15 @@ export default {
   skipTitle: 'ข้ามเวิร์กเอาต์',
 
   rescheduleDesc: 'ย้าย "{name}" ไปวันอื่น:',
-  dragDropHint: 'วางบนวันที่ต้องการเพื่อย้าย',
+  rearrangeWeek: 'จัดสัปดาห์ใหม่',
+  rearrangeWeekTitle: 'จัดสัปดาห์ใหม่',
+  rearrangeWeekDesc: 'กดค้างที่เวิร์กเอาต์ ลากไปวันอื่น แล้วกดบันทึก',
+  rearrangeRest: 'วันพัก',
+  rearrangeSaveBtn: 'บันทึก',
+  rearrangeSaving: 'กำลังบันทึก…',
+  rearrangeSaved: 'อัปเดตสัปดาห์แล้ว!',
+  rearrangePartialFail: 'ย้ายเวิร์กเอาต์บางรายการไม่สำเร็จ กรุณาลองใหม่',
+  rearrangeDragHint: 'วางบนวันที่ต้องการ',
   duplicateDesc: 'คัดลอก "{name}" ไปวันอื่น:',
   skipDesc: 'ข้ามเวิร์กเอาต์วันนี้แล้วพักแทนไหม?',
 

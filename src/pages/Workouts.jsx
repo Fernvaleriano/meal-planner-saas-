@@ -861,6 +861,315 @@ function buildWorkoutFromLog(log) {
   };
 }
 
+// Rearrange Week: shows the visible week as one list — each day with its
+// workout chips — and lets the client hold-and-drag chips between days (same
+// lift gesture as reordering exercises inside a workout). Nothing persists
+// until Save: the parent receives only the diffs (chips whose day changed)
+// and applies them through performReschedule.
+function RearrangeWeekModal({ clientId, weekDates, saving, onCancel, onSave, t }) {
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
+  const [plan, setPlan] = useState([]); // [{ dateStr, date, items: [{ key, workout, originalDate }] }]
+  const logsByDateRef = useRef({});
+
+  // Chip drag state — long-press lifts, then the finger drags a ghost between
+  // day rows. Mirrors the ExerciseCard reorder gesture.
+  const [dragKey, setDragKey] = useState(null);
+  const [overDate, setOverDate] = useState(null);
+  const dragItemRef = useRef(null);
+  const overDateRef = useRef(null);
+  const holdTimerRef = useRef(null);
+  const startPosRef = useRef({ x: 0, y: 0 });
+  const listenersRef = useRef(null);
+  const ghostRef = useRef(null);
+
+  // Load the week: what each of the 7 days shows in the day view, built from
+  // the same sources (assignment cards, ad-hoc rows, log-rebuilt ghosts).
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      if (!clientId || !weekDates || weekDates.length === 0) {
+        setLoadError(true);
+        setLoading(false);
+        return;
+      }
+      const FAILED = Symbol('fetch-failed');
+      const dates = weekDates.filter(d => d instanceof Date && !isNaN(d.getTime()));
+      const dateStrs = dates.map(d => formatDate(d));
+      const [logsRes, ...dayResults] = await Promise.all([
+        apiGet(`/.netlify/functions/workout-logs?clientId=${clientId}&startDate=${dateStrs[0]}&endDate=${dateStrs[dateStrs.length - 1]}&limit=60`).catch(() => FAILED),
+        ...dateStrs.map(ds =>
+          Promise.all([
+            apiGet(`/.netlify/functions/workout-assignments?clientId=${clientId}&date=${ds}`).catch(() => FAILED),
+            apiGet(`/.netlify/functions/adhoc-workouts?clientId=${clientId}&date=${ds}`).catch(() => FAILED)
+          ])
+        )
+      ]);
+      if (cancelled) return;
+
+      // Any failed fetch means the picture below could be wrong — show an
+      // error instead of letting the user "rearrange" days we couldn't read.
+      const anyFailed = logsRes === FAILED
+        || dayResults.some(([aRes, adRes]) => aRes === FAILED || adRes === FAILED);
+      if (anyFailed) {
+        setLoadError(true);
+        setLoading(false);
+        return;
+      }
+
+      const logs = (logsRes && (logsRes.workouts || logsRes.logs)) || [];
+      const byDate = {};
+      logs.forEach(l => {
+        if (!l?.workout_date) return;
+        const d = String(l.workout_date).slice(0, 10);
+        (byDate[d] = byDate[d] || []).push(l);
+      });
+      logsByDateRef.current = byDate;
+
+      const built = dateStrs.map((ds, i) => {
+        const [aRes, adRes] = dayResults[i];
+        let items = mergeDayWorkouts(aRes?.assignments, adRes?.workouts);
+        if (items.length === 0 && (byDate[ds] || []).length > 0) {
+          const historical = buildWorkoutFromLog(byDate[ds][0]);
+          if (historical) items = [historical];
+        }
+        // Exact-duplicate guard, same as the day view's card render
+        const seen = new Set();
+        const deduped = [];
+        items.forEach(w => {
+          const k = instanceKey(w);
+          if (seen.has(k)) return;
+          seen.add(k);
+          deduped.push(w);
+        });
+        return {
+          dateStr: ds,
+          date: dates[i],
+          items: deduped.map(w => ({ key: `${ds}|${instanceKey(w)}`, workout: w, originalDate: ds }))
+        };
+      });
+      setPlan(built);
+      setLoading(false);
+    })();
+    return () => { cancelled = true; };
+  }, [clientId, weekDates]);
+
+  const cleanupDrag = () => {
+    if (holdTimerRef.current) {
+      clearTimeout(holdTimerRef.current);
+      holdTimerRef.current = null;
+    }
+    const l = listenersRef.current;
+    if (l) {
+      document.removeEventListener('touchmove', l.move);
+      document.removeEventListener('touchend', l.end);
+      document.removeEventListener('touchcancel', l.cancel);
+      listenersRef.current = null;
+    }
+    dragItemRef.current = null;
+    overDateRef.current = null;
+    setDragKey(null);
+    setOverDate(null);
+  };
+
+  // Remove document listeners if the modal unmounts mid-drag
+  useEffect(() => cleanupDrag, []);
+
+  const beginDrag = (item) => {
+    dragItemRef.current = item;
+    overDateRef.current = null;
+    setDragKey(item.key);
+    try { if (navigator.vibrate) navigator.vibrate(20); } catch (ex) { /* not supported */ }
+
+    const move = (e) => {
+      // Own the gesture: keep the modal list from scrolling under the drag
+      if (e.cancelable) e.preventDefault();
+      const t0 = e.touches && e.touches[0];
+      if (!t0) return;
+      // Ghost follows via direct style writes — no re-render per frame
+      if (ghostRef.current) {
+        ghostRef.current.style.left = `${t0.clientX}px`;
+        ghostRef.current.style.top = `${t0.clientY}px`;
+      }
+      const el = document.elementFromPoint(t0.clientX, t0.clientY);
+      const row = el && el.closest ? el.closest('[data-rearrange-date]') : null;
+      const od = row ? row.getAttribute('data-rearrange-date') : null;
+      if (od !== overDateRef.current) {
+        overDateRef.current = od;
+        setOverDate(od);
+      }
+    };
+    const end = () => {
+      const dropped = dragItemRef.current;
+      const target = overDateRef.current;
+      cleanupDrag();
+      if (!dropped || !target) return;
+      setPlan(prev => prev.map(day => {
+        const hasIt = day.items.some(it => it.key === dropped.key);
+        if (hasIt && day.dateStr !== target) {
+          return { ...day, items: day.items.filter(it => it.key !== dropped.key) };
+        }
+        if (!hasIt && day.dateStr === target) {
+          return { ...day, items: [...day.items, dropped] };
+        }
+        return day;
+      }));
+    };
+    const cancel = () => cleanupDrag();
+    document.addEventListener('touchmove', move, { passive: false });
+    document.addEventListener('touchend', end);
+    document.addEventListener('touchcancel', cancel);
+    listenersRef.current = { move, end, cancel };
+  };
+
+  const onChipTouchStart = (item) => (e) => {
+    const t0 = e.touches && e.touches[0];
+    if (!t0 || (e.touches && e.touches.length > 1)) return;
+    startPosRef.current = { x: t0.clientX, y: t0.clientY };
+    if (holdTimerRef.current) clearTimeout(holdTimerRef.current);
+    holdTimerRef.current = setTimeout(() => {
+      holdTimerRef.current = null;
+      beginDrag(item);
+    }, 350);
+  };
+
+  const onChipTouchMove = (e) => {
+    // Real finger travel before the hold fires = scrolling, not lifting
+    if (!holdTimerRef.current) return;
+    const t0 = e.touches && e.touches[0];
+    if (!t0) return;
+    const dx = t0.clientX - startPosRef.current.x;
+    const dy = t0.clientY - startPosRef.current.y;
+    if ((dx * dx + dy * dy) > 100) {
+      clearTimeout(holdTimerRef.current);
+      holdTimerRef.current = null;
+    }
+  };
+
+  const onChipTouchEnd = () => {
+    if (holdTimerRef.current) {
+      clearTimeout(holdTimerRef.current);
+      holdTimerRef.current = null;
+    }
+  };
+
+  const hasChanges = plan.some(day => day.items.some(it => it.originalDate !== day.dateStr));
+
+  const handleSave = () => {
+    const moves = [];
+    plan.forEach(day => {
+      day.items.forEach(it => {
+        if (it.originalDate === day.dateStr) return;
+        const srcLogs = logsByDateRef.current[it.originalDate] || [];
+        moves.push({
+          workout: it.workout,
+          sourceDate: it.originalDate,
+          targetDate: day.dateStr,
+          sourceLog: findLogForWorkout(it.workout, srcLogs)
+        });
+      });
+    });
+    onSave(moves);
+  };
+
+  const chipLabel = (w) => {
+    const base = w.name || w.workout_data?.name || 'Workout';
+    const totalDays = w.workout_data?.days?.length || 0;
+    return totalDays > 1 ? `${base} · ${(w.day_index || 0) + 1}/${totalDays}` : base;
+  };
+
+  const draggedItem = dragKey
+    ? plan.flatMap(d => d.items).find(it => it.key === dragKey)
+    : null;
+  const todayStr = formatDate(new Date());
+
+  return (
+    <div className="workout-history-overlay" onClick={saving ? undefined : onCancel}>
+      <div className="workout-history-modal rearrange-week-modal" onClick={e => e.stopPropagation()}>
+        <div className="rearrange-week-header">
+          <h3>{t('workoutsPage.rearrangeWeekTitle')}</h3>
+          <button className="rearrange-close-btn" onClick={onCancel} disabled={saving} aria-label="Close">
+            <X size={20} />
+          </button>
+        </div>
+        <p className="rearrange-week-desc">{t('workoutsPage.rearrangeWeekDesc')}</p>
+
+        {loading ? (
+          <div className="rearrange-week-loading">
+            <div className="loading-spinner"></div>
+          </div>
+        ) : loadError ? (
+          <div className="rearrange-week-error">
+            <p>{t('workoutsPage.couldNotLoad')}</p>
+          </div>
+        ) : (
+          <div className="rearrange-days-list">
+            {plan.map(day => (
+              <div
+                key={day.dateStr}
+                data-rearrange-date={day.dateStr}
+                className={`rearrange-day-row ${dragKey && overDate === day.dateStr ? 'drop-hover' : ''} ${day.dateStr === todayStr ? 'today' : ''}`}
+              >
+                <div className="rearrange-day-label">
+                  <span className="rearrange-day-name">{getDayName(day.date)}</span>
+                  <span className="rearrange-day-num">{day.date.getDate()}</span>
+                </div>
+                <div className="rearrange-day-items">
+                  {day.items.length === 0 ? (
+                    <span className="rearrange-rest">{t('workoutsPage.rearrangeRest')}</span>
+                  ) : day.items.map(it => (
+                    <div
+                      key={it.key}
+                      className={`rearrange-chip ${dragKey === it.key ? 'dragging' : ''} ${it.originalDate !== day.dateStr ? 'moved' : ''}`}
+                      onTouchStart={onChipTouchStart(it)}
+                      onTouchMove={onChipTouchMove}
+                      onTouchEnd={onChipTouchEnd}
+                    >
+                      <Dumbbell size={13} />
+                      <span className="rearrange-chip-name">{chipLabel(it.workout)}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div className="rearrange-actions">
+          <button className="rearrange-cancel-btn" onClick={onCancel} disabled={saving}>
+            {t('workoutsPage.cancelBtn')}
+          </button>
+          <button
+            className="rearrange-save-btn"
+            onClick={handleSave}
+            disabled={saving || loading || loadError || !hasChanges}
+          >
+            {saving ? t('workoutsPage.rearrangeSaving') : t('workoutsPage.rearrangeSaveBtn')}
+          </button>
+        </div>
+      </div>
+
+      {draggedItem && (
+        <div
+          ref={ghostRef}
+          className="workout-drag-ghost"
+          style={{ left: startPosRef.current.x, top: startPosRef.current.y }}
+        >
+          <div className="drag-ghost-title">
+            <Dumbbell size={14} />
+            <span>{chipLabel(draggedItem.workout)}</span>
+          </div>
+          <span className="drag-ghost-hint">
+            {overDate
+              ? new Date(overDate + 'T12:00:00').toLocaleDateString(getDateLocale(), { weekday: 'long', day: 'numeric' })
+              : t('workoutsPage.rearrangeDragHint')}
+          </span>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // Build a clean, independent copy of a workout for the "duplicate to another
 // date" flow. A duplicate must start FRESH: same exercises and prescribed
 // sets/reps, but nothing marked completed and no weights carried over from the
@@ -989,18 +1298,9 @@ function Workouts() {
   const [swipeSwapExercise, setSwipeSwapExercise] = useState(null); // Exercise to swap from swipe action
   const [swipeDeleteExercise, setSwipeDeleteExercise] = useState(null); // Exercise to delete from swipe action
   const [rescheduleTargetDate, setRescheduleTargetDate] = useState('');
-  // Tap-hold drag: long-press a workout card, then drag it onto a weekday
-  // pill in the strip to move it to that day. Persists through the exact
-  // same reschedule paths as the "Move Day" modal (performReschedule).
-  const [dragWorkout, setDragWorkout] = useState(null); // workout being dragged (null = no drag)
-  const [dragOverDate, setDragOverDate] = useState(null); // dateStr of the pill under the finger
-  const dragGhostRef = useRef(null); // ghost follows the finger via direct style writes (no re-render per move)
-  const dragWorkoutRef = useRef(null);
-  const dragOverDateRef = useRef(null);
-  const dragHoldTimerRef = useRef(null); // pending long-press timer
-  const dragStartPosRef = useRef({ x: 0, y: 0 });
-  const dragListenersRef = useRef(null); // document listeners active during a drag
-  const suppressCardTapRef = useRef(false); // swallow the synthetic click after a drag
+  // Rearrange Week: batch-move workouts between the visible week's days
+  const [showRearrangeWeek, setShowRearrangeWeek] = useState(false);
+  const [rearrangeSaving, setRearrangeSaving] = useState(false);
   const [showCreateWorkout, setShowCreateWorkout] = useState(false);
   const [showClubWorkouts, setShowClubWorkouts] = useState(false);
   const [showGenerateWorkout, setShowGenerateWorkout] = useState(false);
@@ -4635,11 +4935,19 @@ function Workouts() {
   }, [clientData?.id]);
 
   // Core reschedule/duplicate/skip executor. Shared by the confirm-modal flow
-  // and the tap-hold drag-to-a-weekday flow so both persist through the exact
-  // same paths (adhoc rows, assignment date_overrides, history log rows).
-  const performReschedule = useCallback(async (targetWorkout, action, targetDate) => {
-    if (!targetWorkout?.id || !action || !targetDate) return;
+  // and the Rearrange Week batch flow so both persist through the exact same
+  // paths (adhoc rows, assignment date_overrides, history log rows).
+  // opts.sourceDate — the day the card currently sits on (defaults to the
+  //   selected day; Rearrange Week passes each card's own day).
+  // opts.sourceLog — that day's workout_log row for this card, when the
+  //   caller already knows it (defaults to a lookup in the selected day's
+  //   logs, which is only right for cards on the selected day).
+  // opts.silent — suppress toasts and refreshes; the batch caller refreshes
+  //   once at the end. Returns true when the move persisted.
+  const performReschedule = useCallback(async (targetWorkout, action, targetDate, opts = {}) => {
+    if (!targetWorkout?.id || !action || !targetDate) return false;
 
+    const moveSourceDate = opts.sourceDate || formatDate(selectedDate);
     const histLogId = getHistoricalLogId(targetWorkout);
 
     // Dedupe rapid duplicate creates — same 5s signature guard as
@@ -4659,7 +4967,7 @@ function Workouts() {
         setRescheduleAction(null);
         setRescheduleTargetDate('');
         rescheduleWorkoutRef.current = null;
-        return;
+        return false;
       }
       lastAdhocCreateRef.current = { sig: createSig, ts: nowTs };
     }
@@ -4755,7 +5063,7 @@ function Workouts() {
           assignmentId: targetWorkout.id,
           action,
           sourceDayIndex: targetWorkout.day_index != null ? targetWorkout.day_index : 0,
-          sourceDate: formatDate(selectedDate),
+          sourceDate: moveSourceDate,
           targetDate,
           isAdded: targetWorkout.is_added || false,
           instanceId: targetWorkout.instance_id || null
@@ -4767,16 +5075,67 @@ function Workouts() {
       }
     } catch (err) {
       console.error('Error rescheduling workout:', err);
-      // If assignment not found (404), show specific error
-      if (err.status === 404 || err.message?.includes('not found')) {
-        showError(t('workoutsPage.couldNotFindWorkout'));
-      } else {
-        showError(t('workoutsPage.failedUpdateSchedule'));
+      if (!opts.silent) {
+        // If assignment not found (404), show specific error
+        if (err.status === 404 || err.message?.includes('not found')) {
+          showError(t('workoutsPage.couldNotFindWorkout'));
+        } else {
+          showError(t('workoutsPage.failedUpdateSchedule'));
+        }
       }
       setShowRescheduleModal(false);
       setRescheduleAction(null);
       rescheduleWorkoutRef.current = null;
-      return;
+      return false;
+    }
+
+    // MOVE also carries the day's saved progress. The page deliberately
+    // rebuilds past cards from leftover workout_log rows (so training history
+    // can never vanish) — which means a log left behind on the source date
+    // resurrects the card there after a move ("I moved it but it still shows
+    // on Tuesday"). Relocate the log row to the target date so the progress
+    // travels with the workout instead. Ghost cards (histLogId) already
+    // handle their own log inside the move above; skip/duplicate must not
+    // touch the source day's history.
+    if (succeeded && action === 'reschedule' && !histLogId) {
+      try {
+        const srcLog = Object.prototype.hasOwnProperty.call(opts, 'sourceLog')
+          ? opts.sourceLog
+          : findLogForWorkout(targetWorkout, todayLogsRef.current);
+        if (srcLog?.id) {
+          await apiPut('/.netlify/functions/workout-logs', {
+            workoutId: srcLog.id,
+            workoutDate: targetDate
+          });
+        }
+      } catch (logMoveErr) {
+        // Non-fatal: the schedule move itself worked. Worst case the old
+        // behavior (card lingers on the source day) until the next move.
+        console.error('Move: schedule updated but log relocation failed:', logMoveErr);
+      }
+      // Carry the local checkmark state too — timed exercises (warm-ups/
+      // stretches) have nothing in sets_data, their done-state lives ONLY in
+      // these date-keyed localStorage entries.
+      try {
+        const exIds = getWorkoutExercises(targetWorkout).map(ex => ex.id);
+        const srcSet = readDateCompletion(clientData?.id, moveSourceDate);
+        // Only migrate ids belonging to THIS workout — the date store is a
+        // union across the day's workouts and the others aren't moving.
+        const movedIds = exIds.filter(id => srcSet.has(id));
+        if (movedIds.length > 0) {
+          updateDateCompletion(clientData?.id, targetDate, { add: movedIds });
+          updateDateCompletion(clientData?.id, moveSourceDate, { remove: movedIds });
+        }
+        const srcKey = completionStorageKey(targetWorkout.id, targetWorkout.day_index, moveSourceDate);
+        const dstKey = completionStorageKey(targetWorkout.id, targetWorkout.day_index, targetDate);
+        if (srcKey && dstKey && srcKey !== dstKey) {
+          const raw = localStorage.getItem(srcKey);
+          if (raw != null) {
+            localStorage.setItem(dstKey, raw);
+            localStorage.removeItem(srcKey);
+          }
+        }
+      } catch (ex) { /* best-effort localStorage migration */ }
     }
 
     if (succeeded) {
@@ -4786,23 +5145,29 @@ function Workouts() {
       setRescheduleTargetDate('');
       rescheduleWorkoutRef.current = null;
 
-      // Refresh to show updated state
-      refreshWorkoutData();
-      refreshWeekSchedule();
+      if (!opts.silent) {
+        // Refresh to show updated state
+        refreshWorkoutData();
+        refreshWeekSchedule();
+        // Re-pull the week's "worked out" dots — a relocated log moves the
+        // green check to the new day, and this is the only fetch that sees it
+        refreshEvidenceDates();
 
-      // Show success feedback (unless the partial-move warning already told
-      // the user what actually happened)
-      if (!partialMoveWarned) {
-        showSuccess(`Workout ${action === 'duplicate' ? 'duplicated' : action === 'skip' ? 'skipped' : 'rescheduled'} successfully!`); // eslint-disable-line -- success message left in English; reschedule action words are app internals
+        // Show success feedback (unless the partial-move warning already told
+        // the user what actually happened)
+        if (!partialMoveWarned) {
+          showSuccess(`Workout ${action === 'duplicate' ? 'duplicated' : action === 'skip' ? 'skipped' : 'rescheduled'} successfully!`); // eslint-disable-line -- success message left in English; reschedule action words are app internals
+        }
       }
     } else {
       // Unexpected state — close modal and inform user
       setShowRescheduleModal(false);
       setRescheduleAction(null);
       rescheduleWorkoutRef.current = null;
-      showError(t('workoutsPage.somethingWentWrong'));
+      if (!opts.silent) showError(t('workoutsPage.somethingWentWrong'));
     }
-  }, [selectedDate, refreshWorkoutData, refreshWeekSchedule, clientData?.id]);
+    return succeeded;
+  }, [selectedDate, refreshWorkoutData, refreshWeekSchedule, refreshEvidenceDates, clientData?.id]);
 
   // Handle reschedule/duplicate/skip workout (confirm button in the modal)
   const handleRescheduleWorkout = useCallback(() => {
@@ -4810,110 +5175,38 @@ function Workouts() {
     return performReschedule(targetWorkout, rescheduleAction, rescheduleTargetDate);
   }, [todayWorkout, rescheduleAction, rescheduleTargetDate, performReschedule]);
 
-  // ---- Tap-hold → drag a workout card onto a weekday pill ----
-  const cleanupCardDrag = useCallback(() => {
-    if (dragHoldTimerRef.current) {
-      clearTimeout(dragHoldTimerRef.current);
-      dragHoldTimerRef.current = null;
+  // ---- Rearrange Week: apply the batch of moves the modal collected ----
+  // moves = [{ workout, sourceDate, targetDate, sourceLog }] — diffs only
+  // (cards whose day actually changed). Applied sequentially so several
+  // moves touching the SAME assignment's date_overrides can't clobber each
+  // other (each server call re-reads the row).
+  const handleApplyRearrange = useCallback(async (moves) => {
+    if (!Array.isArray(moves) || moves.length === 0) {
+      setShowRearrangeWeek(false);
+      return;
     }
-    const l = dragListenersRef.current;
-    if (l) {
-      document.removeEventListener('touchmove', l.move);
-      document.removeEventListener('touchend', l.end);
-      document.removeEventListener('touchcancel', l.cancel);
-      dragListenersRef.current = null;
+    setRearrangeSaving(true);
+    let failed = 0;
+    for (const mv of moves) {
+      const ok = await performReschedule(mv.workout, 'reschedule', mv.targetDate, {
+        sourceDate: mv.sourceDate,
+        sourceLog: mv.sourceLog || null,
+        silent: true
+      });
+      if (!ok) failed++;
     }
-    dragWorkoutRef.current = null;
-    dragOverDateRef.current = null;
-    setDragWorkout(null);
-    setDragOverDate(null);
-  }, []);
-
-  // Remove document listeners if the page unmounts mid-drag
-  useEffect(() => () => cleanupCardDrag(), [cleanupCardDrag]);
-
-  const activateCardDrag = useCallback((workout) => {
-    dragWorkoutRef.current = workout;
-    dragOverDateRef.current = null;
-    setDragWorkout(workout);
-    // The finger is still down — the card's click fires after touchend, so
-    // swallow it (it's the tail of the hold gesture, not a tap).
-    suppressCardTapRef.current = true;
-    try { if (navigator.vibrate) navigator.vibrate(30); } catch (ex) { /* not supported */ }
-
-    const move = (e) => {
-      // Own the gesture: keep the page from scrolling under the drag
-      if (e.cancelable) e.preventDefault();
-      const t0 = e.touches && e.touches[0];
-      if (!t0) return;
-      // Position the ghost directly — a state write here would re-render the
-      // whole (very large) page on every frame of the drag.
-      if (dragGhostRef.current) {
-        dragGhostRef.current.style.left = `${t0.clientX}px`;
-        dragGhostRef.current.style.top = `${t0.clientY}px`;
-      }
-      const el = document.elementFromPoint(t0.clientX, t0.clientY);
-      const pill = el && el.closest ? el.closest('.day-pill[data-date]') : null;
-      const overDate = pill ? (pill.dataset.date || null) : null;
-      if (overDate !== dragOverDateRef.current) {
-        dragOverDateRef.current = overDate;
-        setDragOverDate(overDate);
-      }
-    };
-    const end = () => {
-      const dropDate = dragOverDateRef.current;
-      const dragged = dragWorkoutRef.current;
-      cleanupCardDrag();
-      // Keep the tap suppressed until after the browser's synthetic click
-      setTimeout(() => { suppressCardTapRef.current = false; }, 350);
-      const sourceDate = formatDate(selectedDateRef.current || new Date());
-      if (dropDate && dragged && dropDate !== sourceDate) {
-        performReschedule(dragged, 'reschedule', dropDate);
-      }
-    };
-    const cancel = () => {
-      cleanupCardDrag();
-      setTimeout(() => { suppressCardTapRef.current = false; }, 350);
-    };
-    document.addEventListener('touchmove', move, { passive: false });
-    document.addEventListener('touchend', end);
-    document.addEventListener('touchcancel', cancel);
-    dragListenersRef.current = { move, end, cancel };
-  }, [cleanupCardDrag, performReschedule]);
-
-  const handleCardTouchStart = useCallback((workout) => (e) => {
-    const t0 = e.touches && e.touches[0];
-    if (!t0 || (e.touches && e.touches.length > 1)) return;
-    dragStartPosRef.current = { x: t0.clientX, y: t0.clientY };
-    if (dragHoldTimerRef.current) clearTimeout(dragHoldTimerRef.current);
-    dragHoldTimerRef.current = setTimeout(() => {
-      dragHoldTimerRef.current = null;
-      activateCardDrag(workout);
-    }, 450);
-  }, [activateCardDrag]);
-
-  const handleCardTouchMove = useCallback((e) => {
-    // Before the hold fires: real finger travel means the user is scrolling,
-    // not holding — call the hold off. (Once the drag is live, movement is
-    // handled by the document-level listener instead.)
-    if (!dragHoldTimerRef.current) return;
-    const t0 = e.touches && e.touches[0];
-    if (!t0) return;
-    const dx = t0.clientX - dragStartPosRef.current.x;
-    const dy = t0.clientY - dragStartPosRef.current.y;
-    if ((dx * dx + dy * dy) > 100) {
-      clearTimeout(dragHoldTimerRef.current);
-      dragHoldTimerRef.current = null;
+    setRearrangeSaving(false);
+    setShowRearrangeWeek(false);
+    // One refresh for the whole batch
+    refreshWorkoutData();
+    refreshWeekSchedule();
+    refreshEvidenceDates();
+    if (failed > 0) {
+      showError(t('workoutsPage.rearrangePartialFail'));
+    } else {
+      showSuccess(t('workoutsPage.rearrangeSaved'));
     }
-  }, []);
-
-  const handleCardTouchEnd = useCallback(() => {
-    // Finger lifted before the hold fired — normal tap, let the click through
-    if (dragHoldTimerRef.current) {
-      clearTimeout(dragHoldTimerRef.current);
-      dragHoldTimerRef.current = null;
-    }
-  }, []);
+  }, [performReschedule, refreshWorkoutData, refreshWeekSchedule, refreshEvidenceDates]);
 
   // Open reschedule modal with action type
   const openRescheduleModal = useCallback((action, targetWorkout) => {
@@ -6104,7 +6397,7 @@ function Workouts() {
             </div>
 
             <div
-              className={`week-days-strip ${dragWorkout ? 'drag-target-mode' : ''}`}
+              className="week-days-strip"
               onTouchStart={handleWeekStripTouchStart}
               onTouchEnd={handleWeekStripTouchEnd}
             >
@@ -6118,8 +6411,7 @@ function Workouts() {
                 return (
                   <button
                     key={dateStr || idx}
-                    className={`day-pill ${isSelected ? 'selected' : ''} ${isTodayDate ? 'today' : ''} ${dragWorkout && dragOverDate === dateStr && !isSelected ? 'drop-hover' : ''}`}
-                    data-date={dateStr}
+                    className={`day-pill ${isSelected ? 'selected' : ''} ${isTodayDate ? 'today' : ''}`}
                     onClick={() => setSelectedDate(date)}
                   >
                     <span className="day-name">{getDayName(date)}</span>
@@ -6129,6 +6421,14 @@ function Workouts() {
                 );
               })}
             </div>
+
+            <button
+              className="rearrange-week-btn"
+              onClick={() => setShowRearrangeWeek(true)}
+            >
+              <ArrowRightLeft size={14} />
+              <span>{t('workoutsPage.rearrangeWeek')}</span>
+            </button>
           </div>
 
           {/* Workout Cards or Loading/Empty State */}
@@ -6201,15 +6501,9 @@ function Workouts() {
                         return (
                           <div
                             key={workout.instance_id || `${workout.id}-${workout.day_index}`}
-                            className={`workout-card-v3 ${dragWorkout && instanceKey(dragWorkout) === instanceKey(workout) ? 'dragging' : ''}`}
+                            className="workout-card-v3"
                             style={cardImage ? { backgroundImage: `url("${cardImage}")` } : {}}
-                            onClick={() => {
-                              if (suppressCardTapRef.current) return;
-                              handleSelectWorkoutCard(workout);
-                            }}
-                            onTouchStart={handleCardTouchStart(workout)}
-                            onTouchMove={handleCardTouchMove}
-                            onTouchEnd={handleCardTouchEnd}
+                            onClick={() => handleSelectWorkoutCard(workout)}
                           >
                             {cardImage && (
                               <img src={cardImage} alt="" className="card-bg-img" onError={(e) => { e.target.style.display = 'none'; e.target.parentElement.style.backgroundImage = 'none'; }} />
@@ -6279,14 +6573,8 @@ function Workouts() {
                                 <React.Fragment key={workout.instance_id || `${workout.id}-${workout.day_index}`}>
                                   {idx > 0 && <div className="workout-card-day-separator" />}
                                   <div
-                                    className={`workout-card-day-section ${dragWorkout && instanceKey(dragWorkout) === instanceKey(workout) ? 'dragging' : ''}`}
-                                    onClick={() => {
-                                      if (suppressCardTapRef.current) return;
-                                      handleSelectWorkoutCard(workout);
-                                    }}
-                                    onTouchStart={handleCardTouchStart(workout)}
-                                    onTouchMove={handleCardTouchMove}
-                                    onTouchEnd={handleCardTouchEnd}
+                                    className="workout-card-day-section"
+                                    onClick={() => handleSelectWorkoutCard(workout)}
                                   >
                                     <div className="workout-card-day-menu" onClick={(e) => {
                                       e.stopPropagation();
@@ -7369,23 +7657,16 @@ function Workouts() {
         />
       )}
 
-      {/* Floating ghost while tap-hold dragging a workout onto a weekday */}
-      {dragWorkout && (
-        <div
-          ref={dragGhostRef}
-          className="workout-drag-ghost"
-          style={{ left: dragStartPosRef.current.x, top: dragStartPosRef.current.y }}
-        >
-          <div className="drag-ghost-title">
-            <Dumbbell size={14} />
-            <span>{dragWorkout.workout_data?.name || dragWorkout.name || 'Workout'}</span>
-          </div>
-          <span className="drag-ghost-hint">
-            {dragOverDate && dragOverDate !== formatDate(selectedDate)
-              ? new Date(dragOverDate + 'T12:00:00').toLocaleDateString(getDateLocale(), { weekday: 'short', month: 'short', day: 'numeric' })
-              : t('workoutsPage.dragDropHint')}
-          </span>
-        </div>
+      {/* Rearrange Week modal */}
+      {showRearrangeWeek && (
+        <RearrangeWeekModal
+          clientId={clientData?.id}
+          weekDates={weekDates}
+          saving={rearrangeSaving}
+          onCancel={() => { if (!rearrangeSaving) setShowRearrangeWeek(false); }}
+          onSave={handleApplyRearrange}
+          t={t}
+        />
       )}
 
       {/* Reschedule/Duplicate Modal */}

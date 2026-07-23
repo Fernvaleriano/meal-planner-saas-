@@ -166,7 +166,15 @@ export default {
   skipTitle: 'Saltar entrenamiento',
 
   rescheduleDesc: 'Mover "{name}" a otra fecha:',
-  dragDropHint: 'Suelta sobre un día para moverlo',
+  rearrangeWeek: 'Reorganizar semana',
+  rearrangeWeekTitle: 'Reorganizar la semana',
+  rearrangeWeekDesc: 'Mantén pulsado un entrenamiento, arrástralo a otro día y guarda.',
+  rearrangeRest: 'Descanso',
+  rearrangeSaveBtn: 'Guardar',
+  rearrangeSaving: 'Guardando…',
+  rearrangeSaved: '¡Semana actualizada!',
+  rearrangePartialFail: 'No se pudieron mover algunos entrenamientos. Inténtalo de nuevo.',
+  rearrangeDragHint: 'Suelta sobre un día',
   duplicateDesc: 'Copiar "{name}" a otra fecha:',
   skipDesc: '¿Saltar el entrenamiento de hoy y descansar?',
 

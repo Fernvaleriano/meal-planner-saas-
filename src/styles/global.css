@@ -19894,37 +19894,238 @@ textarea,
     border-radius: 50%;
 }
 
-/* ---- Tap-hold drag: move a workout card onto a weekday pill ---- */
+/* ---- Rearrange Week ---- */
 
-/* While a card is being dragged, every pill lights up as a drop target */
-.week-calendar-v2 .week-days-strip.drag-target-mode .day-pill:not(.selected) {
-    border-color: var(--brand-tile-border, rgba(44, 181, 165, 0.35));
-    background: var(--brand-tile-bg-light, rgba(44, 181, 165, 0.06));
+/* Entry button under the week strip */
+.week-calendar-v2 .rearrange-week-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    width: 100%;
+    margin-top: 8px;
+    padding: 8px 12px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 10px;
+    color: #94a3b8;
+    font-size: 12.5px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    -webkit-tap-highlight-color: transparent;
 }
 
-/* Pill directly under the finger */
-.week-calendar-v2 .day-pill.drop-hover {
+.week-calendar-v2 .rearrange-week-btn:active {
+    transform: scale(0.98);
+    background: rgba(255, 255, 255, 0.07);
+}
+
+[data-theme="light"] .week-calendar-v2 .rearrange-week-btn {
+    background: rgba(15, 23, 42, 0.04);
+    border-color: rgba(15, 23, 42, 0.08);
+    color: #64748b;
+}
+
+/* Modal */
+.rearrange-week-modal {
+    display: flex;
+    flex-direction: column;
+    max-height: 82vh;
+}
+
+.rearrange-week-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 4px;
+}
+
+.rearrange-week-header h3 {
+    font-size: 17px;
+    font-weight: 700;
+    margin: 0;
+}
+
+.rearrange-close-btn {
+    background: none;
+    border: none;
+    color: #94a3b8;
+    cursor: pointer;
+    padding: 4px;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.rearrange-week-desc {
+    font-size: 12.5px;
+    color: #94a3b8;
+    margin: 0 0 12px;
+}
+
+.rearrange-week-loading,
+.rearrange-week-error {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 36px 0;
+    color: #94a3b8;
+    font-size: 13.5px;
+}
+
+.rearrange-days-list {
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding-bottom: 4px;
+}
+
+.rearrange-day-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 10px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 12px;
+    min-height: 48px;
+    transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.rearrange-day-row.today {
+    border-color: var(--brand-tile-border, rgba(13, 148, 136, 0.3));
+}
+
+.rearrange-day-row.drop-hover {
     border-color: var(--brand-tile-icon-color, #2cb5a5);
-    background: var(--brand-tile-bg-light, rgba(44, 181, 165, 0.18));
-    transform: scale(1.12);
-    box-shadow: 0 4px 14px var(--brand-shadow-soft-strong, rgba(13, 148, 136, 0.35));
-    z-index: 2;
+    background: var(--brand-tile-bg-light, rgba(44, 181, 165, 0.12));
 }
 
-/* Suppress the iOS long-press callout/selection so the hold can start a drag */
-.workout-card-v3,
-.workout-card-day-section {
+.rearrange-day-label {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 38px;
+    flex-shrink: 0;
+}
+
+.rearrange-day-name {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    font-weight: 600;
+    color: #64748b;
+}
+
+.rearrange-day-num {
+    font-size: 15px;
+    font-weight: 700;
+    color: white;
+}
+
+.rearrange-day-items {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    flex: 1;
+    min-width: 0;
+}
+
+.rearrange-rest {
+    font-size: 12px;
+    color: #475569;
+    font-style: italic;
+}
+
+.rearrange-chip {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    max-width: 100%;
+    padding: 7px 11px;
+    background: var(--brand-tile-bg-light, rgba(44, 181, 165, 0.1));
+    border: 1px solid var(--brand-tile-border, rgba(44, 181, 165, 0.3));
+    border-radius: 999px;
+    color: white;
+    font-size: 12.5px;
+    font-weight: 600;
     -webkit-touch-callout: none;
     -webkit-user-select: none;
     user-select: none;
+    -webkit-tap-highlight-color: transparent;
 }
 
-/* The card (or merged-card section) being dragged lifts out of the list */
-.workout-card-v3.dragging,
-.workout-card-day-section.dragging {
+.rearrange-chip svg {
+    color: var(--brand-tile-icon-color, #2cb5a5);
+    flex-shrink: 0;
+}
+
+.rearrange-chip-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.rearrange-chip.dragging {
+    opacity: 0.35;
+}
+
+.rearrange-chip.moved {
+    border-style: dashed;
+}
+
+.rearrange-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 14px;
+}
+
+.rearrange-cancel-btn,
+.rearrange-save-btn {
+    flex: 1;
+    padding: 12px;
+    border-radius: 12px;
+    font-size: 14.5px;
+    font-weight: 700;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.rearrange-cancel-btn {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #cbd5e1;
+}
+
+.rearrange-save-btn {
+    background: var(--brand-banner-gradient, linear-gradient(160deg, #2cb5a5 0%, #178072 100%));
+    border: none;
+    color: white;
+}
+
+.rearrange-save-btn:disabled {
     opacity: 0.45;
-    transform: scale(0.97);
-    transition: opacity 0.15s ease, transform 0.15s ease;
+    cursor: default;
+}
+
+[data-theme="light"] .rearrange-day-row {
+    background: rgba(15, 23, 42, 0.03);
+    border-color: rgba(15, 23, 42, 0.08);
+}
+
+[data-theme="light"] .rearrange-day-num {
+    color: #0f172a;
+}
+
+[data-theme="light"] .rearrange-chip {
+    color: #0f172a;
+}
+
+[data-theme="light"] .rearrange-cancel-btn {
+    background: rgba(15, 23, 42, 0.05);
+    border-color: rgba(15, 23, 42, 0.12);
+    color: #334155;
 }
 
 /* Floating ghost that follows the finger */

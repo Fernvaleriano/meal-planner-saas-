@@ -439,6 +439,19 @@ exports.handler = async (event) => {
       if (updateData.sleepQuality !== undefined) updateFields.sleep_quality = updateData.sleepQuality;
       if (updateData.workoutRating !== undefined) updateFields.workout_rating = updateData.workoutRating;
       if (updateData.status !== undefined) updateFields.status = updateData.status;
+      // Relocate the log to another calendar date (Move/reschedule): the
+      // logged progress must travel with the workout, otherwise the leftover
+      // log resurrects a ghost card on the source day.
+      if (updateData.workoutDate !== undefined) {
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(String(updateData.workoutDate))) {
+          return {
+            statusCode: 400,
+            headers,
+            body: JSON.stringify({ error: 'workoutDate must be YYYY-MM-DD' })
+          };
+        }
+        updateFields.workout_date = updateData.workoutDate;
+      }
 
       // Calculate totals from exercises if provided
       if (exercises && exercises.length > 0) {
