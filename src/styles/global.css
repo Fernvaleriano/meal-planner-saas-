@@ -35017,6 +35017,14 @@ textarea,
     border-bottom-color: #e2e8f0;
 }
 
+/* Dark mode: match the brand navy (top of the body gradient) instead of
+   the near-black default, so the sticky header blends into the app
+   background instead of reading as an off-brand black bar. */
+[data-theme="dark"] .workout-history-header {
+    background: #0A1F2E;
+    border-bottom-color: rgba(255,255,255,0.06);
+}
+
 .workout-history-back-btn {
     width: 40px;
     height: 40px;
