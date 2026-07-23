@@ -15533,7 +15533,7 @@
 
             try {
                 if (acProgramsCache.length === 0) {
-                    const res = await fetch(`/.netlify/functions/workout-programs?coachId=${window.coachUserId || ''}`);
+                    const res = await authenticatedFetch(`/.netlify/functions/workout-programs?coachId=${window.coachUserId || ''}`);
                     const data = await res.json();
                     acProgramsCache = data.programs || [];
                 }
@@ -17583,7 +17583,7 @@
                 const coachId = currentUser.id;
                 // Fetch programs and current assignment in parallel
                 const [progsRes, assignRes] = await Promise.all([
-                    fetch(`/.netlify/functions/workout-programs?coachId=${coachId}`),
+                    authenticatedFetch(`/.netlify/functions/workout-programs?coachId=${coachId}`),
                     authenticatedFetch(`/.netlify/functions/workout-assignments?clientId=${cId}&activeOnly=true`)
                 ]);
 
@@ -18009,7 +18009,7 @@
             if (!confirm(`Delete program "${programName}"? This cannot be undone.`)) return;
 
             try {
-                const res = await fetch(`/.netlify/functions/workout-programs?programId=${programId}`, {
+                const res = await authenticatedFetch(`/.netlify/functions/workout-programs?programId=${programId}`, {
                     method: 'DELETE'
                 });
 

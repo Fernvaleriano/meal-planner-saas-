@@ -1,6 +1,6 @@
 // Netlify Function to save a reaction to a diary entry and notify the client
 const { createClient } = require('@supabase/supabase-js');
-const { authenticateCoach, forbiddenResponse } = require('./utils/auth');
+const { authenticateGymMember, trainerClientIdScope, forbiddenResponse } = require('./utils/auth');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -25,11 +25,25 @@ exports.handler = async (event) => {
         return { statusCode: 400, headers: corsHeaders, body: JSON.stringify({ error: 'entryId and coachId required' }) };
       }
 
-      // Only the coach themselves may remove their reaction.
-      const delAuth = await authenticateCoach(event, coachId);
+      // The gym owner or one of that gym's trainers may remove the reaction.
+      const delAuth = await authenticateGymMember(event, coachId);
       if (delAuth.error) return delAuth.error;
 
       const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+
+      // A trainer may only touch reactions on their assigned clients' entries.
+      const delScope = await trainerClientIdScope(event, supabase, coachId, delAuth);
+      if (delScope) {
+        const { data: rxRow } = await supabase
+          .from('diary_entry_reactions')
+          .select('client_id')
+          .eq('entry_id', entryId)
+          .eq('coach_id', coachId)
+          .maybeSingle();
+        if (rxRow && rxRow.client_id != null && !delScope.map(String).includes(String(rxRow.client_id))) {
+          return forbiddenResponse('Not authorized for this client');
+        }
+      }
 
       const { error } = await supabase
         .from('diary_entry_reactions')
@@ -64,11 +78,17 @@ exports.handler = async (event) => {
       return { statusCode: 400, headers: corsHeaders, body: JSON.stringify({ error: 'entryId, coachId, clientId and reaction required' }) };
     }
 
-    // Only the coach themselves may react to a client's entry.
-    const postAuth = await authenticateCoach(event, coachId);
+    // The gym owner or one of that gym's trainers may react.
+    const postAuth = await authenticateGymMember(event, coachId);
     if (postAuth.error) return postAuth.error;
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+
+    // A trainer may only react to their assigned clients' entries.
+    const postScope = await trainerClientIdScope(event, supabase, coachId, postAuth);
+    if (postScope && !postScope.map(String).includes(String(clientId))) {
+      return forbiddenResponse('Not authorized for this client');
+    }
 
     // The target client must actually belong to this coach — otherwise a coach
     // could react to a stranger's entry and inject a notification into their feed.

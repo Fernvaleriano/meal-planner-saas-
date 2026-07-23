@@ -1,6 +1,6 @@
 // Netlify Function to save a coach's meal plan
 const { createClient } = require('@supabase/supabase-js');
-const { handleCors, authenticateGymMember, trainerClientIdScope, corsHeaders } = require('./utils/auth');
+const { handleCors, authenticateGymMember, trainerClientIdScope, trainerCan, trainerPermissionResponse, corsHeaders } = require('./utils/auth');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -61,8 +61,11 @@ exports.handler = async (event, context) => {
     // ✅ SECURITY: allow the gym owner OR one of that gym's active trainers.
     // Owners are unchanged. A meal plan is bound to a client (clientId), so a
     // trainer may only write plans for a client assigned to them.
-    const { user, error: authError } = await authenticateGymMember(event, coachId);
-    if (authError) return authError;
+    const ctx = await authenticateGymMember(event, coachId);
+    if (ctx.error) return ctx.error;
+    // Permission toggle: a trainer whose gym switched off meal-plan editing is
+    // blocked here. Owners (and legacy coaches) always pass.
+    if (!trainerCan(ctx, 'write_meal_plans')) return trainerPermissionResponse('editing meal plans');
 
     // Initialize Supabase client with service key (bypasses RLS)
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, {

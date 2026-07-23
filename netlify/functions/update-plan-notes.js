@@ -1,5 +1,6 @@
 // Netlify Function to update coach notes on a meal plan
 const { createClient } = require('@supabase/supabase-js');
+const { authenticateGymMember, trainerClientIdScope, trainerCan, trainerPermissionResponse } = require('./utils/auth');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -43,7 +44,7 @@ exports.handler = async (event, context) => {
     // Verify the coach owns this plan
     const { data: plan, error: fetchError } = await supabase
       .from('coach_meal_plans')
-      .select('id, coach_id')
+      .select('id, coach_id, client_id')
       .eq('id', planId)
       .single();
 
@@ -52,6 +53,22 @@ exports.handler = async (event, context) => {
         statusCode: 404,
         headers: { 'Access-Control-Allow-Origin': '*' },
         body: JSON.stringify({ error: 'Plan not found' })
+      };
+    }
+
+    // Caller must be the plan's coach or one of that gym's trainers
+    // (previously this trusted the body-supplied coachId with no token check).
+    const ctx = await authenticateGymMember(event, plan.coach_id);
+    if (ctx.error) return ctx.error;
+    if (!trainerCan(ctx, 'write_meal_plans')) {
+      return trainerPermissionResponse('editing meal plans');
+    }
+    const scope = await trainerClientIdScope(event, supabase, plan.coach_id, ctx);
+    if (scope && plan.client_id != null && !scope.includes(plan.client_id)) {
+      return {
+        statusCode: 403,
+        headers: { 'Access-Control-Allow-Origin': '*' },
+        body: JSON.stringify({ error: 'Not authorized for this client' })
       };
     }
 

@@ -1,6 +1,6 @@
 const { createClient } = require('@supabase/supabase-js');
 const { withTimeout } = require('./utils/with-timeout');
-const { authenticateClientAccess, authenticateCoach, authenticateGymMember } = require('./utils/auth');
+const { authenticateClientAccess, authenticateCoach, authenticateGymMember, resolveGymContext, trainerCan, trainerPermissionResponse } = require('./utils/auth');
 const {
   estimateWorkoutMinutes,
   estimateWorkoutCalories
@@ -850,6 +850,19 @@ exports.handler = withTimeout(async (event) => {
       if (postAuth.error) {
         const gymAuth = await authenticateGymMember(event, coachId);
         if (gymAuth.error) return postAuth.error;
+        // Permission toggle: a trainer whose gym switched off workout building
+        // may not assign workouts. Owners always pass.
+        if (!trainerCan(gymAuth, 'build_workouts')) return trainerPermissionResponse('assigning workouts');
+      } else if (postAuth.role === 'coach') {
+        // authenticateClientAccess grants 'coach' to the gym owner AND to the
+        // client's assigned trainer, but returns no gym ctx — resolve it so a
+        // permission-blocked trainer can't slip through this path. Owners
+        // resolve to role 'owner' and clients never enter this branch, so
+        // their behavior is unchanged.
+        const gymCtx = await resolveGymContext(event);
+        if (gymCtx.role === 'trainer' && !trainerCan(gymCtx, 'build_workouts')) {
+          return trainerPermissionResponse('assigning workouts');
+        }
       }
 
       let finalWorkoutData = workoutData;
@@ -974,6 +987,14 @@ exports.handler = withTimeout(async (event) => {
       }
       const putAuth = await authenticateClientAccess(event, putAssignment.client_id);
       if (putAuth.error) return putAuth.error;
+      if (putAuth.role === 'coach') {
+        // Same gate as POST: a permission-blocked trainer may not edit
+        // assignments. Owners resolve to 'owner' and always pass.
+        const putGymCtx = await resolveGymContext(event);
+        if (putGymCtx.role === 'trainer' && !trainerCan(putGymCtx, 'build_workouts')) {
+          return trainerPermissionResponse('assigning workouts');
+        }
+      }
 
       // Map camelCase to snake_case
       const updateFields = {};
@@ -1049,6 +1070,13 @@ exports.handler = withTimeout(async (event) => {
       }
       const delAuth = await authenticateClientAccess(event, delAssignment.client_id);
       if (delAuth.error) return delAuth.error;
+      if (delAuth.role === 'coach') {
+        // Same gate as POST: a permission-blocked trainer may not unassign.
+        const delGymCtx = await resolveGymContext(event);
+        if (delGymCtx.role === 'trainer' && !trainerCan(delGymCtx, 'build_workouts')) {
+          return trainerPermissionResponse('assigning workouts');
+        }
+      }
 
       const { error } = await supabase
         .from('client_workout_assignments')

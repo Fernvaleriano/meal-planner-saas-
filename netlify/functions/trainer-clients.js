@@ -17,7 +17,7 @@
 //   * The gym's plan client-limit is enforced against the gym's TOTAL client
 //     count, exactly like create-client.js.
 const { createClient } = require('@supabase/supabase-js');
-const { handleCors, resolveGymContext, corsHeaders } = require('./utils/auth');
+const { handleCors, resolveGymContext, trainerCan, corsHeaders } = require('./utils/auth');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -61,6 +61,12 @@ exports.handler = async (event) => {
       const { data, error } = await query;
       if (error) throw error;
       const clients = (data || []).filter(c => !c.is_archived);
+
+      // A trainer without the see_contact_info permission never receives
+      // client email/phone. Owners are untouched.
+      if (role === 'trainer' && !trainerCan(ctx, 'see_contact_info')) {
+        clients.forEach(c => { delete c.email; delete c.phone; });
+      }
 
       // The trainer can't read the gym's coach row (RLS), so surface the gym's
       // display name + this trainer's own name/permissions here.
@@ -111,6 +117,18 @@ exports.handler = async (event) => {
           error: `The gym has reached its plan limit of ${limit} clients.`,
           code: 'CLIENT_LIMIT_REACHED', currentCount, limit, tier
         });
+      }
+
+      // Per-trainer cap (gym_trainers.client_cap) — independent of the gym-wide
+      // plan limit above. Only applies to trainers with a numeric cap set.
+      if (role === 'trainer' && trainer && typeof trainer.client_cap === 'number') {
+        const { count: trainerCount, error: capErr } = await supabase
+          .from('clients').select('*', { count: 'exact', head: true })
+          .eq('coach_id', gymCoachId).eq('trainer_id', trainerId);
+        if (capErr) throw capErr;
+        if (trainerCount >= trainer.client_cap) {
+          return json(403, { error: 'You have reached your client limit for this gym.', code: 'TRAINER_CLIENT_CAP' });
+        }
       }
 
       // Guard: don't let a coach email be turned into a client.

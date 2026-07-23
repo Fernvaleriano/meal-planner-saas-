@@ -1,6 +1,6 @@
 // Netlify Function to retrieve all clients for a coach
 const { createClient } = require('@supabase/supabase-js');
-const { handleCors, authenticateGymMember, corsHeaders } = require('./utils/auth');
+const { handleCors, authenticateGymMember, trainerCan, corsHeaders } = require('./utils/auth');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -35,7 +35,8 @@ exports.handler = async (event, context) => {
     // ✅ SECURITY: allow EITHER the gym owner OR one of that gym's active
     // trainers. Owners are unchanged (role 'owner', full roster). A trainer is
     // scoped below to only the clients assigned to them.
-    const { role, trainerId, error: authError } = await authenticateGymMember(event, coachId);
+    const gymCtx = await authenticateGymMember(event, coachId);
+    const { role, trainerId, error: authError } = gymCtx;
     if (authError) return authError;
 
     // Initialize Supabase client with service key
@@ -75,6 +76,12 @@ exports.handler = async (event, context) => {
           details: error.message
         })
       };
+    }
+
+    // A trainer without the see_contact_info permission never receives client
+    // email/phone. Owners are untouched (trainerCan is always true for them).
+    if (role === 'trainer' && !trainerCan(gymCtx, 'see_contact_info')) {
+      (data || []).forEach(c => { delete c.email; delete c.phone; });
     }
 
     return {

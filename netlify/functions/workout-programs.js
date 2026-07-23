@@ -1,7 +1,48 @@
 const { createClient } = require('@supabase/supabase-js');
+const {
+  extractToken, verifyToken, resolveGymContext,
+  trainerCan, trainerPermissionResponse,
+  unauthorizedResponse, forbiddenResponse
+} = require('./utils/auth');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
+
+/**
+ * Who may touch programs owned by targetCoachId:
+ *   - the coach/gym owner themselves,
+ *   - a trainer of that gym (writes additionally gated on the
+ *     'build_workouts' permission),
+ *   - a CLIENT of that coach (the client app's workout builder saves the
+ *     client's own programs under their coach's id).
+ * This function previously had no auth at all (July 2026 audit).
+ */
+async function authorizeForCoach(event, supabase, targetCoachId, isWrite) {
+  const token = extractToken(event);
+  if (!token) return { error: unauthorizedResponse('Missing authorization token') };
+  const { user, error } = await verifyToken(token);
+  if (error || !user) return { error: unauthorizedResponse(error || 'Invalid token') };
+
+  if (user.id === targetCoachId) return { user, role: 'owner' };
+
+  const ctx = await resolveGymContext(event);
+  if (ctx.role === 'trainer' && ctx.gymCoachId === targetCoachId) {
+    if (isWrite && !trainerCan(ctx, 'build_workouts')) {
+      return { error: trainerPermissionResponse('building workouts') };
+    }
+    return { user, role: 'trainer' };
+  }
+
+  const { data: clientRow } = await supabase
+    .from('clients')
+    .select('id')
+    .eq('user_id', user.id)
+    .eq('coach_id', targetCoachId)
+    .maybeSingle();
+  if (clientRow) return { user, role: 'client' };
+
+  return { error: forbiddenResponse("Not authorized for this coach's programs") };
+}
 
 const headers = {
   'Access-Control-Allow-Origin': '*',
@@ -67,6 +108,9 @@ exports.handler = async (event) => {
 
         if (error) throw error;
 
+        const auth = await authorizeForCoach(event, supabase, program.coach_id, false);
+        if (auth.error) return auth.error;
+
         return {
           statusCode: 200,
           headers,
@@ -82,6 +126,9 @@ exports.handler = async (event) => {
           body: JSON.stringify({ error: 'coachId is required' })
         };
       }
+
+      const listAuth = await authorizeForCoach(event, supabase, coachId, false);
+      if (listAuth.error) return listAuth.error;
 
       const { data: programs, error } = await supabase
         .from('workout_programs')
@@ -150,6 +197,9 @@ exports.handler = async (event) => {
         };
       }
 
+      const createAuth = await authorizeForCoach(event, supabase, coachId, true);
+      if (createAuth.error) return createAuth.error;
+
       // Cover photo: use whatever was chosen (explicit hero image, or one the
       // client/AI generator already tucked into program_data). If none was
       // provided, default to a random photo from the shared library so a
@@ -202,6 +252,17 @@ exports.handler = async (event) => {
           body: JSON.stringify({ error: 'programId is required' })
         };
       }
+
+      const { data: putTarget, error: putTargetError } = await supabase
+        .from('workout_programs')
+        .select('coach_id')
+        .eq('id', programId)
+        .single();
+      if (putTargetError || !putTarget) {
+        return { statusCode: 404, headers, body: JSON.stringify({ error: 'Program not found' }) };
+      }
+      const putAuth = await authorizeForCoach(event, supabase, putTarget.coach_id, true);
+      if (putAuth.error) return putAuth.error;
 
       // Map camelCase to snake_case
       const updateFields = {};
@@ -325,6 +386,17 @@ exports.handler = async (event) => {
           body: JSON.stringify({ error: 'programId is required' })
         };
       }
+
+      const { data: delTarget, error: delTargetError } = await supabase
+        .from('workout_programs')
+        .select('coach_id')
+        .eq('id', programId)
+        .single();
+      if (delTargetError || !delTarget) {
+        return { statusCode: 404, headers, body: JSON.stringify({ error: 'Program not found' }) };
+      }
+      const delAuth = await authorizeForCoach(event, supabase, delTarget.coach_id, true);
+      if (delAuth.error) return delAuth.error;
 
       const { error } = await supabase
         .from('workout_programs')

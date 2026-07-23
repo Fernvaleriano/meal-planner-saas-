@@ -66,10 +66,37 @@ assigned clients."** `trainer-dashboard.html` is legacy; trainers now land on
   dismissed_activity_items, food_diary_entries, weight_logs, diary reactions/
   comments) return EMPTY for a trainer — safe (fail-closed), just not shown.
 
-**Still to build:** trainer's own profile page (coach-profile hard-fails with
-no coaches row), recipes (manage-recipes, coach-level RLS), client-feed,
-form-responses. Plus a **per-trainer permissions layer**. Writes still need a
-trainer UPDATE/DELETE path where editing is wanted (RLS is READ-only today).
+**Built July 2026 (this completes the planned scope):**
+- **Per-trainer permissions layer.** `gym_trainers.permissions` (jsonb) +
+  `client_cap` (int). Keys: `build_workouts`, `write_meal_plans`,
+  `message_clients`, `see_contact_info`; `can_create_clients` stays its own
+  column. Convention everywhere: **absent key = allowed** (`trainerCan()` in
+  `utils/auth.js`), so pre-layer trainers keep all abilities. Owner UI: the
+  per-trainer "Permissions" panel in `gym-trainers.html`. Server gates: all
+  coach_meal_plans writes, workout-programs + workout-assignments writes,
+  chat send/bulk-send + diary comments (reading never gated), contact-info
+  stripping in get-clients/trainer-clients, can_create_clients on BOTH create
+  paths, per-trainer client cap on both create paths.
+- **coach-profile.html** — trainers get a minimal profile (password change,
+  preferences); owner-only cards hidden.
+- **manage-recipes.html** — trainers browse the gym's library READ-ONLY
+  (RLS `"Trainers can view gym recipes"`); writes stay owner-only.
+- **client-feed.html** — scoped to assigned clients via coach-activity-feed
+  (which now REQUIRES gym-member auth — it used to be open); reactions and
+  comments allowed on assigned clients only.
+- **Ghost-login cleanup** (risk #2): removing a trainer deletes their auth
+  login when it's a pure trainer account (no coaches/clients/other-gym rows).
+
+**Known limitation of `see_contact_info` (accepted July 2026):** the toggle is
+enforced at the API layer (get-clients, trainer-clients, coach-activity-feed).
+The trainer READ RLS policy on `clients` is full-row, so a technically savvy
+blocked trainer could still read email/phone via a direct table query.
+Column-level hiding needs a view or column grants — revisit if this toggle
+ever needs to be watertight rather than UI-level.
+
+**form-responses stays owner-only ON PURPOSE:** rows are lead-gen submissions
+(UTM/referrer metadata, no client linkage), so they cannot be scoped to a
+trainer's clients. Revisit only if form_responses ever gains a client_id.
 
 ## Design rules for every future slice
 

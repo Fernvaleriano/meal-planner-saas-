@@ -7988,6 +7988,12 @@
 
         // Helper for authenticated API calls
         async function apiCall(url, options = {}) {
+            // Always send a FRESH token — the page-load token expires after
+            // ~1h, and a save from a long-open tab would otherwise 401.
+            try {
+                const { data: { session } } = await supabaseClient.auth.getSession();
+                if (session?.access_token) currentAccessToken = session.access_token;
+            } catch (e) { /* fall back to the page-load token */ }
             const headers = {
                 'Content-Type': 'application/json',
                 ...(currentAccessToken && { 'Authorization': `Bearer ${currentAccessToken}` }),
@@ -12468,7 +12474,8 @@
 
             try {
                 const response = await fetch(`/.netlify/functions/workout-programs?programId=${pendingDeleteProgramId}`, {
-                    method: 'DELETE'
+                    method: 'DELETE',
+                    headers: { ...(currentAccessToken && { 'Authorization': `Bearer ${currentAccessToken}` }) }
                 });
 
                 const result = await response.json();
@@ -12516,7 +12523,10 @@
 
                 const response = await fetch('/.netlify/functions/workout-programs', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...(currentAccessToken && { 'Authorization': `Bearer ${currentAccessToken}` })
+                    },
                     body: JSON.stringify({
                         coachId: currentCoachId,
                         name: `${program.name} (Copy)`,

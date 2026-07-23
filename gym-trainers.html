@@ -192,13 +192,15 @@
         html += '<tr>' +
           '<td>' + esc(t.name || '—') + '</td>' +
           '<td>' + esc(t.email) + '</td>' +
-          '<td>' + (t.client_count || 0) + '</td>' +
+          '<td>' + (t.client_count || 0) + (t.client_cap != null ? ' / ' + t.client_cap : '') + '</td>' +
           '<td>' + statusPill + '</td>' +
           '<td class="row" style="gap:6px; justify-content:flex-end;">' +
+            '<button class="ghost small" data-perms="' + t.id + '">Permissions</button>' +
             '<button class="ghost small" data-toggle="' + t.id + '" data-next="' + (t.status === 'active' ? 'disabled' : 'active') + '">' + toggleLabel + '</button>' +
             '<button class="danger small" data-del="' + t.id + '">Remove</button>' +
           '</td>' +
         '</tr>';
+        html += permissionsRow(t);
       }
       html += '</tbody></table>';
       wrap.innerHTML = html;
@@ -207,6 +209,58 @@
         updateTrainer(b.getAttribute('data-toggle'), { status: b.getAttribute('data-next') }));
       wrap.querySelectorAll('[data-del]').forEach(b => b.onclick = () =>
         removeTrainer(b.getAttribute('data-del')));
+      wrap.querySelectorAll('[data-perms]').forEach(b => b.onclick = () => {
+        const row = document.getElementById('perms-row-' + b.getAttribute('data-perms'));
+        if (row) row.style.display = row.style.display === 'none' ? '' : 'none';
+      });
+      wrap.querySelectorAll('[data-save-perms]').forEach(b => b.onclick = () =>
+        savePermissions(b.getAttribute('data-save-perms')));
+    }
+
+    // What the trainer is ALLOWED to do. Unchecked = blocked. Absent/true =
+    // allowed (matches the server's trainerCan convention, so trainers added
+    // before this layer keep everything on).
+    const PERM_DEFS = [
+      { key: 'can_create', label: 'Add clients' },
+      { key: 'build_workouts', label: 'Build & assign workouts' },
+      { key: 'write_meal_plans', label: 'Create & edit meal plans' },
+      { key: 'message_clients', label: 'Message clients' },
+      { key: 'see_contact_info', label: 'See client email & phone' }
+    ];
+
+    function permissionsRow(t) {
+      const perms = t.permissions || {};
+      const isOn = (key) => key === 'can_create' ? t.can_create_clients !== false : perms[key] !== false;
+      let boxes = '';
+      for (const p of PERM_DEFS) {
+        boxes += '<label style="display:inline-flex; align-items:center; gap:6px; margin:4px 14px 4px 0; font-size:0.88rem; cursor:pointer;">' +
+          '<input type="checkbox" data-perm-key="' + p.key + '"' + (isOn(p.key) ? ' checked' : '') + '> ' + p.label +
+        '</label>';
+      }
+      return '<tr id="perms-row-' + t.id + '" style="display:none;"><td colspan="5" style="background:var(--gray-50, #f8fafc); padding:12px 16px;">' +
+        '<div style="margin-bottom:8px;">' + boxes + '</div>' +
+        '<div class="row" style="gap:10px; align-items:center;">' +
+          '<label style="font-size:0.88rem;">Client limit <input type="number" min="0" data-cap value="' + (t.client_cap != null ? t.client_cap : '') + '" placeholder="none" style="width:80px; margin-left:6px;"></label>' +
+          '<button class="small" data-save-perms="' + t.id + '">Save permissions</button>' +
+        '</div>' +
+      '</td></tr>';
+    }
+
+    async function savePermissions(trainerId) {
+      const row = document.getElementById('perms-row-' + trainerId);
+      if (!row) return;
+      const get = (key) => { const el = row.querySelector('[data-perm-key="' + key + '"]'); return el ? el.checked : true; };
+      const capEl = row.querySelector('[data-cap]');
+      await updateTrainer(trainerId, {
+        canCreateClients: get('can_create'),
+        permissions: {
+          build_workouts: get('build_workouts'),
+          write_meal_plans: get('write_meal_plans'),
+          message_clients: get('message_clients'),
+          see_contact_info: get('see_contact_info')
+        },
+        clientCap: capEl && capEl.value !== '' ? Number(capEl.value) : null
+      });
     }
 
     function renderClients() {

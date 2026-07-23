@@ -275,7 +275,8 @@
     var TRAINER_NAV_ALLOW = ['dashboard.html', 'coach-workout-plans.html', 'coach-workouts.html',
         'manage-clients.html', 'coach-messages.html', 'coach-challenges.html',
         'supplement-protocols.html', 'coach-stats.html',
-        'coach-meal-plans.html', 'planner.html'];
+        'coach-meal-plans.html', 'planner.html',
+        'manage-recipes.html', 'client-feed.html', 'coach-profile.html'];
     function trimNavForTrainer() {
         try {
             document.querySelectorAll('.sidebar-nav-item, .coach-nav-item').forEach(function (a) {

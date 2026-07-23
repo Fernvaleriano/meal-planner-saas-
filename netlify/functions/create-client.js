@@ -47,8 +47,21 @@ exports.handler = async (event, context) => {
 
     // ✅ SECURITY: allow the gym owner OR one of their trainers. A trainer's
     // new client is owned by the gym (coach_id) and auto-assigned to them.
-    const { role, trainerId, error: authError } = await authenticateGymMember(event, coachId);
+    const { role, trainerId, trainer, error: authError } = await authenticateGymMember(event, coachId);
     if (authError) return authError;
+
+    // A trainer whose owner switched off "can create clients" is blocked
+    // (mirrors trainer-clients.js).
+    if (role === 'trainer' && trainer && trainer.can_create_clients === false) {
+      return {
+        statusCode: 403,
+        headers: corsHeaders,
+        body: JSON.stringify({
+          error: 'Your gym has not enabled adding clients for you.',
+          code: 'TRAINER_CANNOT_CREATE'
+        })
+      };
+    }
 
     // Initialize Supabase client with service key
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
@@ -115,6 +128,36 @@ exports.handler = async (event, context) => {
           tier: tier
         })
       };
+    }
+
+    // Per-trainer cap (gym_trainers.client_cap) — independent of the gym-wide
+    // plan limit above. Only applies to trainers with a numeric cap set.
+    if (role === 'trainer' && trainer && typeof trainer.client_cap === 'number') {
+      const { count: trainerClientCount, error: capCountError } = await supabase
+        .from('clients')
+        .select('*', { count: 'exact', head: true })
+        .eq('coach_id', coachId)
+        .eq('trainer_id', trainerId);
+
+      if (capCountError) {
+        console.error('❌ Error counting trainer clients:', capCountError);
+        return {
+          statusCode: 500,
+          headers: { 'Access-Control-Allow-Origin': '*' },
+          body: JSON.stringify({ error: 'Failed to check client limit' })
+        };
+      }
+
+      if (trainerClientCount >= trainer.client_cap) {
+        return {
+          statusCode: 403,
+          headers: corsHeaders,
+          body: JSON.stringify({
+            error: 'You have reached your client limit for this gym.',
+            code: 'TRAINER_CLIENT_CAP'
+          })
+        };
+      }
     }
 
     // Check if email is already registered as a coach (prevent dual registration issues)

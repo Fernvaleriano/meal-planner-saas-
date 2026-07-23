@@ -1070,7 +1070,7 @@ Ingredients: 6oz chicken breast, 2 cups mixed greens, 1/2 avocado, cherry tomato
     </style>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="/js/trainer-bounce.js"></script>
+    <script src="/js/gym-context.js"></script>
     <script>
         // Sidebar section collapse functionality
 
@@ -1122,6 +1122,19 @@ Ingredients: 6oz chicken breast, 2 cups mixed greens, 1/2 avocado, cherry tomato
 
             currentUserId = session.user.id;
             document.getElementById('userEmail').textContent = session.user.email;
+
+            // Gym TRAINER: browse the GYM's recipe library, read-only (v1).
+            // Reads use the gym's coach id (a trainer RLS policy allows it);
+            // add/edit/delete stay owner-only, so those buttons are hidden.
+            const __ctx = (window.ZQCoach && window.ZQCoach.resolveCoachContext)
+                ? await window.ZQCoach.resolveCoachContext(supabaseClient) : null;
+            if (__ctx && __ctx.role === 'trainer') {
+                currentUserId = __ctx.coachId;
+                window.__isTrainer = true;
+                const hideEditsCss = document.createElement('style');
+                hideEditsCss.textContent = '.recipe-card-actions, .btn-primary[onclick^="openAddModal"] { display: none !important; }';
+                document.head.appendChild(hideEditsCss);
+            }
 
             // Check subscription status
             const { data: coachData, error: coachError } = await supabaseClient

@@ -1,6 +1,6 @@
 // Netlify Function to add/manage comments on diary entries
 const { createClient } = require('@supabase/supabase-js');
-const { authenticateRequest, authenticateClientAccess, forbiddenResponse } = require('./utils/auth');
+const { authenticateRequest, authenticateClientAccess, forbiddenResponse, resolveGymContext, trainerClientIdScope, trainerCan, trainerPermissionResponse } = require('./utils/auth');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -166,7 +166,18 @@ exports.handler = async (event) => {
     // Verify the claimed author identity against the token: a coach comment
     // must come from that coach; a client reply from that client.
     if (authorType === 'coach') {
-      if (authUser.id !== coachId) return forbiddenResponse('Not authorized');
+      if (authUser.id !== coachId) {
+        // Not the owner — allow a trainer of this gym, permission-gated and
+        // scoped to their assigned clients. The comment still posts under the
+        // gym's coach identity (client-facing branding stays the gym).
+        const ctx = await resolveGymContext(event);
+        if (!(ctx.role === 'trainer' && ctx.gymCoachId === coachId)) return forbiddenResponse('Not authorized');
+        if (!trainerCan(ctx, 'message_clients')) return trainerPermissionResponse('messaging clients');
+        const scope = await trainerClientIdScope(event, supabase, coachId, ctx);
+        if (scope && !scope.map(String).includes(String(clientId))) {
+          return forbiddenResponse('Not authorized for this client');
+        }
+      }
       // ...and the target client must belong to this coach.
       const { data: rel } = await supabase
         .from('clients')

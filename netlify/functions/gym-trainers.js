@@ -287,6 +287,27 @@ exports.handler = async (event) => {
       if (body.name !== undefined) fields.name = body.name;
       if (body.status !== undefined && ['active', 'disabled', 'invited'].includes(body.status)) fields.status = body.status;
       if (body.canCreateClients !== undefined) fields.can_create_clients = !!body.canCreateClients;
+      // Per-trainer permissions layer: only known keys, only booleans, merged
+      // over the stored object so a partial update never wipes other toggles.
+      // Absent key = allowed (the app-wide convention in trainerCan()).
+      const PERMISSION_KEYS = ['build_workouts', 'write_meal_plans', 'message_clients', 'see_contact_info'];
+      if (body.permissions !== undefined && body.permissions !== null && typeof body.permissions === 'object') {
+        const { data: currentRow } = await supabase
+          .from('gym_trainers')
+          .select('permissions')
+          .eq('id', trainerId)
+          .single();
+        const merged = { ...(currentRow?.permissions || {}) };
+        for (const key of PERMISSION_KEYS) {
+          if (typeof body.permissions[key] === 'boolean') merged[key] = body.permissions[key];
+        }
+        fields.permissions = merged;
+      }
+      if (body.clientCap !== undefined) {
+        const cap = body.clientCap === null || body.clientCap === '' ? null : parseInt(body.clientCap, 10);
+        if (cap !== null && (isNaN(cap) || cap < 0)) return json(400, { error: 'clientCap must be a non-negative number or empty' });
+        fields.client_cap = cap;
+      }
       if (Object.keys(fields).length === 0) return json(400, { error: 'Nothing to update' });
 
       const { data: trainer, error } = await supabase
@@ -325,11 +346,35 @@ exports.handler = async (event) => {
         .eq('gym_coach_id', coachId);
       if (error) throw error;
 
-      // NOTE (phase 1): we intentionally do NOT delete the trainer's auth login
-      // here — a login may be reused and hard-deleting risks collateral. The
-      // trainer simply loses gym access (no active gym_trainers row). Cleaning
-      // up the orphaned auth user can be a later admin action.
-      return json(200, { success: true });
+      // Ghost-login cleanup (July 2026, risk #2 in MULTI-TRAINER-NOTES.md):
+      // a removed trainer's auth login used to be orphaned, blocking the same
+      // email from ever being re-added. Delete the login ONLY when it is a
+      // pure trainer account — no coaches row, no clients row, and no other
+      // gym_trainers row anywhere. Best-effort: a failed cleanup never fails
+      // the removal itself.
+      let loginCleaned = false;
+      if (trainer.trainer_user_id) {
+        try {
+          const uid = trainer.trainer_user_id;
+          const [coachRes, clientRes, otherTrainerRes] = await Promise.all([
+            supabase.from('coaches').select('id').eq('id', uid).maybeSingle(),
+            supabase.from('clients').select('id').eq('user_id', uid).limit(1).maybeSingle(),
+            supabase.from('gym_trainers').select('id').eq('trainer_user_id', uid).limit(1).maybeSingle()
+          ]);
+          // Fail CLOSED: a lookup error must never read as "no other role" —
+          // only delete the login when all three checks succeeded and came
+          // back empty.
+          const lookupsOk = !coachRes.error && !clientRes.error && !otherTrainerRes.error;
+          if (lookupsOk && !coachRes.data && !clientRes.data && !otherTrainerRes.data) {
+            const { error: delUserError } = await supabase.auth.admin.deleteUser(uid);
+            loginCleaned = !delUserError;
+            if (delUserError) console.error('Trainer login cleanup failed (removal still succeeded):', delUserError.message);
+          }
+        } catch (cleanupError) {
+          console.error('Trainer login cleanup failed (removal still succeeded):', cleanupError.message);
+        }
+      }
+      return json(200, { success: true, loginCleaned });
     }
 
     return json(405, { error: 'Method not allowed' });
