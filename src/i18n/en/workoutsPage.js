@@ -171,7 +171,15 @@ export default {
   skipTitle: 'Skip Workout',
 
   rescheduleDesc: 'Move "{name}" to another date:',
-  dragDropHint: 'Drop on a day to move it',
+  rearrangeWeek: 'Rearrange week',
+  rearrangeWeekTitle: 'Rearrange Week',
+  rearrangeWeekDesc: 'Hold a workout, drag it to another day, then save.',
+  rearrangeRest: 'Rest',
+  rearrangeSaveBtn: 'Save',
+  rearrangeSaving: 'Saving…',
+  rearrangeSaved: 'Week updated!',
+  rearrangePartialFail: 'Some workouts could not be moved. Please try again.',
+  rearrangeDragHint: 'Drop on a day',
   duplicateDesc: 'Copy "{name}" to another date:',
   skipDesc: "Skip today's workout and rest instead?",
 
