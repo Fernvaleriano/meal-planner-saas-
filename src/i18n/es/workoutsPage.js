@@ -166,6 +166,7 @@ export default {
   skipTitle: 'Saltar entrenamiento',
 
   rescheduleDesc: 'Mover "{name}" a otra fecha:',
+  dragDropHint: 'Suelta sobre un día para moverlo',
   duplicateDesc: 'Copiar "{name}" a otra fecha:',
   skipDesc: '¿Saltar el entrenamiento de hoy y descansar?',
 

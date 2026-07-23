@@ -136,6 +136,7 @@ export default {
   skipTitle: 'ข้ามเวิร์กเอาต์',
 
   rescheduleDesc: 'ย้าย "{name}" ไปวันอื่น:',
+  dragDropHint: 'วางบนวันที่ต้องการเพื่อย้าย',
   duplicateDesc: 'คัดลอก "{name}" ไปวันอื่น:',
   skipDesc: 'ข้ามเวิร์กเอาต์วันนี้แล้วพักแทนไหม?',
 

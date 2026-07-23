@@ -989,6 +989,18 @@ function Workouts() {
   const [swipeSwapExercise, setSwipeSwapExercise] = useState(null); // Exercise to swap from swipe action
   const [swipeDeleteExercise, setSwipeDeleteExercise] = useState(null); // Exercise to delete from swipe action
   const [rescheduleTargetDate, setRescheduleTargetDate] = useState('');
+  // Tap-hold drag: long-press a workout card, then drag it onto a weekday
+  // pill in the strip to move it to that day. Persists through the exact
+  // same reschedule paths as the "Move Day" modal (performReschedule).
+  const [dragWorkout, setDragWorkout] = useState(null); // workout being dragged (null = no drag)
+  const [dragOverDate, setDragOverDate] = useState(null); // dateStr of the pill under the finger
+  const dragGhostRef = useRef(null); // ghost follows the finger via direct style writes (no re-render per move)
+  const dragWorkoutRef = useRef(null);
+  const dragOverDateRef = useRef(null);
+  const dragHoldTimerRef = useRef(null); // pending long-press timer
+  const dragStartPosRef = useRef({ x: 0, y: 0 });
+  const dragListenersRef = useRef(null); // document listeners active during a drag
+  const suppressCardTapRef = useRef(false); // swallow the synthetic click after a drag
   const [showCreateWorkout, setShowCreateWorkout] = useState(false);
   const [showClubWorkouts, setShowClubWorkouts] = useState(false);
   const [showGenerateWorkout, setShowGenerateWorkout] = useState(false);
@@ -4622,10 +4634,11 @@ function Workouts() {
     }
   }, [clientData?.id]);
 
-  // Handle reschedule/duplicate/skip workout
-  const handleRescheduleWorkout = useCallback(async () => {
-    const targetWorkout = rescheduleWorkoutRef.current || todayWorkout;
-    if (!targetWorkout?.id || !rescheduleAction || !rescheduleTargetDate) return;
+  // Core reschedule/duplicate/skip executor. Shared by the confirm-modal flow
+  // and the tap-hold drag-to-a-weekday flow so both persist through the exact
+  // same paths (adhoc rows, assignment date_overrides, history log rows).
+  const performReschedule = useCallback(async (targetWorkout, action, targetDate) => {
+    if (!targetWorkout?.id || !action || !targetDate) return;
 
     const histLogId = getHistoricalLogId(targetWorkout);
 
@@ -4635,11 +4648,11 @@ function Workouts() {
     // target date (and for Move, a retry after a partial failure created a
     // second copy). Only applied to the paths that actually create a row.
     const createsAdhocRow =
-      rescheduleAction === 'duplicate' ||
-      (rescheduleAction === 'reschedule' && (histLogId || targetWorkout.is_adhoc));
+      action === 'duplicate' ||
+      (action === 'reschedule' && (histLogId || targetWorkout.is_adhoc));
     if (createsAdhocRow) {
       const sigName = targetWorkout.name || targetWorkout.workout_data?.name || 'Workout';
-      const createSig = `${rescheduleTargetDate}|${sigName}|${targetWorkout.workout_data?.exercises?.length || 0}`;
+      const createSig = `${targetDate}|${sigName}|${targetWorkout.workout_data?.exercises?.length || 0}`;
       const nowTs = Date.now();
       if (lastAdhocCreateRef.current.sig === createSig && nowTs - lastAdhocCreateRef.current.ts < 5000) {
         setShowRescheduleModal(false);
@@ -4659,49 +4672,49 @@ function Workouts() {
         // assignment/ad-hoc row is gone, so move/duplicate re-materialize it
         // as a fresh ad-hoc workout on the target date; move and skip then
         // drop the backing log row so the card leaves this day.
-        if (rescheduleAction === 'duplicate' || rescheduleAction === 'reschedule') {
+        if (action === 'duplicate' || action === 'reschedule') {
           await apiPost('/.netlify/functions/adhoc-workouts', {
             clientId: targetWorkout.client_id || clientData?.id,
-            workoutDate: rescheduleTargetDate,
+            workoutDate: targetDate,
             // MOVE keeps the card exactly as it is — logged weights,
             // completion state, the lot. Stripping to a blank prescription
             // (buildFreshDuplicateData) is only right for DUPLICATE, which
             // starts fresh; a moved completed workout losing its history was
             // a data-loss bug.
-            workoutData: rescheduleAction === 'duplicate'
+            workoutData: action === 'duplicate'
               ? buildFreshDuplicateData(targetWorkout.workout_data)
               : targetWorkout.workout_data,
             name: targetWorkout.name || targetWorkout.workout_data?.name || 'Workout'
           });
         }
-        if (rescheduleAction === 'reschedule' || rescheduleAction === 'skip') {
+        if (action === 'reschedule' || action === 'skip') {
           await deleteLogRow(histLogId);
         }
         succeeded = true;
       } else if (targetWorkout.is_adhoc) {
         const isRealId = targetWorkout.id && !String(targetWorkout.id).startsWith('adhoc-') && !String(targetWorkout.id).startsWith('custom-') && !String(targetWorkout.id).startsWith('club-');
 
-        if (rescheduleAction === 'skip') {
+        if (action === 'skip') {
           // For adhoc workouts, skip means delete
           if (isRealId) {
             await apiDelete(`/.netlify/functions/adhoc-workouts?workoutId=${targetWorkout.id}`);
           }
           succeeded = true;
-        } else if (rescheduleAction === 'duplicate') {
+        } else if (action === 'duplicate') {
           // Create an independent FRESH copy on the target date (no completion,
           // no carried-over weights — see buildFreshDuplicateData).
           await apiPost('/.netlify/functions/adhoc-workouts', {
             clientId: targetWorkout.client_id || clientData?.id,
-            workoutDate: rescheduleTargetDate,
+            workoutDate: targetDate,
             workoutData: buildFreshDuplicateData(targetWorkout.workout_data),
             name: targetWorkout.name || targetWorkout.workout_data?.name || 'Workout'
           });
           succeeded = true;
-        } else if (rescheduleAction === 'reschedule') {
+        } else if (action === 'reschedule') {
           // Create on target date, then delete from source
           await apiPost('/.netlify/functions/adhoc-workouts', {
             clientId: targetWorkout.client_id || clientData?.id,
-            workoutDate: rescheduleTargetDate,
+            workoutDate: targetDate,
             workoutData: targetWorkout.workout_data,
             name: targetWorkout.name || targetWorkout.workout_data?.name || 'Workout'
           });
@@ -4720,7 +4733,7 @@ function Workouts() {
           }
           succeeded = true;
         }
-      } else if (rescheduleAction === 'duplicate') {
+      } else if (action === 'duplicate') {
         // DUPLICATE (assigned workout): create a fully independent copy on the
         // target date instead of the old shared-pointer override. The previous
         // implementation stored only { instance_id, day_index } in the
@@ -4731,7 +4744,7 @@ function Workouts() {
         // logs, so the two weeks are truly separate and the copy starts fresh.
         await apiPost('/.netlify/functions/adhoc-workouts', {
           clientId: targetWorkout.client_id || clientData?.id,
-          workoutDate: rescheduleTargetDate,
+          workoutDate: targetDate,
           workoutData: buildFreshDuplicateData(targetWorkout.workout_data),
           name: targetWorkout.name || targetWorkout.workout_data?.name || 'Workout'
         });
@@ -4740,10 +4753,10 @@ function Workouts() {
         // Reschedule / skip (assigned workout) - use client-workout-log
         const res = await apiPost('/.netlify/functions/client-workout-log', {
           assignmentId: targetWorkout.id,
-          action: rescheduleAction,
+          action,
           sourceDayIndex: targetWorkout.day_index != null ? targetWorkout.day_index : 0,
           sourceDate: formatDate(selectedDate),
-          targetDate: rescheduleTargetDate,
+          targetDate,
           isAdded: targetWorkout.is_added || false,
           instanceId: targetWorkout.instance_id || null
         });
@@ -4767,9 +4780,6 @@ function Workouts() {
     }
 
     if (succeeded) {
-      // Save action before clearing state
-      const action = rescheduleAction;
-
       // Close modal and refresh
       setShowRescheduleModal(false);
       setRescheduleAction(null);
@@ -4792,7 +4802,118 @@ function Workouts() {
       rescheduleWorkoutRef.current = null;
       showError(t('workoutsPage.somethingWentWrong'));
     }
-  }, [todayWorkout, rescheduleAction, rescheduleTargetDate, selectedDate, refreshWorkoutData, refreshWeekSchedule, clientData?.id]);
+  }, [selectedDate, refreshWorkoutData, refreshWeekSchedule, clientData?.id]);
+
+  // Handle reschedule/duplicate/skip workout (confirm button in the modal)
+  const handleRescheduleWorkout = useCallback(() => {
+    const targetWorkout = rescheduleWorkoutRef.current || todayWorkout;
+    return performReschedule(targetWorkout, rescheduleAction, rescheduleTargetDate);
+  }, [todayWorkout, rescheduleAction, rescheduleTargetDate, performReschedule]);
+
+  // ---- Tap-hold → drag a workout card onto a weekday pill ----
+  const cleanupCardDrag = useCallback(() => {
+    if (dragHoldTimerRef.current) {
+      clearTimeout(dragHoldTimerRef.current);
+      dragHoldTimerRef.current = null;
+    }
+    const l = dragListenersRef.current;
+    if (l) {
+      document.removeEventListener('touchmove', l.move);
+      document.removeEventListener('touchend', l.end);
+      document.removeEventListener('touchcancel', l.cancel);
+      dragListenersRef.current = null;
+    }
+    dragWorkoutRef.current = null;
+    dragOverDateRef.current = null;
+    setDragWorkout(null);
+    setDragOverDate(null);
+  }, []);
+
+  // Remove document listeners if the page unmounts mid-drag
+  useEffect(() => () => cleanupCardDrag(), [cleanupCardDrag]);
+
+  const activateCardDrag = useCallback((workout) => {
+    dragWorkoutRef.current = workout;
+    dragOverDateRef.current = null;
+    setDragWorkout(workout);
+    // The finger is still down — the card's click fires after touchend, so
+    // swallow it (it's the tail of the hold gesture, not a tap).
+    suppressCardTapRef.current = true;
+    try { if (navigator.vibrate) navigator.vibrate(30); } catch (ex) { /* not supported */ }
+
+    const move = (e) => {
+      // Own the gesture: keep the page from scrolling under the drag
+      if (e.cancelable) e.preventDefault();
+      const t0 = e.touches && e.touches[0];
+      if (!t0) return;
+      // Position the ghost directly — a state write here would re-render the
+      // whole (very large) page on every frame of the drag.
+      if (dragGhostRef.current) {
+        dragGhostRef.current.style.left = `${t0.clientX}px`;
+        dragGhostRef.current.style.top = `${t0.clientY}px`;
+      }
+      const el = document.elementFromPoint(t0.clientX, t0.clientY);
+      const pill = el && el.closest ? el.closest('.day-pill[data-date]') : null;
+      const overDate = pill ? (pill.dataset.date || null) : null;
+      if (overDate !== dragOverDateRef.current) {
+        dragOverDateRef.current = overDate;
+        setDragOverDate(overDate);
+      }
+    };
+    const end = () => {
+      const dropDate = dragOverDateRef.current;
+      const dragged = dragWorkoutRef.current;
+      cleanupCardDrag();
+      // Keep the tap suppressed until after the browser's synthetic click
+      setTimeout(() => { suppressCardTapRef.current = false; }, 350);
+      const sourceDate = formatDate(selectedDateRef.current || new Date());
+      if (dropDate && dragged && dropDate !== sourceDate) {
+        performReschedule(dragged, 'reschedule', dropDate);
+      }
+    };
+    const cancel = () => {
+      cleanupCardDrag();
+      setTimeout(() => { suppressCardTapRef.current = false; }, 350);
+    };
+    document.addEventListener('touchmove', move, { passive: false });
+    document.addEventListener('touchend', end);
+    document.addEventListener('touchcancel', cancel);
+    dragListenersRef.current = { move, end, cancel };
+  }, [cleanupCardDrag, performReschedule]);
+
+  const handleCardTouchStart = useCallback((workout) => (e) => {
+    const t0 = e.touches && e.touches[0];
+    if (!t0 || (e.touches && e.touches.length > 1)) return;
+    dragStartPosRef.current = { x: t0.clientX, y: t0.clientY };
+    if (dragHoldTimerRef.current) clearTimeout(dragHoldTimerRef.current);
+    dragHoldTimerRef.current = setTimeout(() => {
+      dragHoldTimerRef.current = null;
+      activateCardDrag(workout);
+    }, 450);
+  }, [activateCardDrag]);
+
+  const handleCardTouchMove = useCallback((e) => {
+    // Before the hold fires: real finger travel means the user is scrolling,
+    // not holding — call the hold off. (Once the drag is live, movement is
+    // handled by the document-level listener instead.)
+    if (!dragHoldTimerRef.current) return;
+    const t0 = e.touches && e.touches[0];
+    if (!t0) return;
+    const dx = t0.clientX - dragStartPosRef.current.x;
+    const dy = t0.clientY - dragStartPosRef.current.y;
+    if ((dx * dx + dy * dy) > 100) {
+      clearTimeout(dragHoldTimerRef.current);
+      dragHoldTimerRef.current = null;
+    }
+  }, []);
+
+  const handleCardTouchEnd = useCallback(() => {
+    // Finger lifted before the hold fired — normal tap, let the click through
+    if (dragHoldTimerRef.current) {
+      clearTimeout(dragHoldTimerRef.current);
+      dragHoldTimerRef.current = null;
+    }
+  }, []);
 
   // Open reschedule modal with action type
   const openRescheduleModal = useCallback((action, targetWorkout) => {
@@ -5983,7 +6104,7 @@ function Workouts() {
             </div>
 
             <div
-              className="week-days-strip"
+              className={`week-days-strip ${dragWorkout ? 'drag-target-mode' : ''}`}
               onTouchStart={handleWeekStripTouchStart}
               onTouchEnd={handleWeekStripTouchEnd}
             >
@@ -5997,7 +6118,8 @@ function Workouts() {
                 return (
                   <button
                     key={dateStr || idx}
-                    className={`day-pill ${isSelected ? 'selected' : ''} ${isTodayDate ? 'today' : ''}`}
+                    className={`day-pill ${isSelected ? 'selected' : ''} ${isTodayDate ? 'today' : ''} ${dragWorkout && dragOverDate === dateStr && !isSelected ? 'drop-hover' : ''}`}
+                    data-date={dateStr}
                     onClick={() => setSelectedDate(date)}
                   >
                     <span className="day-name">{getDayName(date)}</span>
@@ -6079,9 +6201,15 @@ function Workouts() {
                         return (
                           <div
                             key={workout.instance_id || `${workout.id}-${workout.day_index}`}
-                            className="workout-card-v3"
+                            className={`workout-card-v3 ${dragWorkout && instanceKey(dragWorkout) === instanceKey(workout) ? 'dragging' : ''}`}
                             style={cardImage ? { backgroundImage: `url("${cardImage}")` } : {}}
-                            onClick={() => handleSelectWorkoutCard(workout)}
+                            onClick={() => {
+                              if (suppressCardTapRef.current) return;
+                              handleSelectWorkoutCard(workout);
+                            }}
+                            onTouchStart={handleCardTouchStart(workout)}
+                            onTouchMove={handleCardTouchMove}
+                            onTouchEnd={handleCardTouchEnd}
                           >
                             {cardImage && (
                               <img src={cardImage} alt="" className="card-bg-img" onError={(e) => { e.target.style.display = 'none'; e.target.parentElement.style.backgroundImage = 'none'; }} />
@@ -6151,8 +6279,14 @@ function Workouts() {
                                 <React.Fragment key={workout.instance_id || `${workout.id}-${workout.day_index}`}>
                                   {idx > 0 && <div className="workout-card-day-separator" />}
                                   <div
-                                    className="workout-card-day-section"
-                                    onClick={() => handleSelectWorkoutCard(workout)}
+                                    className={`workout-card-day-section ${dragWorkout && instanceKey(dragWorkout) === instanceKey(workout) ? 'dragging' : ''}`}
+                                    onClick={() => {
+                                      if (suppressCardTapRef.current) return;
+                                      handleSelectWorkoutCard(workout);
+                                    }}
+                                    onTouchStart={handleCardTouchStart(workout)}
+                                    onTouchMove={handleCardTouchMove}
+                                    onTouchEnd={handleCardTouchEnd}
                                   >
                                     <div className="workout-card-day-menu" onClick={(e) => {
                                       e.stopPropagation();
@@ -7233,6 +7367,25 @@ function Workouts() {
           coachId={clientData?.coach_id}
           bodyWeightKg={bodyWeightKg}
         />
+      )}
+
+      {/* Floating ghost while tap-hold dragging a workout onto a weekday */}
+      {dragWorkout && (
+        <div
+          ref={dragGhostRef}
+          className="workout-drag-ghost"
+          style={{ left: dragStartPosRef.current.x, top: dragStartPosRef.current.y }}
+        >
+          <div className="drag-ghost-title">
+            <Dumbbell size={14} />
+            <span>{dragWorkout.workout_data?.name || dragWorkout.name || 'Workout'}</span>
+          </div>
+          <span className="drag-ghost-hint">
+            {dragOverDate && dragOverDate !== formatDate(selectedDate)
+              ? new Date(dragOverDate + 'T12:00:00').toLocaleDateString(getDateLocale(), { weekday: 'short', month: 'short', day: 'numeric' })
+              : t('workoutsPage.dragDropHint')}
+          </span>
+        </div>
       )}
 
       {/* Reschedule/Duplicate Modal */}

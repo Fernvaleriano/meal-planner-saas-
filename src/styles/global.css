@@ -19894,6 +19894,98 @@ textarea,
     border-radius: 50%;
 }
 
+/* ---- Tap-hold drag: move a workout card onto a weekday pill ---- */
+
+/* While a card is being dragged, every pill lights up as a drop target */
+.week-calendar-v2 .week-days-strip.drag-target-mode .day-pill:not(.selected) {
+    border-color: var(--brand-tile-border, rgba(44, 181, 165, 0.35));
+    background: var(--brand-tile-bg-light, rgba(44, 181, 165, 0.06));
+}
+
+/* Pill directly under the finger */
+.week-calendar-v2 .day-pill.drop-hover {
+    border-color: var(--brand-tile-icon-color, #2cb5a5);
+    background: var(--brand-tile-bg-light, rgba(44, 181, 165, 0.18));
+    transform: scale(1.12);
+    box-shadow: 0 4px 14px var(--brand-shadow-soft-strong, rgba(13, 148, 136, 0.35));
+    z-index: 2;
+}
+
+/* Suppress the iOS long-press callout/selection so the hold can start a drag */
+.workout-card-v3,
+.workout-card-day-section {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+}
+
+/* The card (or merged-card section) being dragged lifts out of the list */
+.workout-card-v3.dragging,
+.workout-card-day-section.dragging {
+    opacity: 0.45;
+    transform: scale(0.97);
+    transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+/* Floating ghost that follows the finger */
+.workout-drag-ghost {
+    position: fixed;
+    z-index: 3000;
+    transform: translate(-50%, -130%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    padding: 10px 14px;
+    background: rgba(10, 25, 35, 0.94);
+    border: 1px solid var(--brand-tile-border, rgba(44, 181, 165, 0.4));
+    border-radius: 12px;
+    color: white;
+    pointer-events: none;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+    max-width: 240px;
+}
+
+.workout-drag-ghost .drag-ghost-title {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 700;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 210px;
+    color: var(--brand-tile-icon-color, #2cb5a5);
+}
+
+.workout-drag-ghost .drag-ghost-title span {
+    color: white;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.workout-drag-ghost .drag-ghost-hint {
+    font-size: 11px;
+    font-weight: 600;
+    color: #94a3b8;
+    white-space: nowrap;
+}
+
+[data-theme="light"] .workout-drag-ghost {
+    background: rgba(255, 255, 255, 0.97);
+    border-color: var(--brand-tile-border, rgba(44, 181, 165, 0.45));
+    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.25);
+}
+
+[data-theme="light"] .workout-drag-ghost .drag-ghost-title span {
+    color: #0f172a;
+}
+
+[data-theme="light"] .workout-drag-ghost .drag-ghost-hint {
+    color: #64748b;
+}
+
 /* Progress Card V2 */
 .progress-card-v2 {
     margin: 0 16px 16px;
