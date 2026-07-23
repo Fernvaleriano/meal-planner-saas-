@@ -4779,6 +4779,54 @@ function Workouts() {
       return;
     }
 
+    // MOVE also carries the day's saved progress. The page deliberately
+    // rebuilds past cards from leftover workout_log rows (so training history
+    // can never vanish) — which means a log left behind on the source date
+    // resurrects the card there after a move ("I moved it but it still shows
+    // on Tuesday"). Relocate the log row to the target date so the progress
+    // travels with the workout instead. Ghost cards (histLogId) already
+    // handle their own log inside the move above; skip/duplicate must not
+    // touch the source day's history.
+    if (succeeded && action === 'reschedule' && !histLogId) {
+      try {
+        const srcLog = findLogForWorkout(targetWorkout, todayLogsRef.current);
+        if (srcLog?.id) {
+          await apiPut('/.netlify/functions/workout-logs', {
+            workoutId: srcLog.id,
+            workoutDate: targetDate
+          });
+        }
+      } catch (logMoveErr) {
+        // Non-fatal: the schedule move itself worked. Worst case the old
+        // behavior (card lingers on the source day) until the next move.
+        console.error('Move: schedule updated but log relocation failed:', logMoveErr);
+      }
+      // Carry the local checkmark state too — timed exercises (warm-ups/
+      // stretches) have nothing in sets_data, their done-state lives ONLY in
+      // these date-keyed localStorage entries.
+      try {
+        const sourceDate = formatDate(selectedDate);
+        const exIds = getWorkoutExercises(targetWorkout).map(ex => ex.id);
+        const srcSet = readDateCompletion(clientData?.id, sourceDate);
+        // Only migrate ids belonging to THIS workout — the date store is a
+        // union across the day's workouts and the others aren't moving.
+        const movedIds = exIds.filter(id => srcSet.has(id));
+        if (movedIds.length > 0) {
+          updateDateCompletion(clientData?.id, targetDate, { add: movedIds });
+          updateDateCompletion(clientData?.id, sourceDate, { remove: movedIds });
+        }
+        const srcKey = completionStorageKey(targetWorkout.id, targetWorkout.day_index, sourceDate);
+        const dstKey = completionStorageKey(targetWorkout.id, targetWorkout.day_index, targetDate);
+        if (srcKey && dstKey && srcKey !== dstKey) {
+          const raw = localStorage.getItem(srcKey);
+          if (raw != null) {
+            localStorage.setItem(dstKey, raw);
+            localStorage.removeItem(srcKey);
+          }
+        }
+      } catch (ex) { /* best-effort localStorage migration */ }
+    }
+
     if (succeeded) {
       // Close modal and refresh
       setShowRescheduleModal(false);
@@ -4789,6 +4837,9 @@ function Workouts() {
       // Refresh to show updated state
       refreshWorkoutData();
       refreshWeekSchedule();
+      // Re-pull the week's "worked out" dots — a relocated log moves the
+      // green check to the new day, and this is the only fetch that sees it
+      refreshEvidenceDates();
 
       // Show success feedback (unless the partial-move warning already told
       // the user what actually happened)
@@ -4802,7 +4853,7 @@ function Workouts() {
       rescheduleWorkoutRef.current = null;
       showError(t('workoutsPage.somethingWentWrong'));
     }
-  }, [selectedDate, refreshWorkoutData, refreshWeekSchedule, clientData?.id]);
+  }, [selectedDate, refreshWorkoutData, refreshWeekSchedule, refreshEvidenceDates, clientData?.id]);
 
   // Handle reschedule/duplicate/skip workout (confirm button in the modal)
   const handleRescheduleWorkout = useCallback(() => {
