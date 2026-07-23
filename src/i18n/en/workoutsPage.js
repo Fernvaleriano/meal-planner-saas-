@@ -171,6 +171,7 @@ export default {
   skipTitle: 'Skip Workout',
 
   rescheduleDesc: 'Move "{name}" to another date:',
+  dragDropHint: 'Drop on a day to move it',
   duplicateDesc: 'Copy "{name}" to another date:',
   skipDesc: "Skip today's workout and rest instead?",
 
