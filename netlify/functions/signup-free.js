@@ -136,6 +136,19 @@ exports.handler = async (event) => {
             };
         }
 
+        // Usage analytics: record the completed signup (funnel counterpart to
+        // signup.html pageviews). Never allowed to fail the signup itself.
+        try {
+            await supabase.from('usage_events').insert({
+                event: 'signup_completed',
+                page: '/signup.html',
+                role: 'coach',
+                user_id: userId
+            });
+        } catch (trackError) {
+            console.error('signup tracking failed (ignored):', trackError.message);
+        }
+
         // Only send the "set your password" welcome email when they did NOT
         // choose a password at signup. If they did, their account is already
         // usable and we log them straight in on the client.
