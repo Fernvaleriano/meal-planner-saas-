@@ -14,6 +14,10 @@ const MODULE_OPTIONS = [
   { key: 'check_in', label: 'Check-In', description: 'Weekly progress check-ins' },
   { key: 'progress', label: 'Progress', description: 'Photos, measurements, weight' },
   { key: 'leaderboard', label: 'Ranks', description: 'Gym leaderboard — best lifts, ranked by division' },
+  // defaultOff: these modules are opt-in — a missing key means OFF (the
+  // reverse of every module above, where a missing key means ON).
+  { key: 'powerlifting', label: 'Strength (Powerlifting)', description: '1RMs, estimated-max trends, DOTS score, meet prep and attempt planning', defaultOff: true },
+  { key: 'bodybuilding', label: 'Physique Check-Ins (Bodybuilding)', description: 'Weekly check-in with photos, posing video and prep metrics', defaultOff: true },
 ];
 
 const COLOR_PRESETS = [
@@ -549,11 +553,12 @@ function BrandingSettings() {
                   <div className="bs-module-desc">{mod.description}</div>
                 </div>
                 {/* Next value = NOT what's displayed. The display treats a
-                    missing key as ON, so `!form.client_modules[mod.key]`
-                    (= true for undefined) made the first tap a no-op. */}
+                    missing key as ON (or OFF for defaultOff modules), so
+                    `!form.client_modules[mod.key]` (= true for undefined)
+                    made the first tap a no-op. */}
                 <button
-                  className={`toggle-switch ${form.client_modules[mod.key] !== false ? 'active' : ''}`}
-                  onClick={() => updateModule(mod.key, !(form.client_modules[mod.key] !== false))}
+                  className={`toggle-switch ${(mod.defaultOff ? form.client_modules[mod.key] === true : form.client_modules[mod.key] !== false) ? 'active' : ''}`}
+                  onClick={() => updateModule(mod.key, !(mod.defaultOff ? form.client_modules[mod.key] === true : form.client_modules[mod.key] !== false))}
                 >
                   <span className="toggle-knob"></span>
                 </button>

@@ -5,6 +5,7 @@ import { supabase } from '../../utils/supabase';
 import { generateProgression, generateSetNudge, EFFORT_OPTIONS, parseSetsData, getMaxWeight, convertWeight } from '../../utils/workoutProgression';
 import { getSpeechLang } from '../../utils/speechLang';
 import { getExerciseVideoSrc } from '../../utils/exerciseVideo';
+import { fetchCurrentMaxes, findMaxForExercise, targetWeightFromPercent } from '../../utils/liftMaxes';
 import { onAppSuspend, onAppResume } from '../../hooks/useAppLifecycle';
 import HlsVideo from '../HlsVideo';
 import Portal from '../Portal';
@@ -233,6 +234,25 @@ function ExerciseDetailModal({
   // startVoiceInput) can produce translated strings without being re-created.
   const tRef = useRef(t);
   useEffect(() => { tRef.current = t; }, [t]);
+
+  // Athlete 1RMs — only fetched when this exercise carries a %1RM
+  // prescription, so non-powerlifting clients never make the request. Used to
+  // turn "75%1RM" pills into a real target weight.
+  const [liftMaxes, setLiftMaxes] = useState(null);
+  const hasPercentPrescription = !!(exercise?.showPercent1RM
+    && Array.isArray(exercise?.setsData)
+    && exercise.setsData.some(s => s && s.percent1RM));
+  useEffect(() => {
+    if (!clientId || !hasPercentPrescription) return;
+    let cancelled = false;
+    fetchCurrentMaxes(clientId).then(maxes => {
+      if (!cancelled) setLiftMaxes(maxes);
+    });
+    return () => { cancelled = true; };
+  }, [clientId, hasPercentPrescription]);
+  const exerciseMaxRow = useMemo(() => (
+    liftMaxes ? findMaxForExercise(liftMaxes, exercise?.name, exercise?.id) : null
+  ), [liftMaxes, exercise?.name, exercise?.id]);
 
   // Force close handler that always works - used for escape routes
   const forceClose = useCallback(() => {
@@ -2855,7 +2875,17 @@ function ExerciseDetailModal({
                   {sets.map((set, idx) => {
                     const tags = [];
                     if (exercise.showRPE && set.rpe) tags.push(<span key="rpe" className="coach-metric rpe">RPE {set.rpe}</span>);
-                    if (exercise.showPercent1RM && set.percent1RM) tags.push(<span key="1rm" className="coach-metric percent1rm">{set.percent1RM}%1RM</span>);
+                    if (exercise.showPercent1RM && set.percent1RM) {
+                      // With a stored 1RM we can resolve the percentage to an
+                      // actual loadable target weight; without one, show the
+                      // bare percentage like before.
+                      const target = targetWeightFromPercent(exerciseMaxRow, set.percent1RM, weightUnit);
+                      tags.push(
+                        <span key="1rm" className="coach-metric percent1rm">
+                          {set.percent1RM}%1RM{target != null ? ` ≈ ${target} ${/kg/i.test(weightUnit) ? 'kg' : 'lb'}` : ''}
+                        </span>
+                      );
+                    }
                     if (exercise.showHRZone && set.hrZone) tags.push(<span key="hr" className="coach-metric hrzone">Z{set.hrZone}</span>);
                     if (exercise.showPace && set.pace) tags.push(<span key="pace" className="coach-metric pace">{set.pace}</span>);
                     if (exercise.showIncline && set.incline) tags.push(<span key="inc" className="coach-metric incline">{set.incline}% incl</span>);

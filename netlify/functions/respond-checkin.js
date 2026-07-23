@@ -58,12 +58,17 @@ exports.handler = async (event) => {
       };
     }
 
+    const updateFields = {
+      coach_feedback: feedback || null,
+      coach_responded_at: new Date().toISOString()
+    };
+    // Optional 1-10 week rating (physique-athlete check-ins).
+    const rating = parseInt(body.coachRating);
+    if (rating >= 1 && rating <= 10) updateFields.coach_rating = rating;
+
     const { data, error } = await supabase
       .from('client_checkins')
-      .update({
-        coach_feedback: feedback || null,
-        coach_responded_at: new Date().toISOString()
-      })
+      .update(updateFields)
       .eq('id', checkinId)
       .eq('coach_id', coachId);
 

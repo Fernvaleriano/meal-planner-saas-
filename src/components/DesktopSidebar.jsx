@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Home, NotebookPen, CalendarDays, User, LogOut, Activity, Dumbbell, MessageCircle, Trophy } from 'lucide-react';
+import { Home, NotebookPen, CalendarDays, User, LogOut, Activity, Dumbbell, MessageCircle, Trophy, Medal, ClipboardCheck } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useBranding } from '../context/BrandingContext';
 import { apiGet } from '../utils/api';
@@ -72,11 +72,18 @@ function DesktopSidebar() {
       { path: '/challenges', icon: Trophy, label: 'Challenges', moduleKey: null },
       { path: '/messages', icon: MessageCircle, label: getLabel('messages'), badge: unreadMessages, moduleKey: 'messages' },
       { path: '/workouts', icon: Dumbbell, label: getLabel('workouts'), moduleKey: 'workouts' },
+      // Competitive-athlete modules (Goliath pilot) — off unless the coach
+      // turns them on, so most accounts never see these.
+      { path: '/strength', icon: Medal, label: 'Strength', moduleKey: 'powerlifting' },
+      { path: '/check-in', icon: ClipboardCheck, label: 'Check-In', moduleKey: 'bodybuilding' },
       { path: '/plans', icon: CalendarDays, label: getLabel('plans'), moduleKey: 'plans' },
       { path: '/settings', icon: User, label: 'Profile', moduleKey: null }
     ];
 
-    if (isCoach) return allItems;
+    // Coaches see every tab EXCEPT the athlete modules, which stay opt-in for
+    // everyone (they're off for all accounts unless explicitly enabled).
+    const athleteKeys = ['powerlifting', 'bodybuilding'];
+    if (isCoach) return allItems.filter(item => !athleteKeys.includes(item.moduleKey) || isModuleVisible(item.moduleKey));
     return allItems.filter(item => !item.moduleKey || isModuleVisible(item.moduleKey));
   }, [isCoach, isModuleVisible, getLabel, unreadMessages]);
 

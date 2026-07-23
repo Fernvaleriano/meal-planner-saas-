@@ -1451,6 +1451,14 @@ function Dashboard() {
           </div>
           <span>{t('dashboard.quickActionFavorites')}</span>
         </div>
+        {isModuleVisible('powerlifting') && (
+          <Link to="/strength" className="quick-action-card">
+            <div className="quick-action-card-icon">
+              <Trophy size={24} />
+            </div>
+            <span>Strength</span>
+          </Link>
+        )}
         {isModuleVisible('leaderboard') && (
           <Link to="/leaderboard" className="quick-action-card">
             <div className="quick-action-card-icon">
@@ -1514,6 +1522,20 @@ function Dashboard() {
             <div className="quick-action-card-icon"><Dumbbell size={24} /></div>
             <span>{t('dashboard.gymTodaysWorkout')}</span>
           </Link>
+          {/* Competitive-athlete modules (Goliath pilot): Strength hub for
+              powerlifters, weekly physique check-in for bodybuilders. */}
+          {isModuleVisible('powerlifting') && (
+            <Link to="/strength" className="quick-action-card">
+              <div className="quick-action-card-icon"><Trophy size={24} /></div>
+              <span>Strength</span>
+            </Link>
+          )}
+          {isModuleVisible('bodybuilding') && (
+            <Link to="/check-in" className="quick-action-card">
+              <div className="quick-action-card-icon"><ClipboardCheck size={24} /></div>
+              <span>Weekly Check-In</span>
+            </Link>
+          )}
           <Link to="/workouts" state={{ openClub: true }} className="quick-action-card">
             <div className="quick-action-card-icon"><Users size={24} /></div>
             <span>{t('dashboard.quickActionClubWorkouts')}</span>

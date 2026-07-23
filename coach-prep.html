@@ -1,0 +1,2355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <script src="/js/sentry-init.js"></script>
+    <meta charset="UTF-8">
+    <link rel="icon" href="https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/assets/icons/logo.png" type="image/png">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <script src="/js/theme.js"></script>
+    <meta name="theme-color" content="#2dd4bf">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Ziquecoach">
+    <link rel="manifest" href="/manifest.json">
+    <link rel="apple-touch-icon" href="https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/assets/icons/logo.png">
+    <title>Prep HQ - Ziquecoach</title>
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+    <link rel="preload" href="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" as="script">
+    <link rel="preconnect" href="https://qewqcjzlfqamqwbccapr.supabase.co" crossorigin>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/coach-layout.css">
+    <script src="/js/coach-layout.js?v=3"></script>
+    <script src="https://unpkg.com/lucide@0.312.0/dist/umd/lucide.min.js" onload="if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',()=>lucide.createIcons())}else{lucide.createIcons()}"></script>
+    <style>
+        /* ===== Prep HQ — page-specific widgets only.
+           Chrome (sidebar, cards, buttons, stats, dark mode) comes from
+           /css/coach-layout.css so this page stays visually native. ===== */
+
+        .prep-hello { margin-bottom: 22px; }
+        .prep-hello h2 {
+            font-size: 1.5rem; font-weight: 700; color: var(--gray-800); margin-bottom: 4px;
+        }
+        [data-theme="dark"] .prep-hello h2 { color: var(--gray-100); }
+        .prep-hello p { color: var(--gray-500); font-size: 0.9375rem; }
+
+        /* ---- Client selector bar ---- */
+        .client-bar {
+            display: flex; align-items: center; gap: 14px;
+            margin-bottom: 18px; flex-wrap: wrap;
+        }
+        .client-search {
+            flex: 0 0 220px; max-width: 100%;
+            padding: 9px 12px; border: 1px solid var(--gray-200); border-radius: 10px;
+            font-size: 0.875rem; font-family: inherit;
+            background: #fff; color: var(--gray-800);
+        }
+        .client-search:focus { outline: none; border-color: var(--brand-primary, #0d9488); }
+        [data-theme="dark"] .client-search {
+            background: var(--gray-800); border-color: var(--gray-600); color: var(--gray-100);
+        }
+        .client-chips {
+            display: flex; gap: 8px; overflow-x: auto; flex: 1; min-width: 0;
+            padding-bottom: 4px; -webkit-overflow-scrolling: touch;
+        }
+        .client-chip {
+            display: inline-flex; align-items: center; gap: 8px;
+            padding: 6px 14px 6px 6px; border-radius: 999px;
+            border: 1px solid var(--gray-200); background: #fff;
+            color: var(--gray-700); font-size: 0.8438rem; font-weight: 600;
+            cursor: pointer; white-space: nowrap; flex-shrink: 0;
+            font-family: inherit;
+        }
+        .client-chip.no-avatar { padding-left: 14px; }
+        [data-theme="dark"] .client-chip {
+            background: var(--gray-800); border-color: var(--gray-700); color: var(--gray-300);
+        }
+        .client-chip.active {
+            background: var(--brand-gradient); color: #fff; border-color: transparent;
+        }
+        .chip-avatar {
+            width: 26px; height: 26px; border-radius: 50%;
+            background: var(--brand-gradient); color: #fff;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 0.6875rem; font-weight: 700; overflow: hidden; flex-shrink: 0;
+        }
+        .client-chip.active .chip-avatar { background: rgba(255,255,255,0.25); }
+        .chip-avatar img { width: 100%; height: 100%; object-fit: cover; }
+
+        /* ---- Tab pills ---- */
+        .tab-bar { display: flex; gap: 8px; margin-bottom: 24px; flex-wrap: wrap; }
+        .tab-pill {
+            display: inline-flex; align-items: center; gap: 7px;
+            padding: 9px 18px; border-radius: 999px;
+            border: 1px solid var(--gray-200); background: #fff;
+            color: var(--gray-600); font-weight: 600; font-size: 0.875rem;
+            cursor: pointer; font-family: inherit;
+        }
+        [data-theme="dark"] .tab-pill {
+            background: var(--gray-800); border-color: var(--gray-700); color: var(--gray-300);
+        }
+        .tab-pill.active { background: var(--brand-gradient); color: #fff; border-color: transparent; }
+        .tab-pill .tp-count {
+            font-size: 0.6875rem; font-weight: 700; background: rgba(239,68,68,0.9); color: #fff;
+            border-radius: 999px; padding: 1px 7px; min-width: 18px; text-align: center;
+        }
+
+        /* ---- Shared form bits ---- */
+        .plabel {
+            display: block; font-size: 0.7188rem; font-weight: 600;
+            color: var(--gray-500); margin-bottom: 5px;
+            text-transform: uppercase; letter-spacing: 0.04em;
+        }
+        .pin, .psel, .pta {
+            width: 100%; padding: 10px 12px;
+            border: 1px solid var(--gray-200); border-radius: 10px;
+            font-size: 0.875rem; font-family: inherit;
+            background: #fff; color: var(--gray-800);
+        }
+        .pin:focus, .psel:focus, .pta:focus { outline: none; border-color: var(--brand-primary, #0d9488); }
+        [data-theme="dark"] .pin, [data-theme="dark"] .psel, [data-theme="dark"] .pta {
+            background: var(--gray-800); border-color: var(--gray-600); color: var(--gray-100);
+        }
+        .pta { resize: vertical; min-height: 80px; }
+        .frow { display: grid; gap: 12px; margin-bottom: 14px; }
+        .frow.c2 { grid-template-columns: 1fr 1fr; }
+        .frow.c3 { grid-template-columns: 1fr 1fr 1fr; }
+        @media (max-width: 640px) { .frow.c2, .frow.c3 { grid-template-columns: 1fr; } }
+        .pcheck { display: flex; align-items: center; gap: 8px; font-size: 0.875rem; color: var(--gray-600); cursor: pointer; }
+        [data-theme="dark"] .pcheck { color: var(--gray-300); }
+        .pcheck input { width: 16px; height: 16px; accent-color: var(--brand-primary, #0d9488); }
+
+        /* ---- Badges ---- */
+        .pbadge {
+            display: inline-block; font-size: 0.6875rem; font-weight: 700;
+            padding: 3px 9px; border-radius: 999px; white-space: nowrap;
+            text-transform: uppercase; letter-spacing: 0.03em;
+        }
+        .pbadge.reply { background: rgba(239,68,68,0.12); color: #dc2626; }
+        [data-theme="dark"] .pbadge.reply { background: rgba(239,68,68,0.2); color: #f87171; }
+        .pbadge.done { background: rgba(34,197,94,0.12); color: #16a34a; }
+        [data-theme="dark"] .pbadge.done { background: rgba(34,197,94,0.2); color: #4ade80; }
+        .pbadge.meet { background: rgba(37,99,235,0.12); color: #2563eb; }
+        [data-theme="dark"] .pbadge.meet { background: rgba(37,99,235,0.22); color: #93c5fd; }
+        .pbadge.show { background: rgba(139,92,246,0.12); color: #7c3aed; }
+        [data-theme="dark"] .pbadge.show { background: rgba(139,92,246,0.22); color: #c4b5fd; }
+        .pbadge.neutral { background: var(--gray-100); color: var(--gray-500); }
+        [data-theme="dark"] .pbadge.neutral { background: var(--gray-700); color: var(--gray-300); }
+        .pbadge.amber { background: rgba(245,158,11,0.14); color: #b45309; }
+        [data-theme="dark"] .pbadge.amber { background: rgba(245,158,11,0.2); color: #fbbf24; }
+
+        /* ---- Check-ins tab ---- */
+        .ci-grid {
+            display: grid; grid-template-columns: minmax(320px, 1fr) 1.4fr;
+            gap: 24px; align-items: start;
+        }
+        @media (max-width: 1024px) { .ci-grid { grid-template-columns: 1fr; } }
+        .ci-row {
+            display: flex; align-items: center; gap: 12px;
+            padding: 13px 10px; border-bottom: 1px solid var(--gray-100);
+            cursor: pointer; border-radius: 10px;
+        }
+        [data-theme="dark"] .ci-row { border-color: var(--gray-700); }
+        .ci-row:hover { background: var(--gray-50); }
+        [data-theme="dark"] .ci-row:hover { background: var(--gray-700); }
+        .ci-row.selected { background: rgba(13,148,136,0.08); }
+        [data-theme="dark"] .ci-row.selected { background: rgba(13,148,136,0.18); }
+        .ci-avatar {
+            width: 38px; height: 38px; border-radius: 50%;
+            background: var(--brand-gradient); color: #fff; font-weight: 600; font-size: 0.875rem;
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0; overflow: hidden;
+        }
+        .ci-avatar img { width: 100%; height: 100%; object-fit: cover; }
+        .ci-info { flex: 1; min-width: 0; }
+        .ci-name {
+            font-weight: 600; font-size: 0.9063rem; color: var(--gray-800);
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        [data-theme="dark"] .ci-name { color: var(--gray-100); }
+        .ci-sub { font-size: 0.7813rem; color: var(--gray-500); margin-top: 2px; }
+
+        .ci-detail-head { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; flex-wrap: wrap; }
+        .ci-detail-title { font-weight: 700; font-size: 1.0625rem; color: var(--gray-800); }
+        [data-theme="dark"] .ci-detail-title { color: var(--gray-100); }
+        .ci-section-label {
+            font-size: 0.75rem; font-weight: 700; text-transform: uppercase;
+            letter-spacing: 0.05em; color: var(--gray-400); margin: 20px 0 10px;
+        }
+        .photo-row { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 4px; }
+        .photo-thumb { flex-shrink: 0; text-align: center; cursor: pointer; }
+        .photo-thumb img {
+            width: 96px; height: 128px; object-fit: cover; border-radius: 10px;
+            border: 1px solid var(--gray-200); display: block;
+        }
+        [data-theme="dark"] .photo-thumb img { border-color: var(--gray-600); }
+        .photo-pose { font-size: 0.6875rem; color: var(--gray-500); margin-top: 4px; font-weight: 600; }
+        .compare-grid { display: flex; gap: 14px; overflow-x: auto; padding-bottom: 4px; }
+        .compare-pair { flex-shrink: 0; }
+        .compare-pair-imgs { display: flex; gap: 4px; }
+        .compare-pair-imgs img {
+            width: 88px; height: 118px; object-fit: cover; border-radius: 8px;
+            border: 1px solid var(--gray-200); cursor: pointer; display: block;
+        }
+        [data-theme="dark"] .compare-pair-imgs img { border-color: var(--gray-600); }
+        .compare-cap { display: flex; gap: 4px; margin-top: 4px; }
+        .compare-cap span { width: 88px; font-size: 0.625rem; color: var(--gray-400); text-align: center; font-weight: 600; }
+        .missing-photo {
+            width: 88px; height: 118px; border-radius: 8px; border: 1px dashed var(--gray-300);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 0.625rem; color: var(--gray-400); text-align: center; padding: 6px;
+        }
+        [data-theme="dark"] .missing-photo { border-color: var(--gray-600); }
+
+        .well-grid {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(108px, 1fr));
+            gap: 10px;
+        }
+        .well-cell {
+            background: var(--gray-50); border-radius: 10px; padding: 10px 12px;
+        }
+        [data-theme="dark"] .well-cell { background: var(--gray-700); }
+        .well-label { font-size: 0.6875rem; color: var(--gray-500); font-weight: 600; }
+        .well-value { font-size: 1rem; font-weight: 700; color: var(--gray-800); margin-top: 2px; }
+        [data-theme="dark"] .well-value { color: var(--gray-100); }
+        .well-value .well-of { font-size: 0.75rem; font-weight: 500; color: var(--gray-400); }
+        .well-trend { font-size: 0.75rem; font-weight: 600; color: var(--gray-500); }
+
+        .ci-text-block {
+            background: var(--gray-50); border-radius: 10px; padding: 12px 14px;
+            font-size: 0.875rem; color: var(--gray-600); line-height: 1.55;
+            white-space: pre-wrap; word-break: break-word;
+        }
+        [data-theme="dark"] .ci-text-block { background: var(--gray-700); color: var(--gray-300); }
+
+        .reply-box { margin-top: 20px; padding-top: 18px; border-top: 1px solid var(--gray-100); }
+        [data-theme="dark"] .reply-box { border-color: var(--gray-700); }
+        .prev-feedback {
+            background: rgba(13,148,136,0.07); border-left: 3px solid var(--brand-primary, #0d9488);
+            border-radius: 0 10px 10px 0; padding: 10px 14px;
+            font-size: 0.875rem; color: var(--gray-600); margin-bottom: 12px; white-space: pre-wrap;
+        }
+        [data-theme="dark"] .prev-feedback { color: var(--gray-300); }
+
+        /* ---- Athletes tab ---- */
+        .big3-strip {
+            display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; margin-bottom: 24px;
+        }
+        @media (max-width: 1024px) { .big3-strip { grid-template-columns: repeat(2, 1fr); } }
+        .big3-cell {
+            background: #fff; border-radius: 16px; padding: 16px 18px;
+            border: 1px solid var(--gray-100);
+        }
+        [data-theme="dark"] .big3-cell { background: var(--gray-800); border-color: var(--gray-700); }
+        .big3-label { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--gray-400); }
+        .big3-value { font-size: 1.375rem; font-weight: 800; color: var(--gray-800); margin-top: 4px; }
+        [data-theme="dark"] .big3-value { color: var(--gray-100); }
+        .big3-value .b3-unit { font-size: 0.8125rem; font-weight: 600; color: var(--gray-400); }
+        .big3-sub { font-size: 0.75rem; color: var(--gray-500); margin-top: 3px; }
+        .big3-cell.accent { background: var(--brand-gradient); border: none; }
+        .big3-cell.accent .big3-label { color: rgba(255,255,255,0.75); }
+        .big3-cell.accent .big3-value, .big3-cell.accent .big3-value .b3-unit,
+        .big3-cell.accent .big3-sub { color: #fff; }
+
+        .ath-grid { display: grid; grid-template-columns: 1.2fr 1fr; gap: 24px; align-items: start; }
+        @media (max-width: 1024px) { .ath-grid { grid-template-columns: 1fr; } }
+        .ath-col { display: flex; flex-direction: column; gap: 24px; }
+
+        .max-table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+        .max-table th {
+            text-align: left; font-size: 0.6875rem; font-weight: 700; text-transform: uppercase;
+            letter-spacing: 0.04em; color: var(--gray-400); padding: 8px 8px; border-bottom: 1px solid var(--gray-100);
+        }
+        .max-table td { padding: 10px 8px; border-bottom: 1px solid var(--gray-100); color: var(--gray-600); vertical-align: middle; }
+        [data-theme="dark"] .max-table th, [data-theme="dark"] .max-table td { border-color: var(--gray-700); }
+        [data-theme="dark"] .max-table td { color: var(--gray-300); }
+        .max-name { font-weight: 600; color: var(--gray-800); }
+        [data-theme="dark"] .max-name { color: var(--gray-100); }
+        .max-weight { font-weight: 700; color: var(--gray-800); white-space: nowrap; }
+        [data-theme="dark"] .max-weight { color: var(--gray-100); }
+        .icon-btn {
+            background: none; border: none; cursor: pointer; color: var(--gray-400);
+            padding: 5px; border-radius: 8px; display: inline-flex;
+        }
+        .icon-btn:hover { color: #dc2626; background: rgba(239,68,68,0.08); }
+
+        .quick-chips { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+        .quick-chip {
+            padding: 6px 14px; border-radius: 999px; font-size: 0.8125rem; font-weight: 600;
+            border: 1px solid var(--gray-200); background: #fff; color: var(--gray-600);
+            cursor: pointer; font-family: inherit;
+        }
+        [data-theme="dark"] .quick-chip { background: var(--gray-800); border-color: var(--gray-600); color: var(--gray-300); }
+        .quick-chip.active { background: var(--brand-gradient); color: #fff; border-color: transparent; }
+
+        .wp-chips { display: flex; gap: 8px; flex-wrap: wrap; }
+        .wp-chip {
+            padding: 7px 14px; border-radius: 999px; font-size: 0.8125rem; font-weight: 600;
+            border: 1px solid var(--gray-200); background: #fff; color: var(--gray-600);
+            cursor: pointer; font-family: inherit;
+        }
+        [data-theme="dark"] .wp-chip { background: var(--gray-800); border-color: var(--gray-600); color: var(--gray-300); }
+        .wp-chip.normal { background: rgba(245,158,11,0.14); border-color: rgba(245,158,11,0.4); color: #b45309; }
+        [data-theme="dark"] .wp-chip.normal { background: rgba(245,158,11,0.2); color: #fbbf24; }
+        .wp-chip.high { background: rgba(239,68,68,0.12); border-color: rgba(239,68,68,0.4); color: #dc2626; }
+        [data-theme="dark"] .wp-chip.high { background: rgba(239,68,68,0.2); color: #f87171; }
+
+        .comp-row { padding: 14px 0; border-bottom: 1px solid var(--gray-100); }
+        [data-theme="dark"] .comp-row { border-color: var(--gray-700); }
+        .comp-row:last-child { border-bottom: none; }
+        .comp-title-line { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+        .comp-name { font-weight: 700; font-size: 0.9375rem; color: var(--gray-800); }
+        [data-theme="dark"] .comp-name { color: var(--gray-100); }
+        .comp-countdown { font-weight: 700; font-size: 0.8125rem; color: var(--brand-primary, #0d9488); }
+        .comp-meta { font-size: 0.8125rem; color: var(--gray-500); margin-top: 4px; display: flex; gap: 12px; flex-wrap: wrap; }
+        .comp-actions { margin-top: 8px; display: flex; gap: 8px; }
+
+        .attempts-grid { display: grid; grid-template-columns: 90px 1fr 1fr 1fr; gap: 8px; align-items: center; }
+        .attempts-grid .ag-head { font-size: 0.6875rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--gray-400); text-align: center; }
+        .attempts-grid .ag-lift { font-size: 0.8125rem; font-weight: 600; color: var(--gray-600); }
+        [data-theme="dark"] .attempts-grid .ag-lift { color: var(--gray-300); }
+        .attempts-grid input { text-align: center; }
+
+        /* ---- Protocols ---- */
+        .private-note {
+            display: flex; align-items: center; gap: 8px;
+            font-size: 0.8125rem; color: var(--gray-500);
+            background: var(--gray-50); border: 1px solid var(--gray-100);
+            border-radius: 10px; padding: 10px 14px; margin-bottom: 18px;
+        }
+        [data-theme="dark"] .private-note { background: var(--gray-800); border-color: var(--gray-700); color: var(--gray-400); }
+        .proto-group-label {
+            font-size: 0.75rem; font-weight: 700; text-transform: uppercase;
+            letter-spacing: 0.05em; color: var(--gray-400); margin: 22px 0 10px;
+        }
+        .proto-group-label:first-child { margin-top: 0; }
+        .proto-items-table { width: 100%; border-collapse: collapse; font-size: 0.8438rem; margin-top: 10px; }
+        .proto-items-table th {
+            text-align: left; font-size: 0.6563rem; font-weight: 700; text-transform: uppercase;
+            letter-spacing: 0.04em; color: var(--gray-400); padding: 6px 8px; border-bottom: 1px solid var(--gray-100);
+        }
+        .proto-items-table td { padding: 8px; border-bottom: 1px solid var(--gray-100); color: var(--gray-600); }
+        [data-theme="dark"] .proto-items-table th, [data-theme="dark"] .proto-items-table td { border-color: var(--gray-700); }
+        [data-theme="dark"] .proto-items-table td { color: var(--gray-300); }
+        .proto-item-row { display: grid; grid-template-columns: 1.2fr 0.8fr 0.8fr 0.9fr 1fr 34px; gap: 8px; margin-bottom: 8px; align-items: center; }
+        @media (max-width: 768px) { .proto-item-row { grid-template-columns: 1fr 1fr; } .proto-item-row .icon-btn { justify-self: start; } }
+
+        /* ---- Bloodwork ---- */
+        .marker-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 18px; }
+        @media (max-width: 768px) { .marker-form-grid { grid-template-columns: 1fr; } }
+        .marker-form-row { display: grid; grid-template-columns: 1.2fr 0.9fr 70px; gap: 8px; align-items: center; }
+        .marker-form-row .m-label { font-size: 0.8125rem; font-weight: 600; color: var(--gray-600); }
+        [data-theme="dark"] .marker-form-row .m-label { color: var(--gray-300); }
+        .marker-form-row .m-unit { font-size: 0.75rem; color: var(--gray-400); }
+        .bw-table-wrap { overflow-x: auto; }
+        .bw-table { border-collapse: collapse; font-size: 0.8438rem; min-width: 100%; }
+        .bw-table th {
+            text-align: left; font-size: 0.6875rem; font-weight: 700; text-transform: uppercase;
+            letter-spacing: 0.04em; color: var(--gray-400); padding: 8px 10px;
+            border-bottom: 1px solid var(--gray-100); white-space: nowrap;
+        }
+        .bw-table td { padding: 8px 10px; border-bottom: 1px solid var(--gray-100); color: var(--gray-600); white-space: nowrap; }
+        [data-theme="dark"] .bw-table th, [data-theme="dark"] .bw-table td { border-color: var(--gray-700); }
+        [data-theme="dark"] .bw-table td { color: var(--gray-300); }
+        .bw-marker-name { font-weight: 600; color: var(--gray-800); }
+        [data-theme="dark"] .bw-marker-name { color: var(--gray-100); }
+        .bw-val { display: inline-block; padding: 3px 10px; border-radius: 8px; font-weight: 600; }
+        .bw-val.bw-good { background: rgba(34,197,94,0.12); color: #16a34a; }
+        [data-theme="dark"] .bw-val.bw-good { background: rgba(34,197,94,0.18); color: #4ade80; }
+        .bw-val.bw-warn { background: rgba(245,158,11,0.14); color: #b45309; }
+        [data-theme="dark"] .bw-val.bw-warn { background: rgba(245,158,11,0.2); color: #fbbf24; }
+        .bw-val.bw-bad { background: rgba(239,68,68,0.12); color: #dc2626; }
+        [data-theme="dark"] .bw-val.bw-bad { background: rgba(239,68,68,0.2); color: #f87171; }
+        .bw-disclaimer { font-size: 0.75rem; color: var(--gray-400); margin-top: 12px; }
+
+        /* ---- Modal / lightbox / toast ---- */
+        .modal-overlay {
+            position: fixed; inset: 0; background: rgba(15,23,42,0.55); z-index: 600;
+            display: none; align-items: flex-start; justify-content: center;
+            padding: 5vh 16px 40px; overflow-y: auto;
+        }
+        .modal-overlay.open { display: flex; }
+        .modal-box {
+            background: #fff; border-radius: 18px; width: 100%; max-width: 660px;
+            padding: 24px; box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+        }
+        [data-theme="dark"] .modal-box { background: var(--gray-800); }
+        .modal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; }
+        .modal-title { font-weight: 700; font-size: 1.0625rem; color: var(--gray-800); }
+        [data-theme="dark"] .modal-title { color: var(--gray-100); }
+        .modal-close { background: none; border: none; cursor: pointer; color: var(--gray-400); padding: 6px; border-radius: 8px; display: inline-flex; }
+        .modal-close:hover { background: var(--gray-100); }
+        [data-theme="dark"] .modal-close:hover { background: var(--gray-700); }
+        .modal-foot { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+
+        .lightbox {
+            position: fixed; inset: 0; z-index: 700; background: rgba(0,0,0,0.88);
+            display: none; align-items: center; justify-content: center; cursor: zoom-out;
+        }
+        .lightbox.open { display: flex; }
+        .lightbox img { max-width: 92vw; max-height: 88vh; border-radius: 10px; }
+        .lightbox .lb-pose {
+            position: absolute; bottom: 24px; left: 50%; transform: translateX(-50%);
+            color: rgba(255,255,255,0.85); font-size: 0.875rem; font-weight: 600;
+        }
+
+        .toast {
+            position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%) translateY(80px);
+            background: var(--gray-800); color: #fff; padding: 12px 22px; border-radius: 12px;
+            font-size: 0.875rem; font-weight: 600; z-index: 800; opacity: 0;
+            transition: all 0.25s ease; pointer-events: none; max-width: 90vw;
+        }
+        [data-theme="dark"] .toast { background: var(--gray-100); color: var(--gray-800); }
+        .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+        .toast.err { background: #dc2626; color: #fff; }
+
+        /* ---- Empty / loading states ---- */
+        .soft-empty { text-align: center; color: var(--gray-400); font-size: 0.9rem; padding: 24px 8px; line-height: 1.6; }
+        .card-subnote { font-size: 0.8125rem; color: var(--gray-500); font-weight: 400; }
+        .skeleton-line {
+            height: 14px; border-radius: 7px; background: var(--gray-100);
+            animation: pulse 1.4s ease-in-out infinite; margin: 10px 0;
+        }
+        [data-theme="dark"] .skeleton-line { background: var(--gray-700); }
+        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+
+        .header-profile-avatar {
+            width: 40px; height: 40px; border-radius: 50%;
+            background: var(--brand-gradient); color: #fff; font-weight: 600;
+            display: flex; align-items: center; justify-content: center;
+            text-decoration: none;
+        }
+
+        #loadingScreen {
+            position: fixed; inset: 0; background: var(--gray-50);
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            gap: 16px; z-index: 500;
+        }
+        [data-theme="dark"] #loadingScreen { background: var(--gray-900); }
+        .spinner {
+            width: 40px; height: 40px; border: 3px solid var(--gray-200);
+            border-top-color: var(--brand-primary); border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+    <!-- Shared Apple-style finish — every other page loads this; without it the
+         page renders the raw palette instead of the site-wide near-black. -->
+    <link rel="stylesheet" href="/css/apple-refresh.css">
+</head>
+<body>
+    <!-- Loading screen -->
+    <div id="loadingScreen">
+        <div class="spinner"></div>
+        <div id="loadingText" style="color: var(--gray-500); font-size: 0.9rem;">Loading Prep HQ…</div>
+    </div>
+
+    <!-- ===== Sidebar ===== -->
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <a href="gym-dashboard.html" class="sidebar-logo">
+                <img src="https://qewqcjzlfqamqwbccapr.supabase.co/storage/v1/object/public/assets/ziquecoach-logo-white.png" alt="Ziquecoach" class="sidebar-logo-img">
+            </a>
+        </div>
+        <nav class="sidebar-nav">
+            <div class="sidebar-nav-section" data-section="menu">
+                <div class="sidebar-nav-label" onclick="toggleSidebarSection(this)">
+                    Gym
+                    <svg class="collapse-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                    </svg>
+                </div>
+                <div class="sidebar-nav-items">
+                    <a href="gym-dashboard.html" class="sidebar-nav-item" data-tooltip="Gym Dashboard">
+                        <span class="sidebar-nav-icon"><i data-lucide="layout-dashboard"></i></span>
+                        Gym Dashboard
+                    </a>
+                    <a href="manage-clients.html" class="sidebar-nav-item" data-tooltip="Members">
+                        <span class="sidebar-nav-icon"><i data-lucide="users"></i></span>
+                        Members
+                    </a>
+                    <a href="coach-messages.html" class="sidebar-nav-item" data-tooltip="Messages">
+                        <span class="sidebar-nav-icon"><i data-lucide="message-circle"></i></span>
+                        Messages
+                    </a>
+                    <a href="coach-workout-plans.html" class="sidebar-nav-item" data-tooltip="Workouts">
+                        <span class="sidebar-nav-icon"><i data-lucide="dumbbell"></i></span>
+                        Workouts
+                    </a>
+                    <a href="coach-prep.html" class="sidebar-nav-item active" data-tooltip="Prep HQ">
+                        <span class="sidebar-nav-icon"><i data-lucide="clipboard-list"></i></span>
+                        Prep HQ
+                    </a>
+                    <a href="coach-challenges.html" class="sidebar-nav-item" data-tooltip="Challenges">
+                        <span class="sidebar-nav-icon"><i data-lucide="trophy"></i></span>
+                        Challenges
+                    </a>
+                    <a href="gym-dashboard.html#coachesCard" class="sidebar-nav-item" data-tooltip="Coaches">
+                        <span class="sidebar-nav-icon"><i data-lucide="user-plus"></i></span>
+                        Coaches
+                    </a>
+                </div>
+            </div>
+            <div class="sidebar-nav-section" data-section="settings">
+                <div class="sidebar-nav-label" onclick="toggleSidebarSection(this)">
+                    Settings
+                    <svg class="collapse-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                    </svg>
+                </div>
+                <div class="sidebar-nav-items">
+                    <a href="dashboard.html?coach=1" class="sidebar-nav-item" data-tooltip="Coach View">
+                        <span class="sidebar-nav-icon"><i data-lucide="briefcase"></i></span>
+                        Coach View
+                    </a>
+                    <a href="branding-settings.html" class="sidebar-nav-item" data-tooltip="Branding">
+                        <span class="sidebar-nav-icon"><i data-lucide="palette"></i></span>
+                        Branding
+                    </a>
+                    <a href="coach-billing.html" class="sidebar-nav-item" data-tooltip="Billing">
+                        <span class="sidebar-nav-icon"><i data-lucide="credit-card"></i></span>
+                        Billing
+                    </a>
+                    <a href="#" class="sidebar-nav-item sidebar-nav-logout" id="logoutLink" data-tooltip="Log Out">
+                        <span class="sidebar-nav-icon"><i data-lucide="log-out"></i></span>
+                        Log Out
+                    </a>
+                </div>
+            </div>
+        </nav>
+        <div class="sidebar-footer">
+            <div class="sidebar-user">
+                <div class="sidebar-user-avatar" id="userAvatar">G</div>
+                <div class="sidebar-user-info">
+                    <div class="sidebar-user-name" id="userName">Loading…</div>
+                    <div class="sidebar-user-role">Gym owner</div>
+                </div>
+                <button class="sidebar-logout" id="logoutBtn" title="Logout">
+                    <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </aside>
+
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <!-- ===== Main ===== -->
+    <main class="main-content">
+        <header class="main-header">
+            <button class="mobile-menu-btn" id="mobileMenuBtn">
+                <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                </svg>
+            </button>
+            <h1 class="main-header-title">Prep HQ</h1>
+            <div class="main-header-actions">
+                <a href="coach-profile.html" class="header-profile-avatar" id="headerProfileAvatar" title="Profile"><span id="headerProfileInitials">G</span></a>
+            </div>
+        </header>
+
+        <div class="main-container">
+            <div class="prep-hello">
+                <h2>Prep HQ</h2>
+                <p>Check-ins, lifts, protocols and bloodwork — everything for your competitive athletes in one place.</p>
+            </div>
+
+            <!-- Client selector -->
+            <div class="client-bar">
+                <input type="text" class="client-search" id="clientSearch" placeholder="Search athletes…" oninput="renderClientChips()">
+                <div class="client-chips" id="clientChips">
+                    <div class="skeleton-line" style="width:220px;"></div>
+                </div>
+            </div>
+
+            <!-- Tab pills -->
+            <div class="tab-bar" id="tabBar">
+                <button class="tab-pill active" data-tab="checkins" onclick="selectTab('checkins')">
+                    <i data-lucide="inbox" style="width:16px;height:16px;"></i> Check-ins
+                    <span class="tp-count" id="needsReplyCount" style="display:none;">0</span>
+                </button>
+                <button class="tab-pill" data-tab="athletes" onclick="selectTab('athletes')">
+                    <i data-lucide="medal" style="width:16px;height:16px;"></i> Athletes
+                </button>
+                <button class="tab-pill" data-tab="protocols" onclick="selectTab('protocols')">
+                    <i data-lucide="lock" style="width:16px;height:16px;"></i> Protocols
+                </button>
+                <button class="tab-pill" data-tab="bloodwork" onclick="selectTab('bloodwork')">
+                    <i data-lucide="test-tube" style="width:16px;height:16px;"></i> Bloodwork
+                </button>
+            </div>
+
+            <!-- Tab panels -->
+            <div id="tab-checkins" class="tab-panel">
+                <div class="skeleton-line" style="width:70%"></div>
+                <div class="skeleton-line" style="width:50%"></div>
+            </div>
+            <div id="tab-athletes" class="tab-panel" style="display:none;"></div>
+            <div id="tab-protocols" class="tab-panel" style="display:none;"></div>
+            <div id="tab-bloodwork" class="tab-panel" style="display:none;"></div>
+        </div>
+    </main>
+
+    <!-- Competition modal -->
+    <div class="modal-overlay" id="compModal">
+        <div class="modal-box">
+            <div class="modal-head">
+                <div class="modal-title" id="compModalTitle">Add competition</div>
+                <button class="modal-close" onclick="closeCompModal()"><i data-lucide="x" style="width:20px;height:20px;"></i></button>
+            </div>
+            <div class="frow c2">
+                <div>
+                    <label class="plabel">Type</label>
+                    <select class="psel" id="compType" onchange="onCompTypeChange()">
+                        <option value="meet">Meet (powerlifting)</option>
+                        <option value="show">Show (bodybuilding)</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="plabel">Status</label>
+                    <select class="psel" id="compStatus">
+                        <option value="upcoming">Upcoming</option>
+                        <option value="completed">Completed</option>
+                        <option value="cancelled">Cancelled</option>
+                    </select>
+                </div>
+            </div>
+            <div class="frow">
+                <div>
+                    <label class="plabel">Name *</label>
+                    <input type="text" class="pin" id="compName" placeholder="e.g. USPA Winter Classic">
+                </div>
+            </div>
+            <div class="frow c2">
+                <div>
+                    <label class="plabel">Date *</label>
+                    <input type="date" class="pin" id="compDate">
+                </div>
+                <div>
+                    <label class="plabel">Location</label>
+                    <input type="text" class="pin" id="compLocation" placeholder="City / venue">
+                </div>
+            </div>
+            <div class="frow c3">
+                <div>
+                    <label class="plabel">Federation</label>
+                    <input type="text" class="pin" id="compFederation" placeholder="e.g. USPA">
+                </div>
+                <div>
+                    <label class="plabel">Division</label>
+                    <input type="text" class="pin" id="compDivision" placeholder="e.g. Open">
+                </div>
+                <div>
+                    <label class="plabel">Weight class</label>
+                    <input type="text" class="pin" id="compWeightClass" placeholder="e.g. 90kg">
+                </div>
+            </div>
+            <div id="compMeetFields">
+                <div class="frow c2">
+                    <div>
+                        <label class="plabel">Goal total <span id="compGoalUnit"></span></label>
+                        <input type="number" class="pin" id="compGoalTotal" inputmode="decimal" step="any" min="0" placeholder="e.g. 1500">
+                    </div>
+                </div>
+                <label class="plabel">Attempts planner <span id="compAttemptsUnit"></span></label>
+                <div class="attempts-grid" style="margin-bottom:14px;">
+                    <div></div>
+                    <div class="ag-head">Attempt 1</div>
+                    <div class="ag-head">Attempt 2</div>
+                    <div class="ag-head">Attempt 3</div>
+                    <div class="ag-lift">Squat</div>
+                    <input type="number" class="pin" id="att_squat_0" inputmode="decimal" step="any" min="0">
+                    <input type="number" class="pin" id="att_squat_1" inputmode="decimal" step="any" min="0">
+                    <input type="number" class="pin" id="att_squat_2" inputmode="decimal" step="any" min="0">
+                    <div class="ag-lift">Bench</div>
+                    <input type="number" class="pin" id="att_bench_0" inputmode="decimal" step="any" min="0">
+                    <input type="number" class="pin" id="att_bench_1" inputmode="decimal" step="any" min="0">
+                    <input type="number" class="pin" id="att_bench_2" inputmode="decimal" step="any" min="0">
+                    <div class="ag-lift">Deadlift</div>
+                    <input type="number" class="pin" id="att_deadlift_0" inputmode="decimal" step="any" min="0">
+                    <input type="number" class="pin" id="att_deadlift_1" inputmode="decimal" step="any" min="0">
+                    <input type="number" class="pin" id="att_deadlift_2" inputmode="decimal" step="any" min="0">
+                </div>
+            </div>
+            <div class="frow">
+                <div>
+                    <label class="plabel">Notes</label>
+                    <textarea class="pta" id="compNotes" placeholder="Game plan, logistics, anything worth remembering…"></textarea>
+                </div>
+            </div>
+            <div class="modal-foot">
+                <button class="btn btn-secondary btn-sm" onclick="closeCompModal()">Cancel</button>
+                <button class="btn btn-primary btn-sm" id="compSaveBtn" onclick="saveComp()">Save competition</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Protocol modal -->
+    <div class="modal-overlay" id="protoModal">
+        <div class="modal-box">
+            <div class="modal-head">
+                <div class="modal-title" id="protoModalTitle">New protocol</div>
+                <button class="modal-close" onclick="closeProtoModal()"><i data-lucide="x" style="width:20px;height:20px;"></i></button>
+            </div>
+            <div class="frow c2">
+                <div>
+                    <label class="plabel">Title *</label>
+                    <input type="text" class="pin" id="protoTitle" placeholder="e.g. Off-season supplements">
+                </div>
+                <div>
+                    <label class="plabel">Type</label>
+                    <select class="psel" id="protoType">
+                        <option value="supplement">Supplement protocol</option>
+                        <option value="enhancement">Enhancement protocol</option>
+                        <option value="peak_week">Peak week protocol</option>
+                    </select>
+                </div>
+            </div>
+            <div class="frow c2">
+                <div>
+                    <label class="plabel">Start date</label>
+                    <input type="date" class="pin" id="protoStart">
+                </div>
+                <div>
+                    <label class="plabel">End date</label>
+                    <input type="date" class="pin" id="protoEnd">
+                </div>
+            </div>
+            <div class="frow">
+                <label class="pcheck"><input type="checkbox" id="protoVisible" checked> Visible to the athlete in their app</label>
+            </div>
+            <label class="plabel">Items</label>
+            <div id="protoItems"></div>
+            <button class="btn btn-secondary btn-sm" onclick="addProtoItemRow()" style="margin-bottom:14px;">
+                <i data-lucide="plus" style="width:15px;height:15px;"></i> Add item
+            </button>
+            <div class="frow">
+                <div>
+                    <label class="plabel">Notes</label>
+                    <textarea class="pta" id="protoNotes" placeholder="Anything else worth logging…"></textarea>
+                </div>
+            </div>
+            <div class="modal-foot">
+                <button class="btn btn-secondary btn-sm" onclick="closeProtoModal()">Cancel</button>
+                <button class="btn btn-primary btn-sm" id="protoSaveBtn" onclick="saveProto()">Save protocol</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lightbox -->
+    <div class="lightbox" id="lightbox" onclick="closeLightbox()">
+        <img id="lightboxImg" src="" alt="">
+        <div class="lb-pose" id="lightboxPose"></div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        const SUPABASE_URL = 'https://qewqcjzlfqamqwbccapr.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFld3FjanpsZnFhbXF3YmNjYXByIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM2OTg0NzAsImV4cCI6MjA3OTI3NDQ3MH0.mQnMC33O88oLkLLGWD2oG-oaSHGI-NfHmtQCZxnxSLs';
+        const { createClient } = supabase;
+        const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        // ================= helpers (match the other coach pages) =================
+        function esc(s) {
+            return String(s == null ? '' : s).replace(/[&<>"']/g, c => (
+                { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
+            ));
+        }
+        function initials(name) {
+            const parts = String(name || '').trim().split(/\s+/).filter(Boolean);
+            if (!parts.length) return 'M';
+            return (parts[0][0] + (parts[1] ? parts[1][0] : '')).toUpperCase();
+        }
+        function refreshIcons() {
+            try { if (window.lucide) lucide.createIcons(); } catch (e) {}
+        }
+        function toggleSidebarSection(label) {
+            const section = label.closest('.sidebar-nav-section');
+            if (section) section.classList.toggle('collapsed');
+        }
+        (function wireChrome() {
+            const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+            const sidebar = document.querySelector('.sidebar');
+            const sidebarOverlay = document.getElementById('sidebarOverlay');
+            if (mobileMenuBtn) mobileMenuBtn.addEventListener('click', () => {
+                sidebar.classList.toggle('open');
+                sidebarOverlay.classList.toggle('active');
+            });
+            if (sidebarOverlay) sidebarOverlay.addEventListener('click', () => {
+                sidebar.classList.remove('open');
+                sidebarOverlay.classList.remove('active');
+            });
+            async function handleLogout(e) {
+                if (e) e.preventDefault();
+                try { await supabaseClient.auth.signOut({ scope: 'local' }); } catch (err) {}
+                window.location.href = '/login.html';
+            }
+            document.getElementById('logoutBtn')?.addEventListener('click', handleLogout);
+            document.getElementById('logoutLink')?.addEventListener('click', handleLogout);
+        })();
+
+        function toast(msg, isErr) {
+            const t = document.getElementById('toast');
+            t.textContent = msg;
+            t.className = 'toast show' + (isErr ? ' err' : '');
+            clearTimeout(t._timer);
+            t._timer = setTimeout(() => t.classList.remove('show'), 2800);
+        }
+
+        function fmtDate(d) {
+            if (!d) return '—';
+            const dt = typeof d === 'string' && d.length === 10 ? new Date(d + 'T00:00:00') : new Date(d);
+            if (isNaN(dt)) return '—';
+            return dt.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+        }
+        function fmtDateShort(d) {
+            if (!d) return '—';
+            const dt = typeof d === 'string' && d.length === 10 ? new Date(d + 'T00:00:00') : new Date(d);
+            if (isNaN(dt)) return '—';
+            return dt.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+        }
+        function parseJsonArr(v) {
+            if (Array.isArray(v)) return v;
+            if (typeof v === 'string') { try { const p = JSON.parse(v); return Array.isArray(p) ? p : []; } catch (e) { return []; } }
+            return [];
+        }
+        function parseJsonObj(v) {
+            if (v && typeof v === 'object' && !Array.isArray(v)) return v;
+            if (typeof v === 'string') { try { const p = JSON.parse(v); return (p && typeof p === 'object' && !Array.isArray(p)) ? p : {}; } catch (e) { return {}; } }
+            return {};
+        }
+
+        const LB_PER_KG = 2.20462;
+        function toKg(w, unit) { return /kg/i.test(unit || 'lbs') ? w : w / LB_PER_KG; }
+        function convertWeight(w, fromUnit, toUnit) {
+            const from = /kg/i.test(fromUnit || 'lbs') ? 'kg' : 'lbs';
+            const to = /kg/i.test(toUnit || 'lbs') ? 'kg' : 'lbs';
+            if (from === to) return w;
+            return to === 'kg' ? w / LB_PER_KG : w * LB_PER_KG;
+        }
+        function round1(n) { return Math.round(n * 10) / 10; }
+
+        // DOTS coefficients (weights in kg)
+        function dotsScore(totalKg, bwKg, isFemale) {
+            const C = isFemale
+                ? { a: -57.96288, b: 13.6175032, c: -0.1126655495, d: 0.0005158568, e: -0.0000010706 }
+                : { a: -307.75076, b: 24.0900756, c: -0.1918759221, d: 0.0007391293, e: -0.000001093 };
+            const denom = C.a + C.b * bwKg + C.c * Math.pow(bwKg, 2) + C.d * Math.pow(bwKg, 3) + C.e * Math.pow(bwKg, 4);
+            if (!isFinite(denom) || denom === 0) return null;
+            return totalKg * 500 / denom;
+        }
+
+        async function getToken() {
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            return session ? session.access_token : null;
+        }
+        async function hubPost(payload) {
+            const token = await getToken();
+            const res = await fetch('/.netlify/functions/athlete-hub', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+                body: JSON.stringify(payload)
+            });
+            let out = {};
+            try { out = await res.json(); } catch (e) {}
+            if (!res.ok) throw new Error(out.error || 'Request failed');
+            return out;
+        }
+
+        // ================= state =================
+        const state = {
+            coachId: null,
+            clients: [],           // non-archived clients
+            clientById: {},
+            selectedClientId: 'all', // 'all' or numeric id
+            tab: 'checkins',
+            checkins: [],
+            checkinsFor: null,     // which selector state the loaded checkins belong to
+            selectedCheckinId: null,
+            prevCheckinCache: {},  // checkinId -> previous checkins list
+            ath: null,             // { clientId, maxes, comps, bodyweight }
+            showMaxHistory: false,
+            maxFormLiftKey: null,
+            protocols: null,       // { clientId, rows, showArchived }
+            editingProtoId: null,
+            editingCompId: null,
+            blood: null            // { clientId, rows, formOpen }
+        };
+
+        const WEAK_POINT_MUSCLES = [
+            'Rear delts', 'Side delts', 'Upper chest', 'Lats', 'Traps', 'Biceps',
+            'Triceps', 'Forearms', 'Quads', 'Hamstrings', 'Glutes', 'Calves', 'Abs', 'Lower back'
+        ];
+
+        const PROTOCOL_LABELS = {
+            enhancement: 'Enhancement protocol',
+            supplement: 'Supplement protocol',
+            peak_week: 'Peak week protocol'
+        };
+        const PROTOCOL_ORDER = ['enhancement', 'supplement', 'peak_week'];
+
+        // Common bloodwork panel + general adult reference ranges.
+        // These are general lab ranges for cell color-coding only — not medical advice.
+        const COMMON_MARKERS = [
+            { key: 'ast', label: 'AST', unit: 'U/L', min: 10, max: 40 },
+            { key: 'alt', label: 'ALT', unit: 'U/L', min: 7, max: 56 },
+            { key: 'creatinine', label: 'Creatinine', unit: 'mg/dL', min: 0.6, max: 1.3 },
+            { key: 'egfr', label: 'eGFR', unit: 'mL/min', min: 90, max: null },
+            { key: 'hdl', label: 'HDL', unit: 'mg/dL', min: 40, max: null },
+            { key: 'ldl', label: 'LDL', unit: 'mg/dL', min: null, max: 130 },
+            { key: 'triglycerides', label: 'Triglycerides', unit: 'mg/dL', min: null, max: 150 },
+            { key: 'total_testosterone', label: 'Total Testosterone', unit: 'ng/dL', min: 300, max: 1000 },
+            { key: 'free_testosterone', label: 'Free Testosterone', unit: 'pg/mL', min: 9, max: 30 },
+            { key: 'estradiol', label: 'Estradiol', unit: 'pg/mL', min: 10, max: 40 },
+            { key: 'shbg', label: 'SHBG', unit: 'nmol/L', min: 10, max: 57 },
+            { key: 'hematocrit', label: 'Hematocrit', unit: '%', min: 38.3, max: 48.6 },
+            { key: 'hemoglobin', label: 'Hemoglobin', unit: 'g/dL', min: 13.2, max: 16.6 },
+            { key: 'psa', label: 'PSA', unit: 'ng/mL', min: null, max: 4 },
+            { key: 'glucose', label: 'Blood glucose', unit: 'mg/dL', min: 70, max: 99 },
+            { key: 'hba1c', label: 'HbA1c', unit: '%', min: 4, max: 5.6 }
+        ];
+        const REFERENCE_RANGES = {};
+        COMMON_MARKERS.forEach(m => { REFERENCE_RANGES[m.key] = { min: m.min, max: m.max }; });
+
+        // ================= boot =================
+        async function boot() {
+            const { data: { session }, error: sessionError } = await supabaseClient.auth.getSession();
+            if (sessionError || !session) {
+                window.location.href = '/login.html';
+                return;
+            }
+            const user = session.user;
+
+            // Clients logging in here belong in the member app.
+            const { data: clientRow } = await supabaseClient
+                .from('clients').select('id').eq('user_id', user.id).maybeSingle();
+            if (clientRow) { window.location.href = '/app'; return; }
+
+            // Coach / gym-owner account.
+            const { data: coach, error: coachErr } = await supabaseClient
+                .from('coaches').select('*').eq('id', user.id).maybeSingle();
+            if (coachErr || !coach) {
+                window.location.href = '/dashboard.html';
+                return;
+            }
+            state.coachId = user.id;
+
+            const gymName = coach.brand_name || coach.company_name || coach.business_name || 'Your gym';
+            document.getElementById('userName').textContent = gymName;
+            const gymInitials = initials(gymName);
+            document.getElementById('userAvatar').textContent = gymInitials;
+            document.getElementById('headerProfileInitials').textContent = gymInitials;
+
+            // Restore ?client= & ?tab= context.
+            const params = new URLSearchParams(window.location.search);
+            const tabParam = params.get('tab');
+            if (['checkins', 'athletes', 'protocols', 'bloodwork'].includes(tabParam)) state.tab = tabParam;
+            const clientParam = params.get('client');
+            if (clientParam && clientParam !== 'all') state.selectedClientId = clientParam;
+
+            document.getElementById('loadingScreen').style.display = 'none';
+            refreshIcons();
+
+            await loadClients();
+
+            // Validate the restored client still exists and isn't archived.
+            if (state.selectedClientId !== 'all' &&
+                !state.clients.some(c => String(c.id) === String(state.selectedClientId))) {
+                state.selectedClientId = 'all';
+            }
+            renderClientChips();
+            applyTabUi();
+            loadCurrentTab();
+        }
+
+        async function loadClients() {
+            const { data, error } = await supabaseClient
+                .from('clients')
+                .select('id, client_name, gender, profile_photo_url, avatar_url, is_archived, athlete_profile')
+                .eq('coach_id', state.coachId)
+                .order('client_name', { ascending: true });
+            if (error) {
+                document.getElementById('clientChips').innerHTML =
+                    '<div class="soft-empty" style="padding:6px;">Couldn\'t load your athletes — refresh to try again.</div>';
+                return;
+            }
+            state.clients = (data || []).filter(c => !c.is_archived);
+            state.clientById = {};
+            // Include archived clients in the lookup so their old check-ins still
+            // show a name — only the chips (state.clients) exclude them.
+            (data || []).forEach(c => { state.clientById[String(c.id)] = c; });
+        }
+
+        function syncUrl() {
+            const p = new URLSearchParams(window.location.search);
+            if (state.selectedClientId && state.selectedClientId !== 'all') p.set('client', state.selectedClientId);
+            else p.delete('client');
+            p.set('tab', state.tab);
+            history.replaceState(null, '', window.location.pathname + '?' + p.toString());
+        }
+
+        // ================= client selector =================
+        function chipAvatar(c) {
+            const photo = c.profile_photo_url || c.avatar_url;
+            return photo
+                ? '<span class="chip-avatar"><img src="' + esc(photo) + '" alt=""></span>'
+                : '<span class="chip-avatar">' + esc(initials(c.client_name)) + '</span>';
+        }
+
+        function renderClientChips() {
+            const el = document.getElementById('clientChips');
+            const q = (document.getElementById('clientSearch').value || '').trim().toLowerCase();
+            const list = q
+                ? state.clients.filter(c => String(c.client_name || '').toLowerCase().includes(q))
+                : state.clients;
+
+            let html = '<button class="client-chip no-avatar' + (state.selectedClientId === 'all' ? ' active' : '') +
+                '" onclick="selectClient(\'all\')">All clients</button>';
+            html += list.map(c =>
+                '<button class="client-chip' + (String(state.selectedClientId) === String(c.id) ? ' active' : '') +
+                '" onclick="selectClient(\'' + c.id + '\')">' + chipAvatar(c) + esc(c.client_name || 'Member') + '</button>'
+            ).join('');
+            if (!state.clients.length) {
+                html = '<div class="card-subnote" style="align-self:center;">No athletes yet — add members from the Members page first.</div>';
+            } else if (q && !list.length) {
+                html += '<div class="card-subnote" style="align-self:center;">No matches for “' + esc(q) + '”</div>';
+            }
+            el.innerHTML = html;
+        }
+
+        function selectClient(id) {
+            state.selectedClientId = id === 'all' ? 'all' : String(id);
+            state.selectedCheckinId = null;
+            state.ath = null; state.protocols = null; state.blood = null;
+            syncUrl();
+            renderClientChips();
+            loadCurrentTab();
+        }
+
+        function selectedClient() {
+            if (state.selectedClientId === 'all') return null;
+            return state.clientById[String(state.selectedClientId)] || null;
+        }
+
+        // ================= tabs =================
+        function applyTabUi() {
+            document.querySelectorAll('.tab-pill').forEach(b =>
+                b.classList.toggle('active', b.dataset.tab === state.tab));
+            ['checkins', 'athletes', 'protocols', 'bloodwork'].forEach(t => {
+                document.getElementById('tab-' + t).style.display = t === state.tab ? '' : 'none';
+            });
+        }
+        function selectTab(tab) {
+            state.tab = tab;
+            syncUrl();
+            applyTabUi();
+            loadCurrentTab();
+        }
+        function loadCurrentTab() {
+            if (state.tab === 'checkins') loadCheckinsTab();
+            else if (state.tab === 'athletes') loadAthletesTab();
+            else if (state.tab === 'protocols') loadProtocolsTab();
+            else if (state.tab === 'bloodwork') loadBloodworkTab();
+        }
+        function needClientHtml(what) {
+            return '<div class="card"><div class="card-body"><div class="soft-empty">' +
+                '<i data-lucide="search" style="width:28px;height:28px;margin-bottom:8px;"></i><br>' +
+                'Pick an athlete above to see their ' + esc(what) + '.</div></div></div>';
+        }
+
+        // ================= TAB 1: CHECK-INS =================
+        const CHECKIN_COLS = 'id, client_id, coach_id, checkin_date, weight, weight_unit, energy_level, sleep_quality, hunger_level, stress_level, meal_plan_adherence, workouts_completed, workouts_planned, wins, challenges, questions, coach_feedback, coach_responded_at, created_at, digestion, soreness, motivation, pump_rating, cardio_completed, cardio_planned, avg_daily_steps, photos, posing_video_url, coach_rating';
+
+        async function loadCheckinsTab() {
+            const panel = document.getElementById('tab-checkins');
+            panel.innerHTML = '<div class="card"><div class="card-body">' +
+                '<div class="skeleton-line" style="width:80%"></div>' +
+                '<div class="skeleton-line" style="width:60%"></div>' +
+                '<div class="skeleton-line" style="width:70%"></div></div></div>';
+
+            let query = supabaseClient.from('client_checkins')
+                .select(CHECKIN_COLS)
+                .eq('coach_id', state.coachId)
+                .order('checkin_date', { ascending: false })
+                .order('created_at', { ascending: false })
+                .limit(100);
+            if (state.selectedClientId !== 'all') query = query.eq('client_id', state.selectedClientId);
+
+            const { data, error } = await query;
+            if (error) {
+                panel.innerHTML = '<div class="card"><div class="card-body">' +
+                    '<div class="soft-empty">Couldn\'t load check-ins right now — refresh to try again.</div></div></div>';
+                return;
+            }
+            let rows = data || [];
+            // Needs-reply first, newest first within each group (stable sort).
+            rows.sort((a, b) => (a.coach_responded_at ? 1 : 0) - (b.coach_responded_at ? 1 : 0));
+            state.checkins = rows;
+            state.checkinsFor = state.selectedClientId;
+
+            const needsReply = rows.filter(r => !r.coach_responded_at).length;
+            const badge = document.getElementById('needsReplyCount');
+            badge.textContent = needsReply;
+            badge.style.display = needsReply ? '' : 'none';
+
+            if (state.selectedCheckinId && !rows.some(r => String(r.id) === String(state.selectedCheckinId))) {
+                state.selectedCheckinId = null;
+            }
+            renderCheckinsTab();
+        }
+
+        function checkinRowHtml(c) {
+            const client = state.clientById[String(c.client_id)];
+            const name = client ? client.client_name : 'Member';
+            const photo = client ? (client.profile_photo_url || client.avatar_url) : null;
+            const av = photo ? '<img src="' + esc(photo) + '" alt="">' : esc(initials(name));
+            const bits = [];
+            bits.push(fmtDateShort(c.checkin_date));
+            if (c.weight != null) bits.push(c.weight + ' ' + (c.weight_unit || 'lbs'));
+            if (c.meal_plan_adherence != null) bits.push(c.meal_plan_adherence + '% adherence');
+            const badge = c.coach_responded_at
+                ? '<span class="pbadge done">Replied</span>'
+                : '<span class="pbadge reply">Needs reply</span>';
+            const sel = String(state.selectedCheckinId) === String(c.id) ? ' selected' : '';
+            return '<div class="ci-row' + sel + '" onclick="openCheckin(' + c.id + ')">' +
+                '<div class="ci-avatar">' + av + '</div>' +
+                '<div class="ci-info"><div class="ci-name">' + esc(name) + '</div>' +
+                '<div class="ci-sub">' + esc(bits.join(' · ')) + '</div></div>' +
+                badge + '</div>';
+        }
+
+        function renderCheckinsTab() {
+            const panel = document.getElementById('tab-checkins');
+            const rows = state.checkins;
+
+            const listInner = rows.length
+                ? rows.map(checkinRowHtml).join('')
+                : '<div class="soft-empty">No check-ins yet.<br>They\'ll show up here as soon as your athletes submit their weekly check-in.</div>';
+
+            panel.innerHTML =
+                '<div class="ci-grid">' +
+                    '<div class="card"><div class="card-header"><div>' +
+                        '<div class="card-title">Needs review</div>' +
+                        '<div class="card-subnote">' + (state.selectedClientId === 'all' ? 'All athletes' : 'Filtered to ' + esc(selectedClient()?.client_name || 'athlete')) + ' · newest first</div>' +
+                    '</div></div>' +
+                    '<div class="card-body" style="max-height:640px;overflow-y:auto;">' + listInner + '</div></div>' +
+                    '<div class="card" id="ciDetailCard"><div class="card-body" id="ciDetailBody">' +
+                        '<div class="soft-empty"><i data-lucide="mouse-pointer-click" style="width:28px;height:28px;margin-bottom:8px;"></i><br>Select a check-in on the left to review it.</div>' +
+                    '</div></div>' +
+                '</div>';
+            refreshIcons();
+            if (state.selectedCheckinId) renderCheckinDetail();
+        }
+
+        async function openCheckin(id) {
+            state.selectedCheckinId = id;
+            // refresh selected highlight without a full re-render
+            document.querySelectorAll('.ci-row').forEach(r => r.classList.remove('selected'));
+            renderCheckinsTab();
+            const card = document.getElementById('ciDetailCard');
+            if (card && window.innerWidth <= 1024) card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        async function fetchPrevCheckins(c) {
+            const cacheKey = String(c.id);
+            if (state.prevCheckinCache[cacheKey]) return state.prevCheckinCache[cacheKey];
+            try {
+                const { data, error } = await supabaseClient.from('client_checkins')
+                    .select(CHECKIN_COLS)
+                    .eq('client_id', c.client_id)
+                    .neq('id', c.id)
+                    .order('checkin_date', { ascending: false })
+                    .order('created_at', { ascending: false })
+                    .limit(15);
+                if (error) throw error;
+                const cur = new Date(c.created_at || (c.checkin_date + 'T00:00:00')).getTime();
+                const prev = (data || []).filter(r => {
+                    const t = new Date(r.created_at || (r.checkin_date + 'T00:00:00')).getTime();
+                    return t < cur || (r.checkin_date < c.checkin_date);
+                });
+                state.prevCheckinCache[cacheKey] = prev;
+                return prev;
+            } catch (e) {
+                return [];
+            }
+        }
+
+        // Lightbox state (indices avoid putting user URLs inside onclick attrs)
+        let lightboxPhotos = [];
+        function openLightboxIdx(i) {
+            const p = lightboxPhotos[i];
+            if (!p) return;
+            document.getElementById('lightboxImg').src = p.url;
+            document.getElementById('lightboxPose').textContent = p.pose || '';
+            document.getElementById('lightbox').classList.add('open');
+        }
+        function closeLightbox() {
+            document.getElementById('lightbox').classList.remove('open');
+            document.getElementById('lightboxImg').src = '';
+        }
+        document.addEventListener('keydown', e => { if (e.key === 'Escape') closeLightbox(); });
+
+        function ratingCell(label, value, of) {
+            if (value == null) return '';
+            return '<div class="well-cell"><div class="well-label">' + esc(label) + '</div>' +
+                '<div class="well-value">' + esc(value) + '<span class="well-of">/' + of + '</span></div></div>';
+        }
+        function plainCell(label, valueHtml) {
+            return '<div class="well-cell"><div class="well-label">' + esc(label) + '</div>' +
+                '<div class="well-value">' + valueHtml + '</div></div>';
+        }
+
+        async function renderCheckinDetail() {
+            const body = document.getElementById('ciDetailBody');
+            if (!body) return;
+            const c = state.checkins.find(r => String(r.id) === String(state.selectedCheckinId));
+            if (!c) return;
+            const client = state.clientById[String(c.client_id)];
+            const name = client ? client.client_name : 'Member';
+
+            body.innerHTML = '<div class="skeleton-line" style="width:60%"></div><div class="skeleton-line" style="width:80%"></div><div class="skeleton-line" style="width:45%"></div>';
+
+            const prev = await fetchPrevCheckins(c);
+            // guard against a stale async render after the user clicked elsewhere
+            if (String(state.selectedCheckinId) !== String(c.id)) return;
+
+            const prevAny = prev[0] || null;
+            const prevWithPhotos = prev.find(r => parseJsonArr(r.photos).length > 0) || null;
+
+            const photos = parseJsonArr(c.photos).filter(p => p && p.url);
+            lightboxPhotos = [];
+
+            let html = '';
+            html += '<div class="ci-detail-head">' +
+                '<div class="ci-detail-title">' + esc(name) + '</div>' +
+                '<span class="card-subnote">' + esc(fmtDate(c.checkin_date)) + '</span>' +
+                (c.coach_responded_at ? '<span class="pbadge done">Replied</span>' : '<span class="pbadge reply">Needs reply</span>') +
+                '</div>';
+
+            // -- This week's photos
+            html += '<div class="ci-section-label">This week\'s photos</div>';
+            if (photos.length) {
+                html += '<div class="photo-row">' + photos.map(p => {
+                    const idx = lightboxPhotos.length;
+                    lightboxPhotos.push({ url: p.url, pose: (p.pose || '') + ' — ' + fmtDateShort(c.checkin_date) });
+                    return '<div class="photo-thumb" onclick="openLightboxIdx(' + idx + ')">' +
+                        '<img src="' + esc(p.url) + '" alt="' + esc(p.pose || 'Photo') + '" loading="lazy">' +
+                        '<div class="photo-pose">' + esc(p.pose || 'Photo') + '</div></div>';
+                }).join('') + '</div>';
+            } else {
+                html += '<div class="soft-empty" style="padding:12px;">No photos with this check-in.</div>';
+            }
+
+            // -- Compare vs previous
+            if (photos.length && prevWithPhotos) {
+                const prevPhotos = parseJsonArr(prevWithPhotos.photos).filter(p => p && p.url);
+                const prevByPose = {};
+                prevPhotos.forEach(p => { const k = String(p.pose || '').trim().toLowerCase(); if (!prevByPose[k]) prevByPose[k] = p; });
+                const usedPrev = new Set();
+                const pairs = photos.map(p => {
+                    const k = String(p.pose || '').trim().toLowerCase();
+                    const match = prevByPose[k] && !usedPrev.has(k) ? prevByPose[k] : null;
+                    if (match) usedPrev.add(k);
+                    return { pose: p.pose || 'Photo', prev: match, cur: p };
+                });
+                prevPhotos.forEach(p => {
+                    const k = String(p.pose || '').trim().toLowerCase();
+                    if (!usedPrev.has(k)) pairs.push({ pose: p.pose || 'Photo', prev: p, cur: null });
+                });
+
+                html += '<div class="ci-section-label">Compare vs previous (' + esc(fmtDateShort(prevWithPhotos.checkin_date)) + ' → ' + esc(fmtDateShort(c.checkin_date)) + ')</div>';
+                html += '<div class="compare-grid">' + pairs.map(pair => {
+                    let prevImg, curImg;
+                    if (pair.prev) {
+                        const i = lightboxPhotos.length;
+                        lightboxPhotos.push({ url: pair.prev.url, pose: pair.pose + ' — ' + fmtDateShort(prevWithPhotos.checkin_date) });
+                        prevImg = '<img src="' + esc(pair.prev.url) + '" alt="" loading="lazy" onclick="openLightboxIdx(' + i + ')">';
+                    } else {
+                        prevImg = '<div class="missing-photo">No previous ' + esc(pair.pose.toLowerCase()) + '</div>';
+                    }
+                    if (pair.cur) {
+                        const i = lightboxPhotos.length;
+                        lightboxPhotos.push({ url: pair.cur.url, pose: pair.pose + ' — ' + fmtDateShort(c.checkin_date) });
+                        curImg = '<img src="' + esc(pair.cur.url) + '" alt="" loading="lazy" onclick="openLightboxIdx(' + i + ')">';
+                    } else {
+                        curImg = '<div class="missing-photo">Not in this check-in</div>';
+                    }
+                    return '<div class="compare-pair">' +
+                        '<div class="photo-pose" style="margin-bottom:4px;">' + esc(pair.pose) + '</div>' +
+                        '<div class="compare-pair-imgs">' + prevImg + curImg + '</div>' +
+                        '<div class="compare-cap"><span>Previous</span><span>Current</span></div></div>';
+                }).join('') + '</div>';
+            }
+
+            // -- Posing video
+            if (c.posing_video_url) {
+                html += '<div class="ci-section-label">Posing video</div>' +
+                    '<video controls preload="metadata" src="' + esc(c.posing_video_url) + '" style="width:100%;max-height:380px;border-radius:12px;background:#000;"></video>';
+            }
+
+            // -- Wellness numbers
+            html += '<div class="ci-section-label">The numbers</div><div class="well-grid">';
+            if (c.weight != null) {
+                let trend = '';
+                if (prevAny && prevAny.weight != null) {
+                    const prevW = convertWeight(parseFloat(prevAny.weight), prevAny.weight_unit || 'lbs', c.weight_unit || 'lbs');
+                    const diff = round1(parseFloat(c.weight) - prevW);
+                    if (diff !== 0) {
+                        trend = '<div class="well-trend">' + (diff < 0 ? '↓ ' : '↑ ') + Math.abs(diff) + ' ' + esc(c.weight_unit || 'lbs') + ' vs last</div>';
+                    } else {
+                        trend = '<div class="well-trend">— unchanged</div>';
+                    }
+                }
+                html += '<div class="well-cell"><div class="well-label">Weight</div>' +
+                    '<div class="well-value">' + esc(c.weight) + ' <span class="well-of">' + esc(c.weight_unit || 'lbs') + '</span></div>' + trend + '</div>';
+            }
+            html += ratingCell('Energy', c.energy_level, 5);
+            html += ratingCell('Sleep', c.sleep_quality, 5);
+            html += ratingCell('Hunger', c.hunger_level, 5);
+            html += ratingCell('Stress', c.stress_level, 5);
+            html += ratingCell('Digestion', c.digestion, 5);
+            html += ratingCell('Soreness', c.soreness, 5);
+            html += ratingCell('Motivation', c.motivation, 5);
+            html += ratingCell('Pump', c.pump_rating, 5);
+            if (c.meal_plan_adherence != null) html += plainCell('Adherence', esc(c.meal_plan_adherence) + '<span class="well-of">%</span>');
+            if (c.workouts_completed != null || c.workouts_planned != null) {
+                html += plainCell('Workouts', esc(c.workouts_completed != null ? c.workouts_completed : '—') + '<span class="well-of">/' + esc(c.workouts_planned != null ? c.workouts_planned : '—') + '</span>');
+            }
+            if (c.cardio_completed != null || c.cardio_planned != null) {
+                html += plainCell('Cardio', esc(c.cardio_completed != null ? c.cardio_completed : '—') + '<span class="well-of">/' + esc(c.cardio_planned != null ? c.cardio_planned : '—') + '</span>');
+            }
+            if (c.avg_daily_steps != null) html += plainCell('Avg steps', esc(Number(c.avg_daily_steps).toLocaleString()));
+            html += '</div>';
+
+            // -- Text answers
+            if (c.wins) html += '<div class="ci-section-label">Wins</div><div class="ci-text-block">' + esc(c.wins) + '</div>';
+            if (c.challenges) html += '<div class="ci-section-label">Challenges</div><div class="ci-text-block">' + esc(c.challenges) + '</div>';
+            if (c.questions) html += '<div class="ci-section-label">Questions</div><div class="ci-text-block">' + esc(c.questions) + '</div>';
+
+            // -- Reply box
+            html += '<div class="reply-box">';
+            html += '<div class="ci-section-label" style="margin-top:0;">Your feedback</div>';
+            if (c.coach_feedback) {
+                html += '<div class="prev-feedback">' + esc(c.coach_feedback) +
+                    (c.coach_rating ? '<div style="margin-top:6px;font-weight:700;">Week rating: ' + esc(c.coach_rating) + '/10</div>' : '') +
+                    '<div class="card-subnote" style="margin-top:4px;">Sent ' + esc(fmtDate(c.coach_responded_at)) + '</div></div>';
+            }
+            html += '<textarea class="pta" id="replyText" placeholder="What went well, what to adjust this week…"></textarea>' +
+                '<div style="display:flex;gap:12px;align-items:flex-end;margin-top:12px;flex-wrap:wrap;">' +
+                '<div style="width:130px;"><label class="plabel">Week rating (1–10)</label>' +
+                '<input type="number" class="pin" id="replyRating" min="1" max="10" step="1" placeholder="—" value="' + (c.coach_rating ? esc(c.coach_rating) : '') + '"></div>' +
+                '<button class="btn btn-primary btn-sm" id="sendFeedbackBtn" onclick="sendFeedback()">' +
+                '<i data-lucide="send" style="width:15px;height:15px;"></i> ' + (c.coach_responded_at ? 'Send another reply' : 'Send feedback') + '</button>' +
+                '</div><div class="card-subnote" style="margin-top:8px;">Your reply also lands in their Messages thread so they can respond.</div>';
+            html += '</div>';
+
+            body.innerHTML = html;
+            refreshIcons();
+        }
+
+        async function sendFeedback() {
+            const c = state.checkins.find(r => String(r.id) === String(state.selectedCheckinId));
+            if (!c) return;
+            const text = (document.getElementById('replyText').value || '').trim();
+            const ratingRaw = document.getElementById('replyRating').value;
+            let rating = ratingRaw === '' ? null : parseInt(ratingRaw, 10);
+            if (rating != null && (isNaN(rating) || rating < 1 || rating > 10)) {
+                toast('Week rating must be between 1 and 10', true);
+                return;
+            }
+            if (!text && rating == null) {
+                toast('Write some feedback or set a rating first', true);
+                return;
+            }
+
+            const btn = document.getElementById('sendFeedbackBtn');
+            btn.disabled = true;
+            try {
+                if (text) {
+                    // respond-checkin saves feedback + responded_at AND posts the reply
+                    // into the chat thread + notifies the athlete.
+                    const token = await getToken();
+                    const res = await fetch('/.netlify/functions/respond-checkin', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+                        body: JSON.stringify({ checkinId: c.id, coachId: state.coachId, feedback: text })
+                    });
+                    const out = await res.json().catch(() => ({}));
+                    if (!res.ok || out.error) throw new Error(out.error || 'Could not send feedback');
+                    c.coach_feedback = text;
+                    c.coach_responded_at = new Date().toISOString();
+                }
+                if (rating != null || !text) {
+                    // Rating isn't handled by the function — direct RLS update. If the
+                    // coach only rated (no text), also stamp responded_at.
+                    const patch = {};
+                    if (rating != null) patch.coach_rating = rating;
+                    if (!text) patch.coach_responded_at = new Date().toISOString();
+                    const { error } = await supabaseClient.from('client_checkins')
+                        .update(patch).eq('id', c.id).eq('coach_id', state.coachId);
+                    if (error) throw error;
+                    if (rating != null) c.coach_rating = rating;
+                    if (!text) c.coach_responded_at = patch.coach_responded_at;
+                }
+                toast('Feedback saved');
+                // Re-sort + re-render so the "Needs reply" badge clears in place.
+                state.checkins.sort((a, b) => (a.coach_responded_at ? 1 : 0) - (b.coach_responded_at ? 1 : 0));
+                const needsReply = state.checkins.filter(r => !r.coach_responded_at).length;
+                const badge = document.getElementById('needsReplyCount');
+                badge.textContent = needsReply;
+                badge.style.display = needsReply ? '' : 'none';
+                renderCheckinsTab();
+            } catch (e) {
+                console.error('sendFeedback failed:', e);
+                toast(e.message || 'Could not send feedback — try again', true);
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        // ================= TAB 2: ATHLETES =================
+        async function loadAthletesTab() {
+            const panel = document.getElementById('tab-athletes');
+            const client = selectedClient();
+            if (!client) {
+                panel.innerHTML = needClientHtml('lifts, weak points and competitions');
+                refreshIcons();
+                return;
+            }
+            panel.innerHTML = '<div class="card"><div class="card-body">' +
+                '<div class="skeleton-line" style="width:80%"></div>' +
+                '<div class="skeleton-line" style="width:60%"></div>' +
+                '<div class="skeleton-line" style="width:70%"></div></div></div>';
+
+            try {
+                const [maxesRes, compsRes, ckRes] = await Promise.all([
+                    supabaseClient.from('athlete_lift_maxes')
+                        .select('*').eq('client_id', client.id)
+                        .order('achieved_date', { ascending: false }).limit(200),
+                    supabaseClient.from('athlete_competitions')
+                        .select('*').eq('client_id', client.id).limit(50),
+                    supabaseClient.from('client_checkins')
+                        .select('weight, weight_unit, checkin_date').eq('client_id', client.id)
+                        .not('weight', 'is', null)
+                        .order('checkin_date', { ascending: false }).limit(1).maybeSingle()
+                ]);
+                if (maxesRes.error) throw maxesRes.error;
+                if (compsRes.error) throw compsRes.error;
+
+                let bodyweight = null;
+                if (ckRes.data && ckRes.data.weight != null) {
+                    bodyweight = { weight: parseFloat(ckRes.data.weight), unit: ckRes.data.weight_unit || 'lbs' };
+                } else {
+                    try {
+                        const { data: m } = await supabaseClient.from('client_measurements')
+                            .select('weight, weight_unit').eq('client_id', client.id)
+                            .not('weight', 'is', null)
+                            .order('measured_date', { ascending: false }).limit(1).maybeSingle();
+                        if (m && m.weight != null) bodyweight = { weight: parseFloat(m.weight), unit: m.weight_unit || 'lbs' };
+                    } catch (e) { /* leave null */ }
+                }
+
+                state.ath = {
+                    clientId: String(client.id),
+                    maxes: maxesRes.data || [],
+                    comps: compsRes.data || [],
+                    bodyweight
+                };
+                renderAthletesTab();
+            } catch (e) {
+                console.error('athletes tab load failed:', e);
+                panel.innerHTML = '<div class="card"><div class="card-body">' +
+                    '<div class="soft-empty">Couldn\'t load athlete data — refresh to try again.</div></div></div>';
+            }
+        }
+
+        function currentBig3() {
+            const out = {};
+            ['squat', 'bench', 'deadlift'].forEach(k => {
+                out[k] = (state.ath.maxes || []).find(m => m.is_current && m.lift_key === k) || null;
+            });
+            return out;
+        }
+
+        function big3StripHtml(client) {
+            const big3 = currentBig3();
+            const displayUnit = (big3.squat || big3.bench || big3.deadlift || {}).weight_unit || 'lbs';
+            const cell = (label, m) => {
+                if (!m) return '<div class="big3-cell"><div class="big3-label">' + label + '</div><div class="big3-value">—</div><div class="big3-sub">No current max</div></div>';
+                return '<div class="big3-cell"><div class="big3-label">' + label + '</div>' +
+                    '<div class="big3-value">' + esc(round1(parseFloat(m.max_weight))) + ' <span class="b3-unit">' + esc(m.weight_unit) + '</span></div>' +
+                    '<div class="big3-sub">' + esc(fmtDateShort(m.achieved_date)) + ' · ' + esc(m.source || 'tested') + '</div></div>';
+            };
+
+            let totalHtml, dotsHtml;
+            if (big3.squat && big3.bench && big3.deadlift) {
+                const totalDisp = round1(
+                    convertWeight(parseFloat(big3.squat.max_weight), big3.squat.weight_unit, displayUnit) +
+                    convertWeight(parseFloat(big3.bench.max_weight), big3.bench.weight_unit, displayUnit) +
+                    convertWeight(parseFloat(big3.deadlift.max_weight), big3.deadlift.weight_unit, displayUnit)
+                );
+                totalHtml = '<div class="big3-cell"><div class="big3-label">Total</div>' +
+                    '<div class="big3-value">' + esc(totalDisp) + ' <span class="b3-unit">' + esc(displayUnit) + '</span></div>' +
+                    '<div class="big3-sub">Squat + Bench + Dead</div></div>';
+
+                const totalKg = toKg(parseFloat(big3.squat.max_weight), big3.squat.weight_unit) +
+                    toKg(parseFloat(big3.bench.max_weight), big3.bench.weight_unit) +
+                    toKg(parseFloat(big3.deadlift.max_weight), big3.deadlift.weight_unit);
+                const bw = state.ath.bodyweight;
+                if (bw && bw.weight > 0) {
+                    const bwKg = toKg(bw.weight, bw.unit);
+                    const isFemale = /^f/i.test(String(client.gender || ''));
+                    const dots = dotsScore(totalKg, bwKg, isFemale);
+                    dotsHtml = '<div class="big3-cell accent"><div class="big3-label">DOTS</div>' +
+                        '<div class="big3-value">' + (dots != null ? esc(round1(dots)) : '—') + '</div>' +
+                        '<div class="big3-sub">@ ' + esc(round1(bw.weight)) + ' ' + esc(bw.unit) + ' bodyweight</div></div>';
+                } else {
+                    dotsHtml = '<div class="big3-cell accent"><div class="big3-label">DOTS</div><div class="big3-value">—</div>' +
+                        '<div class="big3-sub">Needs a logged bodyweight</div></div>';
+                }
+            } else {
+                totalHtml = '<div class="big3-cell"><div class="big3-label">Total</div><div class="big3-value">—</div><div class="big3-sub">Needs all three lifts</div></div>';
+                dotsHtml = '<div class="big3-cell accent"><div class="big3-label">DOTS</div><div class="big3-value">—</div><div class="big3-sub">Needs total + bodyweight</div></div>';
+            }
+
+            return '<div class="big3-strip">' +
+                cell('Squat', big3.squat) + cell('Bench', big3.bench) + cell('Deadlift', big3.deadlift) +
+                totalHtml + dotsHtml + '</div>';
+        }
+
+        function sourceBadge(src) {
+            const s = src || 'tested';
+            const cls = s === 'competition' ? 'meet' : (s === 'estimated' ? 'amber' : 'neutral');
+            return '<span class="pbadge ' + cls + '">' + esc(s) + '</span>';
+        }
+
+        function maxesCardHtml() {
+            const current = (state.ath.maxes || []).filter(m => m.is_current);
+            const retired = (state.ath.maxes || []).filter(m => !m.is_current);
+
+            const rowHtml = m =>
+                '<tr><td class="max-name">' + esc(m.exercise_name) +
+                (m.lift_key ? ' <span class="pbadge neutral" style="margin-left:4px;">' + esc(m.lift_key) + '</span>' : '') + '</td>' +
+                '<td class="max-weight">' + esc(round1(parseFloat(m.max_weight))) + ' ' + esc(m.weight_unit) + '</td>' +
+                '<td>' + esc(fmtDateShort(m.achieved_date)) + '</td>' +
+                '<td>' + sourceBadge(m.source) + '</td>' +
+                '<td style="text-align:right;"><button class="icon-btn" title="Delete" onclick="deleteMax(' + m.id + ')">' +
+                '<i data-lucide="trash-2" style="width:16px;height:16px;"></i></button></td></tr>';
+
+            let html = '<div class="card"><div class="card-header"><div>' +
+                '<div class="card-title">Lift maxes</div>' +
+                '<div class="card-subnote">Current 1RMs — adding a new max for the same lift retires the old one into history</div>' +
+                '</div></div><div class="card-body">';
+
+            if (current.length) {
+                html += '<div style="overflow-x:auto;"><table class="max-table"><thead><tr>' +
+                    '<th>Exercise</th><th>Max</th><th>Date</th><th>Source</th><th></th></tr></thead><tbody>' +
+                    current.map(rowHtml).join('') + '</tbody></table></div>';
+            } else {
+                html += '<div class="soft-empty">No maxes logged yet — add the first one below.</div>';
+            }
+
+            if (retired.length) {
+                html += '<div style="margin-top:12px;"><button class="btn btn-secondary btn-sm" onclick="toggleMaxHistory()">' +
+                    (state.showMaxHistory ? 'Hide history' : 'Show history (' + retired.length + ')') + '</button></div>';
+                if (state.showMaxHistory) {
+                    html += '<div style="overflow-x:auto;margin-top:10px;opacity:0.75;"><table class="max-table"><thead><tr>' +
+                        '<th>Exercise</th><th>Max</th><th>Date</th><th>Source</th><th></th></tr></thead><tbody>' +
+                        retired.map(rowHtml).join('') + '</tbody></table></div>';
+                }
+            }
+
+            // Add/update form
+            html += '<div class="ci-section-label" style="margin-top:20px;">Add / update a max</div>' +
+                '<div class="quick-chips">' +
+                ['squat|Squat', 'bench|Bench Press', 'deadlift|Deadlift'].map(pair => {
+                    const [key, label] = pair.split('|');
+                    return '<button class="quick-chip' + (state.maxFormLiftKey === key ? ' active' : '') +
+                        '" onclick="setMaxChip(\'' + key + '\', \'' + label + '\')">' + label + '</button>';
+                }).join('') + '</div>' +
+                '<div class="frow c2">' +
+                '<div><label class="plabel">Exercise</label>' +
+                '<input type="text" class="pin" id="maxExercise" placeholder="e.g. Squat" oninput="onMaxExerciseInput()"></div>' +
+                '<div><label class="plabel">Max weight</label>' +
+                '<div style="display:flex;gap:8px;"><input type="number" class="pin" id="maxWeight" inputmode="decimal" step="any" min="0" placeholder="0" style="flex:1;">' +
+                '<select class="psel" id="maxUnit" style="width:84px;"><option value="lbs">lbs</option><option value="kg">kg</option></select></div></div>' +
+                '</div>' +
+                '<div class="frow c3">' +
+                '<div><label class="plabel">Source</label><select class="psel" id="maxSource">' +
+                '<option value="tested">Tested</option><option value="estimated">Estimated</option><option value="competition">Competition</option></select></div>' +
+                '<div><label class="plabel">Date</label><input type="date" class="pin" id="maxDate" value="' + new Date().toISOString().slice(0, 10) + '"></div>' +
+                '<div><label class="plabel">Notes</label><input type="text" class="pin" id="maxNotes" placeholder="Optional"></div>' +
+                '</div>' +
+                '<button class="btn btn-primary btn-sm" id="maxSaveBtn" onclick="submitMax()">' +
+                '<i data-lucide="plus" style="width:15px;height:15px;"></i> Save max</button>';
+
+            html += '</div></div>';
+            return html;
+        }
+
+        function setMaxChip(key, label) {
+            state.maxFormLiftKey = key;
+            document.getElementById('maxExercise').value = label;
+            document.querySelectorAll('.quick-chip').forEach(chip =>
+                chip.classList.toggle('active', chip.textContent.trim() === label));
+        }
+        function onMaxExerciseInput() {
+            const v = (document.getElementById('maxExercise').value || '').trim().toLowerCase();
+            const map = { 'squat': 'squat', 'bench press': 'bench', 'deadlift': 'deadlift' };
+            state.maxFormLiftKey = map[v] || null;
+            document.querySelectorAll('.quick-chip').forEach(chip =>
+                chip.classList.toggle('active',
+                    state.maxFormLiftKey && chip.textContent.trim().toLowerCase() === v));
+        }
+        function toggleMaxHistory() {
+            state.showMaxHistory = !state.showMaxHistory;
+            renderAthletesTab();
+        }
+
+        async function submitMax() {
+            const client = selectedClient();
+            if (!client) return;
+            const name = (document.getElementById('maxExercise').value || '').trim();
+            const weight = parseFloat(document.getElementById('maxWeight').value);
+            if (!name || !isFinite(weight) || weight <= 0) {
+                toast('Enter an exercise and a positive weight', true);
+                return;
+            }
+            const btn = document.getElementById('maxSaveBtn');
+            btn.disabled = true;
+            try {
+                await hubPost({
+                    action: 'set-max',
+                    clientId: client.id,
+                    liftKey: state.maxFormLiftKey || null,
+                    exerciseName: name,
+                    maxWeight: weight,
+                    weightUnit: document.getElementById('maxUnit').value,
+                    source: document.getElementById('maxSource').value,
+                    achievedDate: document.getElementById('maxDate').value || undefined,
+                    notes: (document.getElementById('maxNotes').value || '').trim() || undefined
+                });
+                toast('Max saved');
+                await loadAthletesTab();
+            } catch (e) {
+                console.error('set-max failed:', e);
+                toast(e.message || 'Could not save the max', true);
+                btn.disabled = false;
+            }
+        }
+
+        async function deleteMax(id) {
+            const client = selectedClient();
+            if (!client) return;
+            if (!confirm('Delete this max? This can\'t be undone.')) return;
+            try {
+                await hubPost({ action: 'delete-max', clientId: client.id, id });
+                toast('Max deleted');
+                await loadAthletesTab();
+            } catch (e) {
+                toast(e.message || 'Could not delete the max', true);
+            }
+        }
+
+        // ---- Weak points ----
+        function currentWeakPoints() {
+            const client = selectedClient();
+            const profile = parseJsonObj(client && client.athlete_profile);
+            return parseJsonArr(profile.weakPoints).filter(w => w && w.muscle);
+        }
+
+        function weakPointsCardHtml() {
+            const wps = currentWeakPoints();
+            const byMuscle = {};
+            wps.forEach(w => { byMuscle[String(w.muscle).toLowerCase()] = w; });
+            return '<div class="card"><div class="card-header"><div>' +
+                '<div class="card-title">Weak point tracker</div>' +
+                '<div class="card-subnote">Tap to cycle: off → focus (amber) → high priority (red)</div>' +
+                '</div></div><div class="card-body">' +
+                '<div class="wp-chips">' + WEAK_POINT_MUSCLES.map(m => {
+                    const w = byMuscle[m.toLowerCase()];
+                    const cls = w ? (w.priority === 'high' ? ' high' : ' normal') : '';
+                    return '<button class="wp-chip' + cls + '" onclick="toggleWeakPoint(\'' + m + '\')">' + m + '</button>';
+                }).join('') + '</div>' +
+                '<div class="card-subnote" id="wpStatus" style="margin-top:12px;">&nbsp;</div>' +
+                '</div></div>';
+        }
+
+        async function toggleWeakPoint(muscle) {
+            const client = selectedClient();
+            if (!client) return;
+            const wps = currentWeakPoints();
+            const idx = wps.findIndex(w => String(w.muscle).toLowerCase() === muscle.toLowerCase());
+            if (idx === -1) {
+                wps.push({ muscle, priority: 'normal' });
+            } else if (wps[idx].priority !== 'high') {
+                wps[idx] = { ...wps[idx], priority: 'high' };
+            } else {
+                wps.splice(idx, 1);
+            }
+            // optimistic local update
+            const profile = parseJsonObj(client.athlete_profile);
+            profile.weakPoints = wps;
+            client.athlete_profile = profile;
+            renderAthletesTab();
+            const status = document.getElementById('wpStatus');
+            if (status) status.textContent = 'Saving…';
+            try {
+                const out = await hubPost({ action: 'save-profile', clientId: client.id, profile: { weakPoints: wps } });
+                if (out.athleteProfile) client.athlete_profile = out.athleteProfile;
+                const s2 = document.getElementById('wpStatus');
+                if (s2) s2.textContent = 'Saved';
+                setTimeout(() => { const s3 = document.getElementById('wpStatus'); if (s3 && s3.textContent === 'Saved') s3.innerHTML = '&nbsp;'; }, 1800);
+            } catch (e) {
+                console.error('save weak points failed:', e);
+                toast('Could not save weak points — try again', true);
+                const s2 = document.getElementById('wpStatus');
+                if (s2) s2.textContent = 'Not saved — check your connection';
+            }
+        }
+
+        // ---- Competitions ----
+        function compCountdown(dateStr) {
+            if (!dateStr) return '';
+            const today = new Date(); today.setHours(0, 0, 0, 0);
+            const d = new Date(dateStr + 'T00:00:00');
+            const days = Math.round((d - today) / 86400000);
+            if (days > 1) return days + ' days out';
+            if (days === 1) return 'Tomorrow';
+            if (days === 0) return 'Today';
+            if (days === -1) return 'Yesterday';
+            return Math.abs(days) + ' days ago';
+        }
+
+        function competitionsCardHtml() {
+            const comps = (state.ath.comps || []).slice();
+            const today = new Date().toISOString().slice(0, 10);
+            const upcoming = comps.filter(c => c.status !== 'completed' && c.status !== 'cancelled' && c.comp_date >= today)
+                .sort((a, b) => (a.comp_date || '').localeCompare(b.comp_date || ''));
+            const past = comps.filter(c => !upcoming.includes(c))
+                .sort((a, b) => (b.comp_date || '').localeCompare(a.comp_date || ''));
+            const ordered = upcoming.concat(past);
+
+            let html = '<div class="card"><div class="card-header">' +
+                '<div class="card-title">Competitions</div>' +
+                '<button class="btn btn-primary btn-sm" onclick="openCompModal()">' +
+                '<i data-lucide="plus" style="width:15px;height:15px;"></i> Add</button>' +
+                '</div><div class="card-body">';
+
+            if (!ordered.length) {
+                html += '<div class="soft-empty">Nothing on the calendar yet.<br>Add their next meet or show to start the countdown.</div>';
+            } else {
+                html += ordered.map(c => {
+                    const isUpcoming = upcoming.includes(c);
+                    const typeBadge = '<span class="pbadge ' + (c.comp_type === 'show' ? 'show">Show' : 'meet">Meet') + '</span>';
+                    const statusBadge = c.status === 'completed' ? ' <span class="pbadge done">Completed</span>'
+                        : c.status === 'cancelled' ? ' <span class="pbadge neutral">Cancelled</span>' : '';
+                    const meta = [];
+                    meta.push(fmtDate(c.comp_date));
+                    if (c.federation) meta.push(c.federation);
+                    if (c.division) meta.push(c.division);
+                    if (c.weight_class) meta.push(c.weight_class);
+                    if (c.location) meta.push(c.location);
+
+                    let attemptsHtml = '';
+                    if (c.comp_type !== 'show') {
+                        if (c.goal_total != null) meta.push('Goal total: ' + c.goal_total);
+                        const at = parseJsonObj(c.attempts);
+                        const hasAttempts = ['squat', 'bench', 'deadlift'].some(k => Array.isArray(at[k]) && at[k].some(v => v != null && v !== ''));
+                        if (hasAttempts) {
+                            attemptsHtml = '<div style="overflow-x:auto;margin-top:8px;"><table class="max-table" style="max-width:380px;"><thead><tr>' +
+                                '<th></th><th>1st</th><th>2nd</th><th>3rd</th></tr></thead><tbody>' +
+                                ['squat|Squat', 'bench|Bench', 'deadlift|Deadlift'].map(pair => {
+                                    const [k, label] = pair.split('|');
+                                    const arr = Array.isArray(at[k]) ? at[k] : [];
+                                    return '<tr><td class="max-name">' + label + '</td>' +
+                                        [0, 1, 2].map(i => '<td>' + (arr[i] != null && arr[i] !== '' ? esc(arr[i]) : '—') + '</td>').join('') + '</tr>';
+                                }).join('') + '</tbody></table></div>';
+                        }
+                    }
+
+                    return '<div class="comp-row">' +
+                        '<div class="comp-title-line">' + typeBadge +
+                        '<span class="comp-name">' + esc(c.name || 'Competition') + '</span>' +
+                        (isUpcoming ? '<span class="comp-countdown">' + esc(compCountdown(c.comp_date)) + '</span>' : '') +
+                        statusBadge + '</div>' +
+                        '<div class="comp-meta">' + meta.map(m => '<span>' + esc(m) + '</span>').join('') + '</div>' +
+                        (c.notes ? '<div class="card-subnote" style="margin-top:6px;white-space:pre-wrap;">' + esc(c.notes) + '</div>' : '') +
+                        attemptsHtml +
+                        '<div class="comp-actions">' +
+                        '<button class="btn btn-secondary btn-sm" onclick="openCompModal(' + c.id + ')">Edit</button>' +
+                        '<button class="btn btn-secondary btn-sm" onclick="deleteComp(' + c.id + ')" style="color:#dc2626;">Delete</button>' +
+                        '</div></div>';
+                }).join('');
+            }
+            html += '</div></div>';
+            return html;
+        }
+
+        function renderAthletesTab() {
+            const panel = document.getElementById('tab-athletes');
+            const client = selectedClient();
+            if (!client || !state.ath || state.ath.clientId !== String(client.id)) return;
+            panel.innerHTML =
+                big3StripHtml(client) +
+                '<div class="ath-grid">' +
+                '<div class="ath-col">' + maxesCardHtml() + '</div>' +
+                '<div class="ath-col">' + weakPointsCardHtml() + competitionsCardHtml() + '</div>' +
+                '</div>';
+            refreshIcons();
+        }
+
+        // ---- Competition modal ----
+        function athUnit() {
+            const m = (state.ath && state.ath.maxes || []).find(x => x.is_current && x.lift_key);
+            return m ? m.weight_unit : 'lbs';
+        }
+        function onCompTypeChange() {
+            const isMeet = document.getElementById('compType').value === 'meet';
+            document.getElementById('compMeetFields').style.display = isMeet ? '' : 'none';
+        }
+        function openCompModal(id) {
+            const comp = id ? (state.ath.comps || []).find(c => c.id === id) : null;
+            state.editingCompId = comp ? comp.id : null;
+            document.getElementById('compModalTitle').textContent = comp ? 'Edit competition' : 'Add competition';
+            document.getElementById('compType').value = comp ? (comp.comp_type === 'show' ? 'show' : 'meet') : 'meet';
+            document.getElementById('compStatus').value = comp ? (comp.status || 'upcoming') : 'upcoming';
+            document.getElementById('compName').value = comp ? (comp.name || '') : '';
+            document.getElementById('compDate').value = comp ? (comp.comp_date || '') : '';
+            document.getElementById('compLocation').value = comp ? (comp.location || '') : '';
+            document.getElementById('compFederation').value = comp ? (comp.federation || '') : '';
+            document.getElementById('compDivision').value = comp ? (comp.division || '') : '';
+            document.getElementById('compWeightClass').value = comp ? (comp.weight_class || '') : '';
+            document.getElementById('compGoalTotal').value = comp && comp.goal_total != null ? comp.goal_total : '';
+            document.getElementById('compNotes').value = comp ? (comp.notes || '') : '';
+            const unit = '(' + athUnit() + ')';
+            document.getElementById('compGoalUnit').textContent = unit;
+            document.getElementById('compAttemptsUnit').textContent = unit;
+            const at = comp ? parseJsonObj(comp.attempts) : {};
+            ['squat', 'bench', 'deadlift'].forEach(k => {
+                const arr = Array.isArray(at[k]) ? at[k] : [];
+                [0, 1, 2].forEach(i => {
+                    document.getElementById('att_' + k + '_' + i).value = arr[i] != null && arr[i] !== '' ? arr[i] : '';
+                });
+            });
+            onCompTypeChange();
+            document.getElementById('compModal').classList.add('open');
+            refreshIcons();
+        }
+        function closeCompModal() {
+            document.getElementById('compModal').classList.remove('open');
+            state.editingCompId = null;
+        }
+        async function saveComp() {
+            const client = selectedClient();
+            if (!client) return;
+            const name = (document.getElementById('compName').value || '').trim();
+            const date = document.getElementById('compDate').value;
+            if (!name || !date) { toast('Name and date are required', true); return; }
+            const compType = document.getElementById('compType').value;
+
+            const attempts = {};
+            ['squat', 'bench', 'deadlift'].forEach(k => {
+                attempts[k] = [0, 1, 2].map(i => {
+                    const v = parseFloat(document.getElementById('att_' + k + '_' + i).value);
+                    return isFinite(v) && v > 0 ? v : null;
+                });
+            });
+            const goalRaw = parseFloat(document.getElementById('compGoalTotal').value);
+
+            const payload = {
+                action: 'save-competition',
+                clientId: client.id,
+                compType,
+                name,
+                compDate: date,
+                location: (document.getElementById('compLocation').value || '').trim() || null,
+                federation: (document.getElementById('compFederation').value || '').trim() || null,
+                division: (document.getElementById('compDivision').value || '').trim() || null,
+                weightClass: (document.getElementById('compWeightClass').value || '').trim() || null,
+                status: document.getElementById('compStatus').value,
+                notes: (document.getElementById('compNotes').value || '').trim() || null
+            };
+            if (state.editingCompId) payload.id = state.editingCompId;
+            if (compType === 'meet') {
+                payload.goalTotal = isFinite(goalRaw) && goalRaw > 0 ? goalRaw : null;
+                payload.attempts = attempts;
+            }
+
+            const btn = document.getElementById('compSaveBtn');
+            btn.disabled = true;
+            try {
+                await hubPost(payload);
+                toast('Competition saved');
+                closeCompModal();
+                await loadAthletesTab();
+            } catch (e) {
+                console.error('save-competition failed:', e);
+                toast(e.message || 'Could not save the competition', true);
+            } finally {
+                btn.disabled = false;
+            }
+        }
+        async function deleteComp(id) {
+            const client = selectedClient();
+            if (!client) return;
+            if (!confirm('Delete this competition? This can\'t be undone.')) return;
+            try {
+                await hubPost({ action: 'delete-competition', clientId: client.id, id });
+                toast('Competition deleted');
+                await loadAthletesTab();
+            } catch (e) {
+                toast(e.message || 'Could not delete the competition', true);
+            }
+        }
+
+        // ================= TAB 3: PROTOCOLS =================
+        async function loadProtocolsTab() {
+            const panel = document.getElementById('tab-protocols');
+            const client = selectedClient();
+            if (!client) {
+                panel.innerHTML = needClientHtml('protocols');
+                refreshIcons();
+                return;
+            }
+            panel.innerHTML = '<div class="card"><div class="card-body">' +
+                '<div class="skeleton-line" style="width:70%"></div>' +
+                '<div class="skeleton-line" style="width:50%"></div></div></div>';
+            try {
+                const { data, error } = await supabaseClient.from('athlete_protocols')
+                    .select('*').eq('client_id', client.id)
+                    .order('created_at', { ascending: false }).limit(100);
+                if (error) throw error;
+                const showArchived = state.protocols && state.protocols.clientId === String(client.id)
+                    ? state.protocols.showArchived : false;
+                state.protocols = { clientId: String(client.id), rows: data || [], showArchived };
+                renderProtocolsTab();
+            } catch (e) {
+                console.error('protocols load failed:', e);
+                panel.innerHTML = '<div class="card"><div class="card-body">' +
+                    '<div class="soft-empty">Couldn\'t load protocols — refresh to try again.</div></div></div>';
+            }
+        }
+
+        function protoCardHtml(p) {
+            const items = parseJsonArr(p.items).filter(i => i && (i.compound || i.dose || i.frequency || i.timing || i.notes));
+            let itemsHtml = '';
+            if (items.length) {
+                itemsHtml = '<div style="overflow-x:auto;"><table class="proto-items-table"><thead><tr>' +
+                    '<th>Compound / item</th><th>Dose</th><th>Frequency</th><th>Timing</th><th>Notes</th></tr></thead><tbody>' +
+                    items.map(i =>
+                        '<tr><td style="font-weight:600;">' + esc(i.compound || '—') + '</td>' +
+                        '<td>' + esc(i.dose || '—') + '</td>' +
+                        '<td>' + esc(i.frequency || '—') + '</td>' +
+                        '<td>' + esc(i.timing || '—') + '</td>' +
+                        '<td>' + esc(i.notes || '') + '</td></tr>'
+                    ).join('') + '</tbody></table></div>';
+            } else {
+                itemsHtml = '<div class="card-subnote" style="margin-top:8px;">No items logged.</div>';
+            }
+            const dates = [];
+            if (p.start_date) dates.push('From ' + fmtDate(p.start_date));
+            if (p.end_date) dates.push('to ' + fmtDate(p.end_date));
+            return '<div class="card" style="margin-bottom:16px;"><div class="card-header"><div>' +
+                '<div class="card-title">' + esc(p.title || 'Protocol') +
+                (!p.is_active ? ' <span class="pbadge neutral">Archived</span>' : '') +
+                (p.visible_to_client === false ? ' <span class="pbadge amber">Hidden from athlete</span>' : '') +
+                '</div>' +
+                (dates.length ? '<div class="card-subnote">' + esc(dates.join(' ')) + '</div>' : '') +
+                '</div><div style="display:flex;gap:8px;flex-wrap:wrap;">' +
+                '<button class="btn btn-secondary btn-sm" onclick="openProtoModal(' + p.id + ')">Edit</button>' +
+                (p.is_active
+                    ? '<button class="btn btn-secondary btn-sm" onclick="archiveProto(' + p.id + ', false)">Archive</button>'
+                    : '<button class="btn btn-secondary btn-sm" onclick="archiveProto(' + p.id + ', true)">Restore</button>') +
+                '<button class="btn btn-secondary btn-sm" style="color:#dc2626;" onclick="deleteProto(' + p.id + ')">Delete</button>' +
+                '</div></div><div class="card-body">' + itemsHtml +
+                (p.notes ? '<div class="ci-text-block" style="margin-top:10px;">' + esc(p.notes) + '</div>' : '') +
+                '</div></div>';
+        }
+
+        function renderProtocolsTab() {
+            const panel = document.getElementById('tab-protocols');
+            const client = selectedClient();
+            if (!client || !state.protocols || state.protocols.clientId !== String(client.id)) return;
+            const rows = state.protocols.rows;
+            const active = rows.filter(p => p.is_active !== false);
+            const archived = rows.filter(p => p.is_active === false);
+
+            let html = '<div class="private-note"><i data-lucide="lock" style="width:16px;height:16px;flex-shrink:0;"></i>' +
+                'Private — only you and this athlete can see this. Never shared.</div>';
+
+            html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px;">' +
+                '<div class="card-subnote">Protocols for ' + esc(client.client_name || 'this athlete') + ' — a logging tool; you write everything.</div>' +
+                '<button class="btn btn-primary btn-sm" onclick="openProtoModal()">' +
+                '<i data-lucide="plus" style="width:15px;height:15px;"></i> New protocol</button></div>';
+
+            if (!active.length && !archived.length) {
+                html += '<div class="card"><div class="card-body"><div class="soft-empty">' +
+                    'Nothing logged yet.<br>Create a supplement, enhancement or peak-week protocol to keep everything in one private place.</div></div></div>';
+            } else {
+                const groups = {};
+                active.forEach(p => {
+                    const t = PROTOCOL_LABELS[p.protocol_type] ? p.protocol_type : 'other';
+                    (groups[t] = groups[t] || []).push(p);
+                });
+                PROTOCOL_ORDER.concat(['other']).forEach(t => {
+                    if (!groups[t] || !groups[t].length) return;
+                    html += '<div class="proto-group-label">' + esc(PROTOCOL_LABELS[t] || 'Other') + (groups[t].length > 1 ? 's' : '') + '</div>';
+                    html += groups[t].map(protoCardHtml).join('');
+                });
+                if (!active.length) {
+                    html += '<div class="card"><div class="card-body"><div class="soft-empty">No active protocols right now.</div></div></div>';
+                }
+                if (archived.length) {
+                    html += '<div style="margin:10px 0;"><button class="btn btn-secondary btn-sm" onclick="toggleArchivedProtos()">' +
+                        (state.protocols.showArchived ? 'Hide archived' : 'Show archived (' + archived.length + ')') + '</button></div>';
+                    if (state.protocols.showArchived) html += archived.map(protoCardHtml).join('');
+                }
+            }
+            panel.innerHTML = html;
+            refreshIcons();
+        }
+
+        function toggleArchivedProtos() {
+            state.protocols.showArchived = !state.protocols.showArchived;
+            renderProtocolsTab();
+        }
+
+        function protoItemRowHtml(item) {
+            const i = item || {};
+            return '<div class="proto-item-row">' +
+                '<input type="text" class="pin pi-compound" placeholder="Compound / item" value="' + esc(i.compound || '') + '">' +
+                '<input type="text" class="pin pi-dose" placeholder="Dose" value="' + esc(i.dose || '') + '">' +
+                '<input type="text" class="pin pi-frequency" placeholder="e.g. 2x/week" value="' + esc(i.frequency || '') + '">' +
+                '<input type="text" class="pin pi-timing" placeholder="e.g. AM / pre-workout" value="' + esc(i.timing || '') + '">' +
+                '<input type="text" class="pin pi-notes" placeholder="Notes" value="' + esc(i.notes || '') + '">' +
+                '<button class="icon-btn" title="Remove" onclick="this.closest(\'.proto-item-row\').remove()">' +
+                '<i data-lucide="x" style="width:16px;height:16px;"></i></button></div>';
+        }
+        function addProtoItemRow(item) {
+            document.getElementById('protoItems').insertAdjacentHTML('beforeend', protoItemRowHtml(item));
+            refreshIcons();
+        }
+        function openProtoModal(id) {
+            const p = id && state.protocols ? state.protocols.rows.find(r => r.id === id) : null;
+            state.editingProtoId = p ? p.id : null;
+            document.getElementById('protoModalTitle').textContent = p ? 'Edit protocol' : 'New protocol';
+            document.getElementById('protoTitle').value = p ? (p.title || '') : '';
+            document.getElementById('protoType').value = p && PROTOCOL_LABELS[p.protocol_type] ? p.protocol_type : 'supplement';
+            document.getElementById('protoStart').value = p ? (p.start_date || '') : '';
+            document.getElementById('protoEnd').value = p ? (p.end_date || '') : '';
+            document.getElementById('protoVisible').checked = p ? p.visible_to_client !== false : true;
+            document.getElementById('protoNotes').value = p ? (p.notes || '') : '';
+            const wrap = document.getElementById('protoItems');
+            wrap.innerHTML = '';
+            const items = p ? parseJsonArr(p.items) : [];
+            if (items.length) items.forEach(i => addProtoItemRow(i));
+            else addProtoItemRow();
+            document.getElementById('protoModal').classList.add('open');
+            refreshIcons();
+        }
+        function closeProtoModal() {
+            document.getElementById('protoModal').classList.remove('open');
+            state.editingProtoId = null;
+        }
+        async function saveProto() {
+            const client = selectedClient();
+            if (!client) return;
+            const title = (document.getElementById('protoTitle').value || '').trim();
+            if (!title) { toast('Give the protocol a title', true); return; }
+            const items = Array.from(document.querySelectorAll('#protoItems .proto-item-row')).map(row => ({
+                compound: row.querySelector('.pi-compound').value.trim(),
+                dose: row.querySelector('.pi-dose').value.trim(),
+                frequency: row.querySelector('.pi-frequency').value.trim(),
+                timing: row.querySelector('.pi-timing').value.trim(),
+                notes: row.querySelector('.pi-notes').value.trim()
+            })).filter(i => i.compound || i.dose || i.frequency || i.timing || i.notes);
+
+            const fields = {
+                title,
+                protocol_type: document.getElementById('protoType').value,
+                start_date: document.getElementById('protoStart').value || null,
+                end_date: document.getElementById('protoEnd').value || null,
+                visible_to_client: document.getElementById('protoVisible').checked,
+                items,
+                notes: (document.getElementById('protoNotes').value || '').trim() || null
+            };
+
+            const btn = document.getElementById('protoSaveBtn');
+            btn.disabled = true;
+            try {
+                if (state.editingProtoId) {
+                    const { error } = await supabaseClient.from('athlete_protocols')
+                        .update(fields).eq('id', state.editingProtoId).eq('coach_id', state.coachId);
+                    if (error) throw error;
+                } else {
+                    const { error } = await supabaseClient.from('athlete_protocols')
+                        .insert([{ ...fields, client_id: client.id, coach_id: state.coachId, is_active: true }]);
+                    if (error) throw error;
+                }
+                toast('Protocol saved');
+                closeProtoModal();
+                await loadProtocolsTab();
+            } catch (e) {
+                console.error('save protocol failed:', e);
+                toast(e.message || 'Could not save the protocol', true);
+            } finally {
+                btn.disabled = false;
+            }
+        }
+        async function archiveProto(id, makeActive) {
+            try {
+                const { error } = await supabaseClient.from('athlete_protocols')
+                    .update({ is_active: !!makeActive }).eq('id', id).eq('coach_id', state.coachId);
+                if (error) throw error;
+                toast(makeActive ? 'Protocol restored' : 'Protocol archived');
+                await loadProtocolsTab();
+            } catch (e) {
+                toast(e.message || 'Could not update the protocol', true);
+            }
+        }
+        async function deleteProto(id) {
+            if (!confirm('Delete this protocol permanently? This can\'t be undone.')) return;
+            try {
+                const { error } = await supabaseClient.from('athlete_protocols')
+                    .delete().eq('id', id).eq('coach_id', state.coachId);
+                if (error) throw error;
+                toast('Protocol deleted');
+                await loadProtocolsTab();
+            } catch (e) {
+                toast(e.message || 'Could not delete the protocol', true);
+            }
+        }
+
+        // ================= TAB 4: BLOODWORK =================
+        async function loadBloodworkTab() {
+            const panel = document.getElementById('tab-bloodwork');
+            const client = selectedClient();
+            if (!client) {
+                panel.innerHTML = needClientHtml('bloodwork');
+                refreshIcons();
+                return;
+            }
+            panel.innerHTML = '<div class="card"><div class="card-body">' +
+                '<div class="skeleton-line" style="width:70%"></div>' +
+                '<div class="skeleton-line" style="width:50%"></div></div></div>';
+            try {
+                const { data, error } = await supabaseClient.from('athlete_bloodwork')
+                    .select('*').eq('client_id', client.id)
+                    .order('test_date', { ascending: false }).limit(24);
+                if (error) throw error;
+                const formOpen = state.blood && state.blood.clientId === String(client.id) ? state.blood.formOpen : false;
+                state.blood = { clientId: String(client.id), rows: data || [], formOpen };
+                renderBloodworkTab();
+            } catch (e) {
+                console.error('bloodwork load failed:', e);
+                panel.innerHTML = '<div class="card"><div class="card-body">' +
+                    '<div class="soft-empty">Couldn\'t load bloodwork — refresh to try again.</div></div></div>';
+            }
+        }
+
+        function markerColorClass(key, value) {
+            const r = REFERENCE_RANGES[key];
+            if (!r || !isFinite(value)) return '';
+            const { min, max } = r;
+            const belowOk = min == null || value >= min;
+            const aboveOk = max == null || value <= max;
+            if (belowOk && aboveOk) return 'bw-good';
+            if (!belowOk) return value >= min - Math.abs(min) * 0.15 ? 'bw-warn' : 'bw-bad';
+            return value <= max + Math.abs(max) * 0.15 ? 'bw-warn' : 'bw-bad';
+        }
+
+        function prettifyKey(key) {
+            return String(key).replace(/_/g, ' ').replace(/\b\w/g, ch => ch.toUpperCase());
+        }
+
+        function bloodFormHtml() {
+            return '<div class="card" style="margin-bottom:24px;"><div class="card-header">' +
+                '<div class="card-title">New bloodwork panel</div>' +
+                '<button class="btn btn-secondary btn-sm" onclick="toggleBloodForm()">Close</button>' +
+                '</div><div class="card-body">' +
+                '<div class="frow c3">' +
+                '<div><label class="plabel">Test date *</label><input type="date" class="pin" id="bwDate" value="' + new Date().toISOString().slice(0, 10) + '"></div>' +
+                '<div><label class="plabel">Lab</label><input type="text" class="pin" id="bwLab" placeholder="e.g. Quest, Marek"></div>' +
+                '<div><label class="plabel">Notes</label><input type="text" class="pin" id="bwNotes" placeholder="Optional"></div>' +
+                '</div>' +
+                '<label class="plabel" style="margin-top:6px;">Markers — only the ones you fill in get saved</label>' +
+                '<div class="marker-form-grid" id="bwMarkers">' +
+                COMMON_MARKERS.map(m =>
+                    '<div class="marker-form-row" data-key="' + m.key + '">' +
+                    '<span class="m-label">' + esc(m.label) + '</span>' +
+                    '<input type="number" class="pin bw-input" inputmode="decimal" step="any" placeholder="—">' +
+                    '<span class="m-unit">' + esc(m.unit) + '</span></div>'
+                ).join('') +
+                '</div>' +
+                '<div id="bwCustomRows" style="margin-top:12px;"></div>' +
+                '<button class="btn btn-secondary btn-sm" onclick="addCustomMarkerRow()" style="margin-top:4px;">' +
+                '<i data-lucide="plus" style="width:15px;height:15px;"></i> Add custom marker</button>' +
+                '<div style="margin-top:16px;"><button class="btn btn-primary btn-sm" id="bwSaveBtn" onclick="saveBloodPanel()">' +
+                '<i data-lucide="save" style="width:15px;height:15px;"></i> Save panel</button></div>' +
+                '</div></div>';
+        }
+
+        function addCustomMarkerRow() {
+            document.getElementById('bwCustomRows').insertAdjacentHTML('beforeend',
+                '<div class="marker-form-row bw-custom-row" style="margin-bottom:8px;">' +
+                '<input type="text" class="pin bwc-name" placeholder="Marker name">' +
+                '<input type="number" class="pin bwc-value" inputmode="decimal" step="any" placeholder="Value">' +
+                '<input type="text" class="pin bwc-unit" placeholder="Unit" style="width:70px;">' +
+                '</div>');
+        }
+
+        function toggleBloodForm() {
+            state.blood.formOpen = !state.blood.formOpen;
+            renderBloodworkTab();
+        }
+
+        async function saveBloodPanel() {
+            const client = selectedClient();
+            if (!client) return;
+            const testDate = document.getElementById('bwDate').value;
+            if (!testDate) { toast('Pick the test date', true); return; }
+
+            const markers = {};
+            document.querySelectorAll('#bwMarkers .marker-form-row').forEach(row => {
+                const key = row.dataset.key;
+                const v = parseFloat(row.querySelector('.bw-input').value);
+                if (isFinite(v)) {
+                    const def = COMMON_MARKERS.find(m => m.key === key);
+                    markers[key] = { value: v, unit: def ? def.unit : '' };
+                }
+            });
+            document.querySelectorAll('#bwCustomRows .bw-custom-row').forEach(row => {
+                const name = (row.querySelector('.bwc-name').value || '').trim();
+                const v = parseFloat(row.querySelector('.bwc-value').value);
+                if (name && isFinite(v)) {
+                    const key = name.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '') || 'custom';
+                    markers[key] = { value: v, unit: (row.querySelector('.bwc-unit').value || '').trim(), label: name };
+                }
+            });
+            if (!Object.keys(markers).length) { toast('Fill in at least one marker', true); return; }
+
+            const btn = document.getElementById('bwSaveBtn');
+            btn.disabled = true;
+            try {
+                const { error } = await supabaseClient.from('athlete_bloodwork').insert([{
+                    client_id: client.id,
+                    coach_id: state.coachId,
+                    test_date: testDate,
+                    lab_name: (document.getElementById('bwLab').value || '').trim() || null,
+                    notes: (document.getElementById('bwNotes').value || '').trim() || null,
+                    markers
+                }]);
+                if (error) throw error;
+                toast('Bloodwork saved');
+                state.blood.formOpen = false;
+                await loadBloodworkTab();
+            } catch (e) {
+                console.error('save bloodwork failed:', e);
+                toast(e.message || 'Could not save the panel', true);
+                btn.disabled = false;
+            }
+        }
+
+        async function deleteBloodPanel(id) {
+            if (!confirm('Delete this bloodwork panel? This can\'t be undone.')) return;
+            try {
+                const { error } = await supabaseClient.from('athlete_bloodwork')
+                    .delete().eq('id', id).eq('coach_id', state.coachId);
+                if (error) throw error;
+                toast('Panel deleted');
+                await loadBloodworkTab();
+            } catch (e) {
+                toast(e.message || 'Could not delete the panel', true);
+            }
+        }
+
+        function renderBloodworkTab() {
+            const panel = document.getElementById('tab-bloodwork');
+            const client = selectedClient();
+            if (!client || !state.blood || state.blood.clientId !== String(client.id)) return;
+            const rows = state.blood.rows;
+
+            let html = '';
+            html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px;">' +
+                '<div class="card-subnote">Bloodwork for ' + esc(client.client_name || 'this athlete') + '</div>' +
+                (!state.blood.formOpen
+                    ? '<button class="btn btn-primary btn-sm" onclick="toggleBloodForm()">' +
+                      '<i data-lucide="plus" style="width:15px;height:15px;"></i> Add panel</button>'
+                    : '') +
+                '</div>';
+
+            if (state.blood.formOpen) html += bloodFormHtml();
+
+            if (!rows.length) {
+                html += '<div class="card"><div class="card-body"><div class="soft-empty">' +
+                    'No bloodwork on file yet.<br>Add their first panel and every future draw lines up next to it.</div></div></div>';
+            } else {
+                // Pivot: columns = panels (dates), rows = markers.
+                const panels = rows.slice().sort((a, b) => (b.test_date || '').localeCompare(a.test_date || ''));
+                const markerKeys = [];
+                const labels = {};
+                COMMON_MARKERS.forEach(m => { labels[m.key] = m.label; });
+                panels.forEach(p => {
+                    Object.entries(parseJsonObj(p.markers)).forEach(([k, v]) => {
+                        if (!markerKeys.includes(k)) markerKeys.push(k);
+                        if (!labels[k] && v && v.label) labels[k] = v.label;
+                    });
+                });
+                // keep the common panel order first, customs after
+                markerKeys.sort((a, b) => {
+                    const ia = COMMON_MARKERS.findIndex(m => m.key === a);
+                    const ib = COMMON_MARKERS.findIndex(m => m.key === b);
+                    return (ia === -1 ? 999 : ia) - (ib === -1 ? 999 : ib);
+                });
+
+                html += '<div class="card"><div class="card-header"><div>' +
+                    '<div class="card-title">History</div>' +
+                    '<div class="card-subnote">Green in range · amber borderline · red out of range</div>' +
+                    '</div></div><div class="card-body"><div class="bw-table-wrap"><table class="bw-table"><thead><tr>' +
+                    '<th>Marker</th>' +
+                    panels.map(p =>
+                        '<th>' + esc(fmtDateShort(p.test_date)) +
+                        (p.lab_name ? '<br><span style="font-weight:500;text-transform:none;letter-spacing:0;">' + esc(p.lab_name) + '</span>' : '') +
+                        '<br><button class="icon-btn" style="padding:2px;" title="Delete panel" onclick="deleteBloodPanel(' + p.id + ')">' +
+                        '<i data-lucide="trash-2" style="width:13px;height:13px;"></i></button></th>'
+                    ).join('') +
+                    '</tr></thead><tbody>' +
+                    markerKeys.map(k => {
+                        const def = COMMON_MARKERS.find(m => m.key === k);
+                        return '<tr><td class="bw-marker-name">' + esc(labels[k] || prettifyKey(k)) +
+                            (def ? ' <span style="font-weight:400;color:var(--gray-400);font-size:0.6875rem;">' + esc(def.unit) + '</span>' : '') + '</td>' +
+                            panels.map(p => {
+                                const m = parseJsonObj(p.markers)[k];
+                                if (!m || m.value == null) return '<td>—</td>';
+                                const v = parseFloat(m.value);
+                                const cls = markerColorClass(k, v);
+                                return '<td><span class="bw-val ' + cls + '">' + esc(m.value) +
+                                    (!def && m.unit ? ' <span style="font-weight:400;font-size:0.6875rem;">' + esc(m.unit) + '</span>' : '') +
+                                    '</span></td>';
+                            }).join('') + '</tr>';
+                    }).join('') +
+                    '</tbody></table></div>' +
+                    (panels.some(p => p.notes)
+                        ? '<div class="ci-section-label">Panel notes</div>' + panels.filter(p => p.notes).map(p =>
+                            '<div class="card-subnote" style="margin-bottom:6px;"><strong>' + esc(fmtDateShort(p.test_date)) + ':</strong> ' + esc(p.notes) + '</div>').join('')
+                        : '') +
+                    '<div class="bw-disclaimer">Reference ranges are general lab ranges, not medical advice.</div>' +
+                    '</div></div>';
+            }
+            panel.innerHTML = html;
+            refreshIcons();
+        }
+
+        // ================= go =================
+        boot().catch(err => {
+            console.error('Prep HQ failed to load:', err);
+            document.getElementById('loadingText').textContent = 'Something went wrong. Please refresh.';
+        });
+    </script>
+</body>
+</html>
