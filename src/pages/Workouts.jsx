@@ -3694,6 +3694,10 @@ function Workouts() {
           weightUnit: s?.weightUnit || weightUnitRef.current || 'lbs',
           restSeconds: s?.restSeconds || null,
           effort: s?.effort || null,
+          // Keep RPE on this path too — the in-workout sync path already
+          // persists it, and dropping it here erased the athlete's logged RPE
+          // (which e1RM estimates and coach review both read).
+          rpe: s?.rpe || null,
           ...(s?.duration != null && { duration: s.duration }),
           ...(s?.distance != null && { distance: s.distance })
         }));

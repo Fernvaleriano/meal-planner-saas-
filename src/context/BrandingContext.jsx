@@ -41,6 +41,12 @@ const DEFAULT_BRANDING = {
     // Shop / Drops (clothing + supplement promos) is OFF by default. A gym
     // opts in per-account; only then does the Shop tab + Home banner appear.
     shop: false,
+    // Competitive-athlete modules (piloted on Goliath Strength). OFF by
+    // default — a coach/gym opts in per-account. `powerlifting` unlocks the
+    // Strength hub (1RMs, e1RM trends, DOTS, meet prep); `bodybuilding`
+    // unlocks the physique check-in (photos, posing video, prep metrics).
+    powerlifting: false,
+    bodybuilding: false,
   },
   custom_terminology: null,
   brand_client_theme: 'dark',

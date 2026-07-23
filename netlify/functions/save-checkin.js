@@ -91,6 +91,28 @@ exports.handler = async (event) => {
         checkinRecord.workouts_planned = body.workoutsPlanned;
       }
 
+      // Physique-athlete fields (bodybuilding check-ins) — all optional so
+      // regular coaching check-ins keep sending the same payload as before.
+      if (body.weight !== undefined) checkinRecord.weight = body.weight;
+      if (body.weightUnit !== undefined) checkinRecord.weight_unit = body.weightUnit;
+      if (body.digestion !== undefined) checkinRecord.digestion = body.digestion;
+      if (body.soreness !== undefined) checkinRecord.soreness = body.soreness;
+      if (body.motivation !== undefined) checkinRecord.motivation = body.motivation;
+      if (body.pumpRating !== undefined) checkinRecord.pump_rating = body.pumpRating;
+      if (body.cardioCompleted !== undefined) checkinRecord.cardio_completed = body.cardioCompleted;
+      if (body.cardioPlanned !== undefined) checkinRecord.cardio_planned = body.cardioPlanned;
+      if (body.avgDailySteps !== undefined) checkinRecord.avg_daily_steps = body.avgDailySteps;
+      if (Array.isArray(body.photos) && body.photos.length) {
+        // [{ pose: 'front'|'back'|'side'|..., url, path }]
+        checkinRecord.photos = body.photos.slice(0, 12).map(p => ({
+          pose: String(p.pose || 'photo').slice(0, 40),
+          url: typeof p.url === 'string' ? p.url : null,
+          path: typeof p.path === 'string' ? p.path : null
+        }));
+      }
+      if (body.posingVideoUrl !== undefined) checkinRecord.posing_video_url = body.posingVideoUrl;
+      if (body.posingVideoPath !== undefined) checkinRecord.posing_video_path = body.posingVideoPath;
+
       // Insert the check-in
       const { data: checkinData, error } = await supabase
         .from('client_checkins')

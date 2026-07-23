@@ -9168,7 +9168,7 @@
                             ${setsInputField(set, si)}
                             ${exercise.showWeight ? `<div class="wb-set-input-group"><input type="number" class="wb-set-input wb-set-input-sm" value="${set.weight || ''}" min="0" step="any" placeholder="—" onchange="updateExerciseSet(${di},${ei},${si},'weight',parseFloat(this.value)||0)"><select class="wb-set-unit-select" onchange="updateExerciseSet(${di},${ei},${si},'weightUnit',this.value)"><option value="lb" ${(set.weightUnit || 'lb') === 'lb' ? 'selected' : ''}>lb</option><option value="kg" ${set.weightUnit === 'kg' ? 'selected' : ''}>kg</option></select></div>` : ''}
                             ${exercise.showRPE ? `<input type="number" class="wb-set-input wb-set-input-sm" value="${set.rpe || ''}" min="1" max="10" step="0.5" placeholder="—" onchange="updateExerciseSet(${di},${ei},${si},'rpe',parseFloat(this.value)||0)">` : ''}
-                            ${exercise.showPercent1RM ? `<input type="number" class="wb-set-input wb-set-input-sm" value="${set.percent1RM || ''}" min="0" max="100" step="1" placeholder="%" onchange="updateExerciseSet(${di},${ei},${si},'percent1RM',parseInt(this.value)||0)">` : ''}
+                            ${exercise.showPercent1RM ? `<input type="number" class="wb-set-input wb-set-input-sm" value="${set.percent1RM || ''}" min="0" max="120" step="1" placeholder="%" onchange="updateExerciseSet(${di},${ei},${si},'percent1RM',parseInt(this.value)||0)">` : ''}
                             ${exercise.showPace && trackingType === 'distance' ? `<input type="text" class="wb-set-input wb-set-input-sm" value="${set.pace || ''}" placeholder="0:00" onchange="updateExerciseSet(${di},${ei},${si},'pace',this.value)">` : ''}
                             ${exercise.showIncline && trackingType === 'distance' ? `<input type="number" class="wb-set-input wb-set-input-sm" value="${set.incline || ''}" min="0" max="40" step="0.5" placeholder="%" onchange="updateExerciseSet(${di},${ei},${si},'incline',parseFloat(this.value)||0)">` : ''}
                             ${exercise.showHRZone ? `<select class="wb-set-input wb-set-input-sm wb-set-select" onchange="updateExerciseSet(${di},${ei},${si},'hrZone',parseInt(this.value)||0)"><option value="" ${!set.hrZone ? 'selected' : ''}>—</option><option value="1" ${set.hrZone == 1 ? 'selected' : ''}>Z1</option><option value="2" ${set.hrZone == 2 ? 'selected' : ''}>Z2</option><option value="3" ${set.hrZone == 3 ? 'selected' : ''}>Z3</option><option value="4" ${set.hrZone == 4 ? 'selected' : ''}>Z4</option><option value="5" ${set.hrZone == 5 ? 'selected' : ''}>Z5</option></select>` : ''}
@@ -9176,6 +9176,11 @@
                         </div>
                     `).join('')}
                 </div>
+
+                ${exercise.showPercent1RM ? `
+                <div style="padding:2px 16px 0;font-size:11.5px;color:var(--text-muted);line-height:1.4;">
+                    % 1RM converts to a real target weight in the athlete's app automatically, using the 1RM saved for this lift (set in their Strength hub or by you in Prep HQ).
+                </div>` : ''}
 
                 <div class="wb-detail-set-actions">
                     <button class="wb-add-set-btn" onclick="addSetToExercise(${di},${ei})">
