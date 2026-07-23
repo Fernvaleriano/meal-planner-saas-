@@ -316,6 +316,38 @@ async function trainerClientIdScope(event, supabase, coachId, knownCtx) {
 }
 
 /**
+ * Per-trainer permission check (multi-trainer permissions layer).
+ * Owners (and anyone who isn't a trainer) always pass. For trainers,
+ * a permission is ALLOWED unless the gym owner explicitly switched it
+ * off (gym_trainers.permissions[key] === false) — so existing trainers
+ * keep exactly the abilities they had before this layer existed.
+ * Keys: 'build_workouts' | 'write_meal_plans' | 'message_clients' | 'see_contact_info'
+ *
+ * @param {object} ctx - a resolveGymContext/authenticateGymMember result
+ * @param {string} permission - permission key
+ * @returns {boolean}
+ */
+function trainerCan(ctx, permission) {
+  if (!ctx || ctx.role !== 'trainer') return true;
+  const perms = (ctx.trainer && ctx.trainer.permissions) || {};
+  return perms[permission] !== false;
+}
+
+/**
+ * Standard 403 for a trainer blocked by a permission toggle.
+ */
+function trainerPermissionResponse(what) {
+  return {
+    statusCode: 403,
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      error: `Your gym has not enabled ${what} for you.`,
+      code: 'TRAINER_PERMISSION'
+    })
+  };
+}
+
+/**
  * Simple authentication - just verify the token is valid
  * @param {object} event - Netlify event object
  * @returns {Promise<{user: object|null, error: object|null}>}
@@ -476,6 +508,8 @@ module.exports = {
   resolveGymContext,
   authenticateGymMember,
   trainerClientIdScope,
+  trainerCan,
+  trainerPermissionResponse,
   checkRateLimit,
   checkRateLimitDurable,
   rateLimitResponse

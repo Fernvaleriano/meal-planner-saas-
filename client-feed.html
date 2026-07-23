@@ -1081,7 +1081,7 @@
     </main>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.0"></script>
-    <script src="/js/trainer-bounce.js"></script>
+    <script src="/js/gym-context.js"></script>
     <script>
         // Sidebar collapse/expand
         function toggleSidebarSection(label) {
@@ -1108,6 +1108,7 @@
         const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
         let currentUser = null;
+        let feedCoachId = null;
         let offset = 0;
         const limit = 20;
         let hasMore = true;
@@ -1169,6 +1170,15 @@
 
                 currentUser = session.user;
                 console.log('Client Feed: User authenticated:', currentUser.id);
+
+                // Gym TRAINER: act as the GYM's coach id. The fetch shim in
+                // gym-context.js attaches the trainer's token, so the server
+                // (coach-activity-feed & friends) scopes everything to their
+                // assigned clients. Owners: feedCoachId stays their own id.
+                const __ctx = (window.ZQCoach && window.ZQCoach.resolveCoachContext)
+                    ? await window.ZQCoach.resolveCoachContext(supabaseClient) : null;
+                if (__ctx && __ctx.role === 'trainer') feedCoachId = __ctx.coachId;
+                else feedCoachId = currentUser.id;
                 document.getElementById('userEmail').textContent = currentUser.email;
                 document.getElementById('userAvatar').textContent = currentUser.email.charAt(0).toUpperCase();
 
@@ -1191,7 +1201,7 @@
                 }
 
                 // Load unread message count for sidebar badge
-                loadUnreadMessageCount(currentUser.id);
+                loadUnreadMessageCount(feedCoachId);
 
                 // Load feed
                 console.log('Client Feed: Starting to load feed...');
@@ -1260,7 +1270,7 @@
             const { data } = await supabase
                 .from('clients')
                 .select('id, client_name')
-                .eq('coach_id', currentUser.id);
+                .eq('coach_id', feedCoachId);
 
             const select = document.getElementById('clientFilter');
             (data || []).forEach(client => {
@@ -1291,7 +1301,7 @@
             const mealType = document.getElementById('mealFilter').value;
             const date = document.getElementById('dateFilter').value;
 
-            let url = `/.netlify/functions/coach-activity-feed?coachId=${currentUser.id}&limit=${limit}&offset=${offset}`;
+            let url = `/.netlify/functions/coach-activity-feed?coachId=${feedCoachId}&limit=${limit}&offset=${offset}`;
             if (clientId) url += `&clientId=${clientId}`;
             if (mealType) url += `&mealType=${mealType}`;
             if (date) url += `&date=${date}`;
@@ -1306,7 +1316,7 @@
                     controller.abort();
                 }, 15000);
 
-                const response = await fetch(url, { signal: controller.signal });
+                const response = await authenticatedFetch(url, { signal: controller.signal });
                 clearTimeout(timeoutId);
 
                 console.log('loadFeed: Response status:', response.status);
@@ -1519,7 +1529,7 @@
                     await authenticatedFetch('/.netlify/functions/react-to-diary-entry', {
                         method: 'DELETE',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ entryId, coachId: currentUser.id })
+                        body: JSON.stringify({ entryId, coachId: feedCoachId })
                     });
                     reactionBtn.classList.remove('has-reaction');
                     reactionBtn.querySelector('.reaction-emoji').textContent = '+';
@@ -1529,7 +1539,7 @@
                     await authenticatedFetch('/.netlify/functions/react-to-diary-entry', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ entryId, coachId: currentUser.id, clientId, reaction })
+                        body: JSON.stringify({ entryId, coachId: feedCoachId, clientId, reaction })
                     });
                     reactionBtn.classList.add('has-reaction');
                     reactionBtn.querySelector('.reaction-emoji').textContent = reaction;
@@ -1564,7 +1574,7 @@
                     body: JSON.stringify({
                         entryId,
                         clientId,
-                        coachId: currentUser.id,
+                        coachId: feedCoachId,
                         comment,
                         authorType: 'coach'
                     })

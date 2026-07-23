@@ -1,6 +1,6 @@
 const { createClient } = require('@supabase/supabase-js');
 const { withTimeout } = require('./utils/with-timeout');
-const { authenticateClientAccess, authenticateCoach, authenticateGymMember } = require('./utils/auth');
+const { authenticateClientAccess, authenticateCoach, authenticateGymMember, resolveGymContext, trainerCan, trainerPermissionResponse } = require('./utils/auth');
 const {
   estimateWorkoutMinutes,
   estimateWorkoutCalories
@@ -850,6 +850,19 @@ exports.handler = withTimeout(async (event) => {
       if (postAuth.error) {
         const gymAuth = await authenticateGymMember(event, coachId);
         if (gymAuth.error) return postAuth.error;
+        // Permission toggle: a trainer whose gym switched off workout building
+        // may not assign workouts. Owners always pass.
+        if (!trainerCan(gymAuth, 'build_workouts')) return trainerPermissionResponse('assigning workouts');
+      } else if (postAuth.role === 'coach') {
+        // authenticateClientAccess grants 'coach' to the gym owner AND to the
+        // client's assigned trainer, but returns no gym ctx — resolve it so a
+        // permission-blocked trainer can't slip through this path. Owners
+        // resolve to role 'owner' and clients never enter this branch, so
+        // their behavior is unchanged.
+        const gymCtx = await resolveGymContext(event);
+        if (gymCtx.role === 'trainer' && !trainerCan(gymCtx, 'build_workouts')) {
+          return trainerPermissionResponse('assigning workouts');
+        }
       }
 
       let finalWorkoutData = workoutData;

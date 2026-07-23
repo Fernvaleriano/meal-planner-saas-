@@ -1,6 +1,6 @@
 // Netlify Function for coach-client direct messaging
 const { createClient } = require('@supabase/supabase-js');
-const { authenticateRequest, authenticateClientAccess, forbiddenResponse, authenticateGymMember, trainerClientIdScope } = require('./utils/auth');
+const { authenticateRequest, authenticateClientAccess, forbiddenResponse, authenticateGymMember, trainerClientIdScope, resolveGymContext, trainerCan, trainerPermissionResponse } = require('./utils/auth');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -25,13 +25,21 @@ exports.handler = async (event) => {
     const { user: authUser, error: authErr } = await authenticateRequest(event);
     if (authErr) return authErr;
 
+    // Lazily-resolved gym context for the caller, shared across the checks in
+    // this invocation so the trainer branches don't hit the DB twice.
+    let _gymCtx;
+    const getGymCtx = async () => {
+      if (_gymCtx === undefined) _gymCtx = await resolveGymContext(event);
+      return _gymCtx;
+    };
+
     // True if the caller is the COACH side of this conversation: the gym owner
     // (authUser.id === coachId) OR a trainer of that gym whose assigned clients
     // include clientId. Owners are unaffected (first check is the old one).
     const coachSideAuthorized = async (coachId, clientId) => {
       if (coachId && authUser.id === coachId) return true;
       if (coachId && clientId != null) {
-        const scope = await trainerClientIdScope(event, supabase, coachId);
+        const scope = await trainerClientIdScope(event, supabase, coachId, await getGymCtx());
         if (scope && scope.map(String).includes(String(clientId))) return true;
       }
       return false;
@@ -273,6 +281,12 @@ exports.handler = async (event) => {
         // The sender must actually be who they claim to be.
         if (senderType === 'coach') {
           if (!(await coachSideAuthorized(coachId, clientId))) return forbiddenResponse('Not authorized');
+          // SENDING only: a trainer whose gym switched off client messaging is
+          // blocked (reading/mark-read stays allowed). Owners never resolve a
+          // trainer ctx, so they always pass.
+          if (authUser.id !== coachId && !trainerCan(await getGymCtx(), 'message_clients')) {
+            return trainerPermissionResponse('messaging clients');
+          }
         } else {
           const ca = await authenticateClientAccess(event, clientId);
           if (ca.error) return ca.error;
@@ -350,9 +364,14 @@ exports.handler = async (event) => {
         }
 
         // Coach side only. A trainer may bulk-send, but only to clients assigned
-        // to them (every id must be in their scope).
+        // to them (every id must be in their scope) and only if their gym has
+        // not switched off client messaging.
         if (authUser.id !== coachId) {
-          const scope = await trainerClientIdScope(event, supabase, coachId);
+          const bulkCtx = await getGymCtx();
+          if (bulkCtx.role === 'trainer' && !trainerCan(bulkCtx, 'message_clients')) {
+            return trainerPermissionResponse('messaging clients');
+          }
+          const scope = await trainerClientIdScope(event, supabase, coachId, bulkCtx);
           const ok = scope && clientIds.every(id => scope.map(String).includes(String(id)));
           if (!ok) return forbiddenResponse('Not authorized');
         }

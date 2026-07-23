@@ -8513,7 +8513,7 @@
             }
             try {
                 const url = `/.netlify/functions/coach-activity-feed?coachId=${_currentCoachId}&limit=20&offset=${_mealOffset}`;
-                const res = await fetch(url);
+                const res = await authenticatedFetch(url);
                 if (res.ok) {
                     const data = await res.json();
                     _mealHasMore = data.hasMore || false;
@@ -8555,7 +8555,7 @@
                         if (!entry) return;
                         // Fetch full meal data for this client/date/meal_type via the API
                         const url = `/.netlify/functions/coach-activity-feed?coachId=${coachId}&clientId=${entry.client_id}&date=${entry.entry_date}&mealType=${entry.meal_type}&limit=1&offset=0`;
-                        const res = await fetch(url);
+                        const res = await authenticatedFetch(url);
                         if (!res.ok) return;
                         const data = await res.json();
                         if (data.clients) Object.assign(_mealClientMap, data.clients);
@@ -9211,7 +9211,7 @@
                 try {
                     _mealOffset = 0;
                     const mealUrl = `/.netlify/functions/coach-activity-feed?coachId=${coachId}&limit=20&offset=0`;
-                    const mealRes = await fetch(mealUrl);
+                    const mealRes = await authenticatedFetch(mealUrl);
                     if (mealRes.ok) {
                         const mealData = await mealRes.json();
                         _mealHasMore = mealData.hasMore || false;

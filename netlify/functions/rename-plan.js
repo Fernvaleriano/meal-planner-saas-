@@ -1,6 +1,6 @@
 // Netlify Function to rename a meal plan
 const { createClient } = require('@supabase/supabase-js');
-const { handleCors, authenticateGymMember, trainerClientIdScope, corsHeaders } = require('./utils/auth');
+const { handleCors, authenticateGymMember, trainerClientIdScope, trainerCan, trainerPermissionResponse, corsHeaders } = require('./utils/auth');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -37,6 +37,9 @@ exports.handler = async (event, context) => {
     const _ctx = await authenticateGymMember(event, coachId);
     const { user, error: authError } = _ctx;
     if (authError) return authError;
+    // Permission toggle: a trainer whose gym switched off meal-plan editing is
+    // blocked here. Owners (and legacy coaches) always pass.
+    if (!trainerCan(_ctx, 'write_meal_plans')) return trainerPermissionResponse('editing meal plans');
 
     // Initialize Supabase client with service key
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, {

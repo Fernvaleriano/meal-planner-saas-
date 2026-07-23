@@ -1380,7 +1380,7 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="/js/trainer-bounce.js"></script>
+    <script src="/js/gym-context.js"></script>
     <script>
         // Sidebar section collapse functionality
 
@@ -1426,6 +1426,42 @@
                 }
 
                 const user = session.user;
+
+                // Gym TRAINER (no coaches row): show a minimal profile instead
+                // of failing on the coaches lookup. Owner-only sections
+                // (subscription, branding, export/delete account, photo/name
+                // editing) don't apply to a trainer login.
+                const __ctx = (window.ZQCoach && window.ZQCoach.resolveCoachContext)
+                    ? await window.ZQCoach.resolveCoachContext(supabaseClient) : null;
+                if (__ctx && __ctx.role === 'trainer') {
+                    const { data: tRow } = await supabaseClient
+                        .from('gym_trainers')
+                        .select('name, email')
+                        .eq('trainer_user_id', user.id)
+                        .eq('status', 'active')
+                        .maybeSingle();
+                    const tName = (tRow && tRow.name) || (user.email || '').split('@')[0] || 'Trainer';
+                    document.getElementById('profileEmail').textContent = user.email;
+                    document.getElementById('profileName').textContent = tName;
+                    document.getElementById('avatarInitial').textContent = tName.charAt(0).toUpperCase();
+                    const badge = document.getElementById('tierBadge');
+                    badge.textContent = 'TRAINER';
+                    badge.className = 'profile-badge basic';
+                    document.getElementById('subscriptionCard').style.display = 'none';
+                    const avatarEl = document.getElementById('profileAvatar');
+                    if (avatarEl) { avatarEl.onclick = null; avatarEl.style.cursor = 'default'; avatarEl.title = ''; }
+                    document.querySelectorAll('.settings-card').forEach(card => {
+                        const titleEl = card.querySelector('.settings-card-title');
+                        if (titleEl && /^\s*Profile\s*$/i.test(titleEl.textContent || '')) card.style.display = 'none';
+                    });
+                    document.querySelectorAll('.settings-item').forEach(item => {
+                        const labelEl = item.querySelector('.settings-label');
+                        if (labelEl && /export my data|delete my account/i.test(labelEl.textContent || '')) item.style.display = 'none';
+                    });
+                    loadingDiv.style.display = 'none';
+                    profileContent.style.display = 'block';
+                    return;
+                }
 
                 // Get coach data
                 const { data: coachData, error: coachError } = await supabaseClient
