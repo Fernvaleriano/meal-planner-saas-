@@ -15456,18 +15456,29 @@
                 const cb = document.querySelector(`input[name="movementFlag"][value="${flag}"]`);
                 if (cb) cb.checked = storedMovement.has(flag);
             });
-            // If the client has equipment_access on file, try to auto-toggle the
-            // equipment grid to match (coach can still adjust). String parsing is
-            // best-effort: looks for keywords in the free-text field.
+            // If the client has equipment_access on file, auto-toggle the
+            // equipment grid to match (coach can still adjust). The intake form
+            // stores a CODED value (full_gym / home_gym / minimal) — map each to
+            // the equipment that setup realistically has. Fall back to best-effort
+            // keyword matching for any older free-text value.
             if (c.equipment_access) {
-                const eq = c.equipment_access.toLowerCase();
+                const eq = c.equipment_access.toLowerCase().trim();
+                // Bodyweight is always available regardless of setup.
+                const CODED = {
+                    full_gym: ['barbell', 'dumbbell', 'cable', 'machine', 'bodyweight', 'kettlebell'],
+                    home_gym: ['dumbbell', 'bodyweight', 'kettlebell'],
+                    minimal:  ['dumbbell', 'bodyweight']
+                };
+                const allowed = CODED[eq] || null;
                 const has = (kw) => kw.some(k => eq.includes(k));
                 document.querySelectorAll('input[name="equipment"]').forEach(cb => {
-                    if (cb.value === 'barbell') cb.checked = has(['barbell', 'bb']);
+                    if (allowed) {
+                        cb.checked = allowed.includes(cb.value) || cb.value === 'bodyweight';
+                    } else if (cb.value === 'barbell') cb.checked = has(['barbell', 'bb']);
                     else if (cb.value === 'dumbbell') cb.checked = has(['dumbbell', 'db']);
                     else if (cb.value === 'cable') cb.checked = has(['cable']);
                     else if (cb.value === 'machine') cb.checked = has(['machine']);
-                    else if (cb.value === 'bodyweight') cb.checked = has(['bodyweight', 'body weight', 'home', 'no equipment']) || true; // bodyweight is always available
+                    else if (cb.value === 'bodyweight') cb.checked = true; // always available
                     else if (cb.value === 'kettlebell') cb.checked = has(['kettlebell', 'kb']);
                 });
             }
@@ -15479,7 +15490,10 @@
                 if (storedInjuries.size > 0) bits.push(`Injuries on file: ${[...storedInjuries].join(', ')} <em>(auto-checked)</em>`);
                 if (storedMovement.size > 0) bits.push(`Movement screen: ${[...storedMovement].join(', ')} <em>(auto-checked)</em>`);
                 if (hf.aiNotes) bits.push(`AI notes: ${hf.aiNotes}`);
-                if (c.equipment_access) bits.push(`Equipment: ${c.equipment_access} <em>(grid auto-set, adjust if wrong)</em>`);
+                if (c.equipment_access) {
+                    const eqLabel = { full_gym: 'Full gym', home_gym: 'Home gym', minimal: 'Minimal (dumbbells/bands)' }[String(c.equipment_access).toLowerCase().trim()] || c.equipment_access;
+                    bits.push(`Equipment: ${eqLabel} <em>(grid auto-set, adjust if wrong)</em>`);
+                }
                 let unavailList = c.unavailable_equipment;
                 if (typeof unavailList === 'string') { try { unavailList = JSON.parse(unavailList); } catch (e) { unavailList = []; } }
                 if (Array.isArray(unavailList) && unavailList.length) bits.push(`No access to: ${unavailList.join(', ')} <em>(excluded automatically)</em>`);
