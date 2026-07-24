@@ -264,9 +264,14 @@ const refreshSignedUrls = async (workoutData, coachId) => {
   try {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 10000);
+    // get-signed-urls now requires an authenticated caller.
+    const _token = getCachedAccessToken();
     const response = await fetch('/.netlify/functions/get-signed-urls', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        ...(_token ? { 'Authorization': `Bearer ${_token}` } : {})
+      },
       body: JSON.stringify({ filePaths, coachId }),
       signal: controller.signal
     });

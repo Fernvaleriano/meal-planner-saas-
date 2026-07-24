@@ -4,7 +4,7 @@ import { ChevronLeft, ChevronRight, ChevronDown, Plus, Minus, Camera, Search, He
 import { useAuth } from '../context/AuthContext';
 import { useBranding } from '../context/BrandingContext';
 import { useLanguage } from '../context/LanguageContext';
-import { apiGet, apiPost, apiPut, apiDelete, fetchWithTimeout } from '../utils/api';
+import { apiGet, apiPost, apiPut, apiDelete, fetchWithTimeout, getCachedAccessToken } from '../utils/api';
 import { getSpeechLang } from '../utils/speechLang';
 import { FavoritesModal, SnapPhotoModal, ScanLabelModal, SearchFoodsModal } from '../components/FoodModals';
 import { usePullToRefresh, PullToRefreshIndicator } from '../hooks/usePullToRefresh';
@@ -333,7 +333,7 @@ function Diary() {
     const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
     // Load water via direct fetch (independent of auth chain)
-    fetchWithTimeout(`/.netlify/functions/water-intake?clientId=${encodeURIComponent(clientData.id)}&date=${dateStr}&timezone=${encodeURIComponent(timezone)}`)
+    fetchWithTimeout(`/.netlify/functions/water-intake?clientId=${encodeURIComponent(clientData.id)}&date=${dateStr}&timezone=${encodeURIComponent(timezone)}`, { headers: getCachedAccessToken() ? { 'Authorization': `Bearer ${getCachedAccessToken()}` } : {} })
       .then(res => res.ok ? res.json() : Promise.reject(new Error(`HTTP ${res.status}`)))
       .then(waterData => {
         // Ignore responses that resolve after the user navigated to a
@@ -785,7 +785,7 @@ function Diary() {
     const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
     // Load water via direct fetch (no auth wrapper — backend uses service key)
-    fetchWithTimeout(`/.netlify/functions/water-intake?clientId=${encodeURIComponent(clientData.id)}&date=${dateStr}&timezone=${encodeURIComponent(timezone)}`)
+    fetchWithTimeout(`/.netlify/functions/water-intake?clientId=${encodeURIComponent(clientData.id)}&date=${dateStr}&timezone=${encodeURIComponent(timezone)}`, { headers: getCachedAccessToken() ? { 'Authorization': `Bearer ${getCachedAccessToken()}` } : {} })
       .then(res => {
         if (!res.ok) throw new Error(`Water GET failed: ${res.status}`);
         return res.json();
@@ -858,9 +858,13 @@ function Diary() {
   // Save water to server — fire-and-forget, keepalive ensures delivery
   const saveWater = (clientId, dateStr, value) => {
     const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const _wToken = getCachedAccessToken();
     fetch('/.netlify/functions/water-intake', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        ...(_wToken ? { 'Authorization': `Bearer ${_wToken}` } : {})
+      },
       keepalive: true,
       body: JSON.stringify({ clientId, date: dateStr, glasses: value, timezone: tz })
     }).catch(err => console.error('Water save error:', err));

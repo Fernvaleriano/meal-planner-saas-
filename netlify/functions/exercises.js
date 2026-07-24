@@ -1,4 +1,5 @@
 const { createClient } = require('@supabase/supabase-js');
+const { authenticateGymMember } = require('./utils/auth');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -11,6 +12,14 @@ const headers = {
   'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
   'Content-Type': 'application/json'
 };
+
+// coach_id is a UUID. It gets interpolated into a PostgREST .or() filter, so a
+// non-UUID value could inject extra filter clauses and leak every coach's custom
+// exercises. Validate the shape before it's ever used in a query.
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+function isUuid(v) {
+  return typeof v === 'string' && UUID_RE.test(v);
+}
 
 // Auto-convert a coach's custom exercise video to Mux the moment it's saved, so
 // every new upload streams fast (and adapts on weak signal) with no manual step.
@@ -140,8 +149,10 @@ exports.handler = async (event) => {
         .from('exercises')
         .select('*', { count: 'exact' });
 
-      // Show global exercises + coach's custom exercises
-      if (coachId) {
+      // Show global exercises + coach's custom exercises. Only a well-formed
+      // UUID may enter the .or() filter; a malformed value falls back to
+      // globals-only rather than injecting filter clauses.
+      if (coachId && isUuid(coachId)) {
         query = query.or(`coach_id.is.null,coach_id.eq.${coachId}`);
       } else {
         query = query.is('coach_id', null);
@@ -268,6 +279,15 @@ exports.handler = async (event) => {
         };
       }
 
+      if (!isUuid(coachId)) {
+        return { statusCode: 400, headers, body: JSON.stringify({ error: 'Invalid coachId' }) };
+      }
+
+      // Only the coach (or one of their gym trainers) may create a custom
+      // exercise under this coach_id.
+      const { error: postAuthError } = await authenticateGymMember(event, coachId);
+      if (postAuthError) return postAuthError;
+
       const insertData = {
         coach_id: coachId,
         name,
@@ -341,6 +361,22 @@ exports.handler = async (event) => {
         };
       }
 
+      // Authorize against the exercise's owning coach. Only custom exercises
+      // (coach_id set) are editable; the caller must be that coach or a trainer.
+      {
+        const { data: owned } = await supabase
+          .from('exercises')
+          .select('coach_id')
+          .eq('id', exerciseId)
+          .eq('is_custom', true)
+          .maybeSingle();
+        if (!owned || !owned.coach_id) {
+          return { statusCode: 404, headers, body: JSON.stringify({ error: 'Custom exercise not found' }) };
+        }
+        const { error: putAuthError } = await authenticateGymMember(event, owned.coach_id);
+        if (putAuthError) return putAuthError;
+      }
+
       // Map camelCase to snake_case
       const updateFields = {};
       if (updateData.name !== undefined) updateFields.name = updateData.name;
@@ -409,6 +445,22 @@ exports.handler = async (event) => {
           headers,
           body: JSON.stringify({ error: 'exerciseId is required' })
         };
+      }
+
+      // Authorize against the exercise's owning coach before deleting (and
+      // triggering Mux asset deletion). Only the owning coach or a trainer.
+      {
+        const { data: owned } = await supabase
+          .from('exercises')
+          .select('coach_id')
+          .eq('id', exerciseId)
+          .eq('is_custom', true)
+          .maybeSingle();
+        if (!owned || !owned.coach_id) {
+          return { statusCode: 404, headers, body: JSON.stringify({ error: 'Custom exercise not found' }) };
+        }
+        const { error: delAuthError } = await authenticateGymMember(event, owned.coach_id);
+        if (delAuthError) return delAuthError;
       }
 
       // Return the deleted row(s) so we know the Mux asset to clean up — and so

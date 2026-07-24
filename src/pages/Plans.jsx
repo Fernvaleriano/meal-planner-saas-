@@ -4,7 +4,7 @@ import { ChevronLeft, ChevronRight, Calendar, Flame, Target, Clock, Utensils, Co
 import { useAuth } from '../context/AuthContext';
 import { useBranding } from '../context/BrandingContext';
 import { useLanguage } from '../context/LanguageContext';
-import { apiGet, apiPost, apiDelete } from '../utils/api';
+import { apiGet, apiPost, apiDelete, voiceNoteProxyUrl } from '../utils/api';
 import { usePullToRefresh, PullToRefreshIndicator } from '../hooks/usePullToRefresh';
 import { onAppResume } from '../hooks/useAppLifecycle';
 
@@ -16,7 +16,7 @@ import { getDateLocale } from '../utils/dateLocale';
 const getVoiceNoteProxyUrl = (meal) => {
   const path = meal.voice_note_path || extractPathFromSignedUrl(meal.voice_note_url);
   if (!path) return meal.voice_note_url || null;
-  return `/.netlify/functions/serve-voice-note?path=${encodeURIComponent(path)}`;
+  return voiceNoteProxyUrl(path);
 };
 
 // Extract the storage file path from an old Supabase signed URL

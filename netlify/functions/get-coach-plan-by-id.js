@@ -1,6 +1,6 @@
 // Netlify Function to retrieve a specific meal plan by ID
 const { createClient } = require('@supabase/supabase-js');
-const { trainerClientIdScope } = require('./utils/auth');
+const { trainerClientIdScope, authenticateGymMember } = require('./utils/auth');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -24,6 +24,11 @@ exports.handler = async (event, context) => {
         body: JSON.stringify({ error: 'Plan ID and Coach ID are required' })
       };
     }
+
+    // Must be the coach that owns the plan (or one of their gym trainers). The
+    // per-plan trainer scope below then narrows a trainer to assigned clients.
+    const { error: authError } = await authenticateGymMember(event, coachId);
+    if (authError) return authError;
 
     // Initialize Supabase client with service key
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);

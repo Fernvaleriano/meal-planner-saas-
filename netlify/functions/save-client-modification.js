@@ -1,6 +1,7 @@
 // Netlify Function to save client's modifications to their meal plan
 // This preserves the coach's original plan while allowing clients to customize
 const { createClient } = require('@supabase/supabase-js');
+const { authenticateClientAccess } = require('./utils/auth');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -37,6 +38,11 @@ exports.handler = async (event, context) => {
         })
       };
     }
+
+    // Only the client themselves (or their coach/trainer) may modify this plan.
+    // The existing plan.client_id === clientId check below stays as defense in depth.
+    const { error: authError } = await authenticateClientAccess(event, clientId);
+    if (authError) return authError;
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 

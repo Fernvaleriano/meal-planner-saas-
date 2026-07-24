@@ -18,6 +18,7 @@
  * gym-wide board that a member couldn't read directly.
  */
 const { createClient } = require('@supabase/supabase-js');
+const { authenticateClientAccess, authenticateGymMember } = require('./utils/auth');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -151,6 +152,8 @@ exports.handler = async (event) => {
       // Coach/gym-facing read-only board — scoped straight by coach_id (no member
       // context, so no myBests/isMe). Used by the coach Ranks page.
       if (!clientId && qsCoachId) {
+        const { error: authError } = await authenticateGymMember(event, qsCoachId);
+        if (authError) return authError;
         const { data: allLifts, error: cErr } = await supabase
           .from('gym_leaderboard_lifts')
           .select('id, client_id, client_name, lift_key, weight, weight_unit, reps, score, verified, video_url, mux_playback_id, mux_status, created_at, clients!inner(profile_photo_url, gender)')
@@ -185,6 +188,11 @@ exports.handler = async (event) => {
       }
 
       if (!clientId) return json(400, { error: 'clientId is required' });
+
+      // A member reads their own gym's board — must be that client (or their
+      // coach/trainer).
+      const { error: authError } = await authenticateClientAccess(event, clientId);
+      if (authError) return authError;
 
       const member = await resolveMember(supabase, clientId);
       if (!member) return json(404, { error: 'Member not found' });
@@ -350,6 +358,12 @@ exports.handler = async (event) => {
       const body = JSON.parse(event.body || '{}');
       const action = body.action;
 
+      // Both actions act as a specific member — the caller must be that client
+      // (or their coach/trainer). Blocks anonymous fake lifts / upload URLs.
+      if (!body.clientId) return json(400, { error: 'clientId is required' });
+      const { error: postAuthError } = await authenticateClientAccess(event, body.clientId);
+      if (postAuthError) return postAuthError;
+
       if (action === 'sign-upload') {
         const { clientId, liftKey, ext, contentType } = body;
         if (!clientId || !liftKey) return json(400, { error: 'clientId and liftKey are required' });
@@ -465,6 +479,11 @@ exports.handler = async (event) => {
     if (event.httpMethod === 'DELETE') {
       const { id, clientId } = event.queryStringParameters || {};
       if (!id || !clientId) return json(400, { error: 'id and clientId are required' });
+
+      // Must be that member (or their coach/trainer). Combined with the
+      // row.client_id check below, a member can only delete their own lift.
+      const { error: delAuthError } = await authenticateClientAccess(event, clientId);
+      if (delAuthError) return delAuthError;
 
       const { data: row, error: fetchErr } = await supabase
         .from('gym_leaderboard_lifts')

@@ -6340,7 +6340,19 @@
         
         const { createClient } = supabase;
         const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-        
+
+        // serve-voice-note now authorizes the caller before returning audio, and
+        // an <audio src> can't send an Authorization header — so keep the current
+        // access token handy and pass it in the query string of proxy URLs.
+        let __voiceNoteToken = null;
+        supabaseClient.auth.getSession().then(({ data }) => { __voiceNoteToken = data?.session?.access_token || null; }).catch(() => {});
+        supabaseClient.auth.onAuthStateChange((_e, s) => { __voiceNoteToken = s?.access_token || __voiceNoteToken; });
+        function voiceNoteProxyUrl(path) {
+            return path
+                ? '/.netlify/functions/serve-voice-note?path=' + encodeURIComponent(path) + (__voiceNoteToken ? '&token=' + encodeURIComponent(__voiceNoteToken) : '')
+                : '';
+        }
+
         const loadingDiv = document.getElementById('loadingDiv');
         const dashboardContent = document.getElementById('dashboardContent');
         const userEmailSpan = document.getElementById('userEmail');
@@ -6951,11 +6963,13 @@
             renderPriorityAlertSections();
 
             // Restore each in database (fire and forget)
+            const { data: { session: _restoreSession } } = await supabaseClient.auth.getSession();
+            const _restoreAuth = _restoreSession?.access_token ? { 'Authorization': `Bearer ${_restoreSession.access_token}` } : {};
             for (const alert of toRestore) {
                 try {
                     fetch('/.netlify/functions/dismiss-activity', {
                         method: 'DELETE',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: { 'Content-Type': 'application/json', ..._restoreAuth },
                         body: JSON.stringify({
                             coachId: _currentCoachId,
                             clientId: alert.clientId,
@@ -9001,7 +9015,7 @@
                                 // stuck at 00:00 with no audio when the coach taps play.
                                 let voicePlayerHtml = '';
                                 if (hasVoice) {
-                                    const proxyUrl = '/.netlify/functions/serve-voice-note?path=' + encodeURIComponent(note.client_voice_note_path);
+                                    const proxyUrl = voiceNoteProxyUrl(note.client_voice_note_path);
                                     const fileExt = (note.client_voice_note_path.split('.').pop() || '').toLowerCase();
                                     voicePlayerHtml = `
                                         <div class="priority-voice-player" onclick="event.stopPropagation()" data-vn-ext="${fileExt}">

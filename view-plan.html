@@ -2072,6 +2072,20 @@
         const { createClient } = supabase;
         const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+        // serve-voice-note now authorizes the caller before returning audio, and
+        // an <audio src> can't send an Authorization header — so keep the current
+        // access token handy and pass it in the query string of proxy URLs. (In
+        // the anonymous shared-plan view there's no token, but get-shared-plan
+        // already returns pre-signed voice-note URLs so the proxy isn't used.)
+        let __voiceNoteToken = null;
+        supabaseClient.auth.getSession().then(({ data }) => { __voiceNoteToken = data?.session?.access_token || null; }).catch(() => {});
+        supabaseClient.auth.onAuthStateChange((_e, s) => { __voiceNoteToken = s?.access_token || __voiceNoteToken; });
+        function voiceNoteProxyUrl(path) {
+            return path
+                ? '/.netlify/functions/serve-voice-note?path=' + encodeURIComponent(path) + (__voiceNoteToken ? '&token=' + encodeURIComponent(__voiceNoteToken) : '')
+                : '';
+        }
+
         const API_ENDPOINT = '/.netlify/functions/generate-meal-plan';
         const SAVE_PLAN_ENDPOINT = '/.netlify/functions/save-shared-plan';
         const GET_PLAN_ENDPOINT = '/.netlify/functions/get-shared-plan';
@@ -2779,9 +2793,13 @@
                 if (isClientView && currentClientId) {
                     console.log('💾 Saving CLIENT modifications to database...', currentPlanId);
 
+                    const { data: { session: _saveSession } } = await supabaseClient.auth.getSession();
                     const response = await fetch(SAVE_CLIENT_MODIFICATION_ENDPOINT, {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: {
+                            'Content-Type': 'application/json',
+                            ...(_saveSession?.access_token ? { 'Authorization': `Bearer ${_saveSession.access_token}` } : {})
+                        },
                         body: JSON.stringify({
                             planId: currentPlanId,
                             clientId: currentClientId,
@@ -2849,9 +2867,13 @@
                 console.log('🔄 Resetting to original plan...', { planId: currentPlanId, clientId: currentClientId });
 
                 // Use backend function to reset (bypasses RLS)
+                const { data: { session: _resetSession } } = await supabaseClient.auth.getSession();
                 const response = await fetch(RESET_CLIENT_MODIFICATION_ENDPOINT, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...(_resetSession?.access_token ? { 'Authorization': `Bearer ${_resetSession.access_token}` } : {})
+                    },
                     body: JSON.stringify({
                         planId: currentPlanId,
                         clientId: currentClientId
@@ -4133,7 +4155,7 @@
             // Use proxy URL for voice notes so they never expire
             const voiceNotePath = meal.voice_note_path || extractVoiceNotePath(meal.voice_note_url);
             const voiceNoteUrl = voiceNotePath
-                ? '/.netlify/functions/serve-voice-note?path=' + encodeURIComponent(voiceNotePath)
+                ? voiceNoteProxyUrl(voiceNotePath)
                 : (meal.voice_note_url || '');
             const mealRefLinks = meal.reference_links || [];
 

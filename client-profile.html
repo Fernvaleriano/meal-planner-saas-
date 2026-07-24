@@ -9784,6 +9784,18 @@
         const { createClient } = supabase;
         const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+        // serve-voice-note now authorizes the caller before returning audio, and
+        // an <audio src> can't send an Authorization header — so keep the current
+        // access token handy and pass it in the query string of proxy URLs.
+        let __voiceNoteToken = null;
+        supabaseClient.auth.getSession().then(({ data }) => { __voiceNoteToken = data?.session?.access_token || null; }).catch(() => {});
+        supabaseClient.auth.onAuthStateChange((_e, s) => { __voiceNoteToken = s?.access_token || __voiceNoteToken; });
+        function voiceNoteProxyUrl(path) {
+            return path
+                ? '/.netlify/functions/serve-voice-note?path=' + encodeURIComponent(path) + (__voiceNoteToken ? '&token=' + encodeURIComponent(__voiceNoteToken) : '')
+                : '';
+        }
+
         const GET_CLIENT_PLANS_ENDPOINT = '/.netlify/functions/get-client-plans';
         const DELETE_PLAN_ENDPOINT = '/.netlify/functions/delete-coach-plan';
         const PUBLISH_PLAN_ENDPOINT = '/.netlify/functions/publish-plan';
@@ -10782,8 +10794,10 @@
             try {
                 // Add cache-busting timestamp to ensure fresh data
                 const timestamp = new Date().getTime();
+                const { data: { session: _plansSession } } = await supabaseClient.auth.getSession();
                 const response = await fetch(`${GET_CLIENT_PLANS_ENDPOINT}?clientId=${clientId}&coachId=${currentUser.id}&_t=${timestamp}`, {
-                    cache: 'no-store' // Disable browser caching
+                    cache: 'no-store', // Disable browser caching
+                    headers: _plansSession?.access_token ? { 'Authorization': `Bearer ${_plansSession.access_token}` } : {}
                 });
 
                 if (!response.ok) throw new Error('Failed to load plans');
@@ -16373,7 +16387,7 @@
                     // Safari, leaving the player stuck at 00:00 with no audio.
                     let voiceHtml = '';
                     if (note.clientVoiceNotePath) {
-                        const proxyUrl = '/.netlify/functions/serve-voice-note?path=' + encodeURIComponent(note.clientVoiceNotePath);
+                        const proxyUrl = voiceNoteProxyUrl(note.clientVoiceNotePath);
                         const fileExt = (note.clientVoiceNotePath.split('.').pop() || '').toLowerCase();
                         voiceHtml = `<div class="cn-voice-note">
                                 <span class="cn-voice-label">🎙️ Voice Note</span>
@@ -16843,7 +16857,7 @@
                     // Use serve-voice-note proxy — direct Supabase signed URLs
                     // sometimes fail to load in iOS Safari, leaving the player
                     // stuck at 00:00 with no audio.
-                    const proxyUrl = '/.netlify/functions/serve-voice-note?path=' + encodeURIComponent(ex.clientVoiceNotePath);
+                    const proxyUrl = voiceNoteProxyUrl(ex.clientVoiceNotePath);
                     const fileExt = (ex.clientVoiceNotePath.split('.').pop() || '').toLowerCase();
                     voiceHtml = `<div class="wp-voice-note">🎙️ <audio controls playsinline src="${proxyUrl}" preload="auto" style="height: 32px; width: 100%; max-width: 250px;" onerror="window.handleClientProfileVoiceError(this, '${proxyUrl}', '${fileExt}')"></audio></div>`;
                 }

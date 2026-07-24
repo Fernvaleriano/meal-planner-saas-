@@ -90,9 +90,13 @@ const trackClientActivity = async (userId) => {
   if (!userId) return;
 
   try {
+    const { data: { session: _actSession } } = await supabase.auth.getSession();
     const response = await fetch('/.netlify/functions/track-client-activity', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        ...(_actSession?.access_token ? { 'Authorization': `Bearer ${_actSession.access_token}` } : {})
+      },
       body: JSON.stringify({ userId })
     });
 

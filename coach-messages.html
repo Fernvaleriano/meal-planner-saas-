@@ -1311,7 +1311,14 @@
                 const preview = displayMessage
                     ? (c.lastMessageSender === 'coach' ? 'You: ' : '') + displayMessage
                     : 'No messages yet';
-                const safeName = c.clientName.replace(/'/g, "\\'");
+                // clientName + preview are client-controlled — escape them to stop
+                // stored XSS in the coach's session. escapeHtml() covers < > &;
+                // nameAttr additionally encodes " so it's safe inside the alt=""
+                // attribute and the single-quoted openThread(...) JS string below.
+                const nameHtml = escapeHtml(c.clientName);
+                const nameAttr = nameHtml.replace(/"/g, '&quot;');
+                const previewHtml = escapeHtml(preview);
+                const safeName = nameAttr.replace(/'/g, "\\'");
                 const isSelected = selectedClientIds.has(c.clientId);
                 const clickAction = bulkMode
                     ? `toggleBulkClient(${c.clientId}, event)`
@@ -1321,15 +1328,15 @@
                             onclick="${clickAction}">
                         ${bulkMode ? `<input type="checkbox" class="bulk-checkbox" ${isSelected ? 'checked' : ''} onclick="event.stopPropagation(); toggleBulkClient(${c.clientId});">` : ''}
                         <div class="convo-avatar">
-                            ${c.profilePhoto ? `<img src="${c.profilePhoto}" alt="${c.clientName}">` : getInitials(c.clientName)}
+                            ${c.profilePhoto ? `<img src="${c.profilePhoto}" alt="${nameAttr}">` : getInitials(c.clientName)}
                         </div>
                         <div class="convo-content">
                             <div class="convo-top">
-                                <span class="convo-name">${c.clientName}</span>
+                                <span class="convo-name">${nameHtml}</span>
                                 <span class="convo-time">${formatTime(c.lastMessageAt)}</span>
                             </div>
                             <div class="convo-bottom">
-                                <span class="convo-preview">${preview}</span>
+                                <span class="convo-preview">${previewHtml}</span>
                                 ${c.unreadCount > 0 ? `<span class="convo-unread-badge">${c.unreadCount}</span>` : ''}
                             </div>
                         </div>
@@ -1439,12 +1446,16 @@
 
                 let mediaHtml = '';
                 if (hasMedia) {
+                    // Server-assigned storage URL today, but escape defensively so a
+                    // stray quote can't break out of the src="" / openLightbox('') context.
+                    const mUrl = escapeHtml(msg.media_url).replace(/"/g, '&quot;');
+                    const mUrlJs = mUrl.replace(/'/g, "\\'");
                     if (msg.media_type === 'video') {
-                        mediaHtml = `<div class="msg-media" onclick="openLightbox('${msg.media_url}', 'video')"><video src="${msg.media_url}" preload="metadata"></video></div>`;
+                        mediaHtml = `<div class="msg-media" onclick="openLightbox('${mUrlJs}', 'video')"><video src="${mUrl}" preload="metadata"></video></div>`;
                     } else if (msg.media_type === 'audio') {
-                        mediaHtml = `<div class="msg-audio"><audio src="${msg.media_url}" controls preload="metadata"></audio></div>`;
+                        mediaHtml = `<div class="msg-audio"><audio src="${mUrl}" controls preload="metadata"></audio></div>`;
                     } else {
-                        mediaHtml = `<div class="msg-media" onclick="openLightbox('${msg.media_url}', 'image')"><img src="${msg.media_url}" alt="Photo" loading="lazy"></div>`;
+                        mediaHtml = `<div class="msg-media" onclick="openLightbox('${mUrlJs}', 'image')"><img src="${mUrl}" alt="Photo" loading="lazy"></div>`;
                     }
                 }
 

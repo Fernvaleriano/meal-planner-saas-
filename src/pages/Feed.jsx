@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Sunrise, Sun, Moon, Apple, Filter, ChevronDown, ChevronUp, User, Calendar, RefreshCw, MessageCircle, Send, Dumbbell, TrendingUp, Award, Clock, Zap, Mic, Play, Loader2, Reply, Check } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { apiGet, apiPost, apiDelete } from '../utils/api';
+import { apiGet, apiPost, apiDelete, voiceNoteProxyUrl } from '../utils/api';
 import { usePullToRefresh, PullToRefreshIndicator } from '../hooks/usePullToRefresh';
 import ProgramsEndingSoon from '../components/ProgramsEndingSoon';
 import StoriesBar from '../components/StoriesBar';
@@ -628,7 +628,7 @@ function WorkoutFeedCard({ workout, coachId, onUpdate, weightUnit = 'lbs' }) {
                         <audio
                           controls
                           playsInline
-                          src={`/.netlify/functions/serve-voice-note?path=${encodeURIComponent(exercise.clientVoiceNotePath)}`}
+                          src={voiceNoteProxyUrl(exercise.clientVoiceNotePath)}
                           preload="auto"
                           className="feed-voice-note-player"
                           onError={(e) => {

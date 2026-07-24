@@ -262,7 +262,9 @@
             document.getElementById('sidebarAvatar').textContent = initials(session.user.email);
             const coachId = session.user.id;
             try {
-                const res = await fetch('/.netlify/functions/gym-leaderboard?view=coach&coachId=' + encodeURIComponent(coachId));
+                const res = await fetch('/.netlify/functions/gym-leaderboard?view=coach&coachId=' + encodeURIComponent(coachId), {
+                    headers: { 'Authorization': `Bearer ${session.access_token}` }
+                });
                 const data = await res.json();
                 if (!res.ok) throw new Error(data.error || 'Failed to load');
                 render(data);
