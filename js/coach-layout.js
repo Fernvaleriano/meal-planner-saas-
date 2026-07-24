@@ -299,12 +299,17 @@
             document.querySelectorAll('.sidebar-nav-item, .coach-nav-item').forEach(function (a) {
                 var href = a.getAttribute('href') || '';
                 var isLogout = a.classList.contains('sidebar-nav-logout') || /logout/i.test(a.id || '');
-                var keep = isLogout || TRAINER_NAV_ALLOW.some(function (h) { return href.indexOf(h) !== -1; });
+                // The language switch is not a page — keep it so trainers can
+                // still switch to Thai.
+                var isLang = a.hasAttribute && a.hasAttribute('data-zique-lang');
+                var keep = isLogout || isLang || TRAINER_NAV_ALLOW.some(function (h) { return href.indexOf(h) !== -1; });
                 if (!keep) a.style.setProperty('display', 'none', 'important');
             });
-            // Hide a now-empty "Settings" section header.
+            // Hide a now-empty "Settings" section header (matches the English
+            // label and its Thai translation).
             document.querySelectorAll('.sidebar-nav-label').forEach(function (l) {
-                if (/setting/i.test(l.textContent || '')) l.style.setProperty('display', 'none', 'important');
+                var txt = l.textContent || '';
+                if (/setting/i.test(txt) || txt.indexOf('การตั้งค่า') !== -1) l.style.setProperty('display', 'none', 'important');
             });
         } catch (e) { /* non-fatal */ }
     }

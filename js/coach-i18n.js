@@ -90,12 +90,15 @@
 
   var SKIP_TAGS = { SCRIPT: 1, STYLE: 1, NOSCRIPT: 1, TEXTAREA: 1, CODE: 1, PRE: 1, OPTION: 0 };
 
+  var SKIP_SELECTOR = 'script,style,noscript,textarea,code,pre,[data-no-i18n]';
   function inSkipped(node) {
     var p = node.nodeType === 3 ? node.parentNode : node;
     if (!p) return false;
     if (p.nodeType === 1 && SKIP_TAGS[p.tagName]) return true;
-    // Respect an explicit opt-out on any ancestor (e.g. user-generated data).
-    if (p.closest && p.closest('[data-no-i18n]')) return true;
+    // Respect skip tags and explicit opt-out on ANY ancestor (not just the
+    // direct parent) — e.g. text nested inside <pre><span>… or a user-data
+    // block marked data-no-i18n.
+    if (p.closest && p.closest(SKIP_SELECTOR)) return true;
     return false;
   }
 
@@ -111,13 +114,18 @@
     if (el.closest && el.closest('[data-no-i18n]')) return;
     for (var i = 0; i < ATTRS.length; i++) {
       if (el.hasAttribute(ATTRS[i])) {
-        var out = translateText(el.getAttribute(ATTRS[i]));
-        if (out != null) el.setAttribute(ATTRS[i], out);
+        var cur = el.getAttribute(ATTRS[i]);
+        var out = translateText(cur);
+        // Only write when the value actually changes. Writing an identical
+        // value (e.g. an "identity" dictionary entry like title="AI") still
+        // queues a MutationObserver record, which would re-enter here forever
+        // and freeze the tab.
+        if (out != null && out !== cur) el.setAttribute(ATTRS[i], out);
       }
     }
     if (el.tagName === 'INPUT' && (el.type === 'button' || el.type === 'submit') && el.value) {
       var o = translateText(el.value);
-      if (o != null) el.value = o;
+      if (o != null && o !== el.value) el.value = o;
     }
   }
 
@@ -281,7 +289,12 @@
   // Expose a tiny API for the (few) pages that want to translate a string in JS.
   window.CoachI18n = {
     lang: getLang,
-    t: function (s) { var o = translateText(s); return o == null ? s : o; },
+    // Returns the original string in English mode; only translates in Thai.
+    t: function (s) {
+      if (getLang() !== 'th') return s;
+      var o = translateText(s);
+      return o == null ? s : o;
+    },
     apply: apply
   };
 })();
