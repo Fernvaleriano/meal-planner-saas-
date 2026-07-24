@@ -1,6 +1,6 @@
 import { useState, useEffect, useLayoutEffect, useRef, useCallback, useMemo, memo } from 'react';
 import { X, Check, Plus, ChevronLeft, Play, Timer, BarChart3, ArrowLeftRight, Trash2, Mic, MicOff, MessageCircle, Loader2, AlertCircle, History, TrendingUp, Award, ChevronDown, ChevronUp, Send, Square, Sparkles, ExternalLink, Bot, Flame, Leaf, Zap, User, Lock, NotebookPen } from 'lucide-react';
-import { apiGet, apiPost, apiPut, apiDelete, getOrCreateWorkoutLogId } from '../../utils/api';
+import { apiGet, apiPost, apiPut, apiDelete, getOrCreateWorkoutLogId, voiceNoteProxyUrl } from '../../utils/api';
 import { supabase } from '../../utils/supabase';
 import { generateProgression, generateSetNudge, EFFORT_OPTIONS, parseSetsData, getMaxWeight, convertWeight } from '../../utils/workoutProgression';
 import { getSpeechLang } from '../../utils/speechLang';
@@ -3580,7 +3580,7 @@ function ExerciseDetailModal({
             </div>
             <VoiceNotePlayer
               src={exercise.voiceNotePath
-                ? `/.netlify/functions/serve-voice-note?path=${encodeURIComponent(exercise.voiceNotePath)}`
+                ? voiceNoteProxyUrl(exercise.voiceNotePath)
                 : exercise.voiceNoteUrl}
               onMissing={(e) => {
                 const container = e.target.closest('.coach-voice-note-section');

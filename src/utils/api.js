@@ -312,6 +312,22 @@ export function getCachedAccessToken() {
   return sessionCache.session.access_token || null;
 }
 
+/**
+ * Build a serve-voice-note proxy URL carrying the caller's short-lived access
+ * token in the query string. The <audio>/<a> elements these URLs feed cannot
+ * set an Authorization header, so the token rides in the query; serve-voice-note
+ * verifies it AND checks the caller owns the note before returning any audio.
+ * The in-memory session cache is kept hot by every API call, so by the time a
+ * voice note renders (after its page's authenticated data load) the token is
+ * available.
+ */
+export function voiceNoteProxyUrl(path) {
+  if (!path) return null;
+  const base = `/.netlify/functions/serve-voice-note?path=${encodeURIComponent(path)}`;
+  const token = getCachedAccessToken();
+  return token ? `${base}&token=${encodeURIComponent(token)}` : base;
+}
+
 export function clearSessionCache() {
   sessionCache = { session: null, timestamp: 0, refreshPromise: null };
   inflightGetSessionPromise = null;

@@ -51,6 +51,48 @@ exports.handler = async (event, context) => {
       };
     }
 
+    // Sign meal voice notes server-side. serve-voice-note now requires auth, but
+    // a shared plan is viewed anonymously — so we mint a fresh signed URL here
+    // (the share was already validated) and drop the raw path, so the anonymous
+    // viewer plays it directly instead of hitting the authenticated proxy.
+    try {
+      const VOICE_EXPIRY = 24 * 60 * 60;
+      const nodes = [];
+      (function walk(node) {
+        if (!node || typeof node !== 'object') return;
+        if (Array.isArray(node)) { node.forEach(walk); return; }
+        if (node.voice_note_path || node.voice_note_url) nodes.push(node);
+        for (const k of Object.keys(node)) walk(node[k]);
+      })(data.plan_data);
+      for (const n of nodes) {
+        if (!n.voice_note_path && n.voice_note_url) {
+          const m = String(n.voice_note_url).match(/\/object\/sign\/workout-assets\/(.+?)(?:\?|$)/);
+          if (m) n.voice_note_path = decodeURIComponent(m[1]);
+        }
+      }
+      const paths = [...new Set(nodes.map(n => n.voice_note_path).filter(Boolean))];
+      if (paths.length) {
+        const signed = await Promise.all(
+          paths.map(path =>
+            supabase.storage
+              .from('workout-assets')
+              .createSignedUrl(path, VOICE_EXPIRY)
+              .then(({ data: d, error: e }) => ({ path, url: e ? null : d && d.signedUrl }))
+          )
+        );
+        const vmap = {};
+        for (const { path, url } of signed) if (url) vmap[path] = url;
+        for (const n of nodes) {
+          if (n.voice_note_path && vmap[n.voice_note_path]) {
+            n.voice_note_url = vmap[n.voice_note_path];
+            delete n.voice_note_path;
+          }
+        }
+      }
+    } catch (voiceErr) {
+      console.error('Voice note signing failed:', voiceErr);
+    }
+
     // Best-effort coach branding (mirrors get-shared-workout) so an anonymous
     // viewer of a shared plan sees the coach's brand instead of the platform's.
     // Never allowed to break plan loading — branding stays null on any failure.

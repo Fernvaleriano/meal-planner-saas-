@@ -4440,6 +4440,18 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 const { createClient } = supabase;
 const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+// serve-voice-note now authorizes the caller before returning audio, and an
+// <audio src> can't send an Authorization header — so keep the current access
+// token handy and pass it in the query string of proxy URLs.
+let __voiceNoteToken = null;
+supabaseClient.auth.getSession().then(({ data }) => { __voiceNoteToken = data?.session?.access_token || null; }).catch(() => {});
+supabaseClient.auth.onAuthStateChange((_e, s) => { __voiceNoteToken = s?.access_token || __voiceNoteToken; });
+function voiceNoteProxyUrl(path) {
+    return path
+        ? '/.netlify/functions/serve-voice-note?path=' + encodeURIComponent(path) + (__voiceNoteToken ? '&token=' + encodeURIComponent(__voiceNoteToken) : '')
+        : '';
+}
+
 const API_ENDPOINT = '/.netlify/functions/generate-meal-plan';
 const TOGGLE_FAVORITE_ENDPOINT = '/.netlify/functions/toggle-favorite';
 
@@ -6865,7 +6877,7 @@ function displayDietPlan(multiDayData) {
             // Use proxy URL for voice notes so they never expire
             const voiceNotePath = meal.voice_note_path || extractVoiceNotePath(meal.voice_note_url);
             const voiceNoteUrl = voiceNotePath
-                ? '/.netlify/functions/serve-voice-note?path=' + encodeURIComponent(voiceNotePath)
+                ? voiceNoteProxyUrl(voiceNotePath)
                 : (meal.voice_note_url || '');
             const mealRefLinks = meal.reference_links || [];
             const isSupplement = meal.type === 'supplement';

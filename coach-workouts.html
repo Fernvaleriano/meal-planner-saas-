@@ -12700,7 +12700,10 @@
         function buildVoiceNoteSrc(exercise) {
             if (!exercise) return '';
             const path = exercise.voiceNotePath || extractVoiceNotePath(exercise.voiceNoteUrl);
-            if (path) return '/.netlify/functions/serve-voice-note?path=' + encodeURIComponent(path);
+            // serve-voice-note now authorizes the caller — pass the coach's token
+            // in the query (an <audio src> can't send an Authorization header).
+            if (path) return '/.netlify/functions/serve-voice-note?path=' + encodeURIComponent(path) +
+                (currentAccessToken ? '&token=' + encodeURIComponent(currentAccessToken) : '');
             return exercise.voiceNoteUrl || '';
         }
 

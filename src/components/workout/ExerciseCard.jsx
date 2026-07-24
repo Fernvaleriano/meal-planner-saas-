@@ -6,6 +6,7 @@ import Portal from '../Portal';
 import VoiceNotePlayer from '../VoiceNotePlayer';
 import { onAppResume, onAppSuspend } from '../../hooks/useAppLifecycle';
 import { convertWeight, parseReps } from '../../utils/workoutProgression';
+import { voiceNoteProxyUrl } from '../../utils/api';
 import { getSpeechLang } from '../../utils/speechLang';
 import { useLanguage } from '../../context/LanguageContext';
 
@@ -1169,7 +1170,7 @@ function ExerciseCard({ exercise, index, isCompleted, onToggleComplete, onClick,
             </span>
             <VoiceNotePlayer
               src={exercise.voiceNotePath
-                ? `/.netlify/functions/serve-voice-note?path=${encodeURIComponent(exercise.voiceNotePath)}`
+                ? voiceNoteProxyUrl(exercise.voiceNotePath)
                 : exercise.voiceNoteUrl}
               onMissing={(e) => {
                 const container = e.target.closest('.coach-voice-note');

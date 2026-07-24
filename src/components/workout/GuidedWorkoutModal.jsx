@@ -4,7 +4,7 @@ import Portal from '../Portal';
 import SmartThumbnail from './SmartThumbnail';
 import SwapExerciseModal from './SwapExerciseModal';
 import FormCheckModal from './FormCheckModal';
-import { apiGet, apiPost, apiPut, apiDelete, getOrCreateWorkoutLogId } from '../../utils/api';
+import { apiGet, apiPost, apiPut, apiDelete, getOrCreateWorkoutLogId, voiceNoteProxyUrl } from '../../utils/api';
 import { onAppResume } from '../../hooks/useAppLifecycle';
 import { parseDurationToSeconds } from '../../utils/workoutDuration';
 import { getExerciseVideoSrc } from '../../utils/exerciseVideo';
@@ -2611,9 +2611,9 @@ function GuidedWorkoutModal({
       return;
     }
 
-    // Use proxy URL that never expires
+    // Use proxy URL that never expires (token in query — authorized at mint)
     const audioUrl = currentExercise.voiceNotePath
-      ? `/.netlify/functions/serve-voice-note?path=${encodeURIComponent(currentExercise.voiceNotePath)}`
+      ? voiceNoteProxyUrl(currentExercise.voiceNotePath)
       : currentExercise.voiceNoteUrl;
 
     // Pause the workout timer while voice note plays

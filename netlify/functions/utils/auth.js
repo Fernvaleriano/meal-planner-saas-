@@ -348,6 +348,70 @@ function trainerPermissionResponse(what) {
 }
 
 /**
+ * Extract a JWT from EITHER the Authorization header OR a `token` query param.
+ * Media elements (<audio>/<img> src, redirects) cannot set an Authorization
+ * header, so those callers pass the short-lived access token in the query
+ * string instead. The token is still fully verified (verifyToken) before any
+ * access is granted — the query is only a transport, not a trust shortcut.
+ */
+function extractTokenFromHeaderOrQuery(event) {
+  const headerToken = extractToken(event);
+  if (headerToken) return headerToken;
+  const q = event.queryStringParameters || {};
+  return q.token || null;
+}
+
+/**
+ * Verify a request authenticated via header OR ?token=, returning the user.
+ * @returns {Promise<{user: object|null, error: object|null}>}
+ */
+async function verifyRequestUser(event) {
+  const token = extractTokenFromHeaderOrQuery(event);
+  if (!token) {
+    return { user: null, error: unauthorizedResponse('Missing authorization token') };
+  }
+  const { user, error } = await verifyToken(token);
+  if (error || !user) {
+    return { user: null, error: unauthorizedResponse(error || 'Invalid token') };
+  }
+  return { user, error: null };
+}
+
+/**
+ * Is `userId` allowed to act within `coachId`'s world? True when the user IS
+ * the coach, is an active gym trainer under that coach, OR is one of that
+ * coach's clients. Used by endpoints scoped by coach_id that legitimately
+ * serve the coach's own clients (e.g. a coach's shared saved-meal library, a
+ * coach's voice notes played inside a client's plan/workout).
+ *
+ * @param {object} supabase - service-key client
+ * @param {string} userId - authenticated user id
+ * @param {string} coachId - coach id the request targets
+ * @returns {Promise<boolean>}
+ */
+async function userBelongsToCoach(supabase, userId, coachId) {
+  if (!userId || !coachId) return false;
+  if (userId === coachId) return true; // the coach themselves
+  // an active trainer under this gym
+  const { data: trainerRow } = await supabase
+    .from('gym_trainers')
+    .select('id')
+    .eq('trainer_user_id', userId)
+    .eq('gym_coach_id', coachId)
+    .eq('status', 'active')
+    .maybeSingle();
+  if (trainerRow) return true;
+  // a client of this coach
+  const { data: clientRow } = await supabase
+    .from('clients')
+    .select('id')
+    .eq('user_id', userId)
+    .eq('coach_id', coachId)
+    .maybeSingle();
+  return !!clientRow;
+}
+
+/**
  * Simple authentication - just verify the token is valid
  * @param {object} event - Netlify event object
  * @returns {Promise<{user: object|null, error: object|null}>}
@@ -500,7 +564,10 @@ module.exports = {
   unauthorizedResponse,
   forbiddenResponse,
   extractToken,
+  extractTokenFromHeaderOrQuery,
   verifyToken,
+  verifyRequestUser,
+  userBelongsToCoach,
   authenticateCoach,
   authenticateClientAccess,
   authenticateRequest,

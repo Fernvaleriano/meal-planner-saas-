@@ -99,6 +99,50 @@ exports.handler = async (event) => {
       }
     }
 
+    // Sign voice notes server-side too. serve-voice-note now requires auth, but
+    // a shared workout is viewed anonymously — so we mint a fresh signed URL here
+    // (the share was already validated) and drop the raw path, so view-workout.html
+    // plays it directly instead of hitting the authenticated proxy.
+    try {
+      const VOICE_EXPIRY = 24 * 60 * 60;
+      const voicePaths = [];
+      for (const day of days) {
+        for (const ex of (day && day.exercises) || []) {
+          if (!ex) continue;
+          if (!ex.voiceNotePath && ex.voiceNoteUrl) {
+            const m = ex.voiceNoteUrl.match(/\/object\/sign\/workout-assets\/(.+?)(?:\?|$)/);
+            if (m) ex.voiceNotePath = decodeURIComponent(m[1]);
+          }
+          if (ex.voiceNotePath) voicePaths.push(ex.voiceNotePath);
+        }
+      }
+      if (voicePaths.length) {
+        const signed = await Promise.all(
+          voicePaths.map(path =>
+            supabase.storage
+              .from('workout-assets')
+              .createSignedUrl(path, VOICE_EXPIRY)
+              .then(({ data: d, error: e }) => ({ path, url: e ? null : d && d.signedUrl }))
+          )
+        );
+        const vmap = {};
+        for (const { path, url } of signed) if (url) vmap[path] = url;
+        for (const day of days) {
+          if (Array.isArray(day.exercises)) {
+            day.exercises = day.exercises.map(ex => {
+              if (ex && ex.voiceNotePath && vmap[ex.voiceNotePath]) {
+                const { voiceNotePath, ...rest } = ex;
+                return { ...rest, voiceNoteUrl: vmap[ex.voiceNotePath] };
+              }
+              return ex;
+            });
+          }
+        }
+      }
+    } catch (voiceErr) {
+      console.error('Voice note signing failed:', voiceErr);
+    }
+
     let coachBranding = null;
     if (data.coach_id) {
       try {
