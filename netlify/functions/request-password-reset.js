@@ -19,6 +19,13 @@
 
 const { createClient } = require('@supabase/supabase-js');
 const { sendEmail } = require('./utils/email-service');
+const { checkRateLimitDurable } = require('./utils/auth');
+
+function clientIp(event) {
+    return event.headers['x-nf-client-connection-ip']
+        || (event.headers['x-forwarded-for'] || '').split(',')[0].trim()
+        || 'unknown';
+}
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -51,6 +58,10 @@ exports.handler = async (event) => {
         if (!isEmail(email)) {
             return { statusCode: 400, headers, body: JSON.stringify({ error: 'Please enter a valid email.' }) };
         }
+        // Rate limit per IP. Return the same {success:true} (never 429) so this
+        // stays non-enumerable — excess requests just silently send nothing.
+        const rl = await checkRateLimitDurable(clientIp(event), 'request-password-reset', 5, 15 * 60 * 1000);
+        if (!rl.allowed) return ok();
         if (!SUPABASE_SERVICE_KEY) {
             console.error('request-password-reset: missing service key');
             return ok(); // never reveal internals to an unauthenticated caller

@@ -1,5 +1,12 @@
 const { createClient } = require('@supabase/supabase-js');
 const { sendEmail } = require('./utils/email-service');
+const { checkRateLimitDurable, rateLimitResponse } = require('./utils/auth');
+
+function clientIp(event) {
+    return event.headers['x-nf-client-connection-ip']
+        || (event.headers['x-forwarded-for'] || '').split(',')[0].trim()
+        || 'unknown';
+}
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -26,6 +33,10 @@ exports.handler = async (event) => {
     if (event.httpMethod !== 'POST') {
         return { statusCode: 405, headers, body: JSON.stringify({ error: 'Method not allowed' }) };
     }
+
+    // Rate limit public form submissions per IP to curb spam.
+    const rl = await checkRateLimitDurable(clientIp(event), 'submit-apply-form', 10, 60 * 60 * 1000);
+    if (!rl.allowed) return { statusCode: 429, headers: { ...headers, 'Retry-After': Math.ceil(rl.resetIn / 1000).toString() }, body: JSON.stringify({ error: 'Too many submissions. Please try again later.' }) };
 
     try {
         const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);

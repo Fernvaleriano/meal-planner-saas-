@@ -1,7 +1,15 @@
 const { createClient } = require('@supabase/supabase-js');
+const { checkRateLimitDurable, rateLimitResponse } = require('./utils/auth');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
+
+// Best-effort client IP for rate limiting unauthenticated callers.
+function clientIp(event) {
+    return event.headers['x-nf-client-connection-ip']
+        || (event.headers['x-forwarded-for'] || '').split(',')[0].trim()
+        || 'unknown';
+}
 
 const headers = {
     'Access-Control-Allow-Origin': '*',
@@ -27,6 +35,11 @@ exports.handler = async (event) => {
     if (event.httpMethod !== 'POST') {
         return { statusCode: 405, headers, body: JSON.stringify({ error: 'Method not allowed' }) };
     }
+
+    // Rate limit account creation per IP — this calls auth.admin.createUser, so
+    // an open loop could mass-create coach accounts.
+    const rl = await checkRateLimitDurable(clientIp(event), 'signup-free', 5, 60 * 60 * 1000);
+    if (!rl.allowed) return { ...rateLimitResponse(rl.resetIn), headers: { ...headers, 'Retry-After': Math.ceil(rl.resetIn / 1000).toString() } };
 
     try {
         const { email, name, password } = JSON.parse(event.body || '{}');
