@@ -5,7 +5,7 @@ import { warmUpTickSound } from '../utils/audioTick';
 import { useAuth } from '../context/AuthContext';
 import { useBranding } from '../context/BrandingContext';
 import { useLanguage } from '../context/LanguageContext';
-import { apiGet, apiPost, apiPut, apiDelete, enableSwCacheBypass, getCachedAccessToken } from '../utils/api';
+import { apiGet, apiPost, apiPut, apiDelete, enableSwCacheBypass, getCachedAccessToken, ensureFreshSession } from '../utils/api';
 import { onAppResume } from '../hooks/useAppLifecycle';
 import ExerciseCard from '../components/workout/ExerciseCard';
 import ExerciseDetailModal from '../components/workout/ExerciseDetailModal';
@@ -264,8 +264,10 @@ const refreshSignedUrls = async (workoutData, coachId) => {
   try {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 10000);
-    // get-signed-urls now requires an authenticated caller.
-    const _token = getCachedAccessToken();
+    // get-signed-urls now requires an authenticated caller. This enrichment can
+    // run before the in-memory token cache is warm, so wait for a fresh token
+    // rather than firing tokenless (which would 401 and drop exercise media).
+    const _token = getCachedAccessToken() || await ensureFreshSession();
     const response = await fetch('/.netlify/functions/get-signed-urls', {
       method: 'POST',
       headers: {

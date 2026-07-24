@@ -4,7 +4,7 @@ import { ChevronLeft, ChevronRight, ChevronDown, Plus, Minus, Camera, Search, He
 import { useAuth } from '../context/AuthContext';
 import { useBranding } from '../context/BrandingContext';
 import { useLanguage } from '../context/LanguageContext';
-import { apiGet, apiPost, apiPut, apiDelete, fetchWithTimeout, getCachedAccessToken } from '../utils/api';
+import { apiGet, apiPost, apiPut, apiDelete, fetchWithTimeout, getCachedAccessToken, ensureFreshSession } from '../utils/api';
 import { getSpeechLang } from '../utils/speechLang';
 import { FavoritesModal, SnapPhotoModal, ScanLabelModal, SearchFoodsModal } from '../components/FoodModals';
 import { usePullToRefresh, PullToRefreshIndicator } from '../hooks/usePullToRefresh';
@@ -332,8 +332,12 @@ function Diary() {
     const cacheKey = `diary_${clientData.id}_${dateStr}`;
     const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
-    // Load water via direct fetch (independent of auth chain)
-    fetchWithTimeout(`/.netlify/functions/water-intake?clientId=${encodeURIComponent(clientData.id)}&date=${dateStr}&timezone=${encodeURIComponent(timezone)}`, { headers: getCachedAccessToken() ? { 'Authorization': `Bearer ${getCachedAccessToken()}` } : {} })
+    // Load water via direct fetch (independent of auth chain). water-intake now
+    // requires an authenticated caller; this runs early, when the in-memory
+    // token cache may still be cold, so wait for a fresh token rather than
+    // firing empty-handed (a tokenless call gets a silent 401 and shows 0).
+    const _wTok = getCachedAccessToken() || await ensureFreshSession();
+    fetchWithTimeout(`/.netlify/functions/water-intake?clientId=${encodeURIComponent(clientData.id)}&date=${dateStr}&timezone=${encodeURIComponent(timezone)}`, { headers: _wTok ? { 'Authorization': `Bearer ${_wTok}` } : {} })
       .then(res => res.ok ? res.json() : Promise.reject(new Error(`HTTP ${res.status}`)))
       .then(waterData => {
         // Ignore responses that resolve after the user navigated to a
@@ -784,22 +788,27 @@ function Diary() {
 
     const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
-    // Load water via direct fetch (no auth wrapper — backend uses service key)
-    fetchWithTimeout(`/.netlify/functions/water-intake?clientId=${encodeURIComponent(clientData.id)}&date=${dateStr}&timezone=${encodeURIComponent(timezone)}`, { headers: getCachedAccessToken() ? { 'Authorization': `Bearer ${getCachedAccessToken()}` } : {} })
-      .then(res => {
-        if (!res.ok) throw new Error(`Water GET failed: ${res.status}`);
-        return res.json();
-      })
-      .then(data => {
-        if (latestDateRef.current !== dateStr) return; // stale response for a previous date
-        const w = data?.glasses || 0;
-        setWaterIntake(w);
-        if (data?.goal) setWaterGoal(data.goal);
-        if (data?.unit) setWaterUnit(data.unit);
-        const c = getCache(cacheKey) || {};
-        setCache(cacheKey, { ...c, water: w });
-      })
-      .catch(err => console.error(err));
+    // Load water via direct fetch. water-intake now requires an authenticated
+    // caller; on early mount / resume the in-memory token cache may be cold, so
+    // wait for a fresh token first (a tokenless call gets a silent 401 → shows 0).
+    (async () => {
+      const _wTok = getCachedAccessToken() || await ensureFreshSession();
+      fetchWithTimeout(`/.netlify/functions/water-intake?clientId=${encodeURIComponent(clientData.id)}&date=${dateStr}&timezone=${encodeURIComponent(timezone)}`, { headers: _wTok ? { 'Authorization': `Bearer ${_wTok}` } : {} })
+        .then(res => {
+          if (!res.ok) throw new Error(`Water GET failed: ${res.status}`);
+          return res.json();
+        })
+        .then(data => {
+          if (latestDateRef.current !== dateStr) return; // stale response for a previous date
+          const w = data?.glasses || 0;
+          setWaterIntake(w);
+          if (data?.goal) setWaterGoal(data.goal);
+          if (data?.unit) setWaterUnit(data.unit);
+          const c = getCache(cacheKey) || {};
+          setCache(cacheKey, { ...c, water: w });
+        })
+        .catch(err => console.error(err));
+    })();
 
     // Load diary + interactions via auth wrapper (these need auth)
     Promise.all([
@@ -856,9 +865,11 @@ function Diary() {
   }, [clientData?.id, currentDate]);
 
   // Save water to server — fire-and-forget, keepalive ensures delivery
-  const saveWater = (clientId, dateStr, value) => {
+  const saveWater = async (clientId, dateStr, value) => {
     const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-    const _wToken = getCachedAccessToken();
+    // water-intake now requires auth; fall back to an awaited refresh when the
+    // in-memory token cache is cold so the save can't silently 401 and vanish.
+    const _wToken = getCachedAccessToken() || await ensureFreshSession();
     fetch('/.netlify/functions/water-intake', {
       method: 'POST',
       headers: {
