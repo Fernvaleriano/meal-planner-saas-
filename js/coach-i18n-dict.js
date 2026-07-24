@@ -92,6 +92,35 @@ window.COACH_I18N.th = Object.assign(window.COACH_I18N.th || {}, {
   '✓ Unlimited client meal plans': '✓ แผนมื้ออาหารลูกค้าไม่จำกัด'
 });
 
+// ── Number-tolerant patterns ────────────────────────────────────────────────
+// For phrases that render a count inside the string (not as a separate node).
+// '#' marks where a number sits; the engine keeps the actual number and swaps
+// the words. Only these exact shapes are ever matched — safe by construction.
+// (Most on-screen counts are already handled as plain words via the map above,
+// because the number and its label usually live in separate elements.)
+window.COACH_I18N.thPatterns = Object.assign(window.COACH_I18N.thPatterns || {}, {
+  '# selected': 'เลือกแล้ว #',
+  '# client': '# ลูกค้า',
+  '# clients': '# ลูกค้า',
+  '# client(s)': '# ลูกค้า',
+  '# member': '# สมาชิก',
+  '# members': '# สมาชิก',
+  '# athlete': '# นักกีฬา',
+  '# athletes': '# นักกีฬา',
+  '# day': '# วัน',
+  '# days': '# วัน',
+  '# week': '# สัปดาห์',
+  '# weeks': '# สัปดาห์',
+  '# meal': '# มื้อ',
+  '# meals': '# มื้อ',
+  '# recipe': '# สูตรอาหาร',
+  '# recipes': '# สูตรอาหาร',
+  '# exercise': '# ท่า',
+  '# exercises': '# ท่า',
+  'See all #': 'ดูทั้งหมด #',
+  'Day # of #': 'วันที่ # จาก #'
+});
+
 // ==== AUTO-GENERATED PAGE STRINGS (merged) ====
 window.COACH_I18N.th = Object.assign(window.COACH_I18N.th || {}, {
   "% 1RM": "% ของ 1RM",

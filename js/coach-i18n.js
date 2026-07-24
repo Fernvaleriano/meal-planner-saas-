@@ -44,6 +44,15 @@
     return (window.COACH_I18N && window.COACH_I18N.th) || null;
   }
 
+  // Curated patterns for phrases with numbers baked in (e.g. "5 clients",
+  // "Day 3 of 30"). Keys use '#' where a number sits; the Thai value reuses '#'
+  // in the order the numbers appear. Only these hand-listed phrases are ever
+  // matched, so this can't accidentally mangle arbitrary text. Filled by
+  // coach-i18n-dict.js (window.COACH_I18N.thPatterns).
+  function patterns() {
+    return (window.COACH_I18N && window.COACH_I18N.thPatterns) || null;
+  }
+
   // Look up a raw string. Leading/trailing whitespace is preserved and internal
   // runs of whitespace are collapsed to a single space for the lookup key, so
   // markup wrapping doesn't defeat a match.
@@ -54,9 +63,29 @@
     var lead = m[1], core = m[2], trail = m[3];
     if (!core) return null;
     var key = core.replace(/\s+/g, ' ');
+
+    // 1) Exact match (covers ~all static UI). Keys containing numbers are
+    //    matched here first, so they never fall through to the pattern layer.
     var val = d[key];
-    if (val == null) return null;
-    return lead + val + trail;
+    if (val != null) return lead + val + trail;
+
+    // 2) Number-tolerant match: replace each number run with '#' and look the
+    //    normalized phrase up in the curated pattern table, then put the actual
+    //    numbers back in order.
+    var pats = patterns();
+    if (pats) {
+      var nums = [];
+      var norm = key.replace(/\d[\d,]*(?:\.\d+)?/g, function (mm) { nums.push(mm); return '#'; });
+      if (nums.length) {
+        var pv = pats[norm];
+        if (pv != null) {
+          var i = 0;
+          var out = pv.replace(/#/g, function () { return i < nums.length ? nums[i++] : '#'; });
+          return lead + out + trail;
+        }
+      }
+    }
+    return null;
   }
 
   var SKIP_TAGS = { SCRIPT: 1, STYLE: 1, NOSCRIPT: 1, TEXTAREA: 1, CODE: 1, PRE: 1, OPTION: 0 };
