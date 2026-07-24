@@ -77,6 +77,23 @@
         document.head.appendChild(s);
     }
 
+    // Thai (and future languages) for the coach dashboard. Load the dictionary
+    // first, then the engine — the engine re-checks for the dictionary a few
+    // times, so strict ordering isn't required, but this avoids the retry when
+    // both cache-hit. Additive: does nothing unless the coach picked a non-
+    // English language. See js/coach-i18n.js.
+    function loadCoachI18n() {
+        if (document.querySelector('script[data-zique-coach-i18n]')) return;
+        const dict = document.createElement('script');
+        dict.src = '/js/coach-i18n-dict.js';
+        dict.dataset.ziqueCoachI18n = 'dict';
+        document.head.appendChild(dict);
+        const eng = document.createElement('script');
+        eng.src = '/js/coach-i18n.js';
+        eng.dataset.ziqueCoachI18n = '1';
+        document.head.appendChild(eng);
+    }
+
     function injectCommandCenterNavItem() {
         // Only on coach pages — they are the only ones with .sidebar-nav-item.
         const dashLink = document.querySelector('a.sidebar-nav-item[href="dashboard.html"], a.sidebar-nav-item[href="/dashboard.html"]');
@@ -343,6 +360,7 @@
         injectToggleButton();
         loadClientSwitcher();
         loadMasterProtector();
+        loadCoachI18n();
         // Command Center hidden for now (kept for later) — intentionally NOT injected.
         // injectCommandCenterNavItem();
         applyAccountLayout();
