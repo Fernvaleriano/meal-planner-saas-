@@ -10135,6 +10135,9 @@
         let swapDayIndex = null;
         let swapExIndex = null;
         let swapExerciseCache = [];
+        // IDs of suggestions already shown in this swap session, so "Refresh"
+        // asks the server for genuinely NEW alternatives instead of the same list.
+        let swapSeenSuggestionIds = [];
 
         function openSwapModal(dayIndex, exIndex) {
             swapDayIndex = dayIndex;
@@ -10159,6 +10162,10 @@
                 </div>`;
 
             document.getElementById('swapModal').classList.add('active');
+
+            // Fresh open — forget what was shown for the previous exercise so the
+            // first suggestions aren't accidentally filtered out as "already seen".
+            swapSeenSuggestionIds = [];
 
             // Fetch AI-powered swap suggestions
             fetchSwapAISuggestions(currentExercise, dayIndex);
@@ -10250,10 +10257,13 @@
                     Finding best alternatives...
                 </div>`;
 
+            // New filters mean a new candidate pool — start the "already seen"
+            // list over so filtered results aren't wrongly excluded.
+            swapSeenSuggestionIds = [];
             fetchSwapAISuggestions(currentExercise, swapDayIndex);
         }
 
-        async function fetchSwapAISuggestions(currentExercise, dayIndex) {
+        async function fetchSwapAISuggestions(currentExercise, dayIndex, previousSuggestionIds = []) {
             const aiContainer = document.getElementById('swapAISuggestionsList');
 
             try {
@@ -10283,16 +10293,23 @@
                         workoutExercises: workoutExercises,
                         coachId: currentCoachId,
                         equipmentFilter: filters.equipment || '',
-                        muscleFilter: filters.muscle || ''
+                        muscleFilter: filters.muscle || '',
+                        // Tell the server which alternatives were already shown so
+                        // Refresh returns new ones (and bumps AI variety).
+                        previousSuggestionIds: previousSuggestionIds
                     })
                 });
 
                 const data = await response.json();
 
                 // Check if modal is still open (user may have closed it)
-                if (swapDayIndex === null) return;
+                if (swapDayIndex === null) return -1;
 
                 if (data.suggestions && data.suggestions.length > 0) {
+                    // Remember these so the next Refresh asks for different ones.
+                    data.suggestions.forEach(ex => {
+                        if (ex.id != null) swapSeenSuggestionIds.push(String(ex.id));
+                    });
                     aiContainer.innerHTML = data.suggestions.map(ex => {
                         // PERFORMANCE: img only, no <video preload="metadata"> in swap list.
                         const thumbHtml = `<img class="swap-exercise-thumb" src="${ex.thumbnail_url || '/img/exercise-placeholder.svg'}" alt="${ex.name}" loading="lazy" decoding="async" onerror="this.onerror=null; this.src='/img/exercise-placeholder.svg';">`;
@@ -10307,12 +10324,15 @@
                             </div>
                         `;
                     }).join('');
+                    return data.suggestions.length;
                 } else {
                     aiContainer.innerHTML = '<div style="padding: 12px; text-align: center; color: var(--text-muted); font-size: 13px;">No AI suggestions available</div>';
+                    return 0;
                 }
             } catch (err) {
                 console.error('Swap AI suggestions error:', err);
                 aiContainer.innerHTML = '<div style="padding: 12px; text-align: center; color: var(--text-muted); font-size: 13px;">Could not load suggestions</div>';
+                return -1;
             }
         }
 
@@ -10334,7 +10354,16 @@
             btn.disabled = true;
             btn.style.opacity = '0.5';
 
-            fetchSwapAISuggestions(currentExercise, swapDayIndex).then(() => {
+            // Ask for alternatives we haven't shown yet this session.
+            const alreadyShown = swapSeenSuggestionIds.slice();
+            fetchSwapAISuggestions(currentExercise, swapDayIndex, alreadyShown).then((count) => {
+                // Pool exhausted (we've cycled through everything) — start fresh so
+                // Refresh keeps working instead of showing "No AI suggestions".
+                if (count === 0 && alreadyShown.length > 0) {
+                    swapSeenSuggestionIds = [];
+                    return fetchSwapAISuggestions(currentExercise, swapDayIndex, []);
+                }
+            }).finally(() => {
                 btn.disabled = false;
                 btn.style.opacity = '1';
             });
