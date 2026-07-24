@@ -1,6 +1,7 @@
 // Netlify Function to track client portal activity
 // Updates the last_activity_at timestamp for a client
 const { createClient } = require('@supabase/supabase-js');
+const { authenticateRequest, forbiddenResponse } = require('./utils/auth');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -25,6 +26,12 @@ exports.handler = async (event, context) => {
         body: JSON.stringify({ error: 'User ID is required' })
       };
     }
+
+    // A user may only stamp their OWN activity — verify the token and that it
+    // matches the userId in the request.
+    const { user, error: authError } = await authenticateRequest(event);
+    if (authError) return authError;
+    if (user.id !== userId) return forbiddenResponse('Cannot update another user\'s activity');
 
     // Initialize Supabase client with service key
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);

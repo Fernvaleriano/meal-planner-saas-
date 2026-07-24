@@ -2793,9 +2793,13 @@
                 if (isClientView && currentClientId) {
                     console.log('💾 Saving CLIENT modifications to database...', currentPlanId);
 
+                    const { data: { session: _saveSession } } = await supabaseClient.auth.getSession();
                     const response = await fetch(SAVE_CLIENT_MODIFICATION_ENDPOINT, {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: {
+                            'Content-Type': 'application/json',
+                            ...(_saveSession?.access_token ? { 'Authorization': `Bearer ${_saveSession.access_token}` } : {})
+                        },
                         body: JSON.stringify({
                             planId: currentPlanId,
                             clientId: currentClientId,
@@ -2863,9 +2867,13 @@
                 console.log('🔄 Resetting to original plan...', { planId: currentPlanId, clientId: currentClientId });
 
                 // Use backend function to reset (bypasses RLS)
+                const { data: { session: _resetSession } } = await supabaseClient.auth.getSession();
                 const response = await fetch(RESET_CLIENT_MODIFICATION_ENDPOINT, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...(_resetSession?.access_token ? { 'Authorization': `Bearer ${_resetSession.access_token}` } : {})
+                    },
                     body: JSON.stringify({
                         planId: currentPlanId,
                         clientId: currentClientId

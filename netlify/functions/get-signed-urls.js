@@ -1,7 +1,45 @@
 const { createClient } = require('@supabase/supabase-js');
+const { verifyRequestUser, userBelongsToCoach } = require('./utils/auth');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
+
+// Authorize a single storage path for the authenticated user. The second path
+// segment identifies ownership:
+//   exercise-videos/<coachId>/…, voice-notes/<coachId>/…,
+//   meal-voice-notes/<coachId>/…  → the coach, their trainers, or their clients
+//   client-voice-notes/<clientId>/… → that client, their coach, or their trainer
+async function authorizeAssetPath(supabase, user, filePath) {
+  const parts = filePath.split('/');
+  const prefix = parts[0] + '/';
+  const scopeId = parts[1];
+  if (!scopeId) return false;
+
+  if (prefix === 'client-voice-notes/') {
+    const { data: client } = await supabase
+      .from('clients')
+      .select('id, user_id, coach_id, trainer_id')
+      .eq('id', scopeId)
+      .maybeSingle();
+    if (!client) return false;
+    if (client.user_id === user.id) return true;
+    if (client.coach_id === user.id) return true;
+    if (client.trainer_id != null) {
+      const { data: trainerRow } = await supabase
+        .from('gym_trainers')
+        .select('id')
+        .eq('trainer_user_id', user.id)
+        .eq('gym_coach_id', client.coach_id)
+        .eq('status', 'active')
+        .maybeSingle();
+      if (trainerRow && String(trainerRow.id) === String(client.trainer_id)) return true;
+    }
+    return false;
+  }
+
+  // exercise-videos / voice-notes / meal-voice-notes → scopeId is the coach id
+  return userBelongsToCoach(supabase, user.id, scopeId);
+}
 
 const headers = {
   'Access-Control-Allow-Origin': '*',
@@ -37,7 +75,14 @@ exports.handler = async (event) => {
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
   try {
-    const { filePaths, coachId, clientId } = JSON.parse(event.body || '{}');
+    // Require a valid session, then authorize EVERY path against that user.
+    // Previously the ownership check was gated on `if (coachId && ...)`, so
+    // omitting coachId skipped it entirely — an anonymous caller could sign any
+    // asset path (and client-voice-notes were never checked at all).
+    const { user, error: authError } = await verifyRequestUser(event);
+    if (authError) return authError;
+
+    const { filePaths, coachId } = JSON.parse(event.body || '{}');
 
     if (!filePaths || !Array.isArray(filePaths) || filePaths.length === 0) {
       return {
@@ -45,23 +90,6 @@ exports.handler = async (event) => {
         headers,
         body: JSON.stringify({ error: 'filePaths array is required' })
       };
-    }
-
-    // Validate that the client belongs to the coach (if clientId provided)
-    if (clientId && coachId) {
-      const { data: clientData, error: clientError } = await supabase
-        .from('clients')
-        .select('coach_id')
-        .eq('id', clientId)
-        .single();
-
-      if (clientError || !clientData || clientData.coach_id !== coachId) {
-        return {
-          statusCode: 403,
-          headers,
-          body: JSON.stringify({ error: 'Access denied: Client does not belong to this coach' })
-        };
-      }
     }
 
     // Generate signed URLs for each file path
@@ -77,14 +105,11 @@ exports.handler = async (event) => {
         continue;
       }
 
-      // If coachId is provided, verify the file belongs to that coach
-      // (skip ownership check for client-voice-notes which are organized by clientId)
-      if (coachId && !filePath.startsWith('client-voice-notes/')) {
-        const pathCoachId = filePath.split('/')[1];
-        if (pathCoachId !== coachId) {
-          continue; // Skip files not belonging to this coach
-        }
-      }
+      // Ownership is derived from the authenticated user + the path itself
+      // (NOT a client-supplied coachId), so a caller can only sign assets they
+      // are actually entitled to.
+      const ok = await authorizeAssetPath(supabase, user, filePath);
+      if (!ok) continue;
 
       const { data, error } = await supabase.storage
         .from('workout-assets')

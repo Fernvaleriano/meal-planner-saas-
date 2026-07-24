@@ -10794,8 +10794,10 @@
             try {
                 // Add cache-busting timestamp to ensure fresh data
                 const timestamp = new Date().getTime();
+                const { data: { session: _plansSession } } = await supabaseClient.auth.getSession();
                 const response = await fetch(`${GET_CLIENT_PLANS_ENDPOINT}?clientId=${clientId}&coachId=${currentUser.id}&_t=${timestamp}`, {
-                    cache: 'no-store' // Disable browser caching
+                    cache: 'no-store', // Disable browser caching
+                    headers: _plansSession?.access_token ? { 'Authorization': `Bearer ${_plansSession.access_token}` } : {}
                 });
 
                 if (!response.ok) throw new Error('Failed to load plans');

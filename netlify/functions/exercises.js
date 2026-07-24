@@ -1,4 +1,5 @@
 const { createClient } = require('@supabase/supabase-js');
+const { authenticateGymMember } = require('./utils/auth');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -278,6 +279,15 @@ exports.handler = async (event) => {
         };
       }
 
+      if (!isUuid(coachId)) {
+        return { statusCode: 400, headers, body: JSON.stringify({ error: 'Invalid coachId' }) };
+      }
+
+      // Only the coach (or one of their gym trainers) may create a custom
+      // exercise under this coach_id.
+      const { error: postAuthError } = await authenticateGymMember(event, coachId);
+      if (postAuthError) return postAuthError;
+
       const insertData = {
         coach_id: coachId,
         name,
@@ -351,6 +361,22 @@ exports.handler = async (event) => {
         };
       }
 
+      // Authorize against the exercise's owning coach. Only custom exercises
+      // (coach_id set) are editable; the caller must be that coach or a trainer.
+      {
+        const { data: owned } = await supabase
+          .from('exercises')
+          .select('coach_id')
+          .eq('id', exerciseId)
+          .eq('is_custom', true)
+          .maybeSingle();
+        if (!owned || !owned.coach_id) {
+          return { statusCode: 404, headers, body: JSON.stringify({ error: 'Custom exercise not found' }) };
+        }
+        const { error: putAuthError } = await authenticateGymMember(event, owned.coach_id);
+        if (putAuthError) return putAuthError;
+      }
+
       // Map camelCase to snake_case
       const updateFields = {};
       if (updateData.name !== undefined) updateFields.name = updateData.name;
@@ -419,6 +445,22 @@ exports.handler = async (event) => {
           headers,
           body: JSON.stringify({ error: 'exerciseId is required' })
         };
+      }
+
+      // Authorize against the exercise's owning coach before deleting (and
+      // triggering Mux asset deletion). Only the owning coach or a trainer.
+      {
+        const { data: owned } = await supabase
+          .from('exercises')
+          .select('coach_id')
+          .eq('id', exerciseId)
+          .eq('is_custom', true)
+          .maybeSingle();
+        if (!owned || !owned.coach_id) {
+          return { statusCode: 404, headers, body: JSON.stringify({ error: 'Custom exercise not found' }) };
+        }
+        const { error: delAuthError } = await authenticateGymMember(event, owned.coach_id);
+        if (delAuthError) return delAuthError;
       }
 
       // Return the deleted row(s) so we know the Mux asset to clean up — and so

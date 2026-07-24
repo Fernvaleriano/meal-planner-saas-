@@ -1,7 +1,49 @@
 const { createClient } = require('@supabase/supabase-js');
+const { verifyRequestUser, userBelongsToCoach } = require('./utils/auth');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
+
+const cors = { 'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json' };
+const deny = (msg) => ({ statusCode: 403, headers: cors, body: JSON.stringify({ error: msg }) });
+
+// Coach owns the shared library — coach or one of their gym trainers only (NOT
+// their clients). Used to protect coach-owned rows from client writes/deletes.
+async function isCoachOrTrainer(supabase, userId, coachId) {
+  if (!userId || !coachId) return false;
+  if (userId === coachId) return true;
+  const { data } = await supabase
+    .from('gym_trainers')
+    .select('id')
+    .eq('trainer_user_id', userId)
+    .eq('gym_coach_id', coachId)
+    .eq('status', 'active')
+    .maybeSingle();
+  return !!data;
+}
+
+// The specific client, or their coach / assigned trainer.
+async function canAccessClient(supabase, userId, clientId) {
+  const { data: c } = await supabase
+    .from('clients')
+    .select('id, user_id, coach_id, trainer_id')
+    .eq('id', clientId)
+    .maybeSingle();
+  if (!c) return false;
+  if (c.user_id === userId) return true;
+  if (c.coach_id === userId) return true;
+  if (c.trainer_id != null) {
+    const { data: t } = await supabase
+      .from('gym_trainers')
+      .select('id')
+      .eq('trainer_user_id', userId)
+      .eq('gym_coach_id', c.coach_id)
+      .eq('status', 'active')
+      .maybeSingle();
+    if (t && String(t.id) === String(c.trainer_id)) return true;
+  }
+  return false;
+}
 
 exports.handler = async (event, context) => {
     // Handle CORS preflight
@@ -19,6 +61,11 @@ exports.handler = async (event, context) => {
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
+    // Every operation requires a valid session; ownership is then checked per
+    // request against the authenticated user (not the client-supplied ids).
+    const { user, error: authError } = await verifyRequestUser(event);
+    if (authError) return authError;
+
     // GET - Fetch saved meals for a coach or client
     if (event.httpMethod === 'GET') {
         const coachId = event.queryStringParameters?.coachId;
@@ -30,6 +77,14 @@ exports.handler = async (event, context) => {
                 headers: { 'Access-Control-Allow-Origin': '*' },
                 body: JSON.stringify({ error: 'Coach ID or Client ID is required' })
             };
+        }
+
+        // Read: the coach's library is readable by the coach, their trainers,
+        // and their clients; a client's own rows by that client / coach / trainer.
+        if (coachId) {
+            if (!await userBelongsToCoach(supabase, user.id, coachId)) return deny('Not authorized');
+        } else {
+            if (!await canAccessClient(supabase, user.id, clientId)) return deny('Not authorized');
         }
 
         try {
@@ -79,6 +134,14 @@ exports.handler = async (event, context) => {
                     headers: { 'Access-Control-Allow-Origin': '*' },
                     body: JSON.stringify({ error: 'Coach ID or Client ID, and meal data are required' })
                 };
+            }
+
+            // Save: a client of the coach may add to the coach's library, and a
+            // client may save their own rows; the coach/trainer may do both.
+            if (coachId) {
+                if (!await userBelongsToCoach(supabase, user.id, coachId)) return deny('Not authorized');
+            } else {
+                if (!await canAccessClient(supabase, user.id, clientId)) return deny('Not authorized');
             }
 
             // Build insert object
@@ -142,6 +205,14 @@ exports.handler = async (event, context) => {
                 headers: { 'Access-Control-Allow-Origin': '*' },
                 body: JSON.stringify({ error: 'Meal ID and (Coach ID or Client ID) are required' })
             };
+        }
+
+        // Delete: the coach's library may ONLY be modified by the coach or their
+        // trainers — never a client. A client may delete only their own rows.
+        if (coachId) {
+            if (!await isCoachOrTrainer(supabase, user.id, coachId)) return deny('Only the coach can remove library meals');
+        } else {
+            if (!await canAccessClient(supabase, user.id, clientId)) return deny('Not authorized');
         }
 
         try {

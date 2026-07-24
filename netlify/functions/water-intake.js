@@ -1,6 +1,7 @@
 // Netlify Function for tracking water intake
 const { createClient } = require('@supabase/supabase-js');
 const { getDefaultDate } = require('./utils/timezone');
+const { authenticateClientAccess } = require('./utils/auth');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -30,6 +31,9 @@ exports.handler = async (event) => {
       if (!clientId) {
         return { statusCode: 400, headers, body: JSON.stringify({ error: 'clientId is required' }) };
       }
+
+      const { error: authError } = await authenticateClientAccess(event, clientId);
+      if (authError) return authError;
 
       const targetDate = getDefaultDate(date, timezone);
 
@@ -78,6 +82,9 @@ exports.handler = async (event) => {
       if (!clientId) {
         return { statusCode: 400, headers, body: JSON.stringify({ error: 'clientId is required' }) };
       }
+
+      const { error: authError } = await authenticateClientAccess(event, clientId);
+      if (authError) return authError;
 
       const targetDate = getDefaultDate(date, timezone);
 

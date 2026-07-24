@@ -1,5 +1,6 @@
 // Netlify Function to reset client's modifications back to coach's original plan
 const { createClient } = require('@supabase/supabase-js');
+const { authenticateClientAccess } = require('./utils/auth');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qewqcjzlfqamqwbccapr.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -36,6 +37,10 @@ exports.handler = async (event, context) => {
         })
       };
     }
+
+    // Only the client themselves (or their coach/trainer) may reset this plan.
+    const { error: authError } = await authenticateClientAccess(event, clientId);
+    if (authError) return authError;
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 

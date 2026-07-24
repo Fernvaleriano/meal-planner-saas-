@@ -6963,11 +6963,13 @@
             renderPriorityAlertSections();
 
             // Restore each in database (fire and forget)
+            const { data: { session: _restoreSession } } = await supabaseClient.auth.getSession();
+            const _restoreAuth = _restoreSession?.access_token ? { 'Authorization': `Bearer ${_restoreSession.access_token}` } : {};
             for (const alert of toRestore) {
                 try {
                     fetch('/.netlify/functions/dismiss-activity', {
                         method: 'DELETE',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: { 'Content-Type': 'application/json', ..._restoreAuth },
                         body: JSON.stringify({
                             coachId: _currentCoachId,
                             clientId: alert.clientId,
