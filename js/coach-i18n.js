@@ -207,13 +207,6 @@
 
   function injectSwitch() {
     if (document.querySelector('[data-zique-lang]')) return;
-    var settingsItems = document.querySelector(
-      '.sidebar-nav-section[data-section="settings"] .sidebar-nav-items'
-    );
-    var host = settingsItems ||
-      document.querySelector('.sidebar-nav-items') ||
-      document.querySelector('.sidebar-nav');
-    if (!host) return;
 
     var current = getLang();
     var target = current === 'th' ? 'en' : 'th';
@@ -221,18 +214,48 @@
     // to a speaker of that language: "ไทย" when in English, "English" in Thai.
     var label = SUPPORTED[target];
 
-    var a = document.createElement('a');
-    a.href = 'javascript:void(0)';
-    a.className = 'sidebar-nav-item';
-    a.setAttribute('data-zique-lang', '1');
-    a.setAttribute('data-no-i18n', '1'); // never translate the switch itself
-    a.setAttribute('data-tooltip', label);
-    a.innerHTML = globeIcon() + label;
-    a.addEventListener('click', function (e) {
-      e.preventDefault();
-      switchTo(target);
-    });
-    host.insertBefore(a, host.firstChild);
+    var settingsItems = document.querySelector(
+      '.sidebar-nav-section[data-section="settings"] .sidebar-nav-items'
+    );
+    var host = settingsItems ||
+      document.querySelector('.sidebar-nav-items') ||
+      document.querySelector('.sidebar-nav');
+
+    if (host) {
+      // Native sidebar nav item (the 20 shared-layout pages).
+      var a = document.createElement('a');
+      a.href = 'javascript:void(0)';
+      a.className = 'sidebar-nav-item';
+      a.setAttribute('data-zique-lang', '1');
+      a.setAttribute('data-no-i18n', '1'); // never translate the switch itself
+      a.setAttribute('data-tooltip', label);
+      a.innerHTML = globeIcon() + label;
+      a.addEventListener('click', function (e) { e.preventDefault(); switchTo(target); });
+      host.insertBefore(a, host.firstChild);
+      return;
+    }
+
+    // Fallback for coach pages without a sidebar: a small floating pill so the
+    // switch is always reachable. Styled inline so it doesn't depend on the
+    // page's CSS.
+    if (!document.body) return;
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.setAttribute('data-zique-lang', '1');
+    btn.setAttribute('data-no-i18n', '1');
+    btn.setAttribute('aria-label', label);
+    btn.style.cssText = [
+      'position:fixed', 'top:12px', 'right:12px', 'z-index:99999',
+      'display:inline-flex', 'align-items:center', 'gap:6px',
+      'padding:7px 12px', 'border-radius:999px', 'border:1px solid rgba(0,0,0,0.1)',
+      'background:#0A1F2E', 'color:#fff', 'font:600 13px/1 system-ui,sans-serif',
+      'cursor:pointer', 'box-shadow:0 2px 8px rgba(0,0,0,0.15)'
+    ].join(';');
+    btn.innerHTML = globeIcon() + '<span>' + label + '</span>';
+    // The inline globe uses currentColor, sized for the sidebar; keep it small.
+    var svg = btn.querySelector('svg'); if (svg) { svg.setAttribute('width', '16'); svg.setAttribute('height', '16'); }
+    btn.addEventListener('click', function () { switchTo(target); });
+    document.body.appendChild(btn);
   }
 
   // ── Boot ────────────────────────────────────────────────────────────────
